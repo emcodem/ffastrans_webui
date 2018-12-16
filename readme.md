@@ -1,6 +1,6 @@
 Version 0.0.1 Created 2018 by Harald Jordan
 
-*** USERS SHOULD RUN THE SERVER.exe FILE ONLY ***
+*** USERS SHOULD RUN THE SERVER.exe FILE ONLY but download and extract the full project ***
 
 
 How to use: 
