@@ -3,8 +3,9 @@ const app = express();
 var path = require("path");
 const util = require('util')
 
+
 //needed for running as nexe
-var currentFullpath = path.resolve("./");
+var currentFullpath = path.dirname(process.execPath);
 var config = require(currentFullpath + '/server_config');
 
 //redirect user config
