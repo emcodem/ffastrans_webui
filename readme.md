@@ -1,5 +1,8 @@
 Version 0.0.1 Created 2018 by Harald Jordan
 
+*** USERS SHOULD DOWNLOAD AND RUN THE SERVER.exe FILE ONLY ***
+
+
 How to use: 
 
 You should install this on the same machine that is your ffastrans main controller.
