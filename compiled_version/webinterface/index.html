@@ -1,0 +1,275 @@
+<html>
+<head>
+<script src="dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+<script src="dependencies/dhtmlx/vault/vault.js"></script>
+<link rel="stylesheet" href="dependencies/dhtmlx/vault/vault.css" type="text/css"> 
+<script src="dependencies/jquery/jquery.js"></script>
+<script src="configuration/staticStrings.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+    }
+</style>
+
+<script>
+/* GLOBALS */
+var mainLayout,runningJobGrid,finishedJobGrid;
+
+/* build basic page layout and init periodic job loading*/
+function init(){
+    //check if html5 features supported
+    if (typeof(Storage) !== "undefined") {
+      // Code for localStorage/sessionStorage.
+    } else {
+        dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+    }
+
+    mainLayout = new dhtmlXLayoutObject({
+        parent: document.body,  
+        pattern: "3J"           
+    });
+    mainLayout.cells("a").setText("Running");
+    
+    mainLayout.cells("b").setText("New Job");
+    mainLayout.cells("b").setWidth($(document).width()/3);
+    mainLayout.cells("c").setText("Finished");
+    mainLayout.cells("a").setHeight($(document).height()/3.5);
+    saveRestoreUserState();
+
+    runningJobGrid = mainLayout.cells("a").attachGrid();
+    finishedJobGrid = mainLayout.cells("c").attachGrid();
+
+    var headerMenu = mainLayout.cells("a").attachMenu({                                               
+        items:[
+             {id:"abort", text:"Abort Job"},
+          ]
+    });
+    
+    //file add remove event
+    headerMenu.attachEvent("onClick", function(id, zoneId, cas){
+            if (id == "abort") {
+                abortJob()
+            }
+    });
+    
+    mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
+    
+    runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
+    configureJobGrid(runningJobGrid);
+    finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
+    configureJobGrid(finishedJobGrid);    
+    getActiveJobs(runningJobGrid);
+    getQueuedJobs(runningJobGrid);
+    getFinishedJobs(finishedJobGrid);
+    finishedJobGrid.setSortImgState(true,3,"desc");
+    runningJobGrid.setSortImgState  (true,3,"desc");  
+    window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
+    window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
+    window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
+    mainLayout.cells("a").progressOn();
+    mainLayout.cells("c").progressOn();
+}
+
+function abortJob(){
+    dhtmlx.alert("Aborting currently don't work, sorry for the inconvenience")
+    return;
+    
+    
+    if (!runningJobGrid.getSelectedRowId()){
+        dhtmlx.alert("Please select a Job to abort");
+        return;
+    }
+
+    var rowId = runningJobGrid.getSelectedRowId();
+    dhtmlx.message("aborting " + rowId);
+    var jobObj = runningJobGrid.getUserData(rowId,"jobobject");
+       $.ajax({
+            url:  buildUrl(STATIC_START_JOB_URL) + jobObj.job_id,
+            type: "DELETE",
+            crossDomain: true,
+            dataType: "json",
+            context: this,
+            success: function (response) {
+                    
+            },
+            error: function (xhr, status) {
+                dhtmlx.message("ERROR aborting job, contact developer  ");
+            }
+        });
+               
+    //
+}
+
+
+function saveRestoreUserState(){
+//stores some layout properties in html5 local store
+
+//collapsed state
+    mainLayout.attachEvent("onCollapse", function(name){
+        localStorage.setItem("mainLayoutCell_"+name+"_Collapsed", mainLayout.cells(name).isCollapsed());
+    });
+    mainLayout.attachEvent("onExpand", function(name){
+        localStorage.setItem("mainLayoutCell_"+name+"_Collapsed", mainLayout.cells(name).isCollapsed());
+    });
+    if (localStorage.getItem("mainLayoutCell_a_Collapsed") == "true"){
+        mainLayout.cells("a").collapse();
+    } 
+    if (localStorage.getItem("mainLayoutCell_b_Collapsed") == "true"){
+        mainLayout.cells("b").collapse();
+    } 
+    if (localStorage.getItem("mainLayoutCell_c_Collapsed") == "true"){
+        mainLayout.cells("c").collapse();
+    } 
+
+//sizes
+    mainLayout.attachEvent("onResizeFinish", function(){
+        dhtmlx.message (mainLayout.cells("a").width);
+        //localStorage.setItem("mainLayoutCell_"+name+"_Collapsed", mainLayout.cells("a").width);
+    });   
+    
+}
+
+
+function getQueuedJobs(targetGridObj){
+    $.ajax({
+        url:  buildUrl(STATIC_GET_QUEUED_JOBS_URL),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+            addJobsToGrid(targetGridObj,response.queue);
+            mainLayout.cells("a").progressOff();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+        }
+    });
+}
+
+function getActiveJobs(targetGridObj){
+    $.ajax({
+        url:  buildUrl(STATIC_GET_RUNNING_JOBS_URL),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+            addJobsToGrid(targetGridObj,response.jobs);
+            mainLayout.cells("a").progressOff();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+        }
+    });
+}
+
+function getFinishedJobs(targetGridObj){
+    $.ajax({
+        url:  buildUrl(STATIC_GET_FINISHED_JOBS_URL),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+           addJobsToGrid(targetGridObj,response.history);
+           mainLayout.cells("c").progressOff();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+            
+        }
+    });
+}
+
+function addJobsToGrid(targetGridObj,jobArray){
+    var newjobIds = [];
+    //add new jobs if any//TODO: at top
+    for (i=0;i<jobArray.length;i++){
+        var rowid = jobArray[i].job_start;
+        newjobIds.push(rowid);
+        if (targetGridObj.getRowIndex(rowid) == 0 && ("splits" in jobArray[i])){
+            //it is a running job, update state
+            var outcome = jobArray[i].splits[0].processor + "@" + jobArray[i].splits[0].node + " " + jobArray[i].splits[0].status + " Progress: " + jobArray[i].splits[0].progress;
+            targetGridObj.cells(rowid,6).setValue(outcome);
+        }
+        if (targetGridObj.getRowIndex(rowid) != -1 ){
+            //job already exists in grid
+            continue;
+        }
+        var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
+        
+        targetGridObj.addRow(rowid,[jobArray[i].state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
+        if (jobArray[i].state == "0"){//error
+            targetGridObj.setRowColor(rowid,"#ffe6e6");
+        }
+        if (jobArray[i].state == "2"){//aborted
+            targetGridObj.setRowColor(rowid,"#ffcc80");
+        }
+        
+        targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
+        targetGridObj.sortRows(3,"str","des");
+        
+    }
+    //delete non existing/orphaned jobs e.g. active job got finished 
+    targetGridObj.forEachRow(function(id){
+        if (!newjobIds.includes(id)){
+            targetGridObj.deleteRow(id);
+        }
+    });
+    
+    
+}
+
+/* HELPERS */
+
+function getDurationStringFromDates(start_date,end_date){
+        var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
+        var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
+        delta -= days * 86400;// calculate (and subtract) whole hours
+        var hours = Math.floor(delta / 3600) % 24;
+        delta -= hours * 3600;// calculate (and subtract) whole minutes
+        var minutes = Math.floor(delta / 60) % 60;
+        delta -= minutes * 60;// what's left is seconds
+        var seconds = delta % 60;  // in theory the modulus is not required
+        return pad(hours) + ":" + pad (minutes) + ":" + pad (seconds);
+}
+
+function pad(n, z) { //add leading zero if there is none
+  z = z || '0';
+  n = n + '';
+  return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
+}
+
+function configureJobGrid(dhtmlxGridObj){
+        dhtmlxGridObj.setImagePath("dependencies/dhtmlx/imgs");                 
+        dhtmlxGridObj.setHeader("State,Workflow,File,Job Start,Job End,Duration,Outcome");//the headers of columns  
+        dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");                    //filters
+        //dhtmlxGridObj.setInitWidthsP("0,15,30,10,0,*");          //the widths of columns  
+        dhtmlxGridObj.setColAlign("left,left,left,left,left,left");       //the alignment of columns   
+        dhtmlxGridObj.setColTypes("ro,ed,ed,ro,ed,ed,ed");                //the types of columns  
+        dhtmlxGridObj.setColSorting("str,str,str,str,str,str");          //the sorting types   
+        dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page 
+}
+
+function buildUrl(what){
+    var _url = "http://" + STATIC_API_HOST + ":" + STATIC_API_PORT + what;
+    return  _url;
+}
+
+
+
+
+</script>
+
+</head>
+<body onload="init()">
+
+</body>
