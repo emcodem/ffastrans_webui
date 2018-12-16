@@ -1,0 +1,11 @@
+Version 0.0.1 Created 2018 by Harald Jordan
+
+How to start: 
+install node.js on your computer
+run "node server.js" to start the webserver
+
+You should install this on the same machine that is your ffastrans main controller.
+
+configure ffastrans server and ip in webinterface/configuration/staticString.js
+
+"# ffastrans_webui" 
