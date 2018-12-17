@@ -12,7 +12,7 @@ How to start developing:
 
 install node.js on your computer
 
-chdir to the extracted files and run "npm init" to download the dependencies
+chdir to the extracted files and run "npm install" to download the dependencies
 
 run "node server.js" to start the webserver
 
