@@ -6,6 +6,8 @@ const crypto = require('crypto');
 
 module.exports = function(app){
 
+try{
+    
 	function getSafeName(filename, target, cb){
 		const safeName = crypto.createHash('md5').update(filename+(new Date())).digest("hex");
 		const saveTo = target + safeName;
@@ -47,5 +49,10 @@ module.exports = function(app){
 		var file = __dirname + '/files/'+req.params.file;
 		res.download(file, req.params.name);
 	});
+}catch (e){
+    console.log("ERROR: exception while uploading files, message: " + e)
+    res.writeHead(500);
+    res.end();
+}
 
 }

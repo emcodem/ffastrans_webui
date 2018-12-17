@@ -6,8 +6,16 @@ const util = require('util')
 
 //needed for running as nexe
 var currentFullpath = path.dirname(process.execPath);
-var config = require(currentFullpath + '/server_config');
-
+ 
+try{
+    //running as compiled exe file (nexe)
+    global.config = require(currentFullpath + '/server_config');
+    console.log("Running as compiled file")
+}catch(e){
+    //running as local script
+    global.config = require(__dirname + '/server_config');
+    console.log("Running as node script")
+}
 //redirect user config
 /*app.get('/', function(req, res,next) {
     
@@ -36,6 +44,6 @@ app.use('/favicon.ico', express.static('webinterface/images/favicon.ico'));
 
 
 console.log('Hello and welcome, thank you for using FFAStrans') 
-app.listen(config.port, () => console.log('Running on http://localhost:' + config.port));
+app.listen(global.config.port, () => console.log('Running on http://localhost:' + global.config.port));
 
 
