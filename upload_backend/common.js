@@ -3,12 +3,12 @@ const fs = require('fs');
 
 module.exports = function(app, express){
 
-	//serve previews
+	//serve previews - not yet supported nor used
 	app.use("/backend/upload/previews", express.static(__dirname + '/previews'));
 
-	//download files
+	//download files - not yet supported nor used
 	app.use('/backend/upload/files/:file', (req, res) => {
-		var file = __dirname + '/files/'+req.params.file;
+		var file = config.uploadpath +req.params.file;
 		res.download(file);
 	});
 
@@ -19,13 +19,13 @@ module.exports = function(app, express){
 			const response = {};
 			busboy.on('file', (fieldname, file, filename) => {
 				console.log(fieldname, filename);
-				const saveTo = __dirname + "/files/" + filename;
-				response.link = `/backend/upload/files/${filename}`;
+				const saveTo = config.uploadpath + filename;
+				response.link = `${filename}`;
 
 				file.pipe(fs.createWriteStream(saveTo));
 			});
 			busboy.on('field', (fieldname, val) => {
-				console.log(fieldname + ': '+ val);
+				console.log("Uploaded File:" + fieldname + ': '+ val);
 			});
 			busboy.on('finish', () => {
 				res.json(response);
