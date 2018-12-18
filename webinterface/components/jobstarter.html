@@ -34,7 +34,49 @@ function init(){
         pattern: "2U"           
     });
     m_mainLayout.cells("a").setText("Uploads");
-    m_mainLayout.cells("a").setWidth(200)
+    m_mainLayout.cells("a").setWidth(200);
+	var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
+	mode:               "top",          // string, optional, top or bottom tabs mode
+    align:              "left",         // string, optional, left or right tabs align
+    close_button:       true,           // boolean, opt., render Close button on tabs
+    content_zone:       true,           // boolean, opt., enable/disable content zone
+    onload:             function(){},   // function, optional, callback for XML/JSON
+    arrows_mode:        "auto" ,         // mode of showing tabs arrows (auto, always)
+    tabs: [ // tabs config
+ 
+        {
+            id:      "browse",      // tab id
+            text:    "Browse",    // tab text
+            width:   null,      // numeric for tab width or null for auto, optional
+            index:   0,      // numeric for tab index or null for last position,opt.
+            active:  true,      // boolean, make tab active after adding, optional
+            enabled: true,     // boolean, false to disable tab on init
+            close:   false       // boolean, render close button on tab, optional
+        },
+         
+        {
+            id:      "upload",      // tab id
+            text:    "Upload",    // tab text
+            width:   null,      // numeric for tab width or null for auto, optional
+            index:   1,      // numeric for tab index or null for last position,opt.
+            active:  false,      // boolean, make tab active after adding, optional
+            enabled: true,     // boolean, false to disable tab on init
+            close:   false       // boolean, render close button on tab, optional
+        },
+    ]
+});
+
+	var m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
+	//m_fileBrowserGrid = new dhtmlXGridObject(m_fileForm.getContainer("fileGrid"));
+    m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_fileBrowserGrid.setHeader("Name,Path,is_folder,size");//the headers of columns  
+    m_fileBrowserGrid.setInitWidthsP("20,20,20,20");          //the widths of columns  
+    m_fileBrowserGrid.setColAlign("left,left");       //the alignment of columns   
+    m_fileBrowserGrid.setColTypes("ro,ed");                //the types of columns  
+    m_fileBrowserGrid.setColSorting("str,str");          //the sorting types    
+    m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
+	m_fileBrowserGrid.load("/filebrowser?name=c:\\",function(){},"json");
+	
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
@@ -45,7 +87,8 @@ function init(){
             ]
         });
     
-    m_mainLayout.cells("a").attachHTMLString("<div id='vault')/>");
+	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
+   // m_mainLayout.cells("a").attachHTMLString("<div id='vault')/>");
     var vault = new dhx.Vault('vault', {
         uploader:{ 
             target:"/backend/upload" //dhtmlx_vault_server
@@ -74,9 +117,9 @@ function init(){
     m_fileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileGrid.setHeader("Source,Path");//the headers of columns  
     m_fileGrid.setInitWidthsP("20,80");          //the widths of columns  
-    m_fileGrid.setColAlign("left,left");       //the alignment of columns   
-    m_fileGrid.setColTypes("ro,ed");                //the types of columns  
-    m_fileGrid.setColSorting("str,str");          //the sorting types    
+    m_fileGrid.setColAlign("left,left,left,left");       //the alignment of columns   
+    m_fileGrid.setColTypes("ed,ed,ed,ed");                //the types of columns  
+    m_fileGrid.setColSorting("str,str,str,str");          //the sorting types    
     m_fileGrid.init();      //finishes initialization and renders the grid on the page 
     
     //EVENTS
@@ -183,7 +226,8 @@ function on_processorSelected(index){
             }else{
                 //ok, we have the workflow info, populate user variables and start btn
                 if (!("variables" in response.workflows[0])){
-                    dhtmlx.message("This Workflow has no Uservariables")
+                    dhtmlx.message("This Workflow has no Uservariables");
+					return;
                 }
                 for (i=0;i<response.workflows[0].variables.length;i++){
                     //add uservariables inputs
