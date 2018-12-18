@@ -2,7 +2,8 @@ const express = require('express');
 const app = express();
 var path = require("path");
 const util = require('util')
-
+require('console-stamp')(console, '[HH:MM:ss.l]');
+var bodyParser = require('body-parser')
 
 //needed for running as nexe
 var currentFullpath = path.dirname(process.execPath);
@@ -26,6 +27,9 @@ try{
     //res.end();
 });*/
 
+
+app.use(bodyParser.urlencoded({ extended: true }));
+ 
 // serve static websites
 app.use(express.static('./'));
 app.use(express.static(__dirname + '/webinterface'));
@@ -35,6 +39,7 @@ require("./upload_backend/common")(app, express);
 require("./upload_backend/saverename")(app, express);
 require("./upload_backend/getFullUploadPath")(app, express);
 require("./redirect")(app, express);
+require("./node_components/filebrowser")(app, express);
 
 
 
