@@ -1,2 +1,2 @@
 this contains the dhtmlx vault component only.
-the files directory contains uploaded files.
+the directory where uploads go is set in server_config.js
