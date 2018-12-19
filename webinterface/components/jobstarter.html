@@ -76,7 +76,7 @@ function init(){
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro");                //the types of columns  
     m_fileBrowserGrid.setColSorting("str,str,str,int");          //the sorting types    
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
-	getFileList(m_fileBrowserGrid,"/filebrowser?name=c:\\")
+	
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
 		items:[
             {id:"location", text:"Locations"},
@@ -278,6 +278,7 @@ function getBrowseLocations(){
            for (i=0;i<m_browseLocations.values.length;i++){
                 m_fileBrowseGridMenu.addNewChild("location", i, m_browseLocations.values[i], m_browseLocations.display_names[i], false,"","");
            }
+           getFileList(m_fileBrowserGrid,"/filebrowser?name=" + m_browseLocations.values[0]); //load first configured location, todo: restore last visited folder
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR, could not GET getbrowselocations, contact developer " + xhr);
