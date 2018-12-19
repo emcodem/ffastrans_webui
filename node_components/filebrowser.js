@@ -1,5 +1,6 @@
 const fs = require('fs');
 var path = require('path');
+var regexEscape = require('escape-string-regexp');
 
 module.exports = function(app, express){
 
@@ -7,11 +8,16 @@ module.exports = function(app, express){
 	app.get('/filebrowser', (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
+
+                
 				var baseFolder;
 				baseFolder = req.body.name || req.query.name;
 				if ((!baseFolder.endsWith("/")) && (!baseFolder.endsWith("\\"))){
 					baseFolder += "\\";
 				}
+                checkFolderInGlobalConfig(baseFolder); //ends request with error if basefolder is is not within configured locations
+                
+                //start output
 				res.writeHead(200,{"Content-Type" : "application/JSON"});
 				//serve default directory
 				var rows = {};
@@ -36,29 +42,28 @@ module.exports = function(app, express){
 				})		
 			}
 		}catch (ex){
-				console.log("ERROR: unxepected error in filebrowse: " + ex)            ;
+				console.log("ERROR: unxepected error in filebrowser.js: " + ex)            ;
                 res.status(500);//Send error response here
                 res.end();
 		}
 	});
 	
-	app.post('/filebrowser', (req, res) => {
-		if (req.method === 'POST') {
-			//change to directory
-			var baseFolder;
-			var rows =[];
-			try{
-				baseFolder = req.body.name;
-				fs.readdir(testFolder, (err, files) => {
-				  files.forEach(filename => {
-						rows.push({'name':filename,'fullpath':baseFolder + filename, 'is_folder':fs.lstatSync(baseFolder + filename).isDirectory()});
-				  });
-				})
-			}catch(ex){
-				console.log("ERROR: cannot list files in folder: [" + name + "], message: " + ex);
-			}
-			
-			res.end();
-		}
-	});
+    function checkFolderInGlobalConfig(folder){
+        //checks if global conf allows changing into this folder
+        var allowed = false;
+        for (i=0;i<global.config.allowed_browse_locations.length;i++){
+            var regex = new RegExp(regexEscape(global.config.allowed_browse_locations[i]), "i");            
+            if (regex.exec(folder)){
+               allowed = true; 
+            }
+        }
+        if (allowed){
+            return true;
+        }else {
+            console.log("Directory not allowed: " + folder);
+            res.status(500);//Send error response here
+            res.end();
+        }
+        
+    }
 }

@@ -41,6 +41,7 @@ require("./upload_backend/saverename")(app, express);
 require("./upload_backend/getFullUploadPath")(app, express);
 require("./redirect")(app, express);
 require("./node_components/filebrowser")(app, express);
+require("./node_components/getbrowselocations")(app, express);
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
