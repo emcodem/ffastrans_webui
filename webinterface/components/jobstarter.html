@@ -44,28 +44,29 @@ function init(){
     arrows_mode:        "auto" ,         // mode of showing tabs arrows (auto, always)
     tabs: [ // tabs config
  
-        {
+        /*{
             id:      "browse",      // tab id
             text:    "Browse",    // tab text
             width:   null,      // numeric for tab width or null for auto, optional
             index:   0,      // numeric for tab index or null for last position,opt.
-            active:  true,      // boolean, make tab active after adding, optional
-            enabled: true,     // boolean, false to disable tab on init
+            active:  false,      // boolean, make tab active after adding, optional
+            enabled: false,     // boolean, false to disable tab on init
             close:   false       // boolean, render close button on tab, optional
-        },
+        },*/
          
         {
             id:      "upload",      // tab id
             text:    "Upload",    // tab text
             width:   null,      // numeric for tab width or null for auto, optional
             index:   1,      // numeric for tab index or null for last position,opt.
-            active:  false,      // boolean, make tab active after adding, optional
+            active:  true,      // boolean, make tab active after adding, optional
             enabled: true,     // boolean, false to disable tab on init
             close:   false       // boolean, render close button on tab, optional
         },
     ]
 });
 
+/*
 	var m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
 	//m_fileBrowserGrid = new dhtmlXGridObject(m_fileForm.getContainer("fileGrid"));
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
@@ -76,7 +77,7 @@ function init(){
     m_fileBrowserGrid.setColSorting("str,str");          //the sorting types    
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
 	m_fileBrowserGrid.load("/filebrowser?name=c:\\",function(){},"json");
-	
+	*/
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
