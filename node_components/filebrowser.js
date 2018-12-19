@@ -1,5 +1,5 @@
 const fs = require('fs');
-
+var path = require('path');
 
 module.exports = function(app, express){
 
@@ -16,8 +16,13 @@ module.exports = function(app, express){
 				//serve default directory
 				var rows = {};
 				rows.rows =[];
+				
 				if (!baseFolder){baseFolder = 'c:\\';};//todo: handle no basepath error
+				var split = baseFolder.split("\\");//todo: make sure path contains only backslashes
+				var parentPath = split.slice(0, split.length - 2).join("\\") + "\\";
+				rows.rows.push({id:"oneup",data:["..",parentPath, true, 0]});//add parent folder
 				fs.readdir(baseFolder, (err, files) => {
+					
 				  files.forEach(filename => {
 					  try{//ignore non accessible files and folders
 						const stats = fs.statSync(baseFolder + filename)
