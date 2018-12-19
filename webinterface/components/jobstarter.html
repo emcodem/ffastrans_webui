@@ -1,12 +1,14 @@
 <html>
 <head>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
 <script src="../dependencies/jquery/jquery.js"></script>
 <script src="../configuration/staticStrings.js"></script>
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 
+<!--<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">-->
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -34,7 +36,7 @@ function init(){
         pattern: "2U"           
     });
     m_mainLayout.cells("a").setText("Uploads");
-    m_mainLayout.cells("a").setWidth(200);
+    //m_mainLayout.cells("a").setWidth();
 	var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
 	mode:               "top",          // string, optional, top or bottom tabs mode
     align:              "left",         // string, optional, left or right tabs align
@@ -44,40 +46,63 @@ function init(){
     arrows_mode:        "auto" ,         // mode of showing tabs arrows (auto, always)
     tabs: [ // tabs config
  
-        /*{
+        {
             id:      "browse",      // tab id
             text:    "Browse",    // tab text
             width:   null,      // numeric for tab width or null for auto, optional
             index:   0,      // numeric for tab index or null for last position,opt.
-            active:  false,      // boolean, make tab active after adding, optional
-            enabled: false,     // boolean, false to disable tab on init
+            active:  true,      // boolean, make tab active after adding, optional
+            enabled: true,     // boolean, false to disable tab on init
             close:   false       // boolean, render close button on tab, optional
-        },*/
+        },
          
         {
             id:      "upload",      // tab id
             text:    "Upload",    // tab text
             width:   null,      // numeric for tab width or null for auto, optional
             index:   1,      // numeric for tab index or null for last position,opt.
-            active:  true,      // boolean, make tab active after adding, optional
+            active:  false,      // boolean, make tab active after adding, optional
             enabled: true,     // boolean, false to disable tab on init
             close:   false       // boolean, render close button on tab, optional
         },
     ]
 });
 
-/*
+
+
+		//fileBrowserMenu.setIconsPath("../common/images/");
+		
+		//fileBrowserMenu.attachEvent("onClick",onButtonClick);
 	var m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
+		var fileBrowserContextMenu = new dhtmlXMenuObject({
+			parent:'fakeContextArea',
+			items:[
+				{id:"t1", text:"Top 1", items:[
+					{id:"ch1", text:"child 1"},
+					{id:"ch2", text:"child 2"}
+				]}
+			]
+		});
+		fileBrowserContextMenu.renderAsContextMenu();
 	//m_fileBrowserGrid = new dhtmlXGridObject(m_fileForm.getContainer("fileGrid"));
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("Name,Path,is_folder,size");//the headers of columns  
-    m_fileBrowserGrid.setInitWidthsP("20,20,20,20");          //the widths of columns  
-    m_fileBrowserGrid.setColAlign("left,left");       //the alignment of columns   
-    m_fileBrowserGrid.setColTypes("ro,ed");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str");          //the sorting types    
+    m_fileBrowserGrid.setInitWidthsP("*,0,0,20");          //the widths of columns  
+    m_fileBrowserGrid.setColAlign("left,left,left,left");       //the alignment of columns   
+    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro");                //the types of columns  
+    m_fileBrowserGrid.setColSorting("str,str,str,int");          //the sorting types    
+	m_fileBrowserGrid.enableContextMenu(fileBrowserContextMenu);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
-	m_fileBrowserGrid.load("/filebrowser?name=c:\\",function(){},"json");
-	*/
+	//m_fileBrowserGrid.load("/filebrowser?name=c:\\",function(){},"json");
+	getFileList(m_fileBrowserGrid,"/filebrowser?name=c:\\")
+	var fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
+		items:[
+			{id:"select", text:"<b>Select File</b>"}
+		]
+	});
+	
+
+	
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
@@ -118,9 +143,10 @@ function init(){
     m_fileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileGrid.setHeader("Source,Path");//the headers of columns  
     m_fileGrid.setInitWidthsP("20,80");          //the widths of columns  
-    m_fileGrid.setColAlign("left,left,left,left");       //the alignment of columns   
-    m_fileGrid.setColTypes("ed,ed,ed,ed");                //the types of columns  
-    m_fileGrid.setColSorting("str,str,str,str");          //the sorting types    
+    m_fileGrid.setColAlign("left,left");       //the alignment of columns   
+    m_fileGrid.setColTypes("ed,ed");                //the types of columns  
+    m_fileGrid.setColSorting("str,str");          //the sorting types    
+	
     m_fileGrid.init();      //finishes initialization and renders the grid on the page 
     
     //EVENTS
@@ -171,11 +197,67 @@ function init(){
          
     });
     
+	//file browser events
+	m_fileBrowserGrid.attachEvent("onRowSelect", function(id,ind){
+		//change folder 
+		if (m_fileBrowserGrid.cells(id,2).getValue() == "true"){
+			getFileList(m_fileBrowserGrid,"/filebrowser?name=" + m_fileBrowserGrid.cells(id,1).getValue())
+		}
+	});
+	
+	fileBrowseGridMenu.attachEvent("onClick", function(id, zoneId, cas){
+		if (id == "select") {
+			if (!m_fileBrowserGrid.getSelectedRowId()){
+				dhtmlx.message("Please select a File in the file browser");
+				return;
+			}
+			
+			//TODO:get selected row
+			m_fileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
+		}
+	})
     
     //MAIN 
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
     getWorkflows();
+}
+
+function getReadableFileSizeString(fileSizeInBytes) {
+	if (fileSizeInBytes == 0){
+		return "0 kB";
+	}
+    var i = -1;
+    var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+    do {
+        fileSizeInBytes = fileSizeInBytes / 1024;
+        i++;
+    } while (fileSizeInBytes > 1024);
+
+    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
+};
+
+function getFileList(dhtmlxGrid,url){
+		//store last folder
+	    $.ajax({
+        url:  url,
+        type: "GET",
+        success: function (response) {
+			dhtmlxGrid.clearAll();
+			dhtmlxGrid.parse(response,"json");
+			dhtmlxGrid.forEachRow(function(id){
+			//convert filesize to human readable
+				dhtmlxGrid.cells(id,3).setValue( getReadableFileSizeString(dhtmlxGrid.cells(id,3).getValue()));
+				if (dhtmlxGrid.cells(id,2).getValue() =="true"){
+					dhtmlxGrid.cells(id,0).setValue( '<i class="fas fa-folder"></i> ' + (dhtmlxGrid.cells(id,0).getValue()));
+				}
+				
+			});
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR, could not GET " + url + xhr);
+        }
+    });
 }
 
 function getRealUploadPath(){
@@ -352,5 +434,5 @@ function buildUrl(what){
 
 </head>
 <body onload="init()">
-
+<div id="fakeContextArea"></div>
 </body>

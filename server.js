@@ -5,9 +5,10 @@ const util = require('util')
 require('console-stamp')(console, '[HH:MM:ss.l]');
 var bodyParser = require('body-parser')
 
+
 //needed for running as nexe
 var currentFullpath = path.dirname(process.execPath);
- 
+
 try{
     //running as compiled exe file (nexe)
     global.config = require(currentFullpath + '/server_config');
@@ -41,6 +42,10 @@ require("./upload_backend/getFullUploadPath")(app, express);
 require("./redirect")(app, express);
 require("./node_components/filebrowser")(app, express);
 
+//catch all uncaught exceptions - keeps the server running
+process.on('uncaughtException', function(err) {
+  console.log('Caught exception: ' + err);
+});
 
 
 //favicon
