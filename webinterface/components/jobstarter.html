@@ -7,8 +7,6 @@
 <script src="../dependencies/jquery/jquery.js"></script>
 <script src="../configuration/staticStrings.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
-
-<!--<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">-->
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -17,19 +15,20 @@
         margin: 0px;
         overflow: hidden;
     }
+
 </style>
 
 <script>
 
 /* GLOBALS */
-var m_mainLayout,m_mainForm,m_subForm,m_fileForm,m_fileGrid,m_workflowArray;
+var m_mainLayout,m_mainForm,m_subForm,m_fileForm,m_fileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu;
 var m_realUploadpath = "";
 
 /* build basic page layout and init periodic job loading*/
 function init(){
     //load config data from server
     getRealUploadPath();
-
+    getBrowseLocations();
     //main layout
     m_mainLayout = new dhtmlXLayoutObject({
         parent: document.body,  
@@ -68,40 +67,22 @@ function init(){
     ]
 });
 
-
-
-		//fileBrowserMenu.setIconsPath("../common/images/");
-		
-		//fileBrowserMenu.attachEvent("onClick",onButtonClick);
-	var m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
-		var fileBrowserContextMenu = new dhtmlXMenuObject({
-			parent:'fakeContextArea',
-			items:[
-				{id:"t1", text:"Top 1", items:[
-					{id:"ch1", text:"child 1"},
-					{id:"ch2", text:"child 2"}
-				]}
-			]
-		});
-		fileBrowserContextMenu.renderAsContextMenu();
-	//m_fileBrowserGrid = new dhtmlXGridObject(m_fileForm.getContainer("fileGrid"));
+	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
+    
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("Name,Path,is_folder,size");//the headers of columns  
     m_fileBrowserGrid.setInitWidthsP("*,0,0,20");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro");                //the types of columns  
     m_fileBrowserGrid.setColSorting("str,str,str,int");          //the sorting types    
-	m_fileBrowserGrid.enableContextMenu(fileBrowserContextMenu);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
-	//m_fileBrowserGrid.load("/filebrowser?name=c:\\",function(){},"json");
 	getFileList(m_fileBrowserGrid,"/filebrowser?name=c:\\")
-	var fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
+	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
 		items:[
-			{id:"select", text:"<b>Select File</b>"}
+            {id:"location", text:"Locations"},
+			{id:"select", text:"Select File"},
 		]
 	});
-	
-
 	
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
@@ -123,7 +104,6 @@ function init(){
 
     //workflow forms
     m_mainLayout.cells("b").attachHTMLString('<div id="fileform" style="width:100%;height:200px;"></div><div id="mainform" style="width:100%;height:150px;"></div><div id="subform" style="width:100%;height:400px;"></div>');
-
     
     m_mainForm  = new dhtmlXForm("mainform");
     m_mainForm.addItem(null, {type: "label", label: "Workflow"},0);
@@ -165,7 +145,6 @@ function init(){
         for (i=0;i<files.length;i++){
             var newId = (new Date()).valueOf();
             m_fileGrid.addRow(newId,["Upload",files[i].name]);
-            //m_fileForm.addItem(null,{type: "input", value: files[i].name, label: "Uploaded: ", offsetLeft:20 },1);
         }
     });
     
@@ -205,25 +184,27 @@ function init(){
 		}
 	});
 	
-	fileBrowseGridMenu.attachEvent("onClick", function(id, zoneId, cas){
+	m_fileBrowseGridMenu.attachEvent("onClick", function(id, zoneId, cas){
 		if (id == "select") {
 			if (!m_fileBrowserGrid.getSelectedRowId()){
 				dhtmlx.message("Please select a File in the file browser");
 				return;
 			}
-			
-			//TODO:get selected row
-			m_fileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
+			selectFileToProcess();
+            return;
 		}
+        //in any other case, a folder in "select" menu was chosen
+        getFileList(m_fileBrowserGrid,"/filebrowser?name=" +id)
 	})
     
-    //MAIN 
+//MAIN STARTING POINT
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
     getWorkflows();
 }
 
 function getReadableFileSizeString(fileSizeInBytes) {
+//helper, translates number of file size bytes into human readable value
 	if (fileSizeInBytes == 0){
 		return "0 kB";
 	}
@@ -235,10 +216,15 @@ function getReadableFileSizeString(fileSizeInBytes) {
     } while (fileSizeInBytes > 1024);
 
     return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
-};
+}
+
+function selectFileToProcess(){
+    //transfer selected file to processing grid
+    m_fileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
+}
 
 function getFileList(dhtmlxGrid,url){
-		//store last folder
+//browse files on server
 	    $.ajax({
         url:  url,
         type: "GET",
@@ -249,13 +235,18 @@ function getFileList(dhtmlxGrid,url){
 			//convert filesize to human readable
 				dhtmlxGrid.cells(id,3).setValue( getReadableFileSizeString(dhtmlxGrid.cells(id,3).getValue()));
 				if (dhtmlxGrid.cells(id,2).getValue() =="true"){
-					dhtmlxGrid.cells(id,0).setValue( '<i class="fas fa-folder"></i> ' + (dhtmlxGrid.cells(id,0).getValue()));
-				}
+                    //folders get a folder icon attached
+					dhtmlxGrid.cells(id,0).setValue( '<i class="fas fa-folder"></i> ' + (dhtmlxGrid.cells(id,0).getValue()) );
+				}else{
+                    dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){ 
+                        selectFileToProcess();
+                    });
+                }
 				
 			});
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR, could not GET " + url + xhr);
+            dhtmlx.message("ERROR, could not GET location, maybe it is not allowed?" + url + " " + xhr);
         }
     });
 }
@@ -273,8 +264,25 @@ function getRealUploadPath(){
             dhtmlx.message("ERROR, could not GET getfulluploadpath, contact developer");
         }
     });
-    
+}
 
+function getBrowseLocations(){
+//request data fom server and set global var
+    $.ajax({
+        url:  "/getbrowselocations",
+        type: "GET",
+        dataType: "json",
+        crossDomain: true,
+        success: function (response) {
+           m_browseLocations = response;
+           for (i=0;i<m_browseLocations.values.length;i++){
+                m_fileBrowseGridMenu.addNewChild("location", i, m_browseLocations.values[i], m_browseLocations.display_names[i], false,"","");
+           }
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR, could not GET getbrowselocations, contact developer " + xhr);
+        }
+    });
 }
 
 function on_processorSelected(index){
@@ -434,5 +442,5 @@ function buildUrl(what){
 
 </head>
 <body onload="init()">
-<div id="fakeContextArea"></div>
+
 </body>

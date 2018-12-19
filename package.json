@@ -22,6 +22,7 @@
   "types": "codebase/vault.d.ts",
   "dependencies": {
     "console-stamp": "^0.2.7",
+    "escape-string-regexp": "^1.0.5",
     "routes": "^2.1.0",
     "serve-favicon": "^2.5.0"
   }
