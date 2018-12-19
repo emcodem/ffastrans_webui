@@ -21,7 +21,7 @@
 <script>
 
 /* GLOBALS */
-var m_mainLayout,m_mainForm,m_subForm,m_fileForm,m_fileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu;
+var m_mainLayout,m_mainForm,m_subForm,m_fileForm,m_fileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTree;
 var m_realUploadpath = "";
 
 /* build basic page layout and init periodic job loading*/
@@ -103,8 +103,31 @@ function init(){
     });
 
     //workflow forms
-    m_mainLayout.cells("b").attachHTMLString('<div id="fileform" style="width:100%;height:200px;"></div><div id="mainform" style="width:100%;height:150px;"></div><div id="subform" style="width:100%;height:400px;"></div>');
+    var jobLayout = m_mainLayout.cells("b").attachLayout({
+        parent: document.body,  
+        pattern: "2E"           
+    });
+    jobLayout.cells("a").hideHeader();
+    jobLayout.cells("b").hideHeader();
+    jobLayout.cells("a").attachHTMLString('<div id="fileform" style="width:100%;height:200px;"></div><div id="mainform" style="width:100%;height:150px;"></div><div id="subform" style="width:100%;height:400px;"></div>');
     
+    //workflow tree, todo: get rid of m_mainForm and subform
+    var m_workflowTabBar = jobLayout.cells("b").attachTabbar({
+        mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
+        tabs: [ // tabs config
+            {
+                id: "workflowtab", text:"Workflows",width:null,index:0,active:true, enabled: true, close:false
+            },
+             
+            {
+                id:"variabletab",text:"Variables",width:null,index:1,active:false,enabled:true,close:false 
+            },
+        ]
+    });
+    
+    m_workflowTree = m_workflowTabBar.tabs("workflowtab").attachTreeView({})
+    
+    //mainform is for workflow and processor selection, subform for variables
     m_mainForm  = new dhtmlXForm("mainform");
     m_mainForm.addItem(null, {type: "label", label: "Workflow"},0);
     m_subForm  = new dhtmlXForm("subform");
@@ -130,6 +153,10 @@ function init(){
     m_fileGrid.init();      //finishes initialization and renders the grid on the page 
     
     //EVENTS
+    m_workflowTree.attachEvent("onSelect", function(id){
+        on_treeWorkflowSelected(id);
+    });
+
     //workflow and start proc selected event
     m_mainForm.attachEvent("onChange", function (name, value, state){
             if (name == 'wf_name'){
@@ -278,7 +305,7 @@ function getBrowseLocations(){
            for (i=0;i<m_browseLocations.values.length;i++){
                 m_fileBrowseGridMenu.addNewChild("location", i, m_browseLocations.values[i], m_browseLocations.display_names[i], false,"","");
            }
-           getFileList(m_fileBrowserGrid,"/filebrowser?name=" + m_browseLocations.values[0]); //load first configured location, todo: restore last visited folder
+           getFileList(m_fileBrowserGrid,"/filebrowser?name=" +m_fileBrowserGrid,m_browseLocations.values[0]); //load first configured location, todo: restore last visited folder
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR, could not GET getbrowselocations, contact developer " + xhr);
@@ -336,6 +363,27 @@ function on_processorSelected(index){
     
 }
 
+
+function on_treeWorkflowSelected(id){
+    //called from select event of tree
+    //populates start processor list
+   
+    var wfArray = m_workflowArray;
+    var options=[];
+    //todo: parse processors and create form in layout cell B
+    //variable.start_procs[]
+    for (i=0;i<wfArray[index].variable.start_procs.length;i++){
+        var proc = wfArray[index].variable.start_procs[i];
+        var proc_name = wfArray[index][proc].properties.custom_node_name ||  proc; 
+        options.push({text:proc_name,value:proc});
+    }
+    
+    var itemData = {type: "select",name: "start_proc", label: "Start Processor:", options: options,  offsetLeft:10};   
+    m_mainForm.addItem(null, itemData, 2);
+    on_processorSelected(0);                                           //auto select first processor
+    
+}
+
 function on_workflowSelected(index){
     //called from onChange function of Form
     //populates start processor list
@@ -362,11 +410,30 @@ function parseWorkflows(wfArray){
     //m_mainForm.setUserData("workflow","array",wfArray);         //store the workflow array in form userdata for later access
     
     //fill drowdowns
+    var parents = [];
     var options = [];
     for (i=0;i<wfArray.length;i++){
         var itm = {userdata:wfArray[i],text:wfArray[i].general.wf_name,value:i};//value is item index for later accessing the wfarray stored in form userdata (in onChange event)
         options.push(itm);
+        var folder = wfArray[i].general.folder;
+       
+        if (folder){
+           m_workflowTree.addItem(folder,folder);//add parent tree items
+        }
+         m_workflowTree.addItem(i, itm.text, folder);
     }
+
+    for(i=0;i<options.length;i++){
+        var folder = options[i].userdata.general.folder;
+        if (!folder){
+            folder = folder;
+        }
+        console.log("adding option "+options[i].text+"to folder :" + folder)
+          // id, text, parentId
+    }
+    
+    //m_workflowTree.sortTree("", "desc", true);
+    
     var itemData = {type: "select", name: "wf_name", label: "Workflow Name:", options: options , offsetLeft:10};   
     m_mainForm.addItem(null, itemData, 1);
     on_workflowSelected(0);
