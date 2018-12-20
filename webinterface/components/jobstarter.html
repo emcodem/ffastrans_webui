@@ -21,7 +21,7 @@
 <script>
 
 /* GLOBALS */
-var m_mainLayout,m_mainForm,m_subForm,m_fileForm,m_fileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar;
+var m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar;
 var m_realUploadpath = "";
 
 /* build basic page layout and init periodic job loading*/
@@ -36,39 +36,24 @@ function init(){
     });
     m_mainLayout.cells("a").setText("Uploads");
     //m_mainLayout.cells("a").setWidth();
-	var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
-	mode:               "top",          // string, optional, top or bottom tabs mode
-    align:              "left",         // string, optional, left or right tabs align
-    close_button:       true,           // boolean, opt., render Close button on tabs
-    content_zone:       true,           // boolean, opt., enable/disable content zone
-    onload:             function(){},   // function, optional, callback for XML/JSON
-    arrows_mode:        "auto" ,         // mode of showing tabs arrows (auto, always)
-    tabs: [ // tabs config
- 
-        {
-            id:      "browse",      // tab id
-            text:    "Browse",    // tab text
-            width:   null,      // numeric for tab width or null for auto, optional
-            index:   0,      // numeric for tab index or null for last position,opt.
-            active:  true,      // boolean, make tab active after adding, optional
-            enabled: true,     // boolean, false to disable tab on init
-            close:   false       // boolean, render close button on tab, optional
-        },
-         
-        {
-            id:      "upload",      // tab id
-            text:    "Upload",    // tab text
-            width:   null,      // numeric for tab width or null for auto, optional
-            index:   1,      // numeric for tab index or null for last position,opt.
-            active:  false,      // boolean, make tab active after adding, optional
-            enabled: true,     // boolean, false to disable tab on init
-            close:   false       // boolean, render close button on tab, optional
-        },
-    ]
-});
+    var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
+        mode:               "top",
+        align:              "left",
+        close_button:       true,
+        content_zone:       true,
+        onload:             function(){},
+        arrows_mode:        "auto" ,
+        tabs: [ // tabs config
+            {
+                id:"browse",text:"Browse",width:null,index:0,active:true,enabled: true,close:false
+            },
+            {
+                id:"upload",text:"Upload",width:null,index:1,active:false,enabled: true,close:false
+            },
+        ]
+    });
 
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
-    
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("Name,Path,is_folder,size");//the headers of columns  
     m_fileBrowserGrid.setInitWidthsP("*,0,0,20");          //the widths of columns  
@@ -106,10 +91,10 @@ function init(){
         parent: document.body,  
         pattern: "2E"           
     });
-    jobLayout.cells("a").hideHeader();
+    //jobLayout.cells("a").hideHeader();
+    jobLayout.cells("a").setText("Selected Files");
     jobLayout.cells("b").hideHeader();
-    jobLayout.cells("a").attachHTMLString('<div id="fileform" style="width:100%;height:200px;"></div>');
-    
+    jobLayout.cells("a").setHeight($(document).height()/3.5);
     m_workflowTabBar = jobLayout.cells("b").attachTabbar({
         mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
         tabs: [ // workflow and variable tabs config
@@ -143,25 +128,15 @@ function init(){
     m_mainForm  = new dhtmlXForm("mainform");
     m_mainForm.addItem(null, {type: "label", label: "Start Processor"},0);
     m_subForm  = new dhtmlXForm("subform");
-    m_fileForm  = new dhtmlXForm("fileform");
-    
-    m_fileForm.addItem(null, {type: "label", label: "Source Files"},0);
-    m_fileForm.addItem(null,     {
-                                    type:"container", 
-                                    name:"fileGrid", 
-                                    label:"", 
-                                    inputWidth:330, 
-                                    inputHeight:160
-                                }   ,1);
-    
-    m_fileGrid = new dhtmlXGridObject(m_fileForm.getContainer("fileGrid"));
-    m_fileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_fileGrid.setHeader("Source,Path");
-    m_fileGrid.setInitWidthsP("20,80");
-    m_fileGrid.setColAlign("left,left");
-    m_fileGrid.setColTypes("ed,ed");
-    m_fileGrid.setColSorting("str,str");   
-    m_fileGrid.init();
+
+    m_selectedFileGrid = jobLayout.cells("a").attachGrid();
+    m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_selectedFileGrid.setHeader("Source,Path");
+    m_selectedFileGrid.setInitWidthsP("20,80");
+    m_selectedFileGrid.setColAlign("left,left");
+    m_selectedFileGrid.setColTypes("ed,ed");
+    m_selectedFileGrid.setColSorting("str,str");   
+    m_selectedFileGrid.init();
     
     //EVENTS
     m_workflowSelectorGrid.attachEvent("onRowSelect", function(id,ind){
@@ -182,7 +157,7 @@ function init(){
     vault.events.on("UploadComplete", function(files){
         for (i=0;i<files.length;i++){
             var newId = (new Date()).valueOf();
-            m_fileGrid.addRow(newId,["Upload",files[i].name]);
+            m_selectedFileGrid.addRow(newId,["Upload",files[i].name]);
         }
     });
     
@@ -197,16 +172,16 @@ function init(){
                         if (result == 0){
                             var inputs = box.getElementsByTagName("input");
                             var newId = (new Date()).valueOf();
-                            m_fileGrid.addRow(newId,["Manual",inputs[0].value]);
+                            m_selectedFileGrid.addRow(newId,["Manual",inputs[0].value]);
                         }
                     }
                 });
             }
             if (id == "remove") {
-                if (!m_fileGrid.getSelectedRowId()){
+                if (!m_selectedFileGrid.getSelectedRowId()){
                     dhtmlx.alert("Please select a File to delete");
                 }
-                m_fileGrid.deleteSelectedRows();
+                m_selectedFileGrid.deleteSelectedRows();
             }
             if (id=="submit"){
                 startJobs();
@@ -258,7 +233,7 @@ function getReadableFileSizeString(fileSizeInBytes) {
 
 function selectFileToProcess(){
     //transfer selected file to processing grid
-    m_fileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
+    m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
 }
 
 function getFileList(dhtmlxGrid,path){
@@ -489,13 +464,13 @@ function getWorkflows(){
 
 function startJobs(){
 //kick off one workflow per file in grid
-    if (m_fileGrid.getRowsNum() == 0){
+    if (m_selectedFileGrid.getRowsNum() == 0){
         dhtmlx.alert("Cannot start job, please add a File to process");
         return;
     }
-    m_fileGrid.forEachRow(function(id){
-        var source = m_fileGrid.cells(id,0).getValue();
-        var _filepath = (m_fileGrid.cells(id,1).getValue());
+    m_selectedFileGrid.forEachRow(function(id){
+        var source = m_selectedFileGrid.cells(id,0).getValue();
+        var _filepath = (m_selectedFileGrid.cells(id,1).getValue());
         if (source == "Upload"){
             _filepath = m_realUploadpath + _filepath;
         }
