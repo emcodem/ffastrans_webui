@@ -118,7 +118,7 @@ function init(){
             },
              
             {
-                id:"variabletab",text:"Variables",width:null,index:1,active:false,enabled:true,close:false 
+                id:"variabletab",text:"Variables",width:null,index:1,active:false,enabled:false,close:false 
             },
         ]
     });
@@ -218,7 +218,7 @@ function init(){
 	m_fileBrowserGrid.attachEvent("onRowSelect", function(id,ind){
 		//change folder 
 		if (m_fileBrowserGrid.cells(id,2).getValue() == "true"){
-			getFileList(m_fileBrowserGrid,"/filebrowser?name=" + m_fileBrowserGrid.cells(id,1).getValue())
+			getFileList(m_fileBrowserGrid, m_fileBrowserGrid.cells(id,1).getValue())
 		}
 	});
 	
@@ -232,7 +232,7 @@ function init(){
             return;
 		}
         //in any other case, a folder in "select" menu was chosen
-        getFileList(m_fileBrowserGrid,"/filebrowser?name=" +id)
+        getFileList(m_fileBrowserGrid,id)
 	})
     
 //MAIN STARTING POINT
@@ -261,12 +261,13 @@ function selectFileToProcess(){
     m_fileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
 }
 
-function getFileList(dhtmlxGrid,url){
+function getFileList(dhtmlxGrid,path){
 //browse files on server
 	    $.ajax({
-        url:  url +"&"+Math.random(),
+        url: "/filebrowser?name=" + path +"&"+Math.random(),
         type: "GET",
-        success: function (response) {
+        success: function (response,textStatus, xhr) {
+            localStorage.setItem("lastVisitedBrowseLocation", path);
 			dhtmlxGrid.clearAll();
 			dhtmlxGrid.parse(response,"json");
 			dhtmlxGrid.forEachRow(function(id){
@@ -280,11 +281,10 @@ function getFileList(dhtmlxGrid,url){
                         selectFileToProcess();
                     });
                 }
-				
 			});
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR, could not GET location, maybe it is not allowed?" + url + " " + xhr);
+            dhtmlx.message("ERROR, unexpected error from filebrowser. " + path + " " + xhr.responseText);
         }
     });
 }
@@ -316,7 +316,11 @@ function getBrowseLocations(){
            for (i=0;i<m_browseLocations.values.length;i++){
                 m_fileBrowseGridMenu.addNewChild("location", i, m_browseLocations.values[i], m_browseLocations.display_names[i], false,"","");
            }
-           getFileList(m_fileBrowserGrid,"/filebrowser?name=" +m_fileBrowserGrid,m_browseLocations.values[0]); //load first configured location, todo: restore last visited folder
+           if (localStorage.getItem("lastVisitedBrowseLocation")){
+                getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
+           }else{
+                getFileList(m_fileBrowserGrid, m_browseLocations.values[0]);    //load first available location
+           }
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR, could not GET getbrowselocations, contact developer " + xhr);
@@ -413,7 +417,7 @@ function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
         for (i=0;i<var_obj.length;i++){
             options.push({text:var_obj[i].key,value:var_obj[i].value});
         }
-        var itemData = {type: "select",name: "start_proc", label: var_display_name, options: options,  offsetLeft:10};
+        var itemData = {type: "select",name: var_name, label: var_display_name, options: options,  offsetLeft:10};
         dhxForm.addItem(var_name, itemData, new Date().valueOf());
     }catch(e){
         dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
@@ -434,7 +438,9 @@ function on_gridWorkflowSelected(rowId){
     //variable.start_procs[]
     for (i=0;i<selected_wf.variable.start_procs.length;i++){
         var proc = selected_wf.variable.start_procs[i];
-        var proc_name = selected_wf[proc].properties.custom_node_name ||  proc; 
+        var proc_name_default= proc.split(/ /)[0]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
+        var proc_name = selected_wf[proc].properties.custom_node_name ||proc_name_default; 
+        
         options.push({text:proc_name,value:proc});
     }
     var itemData = {type: "select",name: "start_proc", label: "Start Processor:", options: options,  offsetLeft:10};   
