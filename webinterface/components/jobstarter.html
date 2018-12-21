@@ -433,7 +433,7 @@ function on_gridWorkflowSelected(rowId){
     }
     var itemData = {type: "select",name: "start_proc", label: "Start Processor:", options: options,  offsetLeft:10};   
     m_mainForm.addItem("start_proc", itemData, 2);
-    m_mainForm.setUserData("start_proc", "workflow_object", selected_wf);//store selected workflow along with start_proc
+    m_mainForm.setUserData("start_proc", "workflow_object", selected_wf);       //store selected workflow along with start_proc
     //switch to variables tab
     on_processorSelected(selected_wf);                                           //auto select first processor    
     //switch to variables Tab
