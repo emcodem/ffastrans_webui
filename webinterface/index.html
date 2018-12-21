@@ -60,10 +60,11 @@ function init(){
     });
     
     mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
-    
-    runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
+    runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns 
+    runningJobGrid.setHeader("State,Workflow,File,Job Start,Job End,Duration,Status");//the headers of columns      
     configureJobGrid(runningJobGrid);
     finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
+    finishedJobGrid.setHeader("State,Workflow,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
     configureJobGrid(finishedJobGrid);    
     getActiveJobs(runningJobGrid);
     getQueuedJobs(runningJobGrid);
@@ -139,7 +140,8 @@ function getQueuedJobs(targetGridObj){
         dataType: "json",
         context: this,
         success: function (response) {
-            addJobsToGrid(targetGridObj,response.queue);
+            //addJobsToGrid(targetGridObj,response.queue);
+            //todo: find a way that queued jobs does not influence active jobs, e.g. parse state in addjobstogrid function
             mainLayout.cells("a").progressOff();
         },
         error: function (xhr, status) {
@@ -156,7 +158,7 @@ function getActiveJobs(targetGridObj){
         dataType: "json",
         context: this,
         success: function (response) {
-            addJobsToGrid(targetGridObj,response.jobs);
+            addActiveJobsToGrid(targetGridObj,response.jobs);
             mainLayout.cells("a").progressOff();
         },
         error: function (xhr, status) {
@@ -181,6 +183,46 @@ function getFinishedJobs(targetGridObj){
             
         }
     });
+}
+
+
+function addActiveJobsToGrid(targetGridObj,jobArray){
+    var newjobIds = [];
+    //add new jobs if any//TODO: at top
+    for (i=0;i<jobArray.length;i++){
+        var rowid = jobArray[i].job_start;
+        newjobIds.push(rowid);
+        if (targetGridObj.getRowIndex(rowid) == 0 && ("splits" in jobArray[i])){
+            //it is a running job, update state
+            var status = jobArray[i].splits[0].processor + "@" + jobArray[i].splits[0].node + " " + jobArray[i].splits[0].status + " Progress: " + jobArray[i].splits[0].progress;
+            targetGridObj.cells(rowid,6).setValue(status);
+        }
+        if (targetGridObj.getRowIndex(rowid) != -1 ){
+            //job already exists in grid
+            continue;
+        }
+        var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
+        
+        targetGridObj.addRow(rowid,[jobArray[i].state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
+        if (jobArray[i].state == "0"){//error
+            targetGridObj.setRowColor(rowid,"#ffe6e6");
+        }
+        if (jobArray[i].state == "2"){//aborted
+            targetGridObj.setRowColor(rowid,"#ffcc80");
+        }
+        
+        targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
+        targetGridObj.sortRows(3,"str","des");
+        
+    }
+    //delete non existing/orphaned jobs e.g. active job got finished 
+    targetGridObj.forEachRow(function(id){
+        if (!newjobIds.includes(id)){
+            targetGridObj.deleteRow(id);
+        }
+    });
+    
+    
 }
 
 function addJobsToGrid(targetGridObj,jobArray){
@@ -244,7 +286,7 @@ function pad(n, z) { //add leading zero if there is none
 
 function configureJobGrid(dhtmlxGridObj){
         dhtmlxGridObj.setImagePath("dependencies/dhtmlx/imgs");                 
-        dhtmlxGridObj.setHeader("State,Workflow,File,Job Start,Job End,Duration,Outcome");//the headers of columns  
+
         dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");                    //filters
         //dhtmlxGridObj.setInitWidthsP("0,15,30,10,0,*");          //the widths of columns  
         dhtmlxGridObj.setColAlign("left,left,left,left,left,left");       //the alignment of columns   
