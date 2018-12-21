@@ -1,5 +1,5 @@
 <html>
-<head>
+
 <script src="dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
 <script src="dependencies/dhtmlx/vault/vault.js"></script>
@@ -15,12 +15,34 @@
         height: 100%;
         margin: 0px;
         overflow: hidden;
+        color: #333;
+        font: 14px Helvetica, Arial, sans-serif;
+        line-height: 18px;
+    }
+    header {
+        background: #333;
+        border-bottom: 3px solid #aaa;
+    }
+    header h1 {
+        color: #fff;
+        margin: 0 0 3px;
+        font-size: 22px;
+        padding: 12px 9px 0;
+    }
+    header p {
+        color: #ccc;
+        font-size: 8 px;
+        font-weight: bold;
+        padding: 0 27px;
     }
 </style>
 
 <script>
 /* GLOBALS */
 var mainLayout,runningJobGrid,finishedJobGrid;
+
+/* STRUCTS */
+var m_jobStates = ["Error","Sucess","Cancelled","Unknown"];//todo:ask steinar if there are more states and whats queued state
 
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -30,8 +52,17 @@ function init(){
     } else {
         dhtmlx.message("ERROR, no html5 store support, cannot save view state")
     }
-
-    mainLayout = new dhtmlXLayoutObject({
+    headerLayout = new dhtmlXLayoutObject({
+        parent: document.body,  
+        pattern: "2E"           
+    });
+    headerLayout.cells("a").attachHTMLString('<header id="ffastrans_header" onclick="onHeaderClick()" style="cursor:pointer" ><h1><img alt="" height="16" src="images/F364x64.png" title="" width="16">FFAStrans</h1><p class="description">The free automated transcoder.</p></header>');
+    headerLayout.cells("a").hideHeader();
+    headerLayout.cells("b").hideHeader();
+    headerLayout.cells("a").setHeight(75);
+    headerLayout.cells("a").fixSize(true, true);
+    
+    mainLayout = headerLayout.cells("b").attachLayout({
         parent: document.body,  
         pattern: "3J"           
     });
@@ -58,7 +89,6 @@ function init(){
                 abortJob()
             }
     });
-    
     mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
     runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns 
     runningJobGrid.setHeader("State,Workflow,File,Job Start,Job End,Duration,Status");//the headers of columns      
@@ -78,9 +108,13 @@ function init(){
     mainLayout.cells("c").progressOn();
 }
 
+function onHeaderClick(){
+    window.open("http://www.ffastrans.com");
+}
+
 function abortJob(){
-    dhtmlx.alert("Aborting currently don't work, sorry for the inconvenience")
-    return;
+    //dhtmlx.alert("Aborting currently don't work, sorry for the inconvenience")
+    //return;
     
     
     if (!runningJobGrid.getSelectedRowId()){
@@ -89,19 +123,17 @@ function abortJob(){
     }
 
     var rowId = runningJobGrid.getSelectedRowId();
-    dhtmlx.message("aborting " + rowId);
+    
     var jobObj = runningJobGrid.getUserData(rowId,"jobobject");
        $.ajax({
-            url:  buildUrl(STATIC_START_JOB_URL) + jobObj.job_id,
+            url:  ("/proxy" + STATIC_START_JOB_URL) + jobObj.job_id,
             type: "DELETE",
-            crossDomain: true,
-            dataType: "json",
             context: this,
             success: function (response) {
-                    
+              dhtmlx.message("Aborted " + rowId);  
             },
             error: function (xhr, status) {
-                dhtmlx.message("ERROR aborting job, contact developer  ");
+                dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
             }
         });
                
@@ -202,8 +234,8 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
             continue;
         }
         var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
-        
-        targetGridObj.addRow(rowid,[jobArray[i].state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
+        var _state = m_jobStates[jobArray[i].state];
+        targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
         if (jobArray[i].state == "0"){//error
             targetGridObj.setRowColor(rowid,"#ffe6e6");
         }
@@ -241,8 +273,8 @@ function addJobsToGrid(targetGridObj,jobArray){
             continue;
         }
         var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
-        
-        targetGridObj.addRow(rowid,[jobArray[i].state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
+        var _state = m_jobStates[jobArray[i].state];
+        targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
         if (jobArray[i].state == "0"){//error
             targetGridObj.setRowColor(rowid,"#ffe6e6");
         }
