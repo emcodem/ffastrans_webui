@@ -1,5 +1,6 @@
 <html>
 <head>
+
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
@@ -34,6 +35,9 @@ function init(){
         parent: document.body,  
         pattern: "2U"           
     });
+    
+    m_mainLayout.listAutoSizes();
+    
     m_mainLayout.cells("a").setText("Uploads");
     //m_mainLayout.cells("a").setWidth();
     var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
@@ -70,12 +74,12 @@ function init(){
 		]
 	});
 	
+    
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
-                {id:"submit", text:"<b>Start Workflow</b>"},
-                 {id:"add", text:"Add Source"},
-                 {id:"remove", text:"Remove Source"},
+                 {id:"add", text:"<i class='fa fa-folder-plus'></i>Add"},
+                 {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
                  
             ]
         });
@@ -92,7 +96,7 @@ function init(){
         parent: document.body,  
         pattern: "2E"           
     });
-    //jobLayout.cells("a").hideHeader();
+    jobLayout.cells("a").hideHeader();
     jobLayout.cells("a").setText("Selected Files");
     jobLayout.cells("b").hideHeader();
     jobLayout.cells("a").setHeight($(document).height()/3.5);
@@ -137,6 +141,7 @@ function init(){
     m_selectedFileGrid.setColAlign("left,left");
     m_selectedFileGrid.setColTypes("ed,ed");
     m_selectedFileGrid.setColSorting("str,str");   
+  
     m_selectedFileGrid.init();
     
     //EVENTS

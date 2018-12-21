@@ -23,6 +23,7 @@
   "dependencies": {
     "console-stamp": "^0.2.7",
     "escape-string-regexp": "^1.0.5",
+    "express-http-proxy": "^1.5.0",
     "routes": "^2.1.0",
     "serve-favicon": "^2.5.0"
   }
