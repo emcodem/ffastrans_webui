@@ -56,6 +56,7 @@ function init(){
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("Name,Path,is_folder,size");//the headers of columns  
+    m_fileBrowserGrid.attachHeader("#text_filter,#text_filter");  
     m_fileBrowserGrid.setInitWidthsP("*,0,0,20");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro");                //the types of columns  
@@ -411,10 +412,17 @@ function on_gridWorkflowSelected(rowId){
     
     //todo: parse processors and create form in layout cell B
     //variable.start_procs[]
-    for (i=0;i<selected_wf.variable.start_procs.length;i++){
-        var proc = selected_wf.variable.start_procs[i];
+    var proc_root = selected_wf.variable["start_procs"] || selected_wf.variable["start_proc"];
+    if (!proc_root){
+        dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
+    }
+    for (i=0;i<proc_root.length;i++){
+        var proc = proc_root[i];
         var proc_name_default= proc.split(/ /)[0]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
-        var proc_name = selected_wf[proc].properties.custom_node_name ||proc_name_default; 
+        var proc_name = "First Processor";
+        if (selected_wf[proc]["properties"]){
+            proc_name = selected_wf[proc].properties.custom_node_name ||proc_name_default; 
+        }
         
         options.push({text:proc_name,value:proc});
     }
