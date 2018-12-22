@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
 var path = require("path");
-const util = require('util')
-var bodyParser = require('body-parser')
+const util = require('util');
+var bodyParser = require('body-parser');
 var proxy = require('express-http-proxy');
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log 
 
@@ -16,9 +16,22 @@ try{
 }catch(e){
     //running as local script
     global.config = require(__dirname + '/server_config');
+    currentFullpath = __dirname;
     console.log("Running as node script")
 }
 
+//init DB
+global.db={};
+var Db = require('tingodb')().Db,
+assert = require('assert');
+global.db.base = new Db(currentFullpath + "/database", {});
+// Fetch a collection to insert document into
+global.db.jobcollection = global.db.base.collection("jobcollection");
+// test if db works
+global.db.jobcollection.insert([{test:'test'}], {w:1}, function(err, result) {
+  assert.equal(null, err);
+})
+  
 //log all requests
 app.use(function(req, res, next) {
     //console.log(req.originalUrl);
