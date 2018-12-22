@@ -49,7 +49,7 @@ app.use(express.static(__dirname + '/webinterface'));
 require("./upload_backend/common")(app, express);
 require("./upload_backend/saverename")(app, express);
 require("./upload_backend/getFullUploadPath")(app, express);
-require("./redirect")(app, express);
+require("./node_components/redirect")(app, express);
 require("./node_components/filebrowser")(app, express);
 require("./node_components/getbrowselocations")(app, express);
 
