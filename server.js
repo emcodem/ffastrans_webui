@@ -19,21 +19,11 @@ try{
     console.log("Running as node script")
 }
 
-//log any request
+//log all requests
 app.use(function(req, res, next) {
     //console.log(req.originalUrl);
     next();
 });
-
-//redirect user config
-/*app.get('/', function(req, res,next) {
-    
-   //todo: redirect static page user_config.js or make dynamic anyway
-    console.log(req.originalUrl)
-    next();
-    //res.sendFile(currentFullpath + "/user_config.js");
-    //res.end();
-});*/
 
 //needed to parse parameters from requests
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -52,7 +42,7 @@ require("./upload_backend/getFullUploadPath")(app, express);
 require("./node_components/redirect")(app, express);
 require("./node_components/filebrowser")(app, express);
 require("./node_components/getbrowselocations")(app, express);
-
+require("./node_components/serveconfig")(app, express);
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err);
@@ -63,6 +53,6 @@ app.use('/favicon.ico', express.static('webinterface/images/favicon.ico'));
 
 //startup
 console.log('Hello and welcome, thank you for using FFAStrans') 
-app.listen(global.config.port, () => console.log('Running on http://localhost:' + global.config.port));
+app.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT));
 
 
