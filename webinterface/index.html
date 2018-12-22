@@ -91,10 +91,10 @@ function init(){
     });
     mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
     runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns 
-    runningJobGrid.setHeader("State,Workflow,File,Job Start,Job End,Duration,Status");//the headers of columns      
+    runningJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status");//the headers of columns      
     configureJobGrid(runningJobGrid);
     finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
-    finishedJobGrid.setHeader("State,Workflow,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
+    finishedJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
     configureJobGrid(finishedJobGrid);    
     getActiveJobs(runningJobGrid);
     getQueuedJobs(runningJobGrid);
@@ -219,38 +219,41 @@ function getFinishedJobs(targetGridObj){
 
 
 function addActiveJobsToGrid(targetGridObj,jobArray){
+
     var newjobIds = [];
     //add new jobs if any//TODO: at top
     for (i=0;i<jobArray.length;i++){
-        var rowid = jobArray[i].job_start;
-        newjobIds.push(rowid);
-        if (targetGridObj.getRowIndex(rowid) == 0 && ("splits" in jobArray[i])){
-            //it is a running job, update state
-            var status = jobArray[i].splits[0].processor + "@" + jobArray[i].splits[0].node + " " + jobArray[i].splits[0].status + " Progress: " + jobArray[i].splits[0].progress;
-            targetGridObj.cells(rowid,6).setValue(status);
-        }
-        if (targetGridObj.getRowIndex(rowid) != -1 ){
-            //job already exists in grid
-            continue;
-        }
-        var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
-        var _state = m_jobStates[jobArray[i].state];
-        targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
-        if (jobArray[i].state == "0"){//error
-            targetGridObj.setRowColor(rowid,"#ffe6e6");
-        }
-        if (jobArray[i].state == "2"){//aborted
-            targetGridObj.setRowColor(rowid,"#ffcc80");
-        }
-        
-        targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
-        targetGridObj.sortRows(3,"str","des");
-        
+        if (("splits" in jobArray[i])){
+            for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
+                var rowid =  " " + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id
+                newjobIds.push(rowid);
+                var status = jobArray[i].splits[splitindex].processor + "@" + jobArray[i].splits[splitindex].node + " " + jobArray[i].splits[splitindex].status + " Progress: " + jobArray[i].splits[splitindex].progress;           
+               
+                //if (targetGridObj.getRowIndex(rowid) != -1 ){
+                    //job already exists in grid
+                  //  continue;
+                //}
+                var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
+                var _state = m_jobStates[jobArray[i].state];
+                if (targetGridObj.doesRowExist(rowid)){
+                    //update existing task
+                    targetGridObj.cells(rowid,8).setValue(status);
+                }else{
+                    //add new task
+                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0);
+                    targetGridObj.cells(rowid,8).setValue(status);
+                }                        
+                targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
+                targetGridObj.sortRows(5,"str","des");   
+                
+            }
+        }      
     }
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
         if (!newjobIds.includes(id)){
             targetGridObj.deleteRow(id);
+            dhtmlx.message ("delete " + id)
         }
     });
     
@@ -263,18 +266,13 @@ function addJobsToGrid(targetGridObj,jobArray){
     for (i=0;i<jobArray.length;i++){
         var rowid = jobArray[i].job_start;
         newjobIds.push(rowid);
-        if (targetGridObj.getRowIndex(rowid) == 0 && ("splits" in jobArray[i])){
-            //it is a running job, update state
-            var outcome = jobArray[i].splits[0].processor + "@" + jobArray[i].splits[0].node + " " + jobArray[i].splits[0].status + " Progress: " + jobArray[i].splits[0].progress;
-            targetGridObj.cells(rowid,6).setValue(outcome);
-        }
         if (targetGridObj.getRowIndex(rowid) != -1 ){
             //job already exists in grid
             continue;
         }
         var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
         var _state = m_jobStates[jobArray[i].state];
-        targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
+        targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,"finished jobs dont have nodes","finished jobs dont have processors",jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
         if (jobArray[i].state == "0"){//error
             targetGridObj.setRowColor(rowid,"#ffe6e6");
         }
@@ -283,7 +281,7 @@ function addJobsToGrid(targetGridObj,jobArray){
         }
         
         targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
-        targetGridObj.sortRows(3,"str","des");
+        targetGridObj.sortRows(5,"str","des");
         
     }
     //delete non existing/orphaned jobs e.g. active job got finished 
@@ -319,11 +317,11 @@ function pad(n, z) { //add leading zero if there is none
 function configureJobGrid(dhtmlxGridObj){
         dhtmlxGridObj.setImagePath("dependencies/dhtmlx/imgs");                 
 
-        dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");                    //filters
+        dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");                    //filters
         //dhtmlxGridObj.setInitWidthsP("0,15,30,10,0,*");          //the widths of columns  
-        dhtmlxGridObj.setColAlign("left,left,left,left,left,left");       //the alignment of columns   
-        dhtmlxGridObj.setColTypes("ro,ed,ed,ro,ed,ed,ed");                //the types of columns  
-        dhtmlxGridObj.setColSorting("str,str,str,str,str,str");          //the sorting types   
+        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left");       //the alignment of columns   
+        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed");                //the types of columns  
+        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str");          //the sorting types   
         dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page 
 }
 
