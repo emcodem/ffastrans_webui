@@ -1,8 +1,9 @@
+//TODO: serve this file from node and delete this file (put in server_config.js)
 //you can change these variables
 var STATIC_API_HOST = "localhost";
 var STATIC_API_PORT = "65445";
 var STATIC_JOB_POLLING_INTERVAL = "1000";
-var STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "0,10,10,10,30,10,0,0,*"; 
+var STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "0,10,10,10,30,10,0,0,*,0"; 
 var STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,10,0,0,30,10,0,5,*";
 
 //but not those
