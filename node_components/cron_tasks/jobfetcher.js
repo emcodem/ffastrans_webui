@@ -2,6 +2,7 @@ const assert = require('assert');
 const Request = require("request");
 //todo: implement queued jobs
 
+
 module.exports = {
   fetchjobs: function () {    
     //fetch running jobs from api

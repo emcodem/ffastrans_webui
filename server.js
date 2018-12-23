@@ -13,24 +13,9 @@ const assert = require('assert');
 const http = require('http').Server(app);
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log 
 
-// required for passport
-app.use(bodyParser()); // get information from html forms
-app.use(session({ 
-                    secret: 'you_will_never_guess_the_secret' ,    
-                    resave: true,
-                    saveUninitialized: true
-    }));
-app.use(passport.initialize());
-app.use(passport.session()); // persistent login sessions
-app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
-require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
-require('./node_components/passport/passport')(passport); // pass passport for configuration
-//redirect views - for passport
-app.set('views', path.join(__dirname, './node_components/passport/views/'));
 
 //needed for running as nexe
 global.approot  = path.dirname(process.execPath);
-
 try{
     //running as compiled exe file (nexe)
     global.config = require(global.approot  + '/server_config');
@@ -41,6 +26,30 @@ try{
     global.approot  = __dirname;
     console.log("Running as node script")
 }
+
+    /*
+app.put("/proxy/*",function(req, res, next) {
+    console.log( req.body)
+     next();
+})
+*/
+//forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
+app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
+  parseReqBody: false,
+  reqBodyEncoding: null,
+  reqAsBuffer: true,
+    proxyReqBodyDecorator: function(bodyContent, srcReq) {
+    //bodyContent=(srcReq.body)
+    console.log("proxy")
+    return bodyContent;
+  }
+}));//TODO: read ffastrans server and port from config
+
+
+    
+// get information from html forms
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 //init DB
 global.db={};
@@ -70,13 +79,41 @@ cron.schedule("* * * * * *", function() {
     }
 });
     
+    
+
+//Respond to client events socket.io
+var jobcontrol = require("./node_components/jobcontrol_socketio");
+  
+
 //init live connection to clients using socket.io
 global.socketio = require('socket.io')(http);
 global.socketio.on('connection', function(socket){
-  console.log('new client connected');
+  console.log('New socket io client connected');
+    socket.on('*', function(data){
+        var regex = /cancel/
+        var result = data.data[0].match(regex);
+        var cmd = data.data[0];
+        var obj = data.data[1];
+        if (cmd == "pausejob"){
+            jobcontrol.pausejob(obj);
+        }else{
+            
+            
+        }
+        
+        
+    })
   socket.on('disconnect', function(){
     console.log('client disconnected');
   });
+  });
+
+
+
+var wildcard = require('socketio-wildcard')();
+global.socketio.use(wildcard);
+global.socketio.on('*', function(obj){
+   console.log("Cancel command received");
 });
 
 //log all requests
@@ -85,12 +122,7 @@ app.use(function(req, res, next) {
     next();
 });
 
-//needed to parse parameters from requests
-app.use(bodyParser.urlencoded({ extended: true }));
 
-//forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
-app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT));//TODO: read ffastrans server and port from config
-    
 // serve static websites
 
 //allow access to dynamic stuff
@@ -109,6 +141,22 @@ process.on('uncaughtException', function(err) {
 
 //favicon
 app.use('/favicon.ico', express.static('webinterface/images/favicon.ico'));
+
+
+// required for passport
+app.use(session({ 
+                    secret: 'you_will_never_guess_the_secret' ,    
+                    resave: true,
+                    saveUninitialized: true
+    }));
+app.use(passport.initialize());
+app.use(passport.session()); // persistent login sessions
+app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
+require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
+require('./node_components/passport/passport')(passport); // pass passport for configuration
+//redirect views - for passport
+app.set('views', path.join(__dirname, './node_components/passport/views/'));
+
 
 //startup
 console.log('Hello and welcome, thank you for using FFAStrans') 

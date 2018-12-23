@@ -37,6 +37,7 @@
     "routes": "^2.1.0",
     "serve-favicon": "^2.5.0",
     "socket.io": "^2.2.0",
+    "socketio-wildcard": "^2.0.0",
     "tingodb": "^0.6.1"
   }
 }
