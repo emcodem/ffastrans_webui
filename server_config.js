@@ -4,7 +4,7 @@ config = {};
 
 //you can change these values but check if you created valid javascript
 config.STATIC_WEBSERVER_LISTEN_PORT = 3002;
-
+config.STATIC_USE_WEB_AUTHENTIFICATION = false;
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
 //your path MUST end with slash or backslash, the rest of the code assumes it.
 config.uploadpath = "\\\\localhost\\c$\\temp\\";

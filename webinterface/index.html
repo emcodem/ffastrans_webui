@@ -1,5 +1,6 @@
 <html>
 
+<script src="/socket.io/socket.io.js"></script>
 <script src="dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
 <script src="dependencies/dhtmlx/vault/vault.js"></script>
@@ -38,6 +39,10 @@
 </style>
 
 <script>
+/* init SOCKET.IO */
+var socket = io(); 
+
+
 /* GLOBALS */
 var mainLayout,runningJobGrid,finishedJobGrid;
 
@@ -79,7 +84,9 @@ function init(){
 
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
         items:[
-             {id:"abort", text:"Abort Job"},
+
+             {id:"abort", text:'<i class="fas fa-times"></i> Abort'},
+             {id:"abort", text:"Pause/Resume"},
           ]
     });
     
@@ -96,16 +103,30 @@ function init(){
     finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
     finishedJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
     configureJobGrid(finishedJobGrid);    
-    getActiveJobs(runningJobGrid);
-    getQueuedJobs(runningJobGrid);
-    getFinishedJobs(finishedJobGrid);
+    //getActiveJobs(runningJobGrid);
+    //getQueuedJobs(runningJobGrid);
+    //getFinishedJobs(finishedJobGrid);
     finishedJobGrid.setSortImgState(true,3,"desc");
     runningJobGrid.setSortImgState  (true,3,"desc");  
-    window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
-    window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
-    window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
+    //window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
+    //window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
+    //window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
     mainLayout.cells("a").progressOn();
     mainLayout.cells("c").progressOn();
+    
+    /* events from socket.io*/
+    socket.on('activejobs', function(msg){
+        mainLayout.cells("a").progressOff();
+        //instead of polling periodically from the client, the server polls periodically and notifies connected clients with the job arrays
+        addActiveJobsToGrid(runningJobGrid,JSON.parse(msg))
+    });
+    socket.on('historyjobs', function(msg){
+        mainLayout.cells("c").progressOff();
+        addJobsToGrid(finishedJobGrid,JSON.parse(msg))
+    });
+    socket.on('error', function(msg){
+     dhtmlx.message(msg);
+    });
 }
 
 function onHeaderClick(){
@@ -113,9 +134,6 @@ function onHeaderClick(){
 }
 
 function abortJob(){
-    //dhtmlx.alert("Aborting currently don't work, sorry for the inconvenience")
-    //return;
-    
     
     if (!runningJobGrid.getSelectedRowId()){
         dhtmlx.alert("Please select a Job to abort");
@@ -182,6 +200,7 @@ function getQueuedJobs(targetGridObj){
     });
 }
 
+/* deprecated - delete after getting out if the socket.io stuff is really really stable
 function getActiveJobs(targetGridObj){
     $.ajax({
         url:  buildUrl(STATIC_GET_RUNNING_JOBS_URL),
@@ -216,7 +235,7 @@ function getFinishedJobs(targetGridObj){
         }
     });
 }
-
+*/
 
 function addActiveJobsToGrid(targetGridObj,jobArray){
 
@@ -253,7 +272,6 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
     targetGridObj.forEachRow(function(id){
         if (!newjobIds.includes(id)){
             targetGridObj.deleteRow(id);
-            dhtmlx.message ("delete " + id)
         }
     });
     
