@@ -25,6 +25,7 @@
 var m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar;
 var m_realUploadpath = "";
 
+
 /* build basic page layout and init periodic job loading*/
 function init(){
     //load config data from server
@@ -126,12 +127,13 @@ function init(){
     m_workflowSelectorGrid.init();
     
     
-    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:65px;"></div><div id="subform" style="width:100%;height:400px;"></div>');
+    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:100px;"></div><div id="subform" style="width:100%;height:400px;"></div>');
     
     
     //mainform is for workflow and processor selection, subform for variables
     m_mainForm  = new dhtmlXForm("mainform");
-    m_mainForm.addItem(null, {type: "label", label: "Start Processor"},0);
+    m_mainForm.addItem(null, {type: "button",name: "show_wf", value: "Show Workflow",  offsetLeft:10}, 0);
+    m_mainForm.addItem(null, {type: "label", label: "Start Processor"},1);
     m_subForm  = new dhtmlXForm("subform");
 
     m_selectedFileGrid = jobLayout.cells("a").attachGrid();
@@ -158,7 +160,28 @@ function init(){
                 //on_processorSelected(value);
             }
     });
-    
+    m_mainForm.attachEvent("onButtonClick", function (name, value, state){
+            if (name == 'show_wf'){
+                var wf = m_mainForm.getUserData("start_proc", "workflow_object");
+                //document.getElementById("iframeid").contentWindow.m_worfklow = wf;//set workflow in iframe
+                var dhxwins = new dhtmlXWindows();
+                dhxwins.attachViewportTo(window.parent.document.body);
+                
+                var win = dhxwins.createWindow("Workflow",  100, 100, 1200, 800);
+                //win.denyMove();//moving and resizing behaves strange, possibly because of svg content. TODO: open workflow in new tab
+                win.setText("Workflow");
+                win.keepInViewport(true);
+                win.show();
+                win.attachURL("components/worfklowcanvas.html");
+                win.attachEvent("onContentLoaded", function(id){
+                    var ifr = win.getFrame();
+                    if(!ifr){
+                        alert("nope")
+                    }
+                    ifr.contentWindow.init(wf);
+                })
+            }
+    });
     //file uploaded event
     vault.events.on("UploadComplete", function(files){
         for (i=0;i<files.length;i++){
@@ -330,12 +353,13 @@ function on_processorSelected(selectedWorkflow){
         dataType: "json",
         context: this,
         success: function (response) {
-            //rebuild subform
+            //rebuild subform for variable selection
             if (m_subForm){ 
                 m_subForm.unload();//clear existing form items
                 m_subForm = null;
             }
             m_subForm  = new dhtmlXForm("subform");
+            
             m_subForm.addItem(null, {type: "label", label: "User Variables"},1);
             
             m_subForm.attachEvent("onButtonClick", function(name){
