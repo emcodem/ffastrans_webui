@@ -24,6 +24,7 @@
     header {
         background: #333;
         border-bottom: 3px solid #aaa;
+        height: 80px;
     }
     header h1 {
         color: #fff;
@@ -37,6 +38,33 @@
         font-weight: bold;
         padding: 0 27px;
     }
+    .rcorners2 {
+      border-radius: 25px;
+      border: 5px solid #AAAAAA;
+      padding: 20px;
+      width: 80px;
+      height: 70px;
+      background-color:rgba(0, 0, 0, 50);
+      color:white;
+      font-size:20px;
+      font-family:"Times New Roman";
+      /* display:inline; */
+      margin-left:250px;
+      margin-bottom: 400px;
+      position: relative;
+      display: block;
+    }
+    .numtasks{
+      margin: auto;
+      width: 50%;
+      height: 60%;
+      padding: 10px;
+      text-align: center;
+      vertical-align: middle;
+      line-height: 80px;
+      font-size: 80px;
+      display: block;
+      }
 </style>
 
 <script>
@@ -62,7 +90,7 @@ function init(){
         parent: document.body,  
         pattern: "2E"           
     });
-    headerLayout.cells("a").attachHTMLString('<header id="ffastrans_header" onclick="onHeaderClick()" style="cursor:pointer" ><h1><img alt="" height="16" src="images/F364x64.png" title="" width="16">FFAStrans</h1><p class="description">The free automated transcoder.</p></header>');
+    headerLayout.cells("a").attachHTMLString('<header id="ffastrans_header"   ><h1 style="cursor:pointer" onclick="onHeaderClick()"><img alt="" height="16" src="images/F364x64.png" title="" width="16">FFAStrans</h1><p class="description">The free automated transcoder.</p></header>');//add <div class="rcorners2">Active<div class="numtasks">1</div></div>
     headerLayout.cells("a").hideHeader();
     headerLayout.cells("b").hideHeader();
     headerLayout.cells("a").setHeight(75);
