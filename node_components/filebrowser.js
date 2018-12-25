@@ -3,13 +3,10 @@ var path = require('path');
 var regexEscape = require('escape-string-regexp');
 
 module.exports = function(app, express){
-
-	//respond to calls to /
+/* presents files from filesystem based on allowed directories in config and post/get params*/
 	app.get('/filebrowser', (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
-
-                
 				var baseFolder;
 				baseFolder = req.body.name || req.query.name;
 				if ((!baseFolder.endsWith("/")) && (!baseFolder.endsWith("\\"))){
