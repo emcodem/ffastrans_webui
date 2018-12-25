@@ -13,7 +13,6 @@ const assert = require('assert');
 const http = require('http').Server(app);
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log 
 
-
 //needed for running as nexe
 global.approot  = path.dirname(process.execPath);
 try{
@@ -27,26 +26,20 @@ try{
     console.log("Running as node script")
 }
 
-    /*
-app.put("/proxy/*",function(req, res, next) {
-    console.log( req.body)
-     next();
-})
-*/
 //forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
 app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
   parseReqBody: false,
   reqBodyEncoding: null,
   reqAsBuffer: true,
     proxyReqBodyDecorator: function(bodyContent, srcReq) {
-    //bodyContent=(srcReq.body)
+   //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
+   //we actually want the body to be forwarded unmodified
+    bodyContent=(""+srcReq.body) 
     console.log("proxy")
     return bodyContent;
   }
-}));//TODO: read ffastrans server and port from config
+}));
 
-
-    
 // get information from html forms
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -79,12 +72,9 @@ cron.schedule("* * * * * *", function() {
     }
 });
     
-    
-
 //Respond to client events socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
   
-
 //init live connection to clients using socket.io
 global.socketio = require('socket.io')(http);
 global.socketio.on('connection', function(socket){
@@ -96,19 +86,12 @@ global.socketio.on('connection', function(socket){
         var obj = data.data[1];
         if (cmd == "pausejob"){
             jobcontrol.pausejob(obj);
-        }else{
-            
-            
-        }
-        
-        
+        }else{}
     })
   socket.on('disconnect', function(){
     console.log('client disconnected');
   });
-  });
-
-
+});
 
 var wildcard = require('socketio-wildcard')();
 global.socketio.use(wildcard);
@@ -122,17 +105,14 @@ app.use(function(req, res, next) {
     next();
 });
 
-
-// serve static websites
-
 //allow access to dynamic stuff
 require("./upload_backend/common")(app, express);
 require("./upload_backend/saverename")(app, express);
 require("./upload_backend/getFullUploadPath")(app, express);
-//require("./node_components/redirect")(app, express);
 require("./node_components/filebrowser")(app, express);
 require("./node_components/getbrowselocations")(app, express);
 require("./node_components/serveconfig")(app, express);
+require("./node_components/logparser")(app, express);
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
@@ -140,8 +120,7 @@ process.on('uncaughtException', function(err) {
 });
 
 //favicon
-app.use('/favicon.ico', express.static('webinterface/images/favicon.ico'));
-
+app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
 // required for passport
 app.use(session({ 
@@ -156,7 +135,6 @@ require('./node_components/routes.js')(app, passport); // load our routes and pa
 require('./node_components/passport/passport')(passport); // pass passport for configuration
 //redirect views - for passport
 app.set('views', path.join(__dirname, './node_components/passport/views/'));
-
 
 //startup
 console.log('Hello and welcome, thank you for using FFAStrans') 

@@ -45,11 +45,10 @@
       border: 2px solid #ccc;
       width: 80px;
       height: 60px;
-      background-color:rgba(0, 0, 0, 0);
+      background-color: #333;
       font-size:20px;
       font-family:"Times New Roman";
       display:inline;
-
       margin-bottom: 0;
       position: absolute;
       display: block;
@@ -90,12 +89,12 @@
       display: block;
       margin-top: 3px;
       }
-      .dhxlayout_base_material div.dhx_cell_layout {
+      /*.dhxlayout_base_material div.dhx_cell_layout {
           background-color: #333;
       }
       .body.dhxlayout_base_material{
           //background-color: #AAA;
-      }
+      }*/
 </style>
 
 <script>
@@ -154,10 +153,17 @@ function init(){
              {id:"abort", text:'<i class="fas fa-stop"></i>Abort'},
              {id:"pause", text:'<i class="fas fa-pause"></i>Pause'},
              {id:"resume", text:'<i class="fas fa-play"></i>Resume'},
+             {id:"log", text:'<i class="fas fa-info"></i>Log'},
           ]
     });
     
-    //file add remove event
+    var headerMenuFinished = mainLayout.cells("c").attachMenu({                                               
+        items:[
+             {id:"log", text:'<i class="fas fa-info"></i>Log'},
+          ]
+    });
+    
+//events for button clicks
     headerMenu.attachEvent("onClick", function(id, zoneId, cas){
             if (id == "abort") {
                 abortJob()
@@ -168,7 +174,16 @@ function init(){
             if (id == "resume") {
                 pauseResumeJob(id)
             }
+            if (id == "log") {
+                openLogViewer(runningJobGrid)
+            }
     });
+    headerMenuFinished.attachEvent("onClick", function(id, zoneId, cas){
+            if (id == "log") {
+                openLogViewer(finishedJobGrid)
+            }
+    });
+    
     mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
     runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns 
     runningJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status,Splitindex");//the headers of columns      
@@ -176,8 +191,8 @@ function init(){
     finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
     finishedJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
     configureJobGrid(finishedJobGrid);    
-    finishedJobGrid.setSortImgState(true,3,"desc");
-    runningJobGrid.setSortImgState  (true,3,"desc");  
+    finishedJobGrid.setSortImgState(true,5,"desc");
+    runningJobGrid.setSortImgState  (true,5,"desc");  
     mainLayout.cells("a").progressOn();
     mainLayout.cells("c").progressOn();
     
@@ -189,7 +204,7 @@ function init(){
     });
     socket.on('historyjobs', function(msg){
         mainLayout.cells("c").progressOff();
-        addJobsToGrid(finishedJobGrid,JSON.parse(msg))
+        addHistoryJobsToGrid(finishedJobGrid,JSON.parse(msg))
     });
     socket.on('error', function(msg){
      dhtmlx.message(msg);
@@ -201,6 +216,47 @@ function init(){
 
 function onHeaderClick(){
     window.open("http://www.ffastrans.com");
+}
+
+function openLogViewer(dhxgrid){
+    if (!dhxgrid.getSelectedRowId()){
+        dhtmlx.alert("Please select a Job" );
+        return;
+    }
+    var selectedRowIds = dhxgrid.getSelectedRowId().split(',');
+    selectedRowIds.forEach(function(rId) {
+        var jobObj = dhxgrid.getUserData(rId,"jobobject");
+        var dhxwins = new dhtmlXWindows();
+        dhxwins.attachViewportTo(window.parent.document.body);
+        var win = dhxwins.createWindow("Workflow",  100, 100, 1200, 800);
+        //win.denyMove();//moving and resizing behaves strange, possibly because of svg content. TODO: open workflow in new tab
+        win.setText("Log ");
+        //win.keepInViewport(true);
+        var logGrid = win.attachGrid();
+        
+        logGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+        logGrid.setHeader("Time,Processor,Host,PID,Message");//the headers of columns  
+        logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
+        logGrid.setInitWidthsP("10,10,10,5,*");          //the widths of columns  
+        logGrid.setColAlign("left,left,left,left.left");       //the alignment of columns   
+        logGrid.setColTypes("ed,ed,ed,ed,ed");                //the types of columns  
+        logGrid.setColSorting("str,str,str,int,str");          //the sorting types    
+        logGrid.enableMultiline(true); 
+        logGrid.init();      //finishes initialization and renders the grid on the page 
+        
+        if (jobObj.job_id){
+            //we have a job_id that eases the life of finding jobs
+            var url = "/logparser?job_id=" +encodeURI(jobObj.job_id) +"&wf_name=" + encodeURI(jobObj.wf_name) ;
+            logGrid.load(url,"json")
+        }else{
+            //we don'T have a jobid, server will need to find files based on the infos we have. TODO: ask steinar if we can get a jobid for history jobs
+             var url = ("/logparser?file=" + encodeURI(jobObj.file) +"&job_end=" + encodeURI(jobObj.job_end) +"&job_start=" + encodeURI(jobObj.job_start) +"&wf_name=" + encodeURI(jobObj.wf_name )  );
+             logGrid.load(url,"json");
+        } 
+        win.show();
+        //win.attachURL("components/worfklowcanvas.html?jobid=element&logfolder=element");
+    });
+
 }
 
 function pauseResumeJob(pause){
@@ -268,7 +324,7 @@ function getQueuedJobs(targetGridObj){
         dataType: "json",
         context: this,
         success: function (response) {
-            //todo: find a way that queued jobs does not influence active jobs, e.g. parse state in addjobstogrid function
+            //todo: find a way that queued jobs does not influence active jobs, e.g. parse state in addHistoryJobsToGrid function
             mainLayout.cells("a").progressOff();
         },
         error: function (xhr, status) {
@@ -316,7 +372,7 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
     });
 }
 
-function addJobsToGrid(targetGridObj,jobArray){//history jobs dont support splits from ffastrans API, this needs to be updated as soon as they do
+function addHistoryJobsToGrid(targetGridObj,jobArray){//history jobs dont support splits from ffastrans API, this needs to be updated as soon as they do
     var newjobIds = [];
     var successcount = 0;
     var errorcount = 0;
@@ -324,7 +380,7 @@ function addJobsToGrid(targetGridObj,jobArray){//history jobs dont support split
     //add new jobs if any
     //TODO: count good and bad jobs (actually for more than a few hundred jobs we need a separate api call for num error and success
     for (i=0;i<jobArray.length;i++){
-        var rowid = JSON.stringify(jobArray[i]);
+        var rowid = hashCode(JSON.stringify(jobArray[i]));
         newjobIds.push(rowid);
         if (targetGridObj.getRowIndex(rowid) != -1 ){
             //job already exists in grid
@@ -370,6 +426,16 @@ function addJobsToGrid(targetGridObj,jobArray){//history jobs dont support split
 }
 
 /* HELPERS */
+function hashCode (string) {
+  var hash = 0, i, chr;
+  if (string.length === 0) return hash;
+  for (i = 0; i < string.length; i++) {
+    chr   = string.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
 
 function getDurationStringFromDates(start_date,end_date){
         var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
@@ -397,10 +463,13 @@ function configureJobGrid(dhtmlxGridObj){
         dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
         dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed");                //the types of columns  
         dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str");          //the sorting types   
+        dhtmlxGridObj.enableMultiselect(true);
         dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page 
 }
 
 function buildUrl(what){
+    return "/proxy" + what;
+    //old, delete at next iteration
     var _url = "http://" + STATIC_API_HOST + ":" + STATIC_API_PORT + what;
     return  _url;
 }
