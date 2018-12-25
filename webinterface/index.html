@@ -31,6 +31,7 @@
         margin: 0 0 3px;
         font-size: 22px;
         padding: 12px 9px 0;
+        margin-top: 1px;
     }
     header p {
         color: #ccc;
@@ -38,32 +39,56 @@
         font-weight: bold;
         padding: 0 27px;
     }
-    .rcorners2 {
-      border-radius: 25px;
-      border: 5px solid #AAAAAA;
-      padding: 20px;
+    .counter_jobs {
+      color: #ccc;
+      border-radius: 5px;
+      border: 2px solid #ccc;
       width: 80px;
-      height: 70px;
-      background-color:rgba(0, 0, 0, 50);
-      color:white;
+      height: 60px;
+      background-color:rgba(0, 0, 0, 0);
       font-size:20px;
       font-family:"Times New Roman";
-      /* display:inline; */
-      margin-left:250px;
-      margin-bottom: 400px;
-      position: relative;
+      display:inline;
+
+      margin-bottom: 0;
+      position: absolute;
       display: block;
+      font-size:12px;
+      font-family:arial;
+      margin-top: 8px;
     }
-    .numtasks{
+    .div_active_jobs {
+        margin-left:350px;
+    }
+    .div_queued_jobs {
+        margin-left:450px;
+    }
+    .div_success_jobs {
+        margin-left:550px;
+    }
+    .div_error_jobs {
+        margin-left:650px;
+    }
+    .div_cancel_jobs {
+        margin-left:750px;
+    }
+    .viking {
+        float:right;
+        margin-right:0;
+        margin-top:10px;
+        margin-right:10px;
+        height:50px;
+    }
+    .header_counter_number{
       margin: auto;
       width: 50%;
       height: 60%;
-      padding: 10px;
       text-align: center;
       vertical-align: middle;
-      line-height: 80px;
-      font-size: 80px;
+      line-height: 30px;
+      font-size: 20px;
       display: block;
+      margin-top: 3px;
       }
 </style>
 
@@ -82,7 +107,6 @@ var m_jobStates = ["Error","Sucess","Cancelled","Unknown"];//todo:ask steinar if
 function init(){
     //check if html5 features supported
     if (typeof(Storage) !== "undefined") {
-      // Code for localStorage/sessionStorage.
     } else {
         dhtmlx.message("ERROR, no html5 store support, cannot save view state")
     }
@@ -90,7 +114,15 @@ function init(){
         parent: document.body,  
         pattern: "2E"           
     });
-    headerLayout.cells("a").attachHTMLString('<header id="ffastrans_header"   ><h1 style="cursor:pointer" onclick="onHeaderClick()"><img alt="" height="16" src="images/F364x64.png" title="" width="16">FFAStrans</h1><p class="description">The free automated transcoder.</p></header>');//add <div class="rcorners2">Active<div class="numtasks">1</div></div>
+    headerLayout.cells("a").attachHTMLString('<header id="ffastrans_header"   >'+
+    '<div class="counter_jobs div_active_jobs">&nbsp Running                    <div class="header_counter_number" id="activejobcount">0</div></div>'+
+    '<div class="counter_jobs div_queued_jobs">&nbsp Queued     <div class="header_counter_number" id="queuedjobcount">0</div></div>'+
+    '<div class="counter_jobs div_success_jobs">&nbsp Success   <div class="header_counter_number" id="successjobcount">0</div></div>'+
+    '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
+    '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
+    '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="viking"></div></a>'+ 
+    '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="viking"></div></a>'+ 
+    '<h1 style="cursor:pointer" onclick="onHeaderClick()"><img alt="" height="16" src="images/F364x64.png" title="" width="16">FFAStrans</h1><p class="description">The free automated transcoder.</p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     headerLayout.cells("a").hideHeader();
     headerLayout.cells("b").hideHeader();
     headerLayout.cells("a").setHeight(75);
@@ -138,14 +170,8 @@ function init(){
     finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
     finishedJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
     configureJobGrid(finishedJobGrid);    
-    //getActiveJobs(runningJobGrid);
-    //getQueuedJobs(runningJobGrid);
-    //getFinishedJobs(finishedJobGrid);
     finishedJobGrid.setSortImgState(true,3,"desc");
     runningJobGrid.setSortImgState  (true,3,"desc");  
-    //window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
-    //window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
-    //window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(STATIC_JOB_POLLING_INTERVAL));
     mainLayout.cells("a").progressOn();
     mainLayout.cells("c").progressOn();
     
@@ -225,7 +251,6 @@ function saveRestoreUserState(){
     if (localStorage.getItem("mainLayoutCell_c_Collapsed") == "true"){
         mainLayout.cells("c").collapse();
     } 
-    
 }
 
 
@@ -237,7 +262,6 @@ function getQueuedJobs(targetGridObj){
         dataType: "json",
         context: this,
         success: function (response) {
-            //addJobsToGrid(targetGridObj,response.queue);
             //todo: find a way that queued jobs does not influence active jobs, e.g. parse state in addjobstogrid function
             mainLayout.cells("a").progressOff();
         },
@@ -247,58 +271,18 @@ function getQueuedJobs(targetGridObj){
     });
 }
 
-/* deprecated - delete after getting out if the socket.io stuff is really really stable
-function getActiveJobs(targetGridObj){
-    $.ajax({
-        url:  buildUrl(STATIC_GET_RUNNING_JOBS_URL),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        context: this,
-        success: function (response) {
-            addActiveJobsToGrid(targetGridObj,response.jobs);
-            mainLayout.cells("a").progressOff();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-        }
-    });
-}
-
-function getFinishedJobs(targetGridObj){
-    $.ajax({
-        url:  buildUrl(STATIC_GET_FINISHED_JOBS_URL),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        context: this,
-        success: function (response) {
-           addJobsToGrid(targetGridObj,response.history);
-           mainLayout.cells("c").progressOff();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-            
-        }
-    });
-}
-*/
-
 function addActiveJobsToGrid(targetGridObj,jobArray){
-
     var newjobIds = [];
+    var activejobcount=0;
     //add new jobs if any//TODO: at top
     for (i=0;i<jobArray.length;i++){
+        activejobcount++;
         if (("splits" in jobArray[i])){
             for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
-                var rowid =  " " + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id
+                var rowid =  " " + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
                 newjobIds.push(rowid);
                 var status = jobArray[i].splits[splitindex].processor + "@" + jobArray[i].splits[splitindex].node + " " + jobArray[i].splits[splitindex].status + " Progress: " + jobArray[i].splits[splitindex].progress;           
                
-                //if (targetGridObj.getRowIndex(rowid) != -1 ){
-                    //job already exists in grid
-                  //  continue;
-                //}
                 var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
                 var _state = m_jobStates[jobArray[i].state];
                 if (targetGridObj.doesRowExist(rowid)){
@@ -307,58 +291,76 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                     targetGridObj.cells(rowid,3).setValue(jobArray[i].splits[splitindex].processor);
                     targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
                 }else{
-                    //add new task (steinar calls it split)
+                    //add new task (ffastrans calls it split)
                     targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitindex],0);
                     targetGridObj.cells(rowid,8).setValue(status);
                 }                        
-                targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
-                targetGridObj.sortRows(5,"str","des");   
-                
+                targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
+                targetGridObj.sortRows(5,"str","des");     
             }
         }      
     }
+    //update job count display
+     document.getElementById("activejobcount").innerHTML = activejobcount;
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
         if (!newjobIds.includes(id)){//TODO: includes is not cross browser safe
             targetGridObj.deleteRow(id);
         }
     });
-    
-    
 }
 
-function addJobsToGrid(targetGridObj,jobArray){
+function addJobsToGrid(targetGridObj,jobArray){//history jobs dont support splits from ffastrans API, this needs to be updated as soon as they do
     var newjobIds = [];
-    //add new jobs if any//TODO: at top
+    var successcount = 0;
+    var errorcount = 0;
+    var abortedcount = 0;
+    //add new jobs if any
+    //TODO: count good and bad jobs (actually for more than a few hundred jobs we need a separate api call for num error and success
     for (i=0;i<jobArray.length;i++){
-        var rowid = jobArray[i].job_start;
+        var rowid = JSON.stringify(jobArray[i]);
         newjobIds.push(rowid);
         if (targetGridObj.getRowIndex(rowid) != -1 ){
             //job already exists in grid
+            if (jobArray[i].state == "0"){//error
+                errorcount++;
+            }
+            if (jobArray[i].state == "1"){//success
+                successcount++;
+            }
+            if (jobArray[i].state == "2"){//aborted
+                abortedcount++;
+            }
             continue;
         }
-        var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
+        var duration = getDurationStringFromDates(jobArray[i].job_start,jobArray[i].job_end);
         var _state = m_jobStates[jobArray[i].state];
         targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,"finished jobs dont have nodes","finished jobs dont have processors",jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome],0); 
         if (jobArray[i].state == "0"){//error
             targetGridObj.setRowColor(rowid,"#ffe6e6");
+            errorcount++;
+        }
+        if (jobArray[i].state == "1"){//success
+            successcount++;
         }
         if (jobArray[i].state == "2"){//aborted
             targetGridObj.setRowColor(rowid,"#ffcc80");
+            abortedcount++;
         }
         
         targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
         targetGridObj.sortRows(5,"str","des");
-        
     }
+    // update page header job count
+    document.getElementById("successjobcount").innerHTML = successcount;
+    document.getElementById("errorjobcount").innerHTML = errorcount;
+    document.getElementById("cancelledjobcount").innerHTML = abortedcount;
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
         if (!newjobIds.includes(id)){
             targetGridObj.deleteRow(id);
         }
     });
-    
-    
 }
 
 /* HELPERS */
