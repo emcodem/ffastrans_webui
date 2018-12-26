@@ -209,7 +209,7 @@ function parseLogFile(filepath){
 }
 
 function getRowColor(stringToParse,validprefix){
-	var style = "gray";
+	var style = "color:rgb(100,100,100)";
 	if (/error/i.test(stringToParse)){
 		return "color:red";
 	}

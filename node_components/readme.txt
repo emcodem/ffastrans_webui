@@ -1,0 +1,1 @@
+this folder contains mainly functional node scripts, required by other scripts

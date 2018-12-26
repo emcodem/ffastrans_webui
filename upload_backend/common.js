@@ -8,7 +8,7 @@ module.exports = function(app, express){
 
 	//download files - not yet supported nor used
 	app.use('/backend/upload/files/:file', (req, res) => {
-		var file = config.uploadpath +req.params.file;
+		var file = config.STATIC_UPLOADPATH +req.params.file;
 		res.download(file);
 	});
 
@@ -19,7 +19,7 @@ module.exports = function(app, express){
 			const response = {};
 			busboy.on('file', (fieldname, file, filename) => {
 				console.log(fieldname, filename);
-				const saveTo = config.uploadpath + filename;
+				const saveTo = config.STATIC_UPLOADPATH + filename;
 				response.link = `${filename}`;
 
 				file.pipe(fs.createWriteStream(saveTo));

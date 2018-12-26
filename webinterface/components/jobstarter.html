@@ -6,7 +6,6 @@
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
 <script src="../dependencies/jquery/jquery.js"></script>
-<script src="../configuration/staticStrings.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -22,23 +21,41 @@
 <script>
 
 /* GLOBALS */
-var m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar;
+var m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar;
 var m_realUploadpath = "";
 
+/*load config from server*/
+function loadserverconfig(){
+   $.ajax({
+        url:  ("/getserverconfig") ,
+        type: "GET",
+        success: function (response) {
+            m_serverconfig = JSON.parse(response)
+            init();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. " );
+            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+        }
+    });
+}
 
 /* build basic page layout and init periodic job loading*/
 function init(){
     //load config data from server
-    getRealUploadPath();
-    getBrowseLocations();
+    m_realUploadpath = m_serverconfig['STATIC_UPLOADPATH'];
     //main layout
     m_mainLayout = new dhtmlXLayoutObject({
         parent: document.body,  
         pattern: "2U"           
     });
     
-    m_mainLayout.listAutoSizes();
+    m_mainLayout.setAutoSize("a", "a;b");//make left cell expand on resize
     
+    m_mainLayout.cells("a").setMinWidth(50);
+    m_mainLayout.cells("b").setMinWidth(50);
+    m_mainLayout.cells("a").setMinHeight(50);
+    m_mainLayout.cells("b").setMinHeight(50);  
     m_mainLayout.cells("a").setText("Uploads");
     //m_mainLayout.cells("a").setWidth();
     var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
@@ -100,7 +117,12 @@ function init(){
     jobLayout.cells("a").hideHeader();
     jobLayout.cells("a").setText("Selected Files");
     jobLayout.cells("b").hideHeader();
-    jobLayout.cells("a").setHeight($(document).height()/3.5);
+    jobLayout.cells("a").setMinWidth(50);
+    jobLayout.cells("b").setMinWidth(50);
+    jobLayout.cells("a").setMinHeight(50);
+    jobLayout.cells("b").setMinHeight(50);
+    
+    //jobLayout.cells("a").setHeight($(document).height()/3.5);
     m_workflowTabBar = jobLayout.cells("b").attachTabbar({
         mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
         tabs: [ // workflow and variable tabs config
@@ -115,7 +137,8 @@ function init(){
     });
     
     //add workflow selection components
-    
+    m_workflowTabBar.tabs("workflowtab").showInnerScroll();
+    m_workflowTabBar.tabs("variabletab").showInnerScroll();    
     m_workflowSelectorGrid = m_workflowTabBar.tabs("workflowtab").attachGrid();
     m_workflowSelectorGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_workflowSelectorGrid.setHeader("Name,Group");
@@ -127,13 +150,13 @@ function init(){
     m_workflowSelectorGrid.init();
     
     
-    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:100px;"></div><div id="subform" style="width:100%;height:400px;"></div>');
+    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:130px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
     
     
     //mainform is for workflow and processor selection, subform for variables
     m_mainForm  = new dhtmlXForm("mainform");
-    m_mainForm.addItem(null, {type: "button",name: "show_wf", value: "Show Workflow",  offsetLeft:10}, 0);
-    m_mainForm.addItem(null, {type: "label", label: "Start Processor"},1);
+    m_mainForm.addItem(null, {type: "button",name: "show_wf", value: "Show Workflow",  offsetLeft:10});
+    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Start Processor", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 50, offsetLeft : 10,list:[]});
     m_subForm  = new dhtmlXForm("subform");
 
     m_selectedFileGrid = jobLayout.cells("a").attachGrid();
@@ -157,29 +180,14 @@ function init(){
     //workflow and start proc selected event
     m_mainForm.attachEvent("onChange", function (name, value, state){
             if (name == 'start_proc'){
-                //on_processorSelected(value);
+                
             }
     });
     m_mainForm.attachEvent("onButtonClick", function (name, value, state){
             if (name == 'show_wf'){
                 var wf = m_mainForm.getUserData("start_proc", "workflow_object");
-                //document.getElementById("iframeid").contentWindow.m_worfklow = wf;//set workflow in iframe
-                var dhxwins = new dhtmlXWindows();
-                dhxwins.attachViewportTo(window.parent.document.body);
-                
-                var win = dhxwins.createWindow("Workflow",  100, 100, 1200, 800);
-                //win.denyMove();//moving and resizing behaves strange, possibly because of svg content. TODO: open workflow in new tab
-                win.setText("Workflow");
-                win.keepInViewport(true);
-                win.show();
-                win.attachURL("components/worfklowcanvas.html");
-                win.attachEvent("onContentLoaded", function(id){
-                    var ifr = win.getFrame();
-                    if(!ifr){
-                        alert("nope")
-                    }
-                    ifr.contentWindow.init(wf);
-                })
+                window.open("../components/worfklowcanvas.html?wf_id="+wf.wf_id + "&url="+buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']));
+                return;
             }
     });
     //file uploaded event
@@ -243,6 +251,7 @@ function init(){
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
     getWorkflows();
+    getBrowseLocations();
 }
 
 function getReadableFileSizeString(fileSizeInBytes) {
@@ -293,61 +302,28 @@ function getFileList(dhtmlxGrid,path){
     });
 }
 
-function getRealUploadPath(){
-//request data fom server and set global var
-    $.ajax({
-        url:  "/getfulluploadpath" + "?"+Math.random(),
-        type: "GET",
-        crossDomain: true,
-        success: function (response) {
-           m_realUploadpath = response;
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR, could not GET getfulluploadpath, contact developer");
-        }
-    });
-}
-
 function getBrowseLocations(){
 //request data fom server and set global var
-    $.ajax({
-        url:  "/getbrowselocations" +"?"+Math.random(),
-        type: "GET",
-        dataType: "json",
-        crossDomain: true,
-        success: function (response) {
-           m_browseLocations = response;
-           for (i=0;i<m_browseLocations.values.length;i++){
-                m_fileBrowseGridMenu.addNewChild("location", i, m_browseLocations.values[i], m_browseLocations.display_names[i], false,"","");
-           }
-           if (localStorage.getItem("lastVisitedBrowseLocation")){
-                getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
-           }else{
-                getFileList(m_fileBrowserGrid, m_browseLocations.values[0]);    //load first available location
-           }
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR, could not GET getbrowselocations, contact developer " + xhr);
-        }
-    });
+   for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
+        m_fileBrowseGridMenu.addNewChild("location", i, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][i], m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES'][i], false,"","");
+   }
+   if (localStorage.getItem("lastVisitedBrowseLocation")){
+        getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
+   }else{
+        getFileList(m_fileBrowserGrid, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][0]);    //load first available location
+   }
 }
 
 function on_processorSelected(selectedWorkflow){
-    //called from onChange function of Form
-    //populates variables and start  button
-
-    //due to unknown reason (maybe bug), we have to ask STATIC_GET_WORKFLOWS_URL for workflow variables. The details we already have don't contain the user_vars
-    /*for (i=0;i<selectedWorkflow.user_variables.length;i++){
-        m_mainForm.addItem(null, {type: "text", name: "user_var"+i, label: "Start Processor:"}, "1"+i)
-    }*/
-    
-    
+    /*
+        called from onChange function of Form
+        populates variables and start  button
+        due to unknown reason (maybe bug), we have to ask STATIC_GET_WORKFLOWS_URL for workflow variables. The details we already have don't contain the user_vars
+    */
     var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
-        
     //workaround load user_variables from workflow api call
-
     $.ajax({
-        url:  buildUrl(STATIC_GET_WORKFLOWS_URL + "/" + selectedWorkflow.wf_id ),
+        url:  buildUrl(m_serverconfig['STATIC_GET_WORKFLOWS_URL'] + "/" + selectedWorkflow.wf_id ),
         type: "GET",
         crossDomain: true,
         dataType: "json",
@@ -359,8 +335,8 @@ function on_processorSelected(selectedWorkflow){
                 m_subForm = null;
             }
             m_subForm  = new dhtmlXForm("subform");
-            
-            m_subForm.addItem(null, {type: "label", label: "User Variables"},1);
+            m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 20, offsetLeft : 10,list:[]},1);
+           // m_subForm.addItem("data", {type: "label", label: "User Variables"},1);
             
             m_subForm.attachEvent("onButtonClick", function(name){
                 if(name == "submit"){
@@ -369,12 +345,14 @@ function on_processorSelected(selectedWorkflow){
             });             
              
             if (response['workflows'].length == 0){
-                alert("ERROR, contact developer. Did not get Information for workflow " + selectedWorkflow.wf_id);
+                alert("ERROR Did not get Information for workflow " + selectedWorkflow.wf_id + "\nThis can happen when the workflow was never used or you deleted the cache directory. \n It will go away when you play with workflow variables, read more about it here:\n http://www.ffastrans.com/frm/forum/viewtopic.php?f=4&t=796");
+                return;
+                
             }else{
                 //ok, we have the workflow info, populate user variables and start btn
                 if (!("variables" in response.workflows[0])){
-                    m_subForm.addItem(1, {type: "label", label:"This Workflow does not provide any userinput" ,offsetLeft:20 }, 2);
-					m_subForm.addItem(null, {type: "button", name:"submit",value: "Start Job"},10000);
+                    m_subForm.addItem("data", {type: "label", label:"This Workflow does not provide any userinput" ,offsetLeft:10 }, 2);
+					m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);
                     m_workflowTabBar.goToNextTab();
                     return;
                 }
@@ -385,22 +363,24 @@ function on_processorSelected(selectedWorkflow){
                     if (current_var.name.indexOf("webui") != -1){
                         //detected a variable that interacts with webui (should have JSON default value)
                         try{
-                            var var_object = JSON.parse(current_var.description);
-                            parseWebUiTypeUserVariable(m_subForm,var_object,current_var.name);//special support for key value arrays!
+                            parseWebUiTypeUserVariable(m_subForm,current_var.description,current_var.name);//special support for key value arrays!
                         }catch(e){
                             dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
                         }
                     }else{
                         //standard ffastrans variables
                         var displayName = current_var.name;
-                        displayName = displayName.replace("s_", "");//todo: add support for native ffastrans variable types
-                        m_subForm.addItem(current_var.name, {type: "input", name: current_var.name, label: current_var.name, tooltip:desc, offsetLeft:20 }, "100"+i);
+                        displayName = displayName.replace("s_", "");
+                        displayName = displayName.replace("i_", "");
+                        displayName = displayName.replace("f_", "");
+                        m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, offsetLeft:10 });
                         
                     }
                 }
                 //finally add start job button
-                m_subForm.addItem(null, {type: "button", name:"submit",value: "Start Job"},10000);
-                m_subForm
+                //m_subForm.addItem(null, {type: "button", name:"submit",value: "Start Job",width:200},10000);
+                m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"});
+                
                 m_workflowTabBar.goToNextTab();
             }
         },
@@ -412,6 +392,7 @@ function on_processorSelected(selectedWorkflow){
 
 function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
     var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
+    var_obj = JSON.parse(var_obj);
     if (var_obj.length == 0){
         dhtmlx.alert(errormsg)
     };
@@ -419,11 +400,11 @@ function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
         var var_display_name = var_name;
         var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
         var options=[];
-        for (i=0;i<var_obj.length;i++){
-            options.push({text:var_obj[i].key,value:var_obj[i].value});
+        for (y=0;y<var_obj.length;y++){
+            options.push({text:var_obj[y].key,value:var_obj[y].value});
         }
-        var itemData = {type: "select",name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-        dhxForm.addItem(var_name, itemData, new Date().valueOf());
+        var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
+        dhxForm.addItem("data", itemData);
     }catch(e){
         dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
     }
@@ -439,8 +420,6 @@ function on_gridWorkflowSelected(rowId){
     m_mainForm.removeItem("start_proc");
     var selected_wf = m_workflowSelectorGrid.getUserData(rowId,"workflow_object");
     
-    //todo: parse processors and create form in layout cell B
-    //variable.start_procs[]
     var proc_root = selected_wf.variable["start_procs"] || selected_wf.variable["start_proc"];
     if (!proc_root){
         dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
@@ -455,8 +434,8 @@ function on_gridWorkflowSelected(rowId){
         
         options.push({text:proc_name,value:proc});
     }
-    var itemData = {type: "select",name: "start_proc", label: "Start Processor:", options: options,  offsetLeft:10};   
-    m_mainForm.addItem("start_proc", itemData, 2);
+    var itemData = {type: "select",name: "start_proc", label: "Start Processor:", width:200,options: options,  offsetLeft:10};   
+    m_mainForm.addItem("data", itemData, 2);
     m_mainForm.setUserData("start_proc", "workflow_object", selected_wf);       //store selected workflow along with start_proc
     //switch to variables tab
     on_processorSelected(selected_wf);                                           //auto select first processor    
@@ -481,7 +460,7 @@ function parseWorkflows(wfArray){
 function getWorkflows(){
 
     $.ajax({
-        url:  buildUrl(STATIC_GET_WORKFLOW_DETAILS_URL),
+        url:  buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
         type: "GET",
         crossDomain: true,
         dataType: "json",
@@ -526,7 +505,7 @@ function startJobs(){
         });
          console.log(postBody);
          $.ajax({
-            url:  buildUrl(STATIC_START_JOB_URL),
+            url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
             type: "POST",
             crossDomain: true,
             //dataType: "json",
@@ -546,13 +525,13 @@ function startJobs(){
 function buildUrl(what){
     return "/proxy" + what;
 
-    var _url = "http://" + STATIC_API_HOST + ":" + STATIC_API_PORT + what;
+    var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
     return  _url;
 }
 
 </script>
 
 </head>
-<body onload="init()">
+<body onload="loadserverconfig()">
 
 </body>

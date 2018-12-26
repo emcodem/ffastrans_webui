@@ -1,6 +1,7 @@
 <html>
 <head>
 	<title>FFAStrans Workflow</title>
+
 <style type="text/css">
 /* it's important to set width/height to 100% for full-screen init */
 html, body {
@@ -53,6 +54,8 @@ table, th, td {
 <script type="text/javascript">
     mxBasePath = '../dependencies/mxgraph/javascript/src';
 </script>
+<script src="../dependencies/jquery/jquery.js"></script>
+
 <!-- Loads and initializes the library -->
 <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>
 
@@ -62,7 +65,6 @@ table, th, td {
 //request job from server
 
 var m_workflowdata = {};
-
 
     // Program starts here. Creates a sample graph in the
     // DOM node with the specified ID. This function is invoked
@@ -228,17 +230,50 @@ function getQueryVariable(variable) {
         }
       } 
 }
+
+function getWorkflows(wf_id){
+//get all workflows from server and start main with the workflow of interest
+    $.ajax({
+        url: getQueryVariable("url"),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        success: function (response) {
+            if (response['workflows/details'].length == 0){
+                alert("Did not get any workflows from FFASTRANS API");
+            }else{
+                workflowArray = response['workflows/details'];
+                for(var wf in workflowArray){
+                    if (wf_id == workflowArray[wf].wf_id){
+                        m_workflowdata = workflowArray[wf];
+                        main(document.getElementById('graphContainer'));
+                        return;
+                    }
+                }
+                
+            }
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+        }
+    });
+}
+
+function start(){
+//get Workflow details from server and filter for wf_id
+    getWorkflows(getQueryVariable("wf_id"))
+}
+
 </script>
 </head>
 
 <!-- Page passes the container for the graph to the program -->
-<body onload="">
+<body onload="start()">
 <script>
     //init needs to be called by parent of this iframe
     function init(worfklow_obj){
-        var workflowid = getQueryVariable("workflowid");
-        m_workflowdata = worfklow_obj;
-        main(document.getElementById('graphContainer'));
+        var workflowid = getQueryVariable("wf_id");
+
     }
     
 </script>
