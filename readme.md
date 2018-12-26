@@ -1,6 +1,6 @@
 Created 2018 by Harald Jordan
 
-*** USERS SHOULD RUN THE SERVER.exe FILE ONLY but download and extract the full project ***
+*** USERS please check out your release here https://github.com/haraldjordan78/ffastrans_webui/releases ***
 
 Interim documentation:
 http://www.ffastrans.com/frm/forum/viewtopic.php?f=5&t=789&p=3069#p3069
