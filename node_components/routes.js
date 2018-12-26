@@ -9,16 +9,27 @@ module.exports = function(app, passport) {
     //serve static website
     app.use('/webinterface', isLoggedIn);//ensure user is logged in
     app.use(express.static('./'));
-    app.use(express.static(__dirname + '/webinterface'));
+    //app.use(express.static(__dirname + '/webinterface'));
+    //app.use('/admin', express.static(global.approot+'/webinterface/admin/'));
     
     app.get('/', function(req, res, next) {
-        if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION ==false)){
+        if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
             res.redirect('/webinterface');          
         }else{
+            console.log(req.originalUrl)
             res.redirect('/login');         
         }
     });
 
+    app.get('/admin', function(req, res, next) {
+        if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
+            res.redirect('/webinterface/admin');          
+        }else{
+            console.log(req.originalUrl)
+            res.redirect('/login');         
+        }
+    });
+    
     // =====================================
     // LOGIN ===============================
     // =====================================
@@ -61,11 +72,14 @@ module.exports = function(app, passport) {
 // route middleware to make sure a user is logged in
 function isLoggedIn(req, res, next) {
     // if user is authenticated in the session, carry on 
-    if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION ==false)){
-        
+    if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" =="false")){
+        return next();
+    }
+    if (req.originalUrl.indexOf(".css") != -1){//allow css files (for login page ;-))
         return next();
     }
     // if they aren't redirect them to the home page
-    console.log("NOT AUTHENTICATED")
-     res.redirect('/login'); 
+    console.log("NOT AUTHENTICATED Web auth is " +global.config.STATIC_USE_WEB_AUTHENTIFICATION)
+    console.log(req.originalUrl + " redirected to login");
+    res.redirect('/login'); 
 }

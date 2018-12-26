@@ -6,7 +6,6 @@
 <script src="dependencies/dhtmlx/vault/vault.js"></script>
 <link rel="stylesheet" href="dependencies/dhtmlx/vault/vault.css" type="text/css"> 
 <script src="dependencies/jquery/jquery.js"></script>
-<script src="configuration/staticStrings.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
 
@@ -71,12 +70,13 @@
     .div_cancel_jobs {
         margin-left:750px;
     }
-    .viking {
+    .itemrowtopright {
         float:right;
         margin-right:0;
         margin-top:10px;
         margin-right:10px;
         height:50px;
+        color:white;
     }
     .header_counter_number{
       margin: auto;
@@ -103,10 +103,26 @@ var socket = io();
 
 
 /* GLOBALS */
-var mainLayout,runningJobGrid,finishedJobGrid;
+var mainLayout,runningJobGrid,finishedJobGrid,m_serverconfig;
 
 /* STRUCTS */
 var m_jobStates = ["Error","Sucess","Cancelled","Unknown"];//todo:ask steinar if there are more states and whats queued state
+
+/*load config from server*/
+function loadserverconfig(){
+   $.ajax({
+        url:  ("/getserverconfig") ,
+        type: "GET",
+        success: function (response) {
+            m_serverconfig = JSON.parse(response)
+            init();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. " );
+            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+        }
+    });
+}
 
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -125,9 +141,11 @@ function init(){
     '<div class="counter_jobs div_success_jobs">&nbsp Success   <div class="header_counter_number" id="successjobcount">0</div></div>'+
     '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
-    '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="viking"></div></a>'+ 
-    '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="viking"></div></a>'+ 
-    '<h1 style="cursor:pointer" onclick="onHeaderClick()"><img alt="" height="16" src="images/F364x64.png" title="" width="16">FFAStrans</h1><p class="description">The free automated transcoder.</p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
+    '<a href="/logout" style="cursor:pointer" class="itemrowtopright">Logout</a>'+ 
+    '<a href="/admin" style="cursor:pointer" class="itemrowtopright">Admin</a>'+ 
+    '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="itemrowtopright"></div></a>'+
+    '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="itemrowtopright"></a>'+ 
+    '<h1 style="cursor:pointer" ><img alt="" height="16" src="images/F364x64.png"  title="" width="16">FFAStrans</h1><p onclick="onHeaderClick()" class="description">The free automated transcoder.</p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     headerLayout.cells("a").hideHeader();
     headerLayout.cells("b").hideHeader();
     headerLayout.cells("a").setHeight(75);
@@ -151,8 +169,8 @@ function init(){
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
         items:[
              {id:"abort", text:'<i class="fas fa-stop"></i>Abort'},
-             {id:"pause", text:'<i class="fas fa-pause"></i>Pause'},
-             {id:"resume", text:'<i class="fas fa-play"></i>Resume'},
+             //{id:"pause", text:'<i class="fas fa-pause"></i>Pause'}, //todo: wait for next ffastrans version, in 9.3 it does not work as expected on jobs with splits
+            // {id:"resume", text:'<i class="fas fa-play"></i>Resume'},
              {id:"log", text:'<i class="fas fa-info"></i>Log'},
           ]
     });
@@ -185,10 +203,10 @@ function init(){
     });
     
     mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
-    runningJobGrid.setInitWidthsP(STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT);          //the widths of columns 
+    runningJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns 
     runningJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status,Splitindex");//the headers of columns      
     configureJobGrid(runningJobGrid);
-    finishedJobGrid.setInitWidthsP(STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT);          //the widths of columns  
+    finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns  
     finishedJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
     configureJobGrid(finishedJobGrid);    
     finishedJobGrid.setSortImgState(true,5,"desc");
@@ -205,6 +223,12 @@ function init(){
     socket.on('historyjobs', function(msg){
         mainLayout.cells("c").progressOff();
         addHistoryJobsToGrid(finishedJobGrid,JSON.parse(msg))
+    });
+    socket.on('queuedjobs', function(msg){
+        //TODO: queued jobs dont seem to work in ffastrans 9.3
+        return;
+        mainLayout.cells("c").progressOff();
+
     });
     socket.on('error', function(msg){
      dhtmlx.message(msg);
@@ -224,11 +248,13 @@ function openLogViewer(dhxgrid){
         return;
     }
     var selectedRowIds = dhxgrid.getSelectedRowId().split(',');
+    var win_offset = 0;
     selectedRowIds.forEach(function(rId) {
         var jobObj = dhxgrid.getUserData(rId,"jobobject");
         var dhxwins = new dhtmlXWindows();
         dhxwins.attachViewportTo(window.parent.document.body);
-        var win = dhxwins.createWindow("Workflow",  100, 100, 1200, 800);
+        var win = dhxwins.createWindow("Workflow",  50 + win_offset, 150 + win_offset, 1200, 800);
+        win_offset+=30;
         //win.denyMove();//moving and resizing behaves strange, possibly because of svg content. TODO: open workflow in new tab
         win.setText("Log ");
         //win.keepInViewport(true);
@@ -278,19 +304,22 @@ function abortJob(){
         dhtmlx.alert("Please select a Job to abort");
         return;
     }
-    var rowId = runningJobGrid.getSelectedRowId();
-    var jobObj = runningJobGrid.getUserData(rowId,"jobobject");
-       $.ajax({
-            url:  ("/proxy" + STATIC_START_JOB_URL) + jobObj.job_id,
-            type: "DELETE",
-            context: this,
-            success: function (response) {
-              dhtmlx.message("Aborted " + rowId);  
-            },
-            error: function (xhr, status) {
-                dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
-            }
-        });
+    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+    selectedRowIds.forEach(function(rId) {
+        var rowId = rId;
+        var jobObj = runningJobGrid.getUserData(rowId,"jobobject");
+           $.ajax({
+                url:  ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
+                type: "DELETE",
+                context: this,
+                success: function (response) {
+                  dhtmlx.message("Aborted " + rowId);  
+                },
+                error: function (xhr, status) {
+                    dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
+                }
+            });
+    })//foreachjob
 }
 
 
@@ -303,6 +332,10 @@ function saveRestoreUserState(){
     });
     mainLayout.attachEvent("onExpand", function(name){
         localStorage.setItem("mainLayoutCell_"+name+"_Collapsed", mainLayout.cells(name).isCollapsed());
+        if (name == "b"){
+            //due to bug in dhtmlx that makes bottom right cell full screen on expand, we just reload the content
+            mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
+        }
     });
     if (localStorage.getItem("mainLayoutCell_a_Collapsed") == "true"){
         mainLayout.cells("a").collapse();
@@ -315,10 +348,10 @@ function saveRestoreUserState(){
     } 
 }
 
-
 function getQueuedJobs(targetGridObj){
+//todo: make this work
     $.ajax({
-        url:  buildUrl(STATIC_GET_QUEUED_JOBS_URL),
+        url:  buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
         type: "GET",
         crossDomain: true,
         dataType: "json",
@@ -338,9 +371,10 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
     var activejobcount=0;
     //add new jobs if any//TODO: at top
     for (i=0;i<jobArray.length;i++){
-        activejobcount++;
+        
         if (("splits" in jobArray[i])){
             for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
+                activejobcount++;
                 var rowid =  " " + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
                 newjobIds.push(rowid);
                 var status = jobArray[i].splits[splitindex].processor + "@" + jobArray[i].splits[splitindex].node + " " + jobArray[i].splits[splitindex].status + " Progress: " + jobArray[i].splits[splitindex].progress;           
@@ -366,7 +400,9 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
      document.getElementById("activejobcount").innerHTML = activejobcount;
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
-        if (!newjobIds.includes(id)){//TODO: includes is not cross browser safe
+        //check if we deal with a queued job
+        
+        if (newjobIds.indexOf(id)==-1){//TODO: includes is not cross browser safe
             targetGridObj.deleteRow(id);
         }
     });
@@ -470,7 +506,7 @@ function configureJobGrid(dhtmlxGridObj){
 function buildUrl(what){
     return "/proxy" + what;
     //old, delete at next iteration
-    var _url = "http://" + STATIC_API_HOST + ":" + STATIC_API_PORT + what;
+    var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
     return  _url;
 }
 
@@ -480,6 +516,6 @@ function buildUrl(what){
 </script>
 
 </head>
-<body onload="init()">
+<body onload="loadserverconfig()">
 
 </body>

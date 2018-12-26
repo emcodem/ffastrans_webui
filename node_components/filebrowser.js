@@ -9,6 +9,13 @@ module.exports = function(app, express){
 			if (req.method === 'GET' || req.method === 'POST') {
 				var baseFolder;
 				baseFolder = req.body.name || req.query.name;
+                if (!baseFolder){
+                    console.log("Filebrowser was called without valid directory");
+                    res.status(500);//Send error response here
+                    res.send("Filebrowser was called without valid directory");
+                    res.end();
+                }
+                
 				if ((!baseFolder.endsWith("/")) && (!baseFolder.endsWith("\\"))){
 					baseFolder += "\\";
 				}
@@ -45,9 +52,9 @@ module.exports = function(app, express){
 				})		
 			}
 		}catch (ex){
-				console.log("ERROR: in filebrowser : " + ex.stacktrace);
+				console.trace("ERROR: in filebrowser : " + ex);
                 res.status(500);//Send error response here
-                res.send("ERROR: unxepected error in filebrowser: " + ex);
+                res.send("ERROR: Error in filebrowser: " + ex);
                 res.end();
 		}
 	});
@@ -55,8 +62,8 @@ module.exports = function(app, express){
     function checkFolderInGlobalConfig(folder,res){
         //checks if global conf allows changing into this folder
         var allowed = false;
-        for (i=0;i<global.config.allowed_browse_locations.length;i++){
-            var regex = new RegExp(regexEscape(global.config.allowed_browse_locations[i]), "i");            
+        for (i=0;i<global.config.STATIC_ALLOWED_BROWSE_LOCATIONS.length;i++){
+            var regex = new RegExp(regexEscape(global.config.STATIC_ALLOWED_BROWSE_LOCATIONS[i]), "i");            
             if (regex.exec(folder)){
                allowed = true; 
             }

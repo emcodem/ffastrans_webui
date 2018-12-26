@@ -4,18 +4,17 @@ var path = require('path');
 
 module.exports = function(app, express){
 
-    config.uploadpath
 	//respond to calls to /
 	app.get('/getfulluploadpath', (req, res) => {
 		if (req.method === 'GET') {
             try{    
-                fs.exists(global.config.uploadpath, function(notcomplied) { 
+                fs.exists(global.config.STATIC_UPLOADPATH, function(notcomplied) { 
             if (notcomplied) { 
-                 res.write(global.config.uploadpath);
+                 res.write(global.config.STATIC_UPLOADPATH);
                  res.end();
               }
               else{
-                console.log("ERROR: Upload path does not exist: ["+global.config.uploadpath+"]");
+                console.log("ERROR: Upload path does not exist: ["+global.config.STATIC_UPLOADPATH+"]");
                 res.status(404);//Send error response here
                 res.end();
               }
