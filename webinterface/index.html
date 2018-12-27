@@ -427,6 +427,8 @@ function addQueuedJobsToGrid(targetGridObj,jobArray){
     var newjobIds = [];
     var queuedjobcount=0;
     //add new jobs if any//TODO: at top
+
+    //parse jobarray of all history jobs and add new/delete missed rows
     for (i=0;i<jobArray.length;i++){
         queuedjobcount++;
         var rowid = "queued_"+jobArray[i].item.guid;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
@@ -438,6 +440,7 @@ function addQueuedJobsToGrid(targetGridObj,jobArray){
         if (targetGridObj.doesRowExist(rowid)){
             //no update needed for queued tasks
         }else{
+            //add new job to grid
             targetGridObj.addRow(rowid,[_state,"",jobArray[i].item.host,"",jobArray[i].item.display,"","",jobArray[i].item.source,"Queued"],0); 
         }                       
         var jobObj = jobArray[i];
@@ -448,30 +451,28 @@ function addQueuedJobsToGrid(targetGridObj,jobArray){
     }
     //update job count display
     document.getElementById("queuedjobcount").innerHTML = queuedjobcount;
-    //delete non existing/orphaned jobs e.g. active job got finished 
+    //delete jobs that are in the grid but not in the list of jobs from server
     targetGridObj.forEachRow(function(id){
-    //check if we deal with a queued job
         if (newjobIds.indexOf(id)==-1){
             if (id.indexOf("active_") != -1){
                 //active jobs are not deleted
             }else{
-                dhtmlx.message("deleting queued " + id)
                 targetGridObj.deleteRow(id);
             }
         }
     });
 }
 
-
-function addHistoryJobsToGrid(targetGridObj,jobArray){//history jobs dont support splits from ffastrans API, this needs to be updated as soon as they do
+function addHistoryJobsToGrid(targetGridObj,jobArray){
     var newjobIds = [];
     var successcount = 0;
     var errorcount = 0;
     var abortedcount = 0;
+           
     //add new jobs if any
     //TODO: count good and bad jobs (actually for more than a few hundred jobs we need a separate api call for num error and success
     for (i=0;i<jobArray.length;i++){
-        var rowid = hashCode(JSON.stringify(jobArray[i]));
+        var rowid = hashCode(JSON.stringify(jobArray[i])) + i;//TODO: the +i is just for making every entry unique, this is to workaround missing job ids and split ids in ffastrans 093. DELETE THIS WHEN 093 does not need to be supported anymore
         newjobIds.push(rowid);
         if (targetGridObj.getRowIndex(rowid) != -1 ){
             //job already exists in grid
@@ -508,8 +509,9 @@ function addHistoryJobsToGrid(targetGridObj,jobArray){//history jobs dont suppor
     document.getElementById("errorjobcount").innerHTML = errorcount;
     document.getElementById("cancelledjobcount").innerHTML = abortedcount;
     //delete non existing/orphaned jobs e.g. active job got finished 
+
     targetGridObj.forEachRow(function(id){
-        if (!newjobIds.includes(id)){
+        if (newjobIds.indexOf(id)==-1){
             targetGridObj.deleteRow(id);
         }
     });
