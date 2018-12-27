@@ -226,6 +226,7 @@ function init(){
     });
     socket.on('queuedjobs', function(msg){
         //TODO: queued jobs dont seem to work in ffastrans 9.3
+        addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg))
         return;
         mainLayout.cells("c").progressOff();
 
@@ -375,7 +376,7 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
         if (("splits" in jobArray[i])){
             for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
                 activejobcount++;
-                var rowid =  " " + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+                var rowid =  "active_" + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
                 newjobIds.push(rowid);
                 var status = jobArray[i].splits[splitindex].processor + "@" + jobArray[i].splits[splitindex].node + " " + jobArray[i].splits[splitindex].status + " Progress: " + jobArray[i].splits[splitindex].progress;           
                
@@ -401,12 +402,53 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
         //check if we deal with a queued job
-        
+        if (id.indexOf("queued_" != -1)){
+            return;
+        }
         if (newjobIds.indexOf(id)==-1){//TODO: includes is not cross browser safe
             targetGridObj.deleteRow(id);
         }
     });
 }
+
+
+function addQueuedJobsToGrid(targetGridObj,jobArray){
+    var newjobIds = [];
+    var queuedjobcount=0;
+    //add new jobs if any//TODO: at top
+    for (i=0;i<jobArray.length;i++){
+        queuedjobcount++;
+        var rowid = "queued_"+jobArray[i].item.guid;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+        newjobIds.push(rowid);
+        var status = "Queued"
+        var duration = "";
+        var _state = m_jobStates[jobArray[i].state];
+        var _state = "Queued";
+        if (targetGridObj.doesRowExist(rowid)){
+            //no update needed for queued tasks
+        }else{
+            targetGridObj.addRow(rowid,[_state,"",jobArray[i].item.host,"",jobArray[i].item.display,"","",jobArray[i].item.source,"Queued"],0); 
+        }                       
+        var jobObj = jobArray[i];
+        jobObj.job_id = jobArray[i].item.guid;//store job_id to allow abortjobs
+        targetGridObj.setRowColor(rowid,"#ffffcc");
+        targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
+        targetGridObj.sortRows(5,"str","des");     
+    }
+    //update job count display
+    document.getElementById("queuedjobcount").innerHTML = queuedjobcount;
+    //delete non existing/orphaned jobs e.g. active job got finished 
+    targetGridObj.forEachRow(function(id){
+    //check if we deal with a queued job
+    if (id.indexOf("active_") != -1){
+        return;
+    }
+    if (newjobIds.indexOf(id)==-1){
+        targetGridObj.deleteRow(id);
+    }
+    });
+}
+
 
 function addHistoryJobsToGrid(targetGridObj,jobArray){//history jobs dont support splits from ffastrans API, this needs to be updated as soon as they do
     var newjobIds = [];
@@ -445,7 +487,6 @@ function addHistoryJobsToGrid(targetGridObj,jobArray){//history jobs dont suppor
             targetGridObj.setRowColor(rowid,"#ffcc80");
             abortedcount++;
         }
-        
         targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original object with row
         targetGridObj.sortRows(5,"str","des");
     }

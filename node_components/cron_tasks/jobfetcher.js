@@ -19,18 +19,17 @@ module.exports = {
     });
     
     //fetch queued jobs from api - TODO: this currently dont work in ffastrans api, activate at next version
-   /* Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {
+    Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {
         if(error) {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
-        global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).jobs));
+        global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).queue));
+        return;
         //store in database
-        for (i=0;i<JSON.parse(body).jobs.length;i++){
-             storeActiveJob(JSON.parse(body).jobs[i]);
-        }
-    });*/
+
+    });
     
     //fetch history jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 7000},(error, response, body) => {
