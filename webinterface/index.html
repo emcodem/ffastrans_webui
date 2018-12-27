@@ -169,8 +169,8 @@ function init(){
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
         items:[
              {id:"abort", text:'<i class="fas fa-stop"></i>Abort'},
-             //{id:"pause", text:'<i class="fas fa-pause"></i>Pause'}, //todo: wait for next ffastrans version, in 9.3 it does not work as expected on jobs with splits
-            // {id:"resume", text:'<i class="fas fa-play"></i>Resume'},
+             {id:"pause", text:'<i class="fas fa-pause"></i>Pause'}, 
+             {id:"resume", text:'<i class="fas fa-play"></i>Resume'},
              {id:"log", text:'<i class="fas fa-info"></i>Log'},
           ]
     });
@@ -292,12 +292,15 @@ function pauseResumeJob(pause){
         dhtmlx.alert("Please select a Job to " + pause);
         return;
     }    
-    var rowId = runningJobGrid.getSelectedRowId();
-    var jobObj = runningJobGrid.getUserData(rowId,"jobobject");
-    var splitid = parseInt(runningJobGrid.cells(rowId,9).getValue()) ;
-    var postBody = {"action": pause,"split": splitid};//TODO: ask steinar why the api does not work for multiple splits, it seems a bit random if splitid 0 or 1 is used, even using postman, if a job has 2 splits, how to pause both?
-    socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
-    dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
+
+    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+    selectedRowIds.forEach(function(rId) {
+        var jobObj = runningJobGrid.getUserData(rId,"jobobject");
+        var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) ;
+        var postBody = {"action": pause,"split": splitid};//TODO: ask steinar why the api does not work for multiple splits, it seems a bit random if splitid 0 or 1 is used, even using postman, if a job has 2 splits, how to pause both?
+        socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
+        dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
+    })
 }
 
 function abortJob(){
@@ -314,7 +317,7 @@ function abortJob(){
                 type: "DELETE",
                 context: this,
                 success: function (response) {
-                  dhtmlx.message("Aborted " + rowId);  
+                  dhtmlx.message("Aborted " + jobObj.job_id);  
                 },
                 error: function (xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
@@ -376,10 +379,18 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
         if (("splits" in jobArray[i])){
             for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
                 activejobcount++;
-                var rowid =  "active_" + i + splitindex + jobArray[i].job_start;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+                var splitid = 1;
+                if (splitindex != 0){
+                    splitid = "1" + (splitindex + 1); //ffastrans 0.9.3 does not have correct splitid in api, we have to calculate our own. it works like: (1 + (1+splitindex))
+                }
+                if (typeof (jobArray[i].splits[splitindex].split_id) == "number"){
+                    splitid = jobArray[i].splits[splitindex].split_id; //newer ffastrans versions introduce splitid
+                }
+
+                var rowid =  "active_" + i + splitid + jobArray[i].job_start;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
                 newjobIds.push(rowid);
                 var status = jobArray[i].splits[splitindex].processor + "@" + jobArray[i].splits[splitindex].node + " " + jobArray[i].splits[splitindex].status + " Progress: " + jobArray[i].splits[splitindex].progress;           
-               
+                
                 var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
                 var _state = m_jobStates[jobArray[i].state];
                 if (targetGridObj.doesRowExist(rowid)){
@@ -389,7 +400,7 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                     targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
                 }else{
                     //add new task (ffastrans calls it split)
-                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitindex],0);
+                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid],0);
                     targetGridObj.cells(rowid,8).setValue(status);
                 }                        
                 targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
