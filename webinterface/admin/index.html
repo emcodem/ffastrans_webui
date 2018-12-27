@@ -99,9 +99,9 @@ Note: make sure the port you are entering is free on your server by using netsta
 Webserver restart required after change
 
 STATIC_USE_WEB_AUTHENTIFICATION
-<a href="/signup"><b>Create User here</b></a>
-Enables password login for users and admins. Make sure you have a created a user before you enable this or you cannot access the webserver anymore at all. 
-Webserver Service restart required on change
+<a href="/signup"><b>Create Users here before (and after) enabling this option</b></a>
+Enables password login for users and admins. <b>Make sure you have a created a user before you enable this or you cannot access the webserver anymore at all. </b>
+In case you locked yourself out, open the database using a text editor (%installpath%\database\config) and set the authentification to false.
 
 STATIC_UPLOADPATH
 Users can upload files through the webinterface. This is where the uploaded files go to from perspective of the server where the webserver is installed on.

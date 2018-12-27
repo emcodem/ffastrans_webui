@@ -413,11 +413,11 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
         //check if we deal with a queued job
-        if (id.indexOf("queued_" != -1)){
-            return;
-        }
-        if (newjobIds.indexOf(id)==-1){//TODO: includes is not cross browser safe
-            targetGridObj.deleteRow(id);
+        if (newjobIds.indexOf(id)==-1){
+            if (id.indexOf("queued_" )!= -1){
+            }else{
+                targetGridObj.deleteRow(id);
+            }
         }
     });
 }
@@ -451,12 +451,14 @@ function addQueuedJobsToGrid(targetGridObj,jobArray){
     //delete non existing/orphaned jobs e.g. active job got finished 
     targetGridObj.forEachRow(function(id){
     //check if we deal with a queued job
-    if (id.indexOf("active_") != -1){
-        return;
-    }
-    if (newjobIds.indexOf(id)==-1){
-        targetGridObj.deleteRow(id);
-    }
+        if (newjobIds.indexOf(id)==-1){
+            if (id.indexOf("active_") != -1){
+                //active jobs are not deleted
+            }else{
+                dhtmlx.message("deleting queued " + id)
+                targetGridObj.deleteRow(id);
+            }
+        }
     });
 }
 
