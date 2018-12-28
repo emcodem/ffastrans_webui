@@ -104,6 +104,7 @@ Enables password login for users and admins. <b>Make sure you have a created a u
 In case you locked yourself out, open the database using a text editor (%installpath%\database\config) and set the authentification to false.
 
 STATIC_UPLOADPATH
+Make sure that all paths end with a backslash!
 Users can upload files through the webinterface. This is where the uploaded files go to from perspective of the server where the webserver is installed on.
 Make sure ffastrans can access the path where uploads go
 
@@ -115,9 +116,10 @@ Example1: SOMEVALUE
 Example2: FIRSTVALUE,SecondValue
 
 STATIC_ALLOWED_BROWSE_LOCATIONS
+Make sure that all paths end with a backslash!
 See above, please make sure there are the same number of display_names and browse_locations configured. 
 This is a list of comma-separated locations. 
-Make sure that all paths end with a backslash!
+
 Example1: D:\
 Example2: \\FIRSTServer\share\folder,\\SecondServer\share
 

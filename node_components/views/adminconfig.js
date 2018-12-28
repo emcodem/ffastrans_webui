@@ -4,7 +4,6 @@ var configServer = require(global.approot  + '/node_components/server_config');
 
 	app.get('/adminconfig', (req, res) => {
 		try{
-            
 			if (req.method === 'GET' || req.method === 'POST') {
                 //basic fieldset, parent of all inputs
                 var dhxform = [];
@@ -25,10 +24,12 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 configServer.get(function(outputConfig){
                      //loop through all config items and display them, this way we support adding/removing items in the config dynamically
 					for (const key in outputConfig) {
+                        var disabled = false;
+                        if (key.indexOf("_URL")!=-1){disabled=true;}
 						if (typeof (outputConfig[key]) == "string"){
                             //bool as string
                             if (outputConfig[key]=="true"||outputConfig[key]=="false"){
-                                fieldset.list.push ({type: "select", name: key,label: "<b>"+key+"</b>",width:600, options:[
+                                fieldset.list.push ({type: "select", "disabled":disabled,name: key,label: "<b>"+key+"</b>",width:600, options:[
                                     {text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
                                     {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
                                 ]})
@@ -36,19 +37,16 @@ var configServer = require(global.approot  + '/node_components/server_config');
                                 continue;
                             }
                             //normal string
-                            var disabled = false;
-							if (key.indexOf("_URL")!=-1){disabled=true;}
 							fieldset.list.push({type:"input", "disabled":disabled,name: key, width:600,label: "<b>"+key+"</b>",value:outputConfig[key]})
 						}
 						if (typeof (outputConfig[key]) == "number"){
-                            var disabled = false;
-							if (key.indexOf("_URL")!=-1){disabled=true;}
 							fieldset.list.push({type:"input", "disabled":disabled,name: key, width:600,label: "<b>"+key+"</b>",value:outputConfig[key]})
 						}                        
 						if (typeof (outputConfig[key]) == "boolean"){
+                            console.log(key + "is bool, disabled: " + disabled)
 							fieldset.list.push ({type: "select", name: key,label: "<b>"+key+"</b>",width:600, options:[
-								{text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
-								{text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
+								{text: "Enable", value: "true",	"disabled":disabled, selected:(true==JSON.parse(outputConfig[key]))},
+								{text: "Disable", value: "false", "disabled":disabled, selected:(false==JSON.parse(outputConfig[key]))},
 							]})
 						}
 						if (typeof (outputConfig[key]) == "object"){
@@ -68,7 +66,6 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 res.end();
 		}
 	});
-    
     
     //SAVE back to database
     app.post('/adminconfig', (req, res) => {
