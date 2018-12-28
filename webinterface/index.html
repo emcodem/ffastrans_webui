@@ -187,10 +187,10 @@ function init(){
                 abortJob()
             }
             if (id == "pause") {
-                pauseResumeJob(id)
+                pauseResumeJob(id,"PUT")
             }
             if (id == "resume") {
-                pauseResumeJob(id)
+                pauseResumeJob(id,"PUT")
             }
             if (id == "log") {
                 openLogViewer(runningJobGrid)
@@ -204,7 +204,7 @@ function init(){
     
     mainLayout.cells("b").attachHTMLString("<iframe src='components/jobstarter.html' width='100%' height='100%' />");
     runningJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns 
-    runningJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status,Splitindex");//the headers of columns      
+    runningJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status,Splitindex,Progress");//the headers of columns      
     configureJobGrid(runningJobGrid);
     finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns  
     finishedJobGrid.setHeader("State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Outcome");//the headers of columns 
@@ -237,6 +237,15 @@ function init(){
     socket.on('msg', function(msg){
      dhtmlx.message(msg);
     });
+    
+    if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])){
+        window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(3000));
+        window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(3000));
+        window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(3000));
+        getQueuedJobs(runningJobGrid);
+        getActiveJobs(runningJobGrid);
+        getFinishedJobs(finishedJobGrid);
+    }
 }
 
 function onHeaderClick(){
@@ -286,7 +295,7 @@ function openLogViewer(dhxgrid){
 
 }
 
-function pauseResumeJob(pause){
+function pauseResumeJob(pause,httpMethod){
 //Emits socket.io comman to webserver (the api request is made on the webserver not the client) pause is set to either pause or resume. 
     if (!runningJobGrid.getSelectedRowId()){
         dhtmlx.alert("Please select a Job to " + pause);
@@ -301,6 +310,32 @@ function pauseResumeJob(pause){
         socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
         dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
     })
+}
+
+function abortJobWithSplit(){
+//only available in ffastrans 9.4>//TODO: wait for the new version, then do version detection
+    if (!runningJobGrid.getSelectedRowId()){
+        dhtmlx.alert("Please select a Job to abort");
+        return;
+    }
+    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+    selectedRowIds.forEach(function(rId) {
+        var jobObj = runningJobGrid.getUserData(rId,"jobobject");
+        var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) 
+        var postBody = {"action": "abort","split": splitid};
+           $.ajax({
+                url:  ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
+                type: "POST",
+                context: this,
+                data : JSON.stringify(postBody),
+                success: function (response) {
+                  dhtmlx.message("Aborted " + jobObj.job_id);  
+                },
+                error: function (xhr, status) {
+                    dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
+                }
+            });
+    })//foreachjob
 }
 
 function abortJob(){
@@ -389,7 +424,7 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
 
                 var rowid =  "active_" + i + splitid + jobArray[i].job_start;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
                 newjobIds.push(rowid);
-                var status = jobArray[i].splits[splitindex].processor + "@" + jobArray[i].splits[splitindex].node + " " + jobArray[i].splits[splitindex].status + " Progress: " + jobArray[i].splits[splitindex].progress;           
+                var status = jobArray[i].splits[splitindex].status;           
                 
                 var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
                 var _state = m_jobStates[jobArray[i].state];
@@ -400,7 +435,7 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                     targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
                 }else{
                     //add new task (ffastrans calls it split)
-                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid],0);
+                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid,jobArray[i].splits[splitindex].progress],0);
                     targetGridObj.cells(rowid,8).setValue(status);
                 }                        
                 targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
@@ -519,6 +554,7 @@ function addHistoryJobsToGrid(targetGridObj,jobArray){
 
 /* HELPERS */
 function hashCode (string) {
+//this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
   var hash = 0, i, chr;
   if (string.length === 0) return hash;
   for (i = 0; i < string.length; i++) {
@@ -549,24 +585,77 @@ function pad(n, z) { //add leading zero if there is none
 
 function configureJobGrid(dhtmlxGridObj){
         dhtmlxGridObj.setImagePath("dependencies/dhtmlx/imgs");                 
-
-        dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");                    //filters
-        //dhtmlxGridObj.setInitWidthsP("0,15,30,10,0,*");          //the widths of columns  
-        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
-        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed");                //the types of columns  
-        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str");          //the sorting types   
+        dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); 
+        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns   
+        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed,ed,ed,ed");                //the types of columns  
+        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");          //the sorting types   
         dhtmlxGridObj.enableMultiselect(true);
         dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page 
 }
 
 function buildUrl(what){
-    return "/proxy" + what;
+    if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])){
+        return "/proxy" + what;
+    }else{
+        var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
+        return  _url;
+    }
     //old, delete at next iteration
-    var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
-    return  _url;
+    
 }
 
+/* NO PROXY MODE */
+function getQueuedJobs(targetGridObj){
+    $.ajax({
+        url:  buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+            addQueuedJobsToGrid(targetGridObj,response.queue);
+            mainLayout.cells("a").progressOff();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+        }
+    });
+}
+function getActiveJobs(targetGridObj){
+    $.ajax({
+        url:  buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+            addActiveJobsToGrid(targetGridObj,response.jobs);
+            mainLayout.cells("a").progressOff();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+        }
+    });
+}
+function getFinishedJobs(targetGridObj){
 
+    $.ajax({
+        url:  buildUrl(m_serverconfig['STATIC_GET_FINISHED_JOBS_URL']),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+           addHistoryJobsToGrid(targetGridObj,response.history);
+           mainLayout.cells("c").progressOff();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+            
+        }
+    });
+}
+/* /NO PROXY MODE */
 
 
 </script>

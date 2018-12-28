@@ -5,6 +5,9 @@ const Request = require("request");
 module.exports = {
   fetchjobs: function () {    
     //fetch running jobs from api
+    if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
+        return;
+    }
     Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 7000},(error, response, body) => {
         if(error) {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
@@ -20,6 +23,9 @@ module.exports = {
     
     //fetch queued jobs from api - TODO: this currently dont work in ffastrans api, activate at next version
     Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {
+        if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
+            return;
+        }
         if(error) {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
@@ -33,6 +39,9 @@ module.exports = {
     
     //fetch history jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 7000},(error, response, body) => {
+        if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
+            return;
+        }
         if(error) {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
