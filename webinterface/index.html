@@ -433,6 +433,7 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                     targetGridObj.cells(rowid,2).setValue(jobArray[i].splits[splitindex].node);
                     targetGridObj.cells(rowid,3).setValue(jobArray[i].splits[splitindex].processor);
                     targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
+                    targetGridObj.cells(rowid,10).setValue(jobArray[i].splits[splitindex].progress + "%");//todo: update more values or better all!
                 }else{
                     //add new task (ffastrans calls it split)
                     targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid,jobArray[i].splits[splitindex].progress],0);
