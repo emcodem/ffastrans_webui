@@ -155,8 +155,8 @@ function init(){
     
     //mainform is for workflow and processor selection, subform for variables
     m_mainForm  = new dhtmlXForm("mainform");
-    m_mainForm.addItem(null, {type: "button",name: "show_wf", value: "Show Workflow",  offsetLeft:10});
-    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Start Processor", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 50, offsetLeft : 10,list:[]});
+   // m_mainForm.addItem(null, {type: "button",name: "show_wf", value: "Show Workflow",  offsetLeft:10}); //show workflow disabled for release
+    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Start Processor", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
     m_subForm  = new dhtmlXForm("subform");
 
     m_selectedFileGrid = jobLayout.cells("a").attachGrid();
@@ -335,7 +335,7 @@ function on_processorSelected(selectedWorkflow){
                 m_subForm = null;
             }
             m_subForm  = new dhtmlXForm("subform");
-            m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 20, offsetLeft : 10,list:[]},1);
+            m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 0, offsetLeft : 10,list:[]},1);
            // m_subForm.addItem("data", {type: "label", label: "User Variables"},1);
             
             m_subForm.attachEvent("onButtonClick", function(name){
