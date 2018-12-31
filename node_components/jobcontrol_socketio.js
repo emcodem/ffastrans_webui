@@ -10,7 +10,6 @@ module.exports = {
         Request({ url: buildApiUrl(global.config.STATIC_START_JOB_URL) + cancelobj.id, method: 'PUT', json: cancelobj.body}, function(error, response, body){ 
             if (error){
                 global.socketio.emit("error", "Error pauseing job, "+ error);
-                
                 console.log("Pause command error: "+ error)
             }else{
              global.socketio.emit("msg", body);

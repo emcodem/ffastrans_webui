@@ -1,9 +1,10 @@
 const assert = require('assert');
 const Request = require("request");
 //todo: implement queued jobs
+var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 
 module.exports = {
-  fetchjobs: function () {    
+  fetchjobs: function () {
     //fetch running jobs from api
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
@@ -15,13 +16,10 @@ module.exports = {
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
         global.socketio.emit("activejobs", JSON.stringify(JSON.parse(body).jobs));
-        //store in database
-        for (i=0;i<JSON.parse(body).jobs.length;i++){
-             storeActiveJob(JSON.parse(body).jobs[i]);
-        }
+ 
     });
     
-    //fetch queued jobs from api - TODO: this currently dont work in ffastrans api, activate at next version
+    //fetch queued jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
@@ -31,6 +29,7 @@ module.exports = {
             return;
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
+
         global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).queue));
         return;
         //store in database
@@ -46,61 +45,81 @@ module.exports = {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
         }
-        //send the new jobs to connected clients, todo: only notify clients about new stuff
-        global.socketio.emit("historyjobs", JSON.stringify(JSON.parse(body).history));
-        //store in database
-        for (i=0;i<JSON.parse(body).history.length;i++){
-            storeFinishedJob(JSON.parse(body).history[i]);
+        var jobArray = JSON.parse(body).history;
+        //store history jobs in database
+        var newjobsfound = 0;
+        for (i=0;i<jobArray.length;i++){
+            //todo: check if we need to insert anything before calling insert (save amount of calls per second)
+            var guid = hashCode(JSON.stringify(jobArray[i]));//TODO: the +i is just for making every entry unique, this is to workaround missing job ids and split ids in ffastrans 093. DELETE THIS 
+            jobArray[i].guid = guid;
+            jobArray[i]._id = guid;
+            jobArray[i].duration = getDurationStringFromDates(jobArray[i].job_start,jobArray[i].job_end);
+            jobArray[i].state = m_jobStates[jobArray[i].state];
+            global.db.jobs.insert(jobArray[i], function (err, newDoc) {
+                if (err){
+                    //console.log("Error inserting history job into DB: " + err)
+                }
+                if (newDoc){
+                    newjobsfound ++;
+                    //inform clients about the presence of new history job(s)
+                    //todo: calculate duration and store along with object
+                    global.socketio.emit("newhistoryjob", newDoc);//inform clients about the current num of history jobs so they can poll for the joblist if they need new jobs
+                }
+            });
         }
+
+        //inform clients about current job count
+        var countObj = {errorjobcount:0,successjobcount:0,cancelledjobcount :0};
+        //inform the client about current count in DB
+        global.db.jobs.count({"state":"Success"},function(err,success_count){
+            countObj.successjobcount=success_count;
+            global.db.jobs.count({"state":"Error"},function(err,error_count){
+                countObj.errorjobcount=error_count;
+                global.db.jobs.count({"state":"Cancelled"},function(err,cancelled_count){
+                    countObj.cancelledjobcount=cancelled_count;
+                    //push data to client
+                    global.socketio.emit("historyjobcount", countObj);
+                })
+            })
+        })
+        
     });   
   }
+};
+
+
+/* HELPERS */
+
+function getDurationStringFromDates(start_date,end_date){
+        var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
+        var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
+        delta -= days * 86400;// calculate (and subtract) whole hours
+        var hours = Math.floor(delta / 3600) % 24;
+        delta -= hours * 3600;// calculate (and subtract) whole minutes
+        var minutes = Math.floor(delta / 60) % 60;
+        delta -= minutes * 60;// what's left is seconds
+        var seconds = delta % 60;  // in theory the modulus is not required
+        return pad(hours) + ":" + pad (minutes) + ":" + pad (seconds);
+}
+
+function pad(n, z) { //add leading zero if there is none
+  z = z || '0';
+  n = n + '';
+  return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
+}
+
+function hashCode (string) {
+//this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
+  var hash = 0, i, chr;
+  if (string.length === 0) return hash;
+  for (i = 0; i < string.length; i++) {
+    chr   = string.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
 };
 
 function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
 }
-
-function storeActiveJob(_job){
-    return; //creating a unique id did not work, wf_name and job_start is not unique enough. todo: wait for newer ffastrans version
-    var newjobIds = [];
-    var jobid =  _job.wf_name +" "+ _job.job_start;//currently history jobs don't have an id in ffastrans, assume file and start makes a unique id
-        //add missing fields - talk to steinar about one unified job obj
-        _job.job_end = "";
-        _job.outcome = "";
-        _job.guid = jobid;
-        _job._id = jobid;
-        //store in db
-        global.db.jobs.base.insert(jobArray[i], function (err, newDoc) {});  
-        //todo: update fields if neccessary
-}
-
-function storeFinishedJob(_job){
-    return; //creating a unique id did not work, wf_name and job_start is not unique enough. todo: wait for newer ffastrans version
-      var jobid =  _job.wf_name +" "+ _job.job_start;//currently history jobs don't have an id in ffastrans, assume file and start makes a unique id
-        _job.guid = jobid;
-        _job._id = jobid;
-        global.db.jobs.base.find({ _id:jobid },  function (err, docArray) {
-            if (docArray.length > 1){
-                console.log("Found the same jobid ("+jobid+")mulitple times in database, cannot go on");
-                return;
-            }
-            if (docArray){
-                var doc =docArray[0];
-                if (doc.job_end != _job.job_end){//check if job turned form active to finished, if yes, inerst job_end and outcome
-                    console.log("Found that job end needs update, (DBval:"+doc.job_end +"!= jobval:"+ _job.job_end+") calling update function, set " +_job.job_end + " on "+ jobid);
-                    console.log(doc);
-                    console.log(_job);
-                    //need to update record, job most likely was moved from active to finished - the json job strucutre changes in that case
-                    global.db.jobs.base.update({"_id":jobid},  { $set: { "job_end": _job.job_end,"outcome":_job.outcome}}, {upsert:false}, function (err,doc,upsert) {
-                        if (err){
-                            console.trace("Could not update job_end on " + jobid + err)
-                        }
-                    })
-                }//update job_end
-            }else{
-               global.db.jobs.base.insert(_job, function (err, newDoc) {});  
-            }//if doc 
-        }) 
-}
-
-
