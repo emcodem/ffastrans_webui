@@ -1,6 +1,7 @@
 defaultConfig = {};
 
-//you can change these values but check if you created valid javascript
+defaultConfig.STATIC_WEBUI_HEADER_NAME = "";
+
 defaultConfig.STATIC_WEBSERVER_LISTEN_PORT = 3002;
 
 
@@ -26,7 +27,7 @@ defaultConfig.STATIC_API_PORT = "65445";
 //you can change these variables
 
 defaultConfig.STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "5,10,10,10,30,10,0,0,*,0,5"; 
-defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,10,0,0,30,10,0,5,*";
+defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
 
 
 //Please do not change these values

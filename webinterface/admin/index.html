@@ -93,29 +93,35 @@ function init(){
 <body onload="init()">
 <div id="documentation" style="margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
-STATIC_WEBSERVER_LISTEN_PORT
+<b>STATIC_WEBUI_HEADER_NAME</b>
+This is for the case when you have multiple instances of ffastrans and webserver running.
+What you input here will show on the main page top left, it is used to let users quickly identify to which instance of ffastrans the webinterface is conntected.
+For example, if you have one TEST, Pre-prod, and Production instance, you would enter those names here. 
+After changing, if the vaule top left does not refresh, press CTRL+R to reload your page and override browser cache.
+
+<b>STATIC_WEBSERVER_LISTEN_PORT</b>
 The Port that the webserver (not ffastrans) will listen on. Typical value: 80
 Note: make sure the port you are entering is free on your server by using netstat on the commandline and check if anything is LISTENING on the port you desire
 Webserver restart required after change
 
-STATIC_USE_WEB_AUTHENTIFICATION
+<b>STATIC_USE_WEB_AUTHENTIFICATION</b>
 <a href="/signup"><b>Create Users here before (and after) enabling this option</b></a>
 Enables password login for users and admins. <b>Make sure you have a created a user before you enable this or you cannot access the webserver anymore at all. </b>
 In case you locked yourself out, open the database using a text editor (%installpath%\database\config) and set the authentification to false.
 
-STATIC_UPLOADPATH
+<b>STATIC_UPLOADPATH</b>
 Make sure that all paths end with a backslash!
 Users can upload files through the webinterface. This is where the uploaded files go to from perspective of the server where the webserver is installed on.
 Make sure ffastrans can access the path where uploads go
 
-STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES
+<b>STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES</b>
 Users can browse file repositories from the server on the webinterface. Here you configure what users will see in the File browsers "location" dropdown.
 Multiple entries must be comma-separated (csv).
 Make sure you have exactly the same amount of DISPLAY names as for the BROWSE_LOCATIONS below.
 Example1: SOMEVALUE
 Example2: FIRSTVALUE,SecondValue
 
-STATIC_ALLOWED_BROWSE_LOCATIONS
+<b>STATIC_ALLOWED_BROWSE_LOCATIONS</b>
 Make sure that all paths end with a backslash!
 See above, please make sure there are the same number of display_names and browse_locations configured. 
 This is a list of comma-separated locations. 
@@ -123,22 +129,22 @@ This is a list of comma-separated locations.
 Example1: D:\
 Example2: \\FIRSTServer\share\folder,\\SecondServer\share
 
-STATIC_API_HOST
+<b>STATIC_API_HOST</b>
 FFAstrans Server, use localhost if this webserver runs on the same server as your main ffastrans server.
 
-STATIC_API_PORT
+<b>STATIC_API_PORT</b>
 FFAStrans API port, typically 65445
 
-STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT
+<b>STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT</b>
 Here you configure how the active job grid on the main webinterface looks like on page load. 
-The values are percent, * is for "the rest" (only use one *).
-Make sure there are exactly 10 values!
-Example: 0,10,10,10,30,10,0,0,*,0
+The values are percent, 0 percent is for hiding, * is for "the rest" (only use one * in the list).
+Columns are: State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status,Splitindex,Progress
+Example: 5,10,10,10,30,10,0,0,*,0,5
 
-STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT
-Same as above but for the History job grid.
-Only 9 values are allowed here!
-Example: 5,10,0,0,30,10,0,5,*
+<b>STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT</b>
+Same as above but for the History job grid. 0 percent is for hiding, * is for "the rest" (only use one * in the list)
+Columns are: State,Workflow,Job Start,Duration,Job End,File,Outcome
+Example: 5,15,10,5,0,30,*
 
 <b>Important Informations: </b>
 Database:

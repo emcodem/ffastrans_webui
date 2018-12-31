@@ -30,11 +30,12 @@ if (fs.existsSync(global.approot + "/database/")) {
         
 //Before DB init, we need socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
-  
+ 
 //init live connection to clients using socket.io
 global.socketio = socket(http);
 var wildcard = socketwildcard();
 global.socketio.use(wildcard);
+//register supported functions
 global.socketio.on('connection', function(socket){
   console.log('New socket io client connected');
     socket.on('*', function(data){
@@ -44,7 +45,8 @@ global.socketio.on('connection', function(socket){
         var obj = data.data[1];
         if (cmd == "pausejob"){
             jobcontrol.pausejob(obj);
-        }else{}
+            return;
+        }
     })
   socket.on('disconnect', function(){
     console.log('client disconnected');
@@ -57,7 +59,7 @@ global.db.jobs = new Datastore({ filename: global.approot  + "/database/jobs" })
 global.db.jobs.loadDatabase(function (err) {    //database is vacuumed at startup
   assert.equal(null, err);
 });
-global.db={};
+
 global.db.config = new Datastore({ filename: global.approot  + "/database/config" });
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
   assert.equal(null, err);
@@ -119,7 +121,8 @@ function init(conf){
     require("./node_components/getserverconfig")(app, express);
     require("./node_components/logparser")(app, express);
     require("./node_components/views/adminconfig")(app, express);
-
+    require("./node_components/views/gethistoryjobsajax")(app, express);
+    require("./node_components/databasemaintenance")(app, express);
     //catch all uncaught exceptions - keeps the server running
     process.on('uncaughtException', function(err) {
       console.trace('Caught exception: ' + err);
