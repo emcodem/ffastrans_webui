@@ -4,7 +4,6 @@ var m_maximimjobcount = 20000; //we only support this amount of jobs, no user co
 module.exports = function(app, express){
 
 	app.get('/deleteoldrecords', (req, res) => {
-        console.log("testdata inserter called ")
         //deletes records up to m_maximimjobcount (20k is fast enough in nedb for our application)
             global.db.jobs.count({}, function(err, count) {
                 console.log("DB maintenance found " + count + " Jobs in database");
