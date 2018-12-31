@@ -374,8 +374,12 @@ function openLogViewer(dhxgrid){
             var url = "/logparser?job_id=" +encodeURI(jobObj.job_id) +"&wf_name=" + encodeURI(jobObj.wf_name) ;
             logGrid.load(url,"json")
         }else{
+            var file = (dhxgrid.cells(rId,dhxgrid.getColIndexById("file")).getValue());
+            var job_end = (dhxgrid.cells(rId,dhxgrid.getColIndexById("job_end")).getValue());
+            var job_start = (dhxgrid.cells(rId,dhxgrid.getColIndexById("job_start")).getValue());
+            var wf_name = (dhxgrid.cells(rId,dhxgrid.getColIndexById("wf_name")).getValue());
             //we don'T have a jobid, server will need to find files based on the infos we have. TODO: ask steinar if we can get a jobid for history jobs
-             var url = ("/logparser?file=" + encodeURI(jobObj.file) +"&job_end=" + encodeURI(jobObj.job_end) +"&job_start=" + encodeURI(jobObj.job_start) +"&wf_name=" + encodeURI(jobObj.wf_name )  );
+             var url = ("/logparser?file=" + encodeURI(file) +"&job_end=" + encodeURI(job_end) +"&job_start=" + encodeURI(job_start) +"&wf_name=" + encodeURI(wf_name )  );
              logGrid.load(url,"json");
         } 
         win.show();
