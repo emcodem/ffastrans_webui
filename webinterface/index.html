@@ -256,11 +256,12 @@ function init(){
         //data was loaded from the server, re-color the rows
         finishedJobGrid.forEachRow(function(id){
             var state= finishedJobGrid.cells(id,0).getValue();
+            
             if (state =="Error"){
                 finishedJobGrid.setRowColor(id,"#ffe6e6");
             }            
             if (state =="Cancelled"){
-                finishedJobGrid.setRowColor(rowid,"#ffcc80");
+                finishedJobGrid.setRowColor(id,"#ffcc80");
             }
         });
     });
