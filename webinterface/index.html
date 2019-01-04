@@ -170,18 +170,23 @@ function init(){
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
     
+    
+    
     //start with dhtmlx layouts
     headerLayout.cells("a").hideHeader();
     headerLayout.cells("b").hideHeader();
+
     headerLayout.cells("a").setHeight(75);
     headerLayout.cells("a").fixSize(true, true);
+    
+    
     
     mainLayout = headerLayout.cells("b").attachLayout({
         parent: document.body,  
         pattern: "3J"           
     });
     mainLayout.cells("a").setText("Running");
-    
+                                        
     mainLayout.cells("b").setText("New Job");
     mainLayout.cells("b").setWidth($(document).width()/3);
     mainLayout.cells("c").setText("Finished");

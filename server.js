@@ -14,7 +14,14 @@ const http = require('http').Server(app);
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
+
+
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log 
+
+//catch all uncaught exceptions - keeps the server running
+process.on('uncaughtException', function(err) {
+  console.trace('Caught exception: ' + err);
+});
 
 //needed for running as nexe - access to local files (database) is different 
 global.approot  = path.dirname(process.execPath);
@@ -74,6 +81,21 @@ function init(conf){
     
     global.config = conf;
     
+    // required for passport
+    app.use(session({ 
+                        secret: 'you_will_never_guess_the_secret' ,    
+                        resave: true,
+                        saveUninitialized: true
+        }));
+    app.use(passport.initialize());
+    app.use(passport.session()); // persistent login sessions
+    app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
+    
+    
+    //redirect views - for passport
+    app.set('views', path.join(__dirname, './node_components/passport/views/'));
+
+    
     //proxy, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
       parseReqBody: false,
@@ -87,7 +109,7 @@ function init(conf){
       }
     }));
 
-    // get information from html forms
+    // get information from POST like messages
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
 
@@ -123,27 +145,15 @@ function init(conf){
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobsajax")(app, express);
     require("./node_components/databasemaintenance")(app, express);
-    //catch all uncaught exceptions - keeps the server running
-    process.on('uncaughtException', function(err) {
-      console.trace('Caught exception: ' + err);
-    });
+    require("./node_components/views/userlist")(app, express);
+    require("./node_components/views/usergrouplist")(app, express);
+    require("./node_components/views/usergrouprightslist")(app, express);
+    require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
+    require('./node_components/passport/passport')(passport); // pass passport for configuration
 
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
-    // required for passport
-    app.use(session({ 
-                        secret: 'you_will_never_guess_the_secret' ,    
-                        resave: true,
-                        saveUninitialized: true
-        }));
-    app.use(passport.initialize());
-    app.use(passport.session()); // persistent login sessions
-    app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
-    require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
-    require('./node_components/passport/passport')(passport); // pass passport for configuration
-    //redirect views - for passport
-    app.set('views', path.join(__dirname, './node_components/passport/views/'));
 
     //startup
     console.log('Hello and welcome, thank you for using FFAStrans') 

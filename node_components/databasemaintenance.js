@@ -1,4 +1,3 @@
-var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 var m_maximimjobcount = 20000; //we only support this amount of jobs, no user configuration needed.
 
 module.exports = function(app, express){

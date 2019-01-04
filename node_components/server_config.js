@@ -69,7 +69,7 @@ module.exports = {
     },
     save: (configobj,callbacksuccess,callbackerror) => {
         //updates config in database
-            global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true}, function (err, newDoc) {
+        global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true}, function (err, newDoc) {
             if (err){
                 callbackerror(err);
             }
