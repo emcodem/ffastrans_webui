@@ -1,0 +1,495 @@
+<html>
+<head>
+<script src="/socket.io/socket.io.js"></script>
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<script src="../dependencies/dhtmlx/vault/vault.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
+<script src="../dependencies/jquery/jquery.js"></script>
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+    }
+
+</style>
+
+<script>
+
+/* GLOBALS */
+var m_mainLayout,m_usergrid,m_groupgrid,m_userPropsGrid,m_rightsgrid,m_groupPropsGrid;
+var socket = io();
+/* build basic page layout and init periodic job loading*/
+function init(){
+    socket.on('admin', function(msg){
+     dhtmlx.message(msg);
+    });
+    
+    m_mainLayout = new dhtmlXLayoutObject({
+        parent: document.body,  
+        pattern: "4G"           
+    });
+    m_mainLayout.cells("a").setText("Users");
+    m_mainLayout.cells("b").setText("Groups");
+    m_mainLayout.cells("c").setText("Group Permissions");
+    m_mainLayout.cells("d").setText("Documentation");
+    m_mainLayout.cells("d").attachObject("documentation")
+    
+    //m_mainLayout.cells("d").attachObject("Groups");
+    m_mainLayout.cells("d").showInnerScroll();
+    
+	m_usergrid = m_mainLayout.cells("a").attachGrid();
+    m_usergrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_usergrid.setHeader("Username");//the headers of columns  
+    m_usergrid.setInitWidthsP("*");          //the widths of columns  
+    m_usergrid.setColAlign("left");       //the alignment of columns   
+    m_usergrid.setColTypes("ro");                //the types of columns  
+    m_usergrid.setColSorting("str");          //the sorting types    
+    m_usergrid.init();      //finishes initialization and renders the grid on the page 
+	
+    m_groupgrid = m_mainLayout.cells("b").attachGrid();
+    m_groupgrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_groupgrid.setHeader("Groupname");//the headers of columns  
+    m_groupgrid.setInitWidthsP("*");          //the widths of columns  
+    m_groupgrid.setColAlign("left");       //the alignment of columns   
+    m_groupgrid.setColTypes("ro");                //the types of columns  
+    m_groupgrid.setColSorting("str");          //the sorting types    
+    m_groupgrid.enableDragAndDrop(true);
+    m_groupgrid.init();      //finishes initialization and renders the grid on the page 
+
+    m_rightsgrid = m_mainLayout.cells("c").attachGrid();
+    m_rightsgrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_rightsgrid.setHeader("Permission name");//the headers of columns  
+    m_rightsgrid.setInitWidthsP("*");          //the widths of columns  
+    m_rightsgrid.setColAlign("left");       //the alignment of columns   
+    m_rightsgrid.setColTypes("ro");                //the types of columns  
+    m_rightsgrid.setColSorting("str");          //the sorting types    
+    m_rightsgrid.enableDragAndDrop(true);
+    m_rightsgrid.init();      //finishes initialization and renders the grid on the page 
+	
+	
+    m_groupgrid.attachEvent("onDrag",function(sid,tid){
+    // copies an item instead of moving it
+        m_groupgrid.dragContext.mode="copy"; 
+        return true;
+    });
+
+    m_rightsgrid.attachEvent("onDrag",function(sid,tid){
+    // copies an item instead of moving it
+        m_rightsgrid.dragContext.mode="copy"; 
+        return true;
+    });
+    
+	m_usermenu = m_mainLayout.cells("a").attachMenu({                                               
+		items:[
+            {id:"add", text:"<i class='fas fa-add'></i>Create User"},
+            {id:"del", text:"<i class='fas fa-add'></i>Delete"},
+		]
+	});
+
+	m_groupmenu = m_mainLayout.cells("b").attachMenu({                                               
+		items:[
+            {id:"add", text:"<i class='fas fa-add'></i>Create Group"},
+            {id:"del", text:"<i class='fas fa-add'></i>Delete"},
+		]
+	});
+    
+//CREATE NEW USER
+    m_usermenu.attachEvent("onClick", function (name, value, state){
+            if (name == 'add'){
+                //open messagebox and save data on server
+                var box = dhtmlx.modalbox({
+                    title:"Create New User",
+                    text: "User name: &nbsp<input class='inform' type='text'><p><br/>Password: &nbsp<input class='inform' type='password'>",
+                    buttons:["OK",  "Cancel"],
+                    callback: function(result){
+                        if (result == 0){
+                            var username = box.getElementsByTagName("input")[0].value;
+                            var password = box.getElementsByTagName("input")[1].value;
+                            $.ajax({//creating a new user requires a special method on server for hashing password
+                                url:  ("/userlistnew"),
+                                type: "POST",
+                                context: this,
+                                dataType: "json",
+                                data: {"name":username,"password":password,"groups":[]},
+                                success: function () {
+                                    loaduserlist();
+                                    dhtmlx.message("Saved");
+                                },
+                                error: function (xhr, status) {
+                                    dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+                                    document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+            if (name == 'del'){
+                deleteuser();
+            }
+    });  
+//CREATE NEW GROUP    
+    m_groupmenu.attachEvent("onClick", function (name, value, state){
+            if (name == 'add'){
+                //open messagebox and save data on server
+                var box = dhtmlx.modalbox({
+                    title:"Create New Usergroup",
+                    text: "Group name  <br/><input class='inform' type='text'>",
+                    buttons:["OK",  "Cancel"],
+                    callback: function(result){
+                        if (result == 0){
+                            var value = box.getElementsByTagName("input")[0].value;
+                            var _obj ={};
+                            _obj.name = value;
+                            _obj.permissions = [];
+                            dhtmlx.message(JSON.stringify(_obj))
+                            saveUserGroupToServer(_obj,true);
+                        }
+                    }
+                });
+                   
+            }
+            if (name == 'del'){
+                deleteusergoup();
+            }
+    });      
+
+    m_groupgrid.attachEvent("onRowSelect", function (rId){
+        //show properties on the right side
+        showGroupProps(m_groupgrid.getUserData(rId,"object"));
+    });  
+
+    m_usergrid.attachEvent("onRowSelect", function (rId){
+        //show properties on the right side
+        //dhtmlx.message(JSON.stringify(m_usergrid.getUserData(rId,"object")));
+        showUserProps(m_usergrid.getUserData(rId,"object"));
+    });  
+    
+    //kick off data loading
+    loaduserlist();
+    loadusergrouplist();
+    loadpermissionlist();
+}
+
+function showUserProps(userObj){
+    m_mainLayout.cells("d").setText("Groups of user: ["+userObj.username +"]");
+    m_userPropsGrid = m_mainLayout.cells("d").attachGrid();
+    m_userPropsGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_userPropsGrid.setHeader("Group Name");//the headers of columns  
+    m_userPropsGrid.setInitWidthsP("*");          //the widths of columns  
+    m_userPropsGrid.setColAlign("left");       //the alignment of columns   
+    m_userPropsGrid.setColTypes("ro");                //the types of columns  
+    m_userPropsGrid.setColSorting("str");          //the sorting types    
+    m_userPropsGrid.enableDragAndDrop(true);
+    m_userPropsGrid.init();      //finishes initialization and renders the grid on the page 
+    m_userPropsGrid.setUserData("","userobject",userObj) //store group name
+    m_userPropsGrid.attachEvent("onDrag",function(sid,tid){
+    // copies an item instead of moving it
+        m_userPropsGrid.dragContext.mode="copy"; 
+        return true;
+    });
+    
+    m_userPropsGrid.attachEvent("onDragIn", function(dId,tId,sObj,tObj){
+        if(m_userPropsGrid.getRowIndex(dId) != -1){//if row exists, do not allow
+           return false;
+        }else{
+            return true;
+        }
+    });
+    
+    m_userPropsGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+        if (sObj == m_groupgrid){//ok
+            dhtmlx.message("saving userprops " + dId)
+            var userObj = tObj.getUserData("","userobject");
+            userObj.groups = [];
+            tObj.forEachRow(function(rId){
+                userObj.groups.push(rId)
+            })
+            saveUserProps(userObj);
+        }else{//wrong source grid
+            dhtmlx.message("Only Groups allowed")
+            tObj.deleteRow(dId);
+        }
+    })
+    
+    m_mainLayout.cells("d").detachMenu();
+    for (i in userObj.groups){
+        m_userPropsGrid.addRow(userObj.groups[i],userObj.groups[i]);
+    }
+        
+    _menu = m_mainLayout.cells("d").attachMenu({                                               
+		items:[
+            {id:"del", text:"<i class='fas fa-delete'></i>Remove Group from User"}
+		]
+	});
+    _menu.attachEvent("onClick", function (name, value, state){
+        m_userPropsGrid.deleteSelectedRows();
+        var userObj = m_userPropsGrid.getUserData("","userobject");
+            userObj.groups = [];
+            m_userPropsGrid.forEachRow(function(rId){
+                userObj.groups.push(rId)
+        })
+        saveUserProps(userObj);
+    })
+    
+}
+
+function saveUserProps(userObj){
+    $.ajax({//updating a new user has a special method on server for NOT hashing password
+        url:  ("/userlistupdateexisting"),
+        type: "POST",
+        context: this,
+        dataType: "json",
+        data: {"name":userObj.username,"password":userObj.password,"groups":userObj.groups},
+        success: function () {
+            loaduserlist();
+            dhtmlx.message("Saved");
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
+        }
+    });
+    
+}
+
+
+// on click to a group, show group properties
+function showGroupProps(groupObj){
+    m_mainLayout.cells("d").setText("Permissions of Group: ["+groupObj.name +"]");
+    m_groupPropsGrid = m_mainLayout.cells("d").attachGrid();
+    m_groupPropsGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_groupPropsGrid.setHeader("Permission");//the headers of columns
+    m_groupPropsGrid.setInitWidthsP("*");          //the widths of columns  
+    m_groupPropsGrid.setColAlign("left");       //the alignment of columns   
+    m_groupPropsGrid.setColTypes("ro");                //the types of columns  
+    m_groupPropsGrid.setColSorting("str");          //the sorting types    
+    m_groupPropsGrid.enableDragAndDrop(true);
+    m_groupPropsGrid.init();      //finishes initialization and renders the grid on the page 
+    m_groupPropsGrid.setUserData("","groupobj",groupObj) //store group name
+
+    
+    m_groupPropsGrid.attachEvent("onDrag",function(sid,tid){
+    // copies an item instead of moving it
+        m_groupPropsGrid.dragContext.mode="copy"; 
+        return true;
+    });
+    
+    m_groupPropsGrid.attachEvent("onDragIn", function(dId,tId,sObj,tObj){
+        if(m_groupPropsGrid.getRowIndex(dId) != -1){//if row exists, do not allow
+           return false;
+        }else{
+            return true;
+        }
+    });
+    m_groupPropsGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+        if (sObj == m_rightsgrid){//ok
+            saveGroupProps();
+        }else{//wrong source grid
+            dhtmlx.message("Only Group Permissions allowed ")
+            tObj.deleteRow(dId);
+        }
+    })
+    
+    //recreate delete menu
+    m_mainLayout.cells("d").detachMenu();
+    _menu = m_mainLayout.cells("d").attachMenu({                                               
+		items:[
+            {id:"del", text:"<i class='fas fa-delete'></i>Remove Permission from Group"}
+		]
+	});
+    
+    //delete a property from group on menu item click
+    _menu.attachEvent("onClick", function (name, value, state){
+        m_groupPropsGrid.deleteSelectedRows();
+        var groupObj = m_groupPropsGrid.getUserData("","groupobj");
+            groupObj.permissions = [];
+            m_groupPropsGrid.forEachRow(function(rId){
+                var permObj = m_groupPropsGrid.getUserData(rId,"object");
+                groupObj.permissions.push(permObj)
+        })
+        saveUserGroupToServer(groupObj,true)
+    })
+    
+    //create rows with existing data
+    for (i in groupObj.permissions){
+        var _perm = groupObj.permissions[i];
+        m_groupPropsGrid.addRow(_perm.key,[_perm.key])
+        m_groupPropsGrid.setUserData(_perm.key,"object",_perm);
+    }
+}
+
+//save group props on change
+function saveGroupProps(){
+    var groupObj = m_groupPropsGrid.getUserData("","groupobj");
+    groupObj.permissions = [];
+    m_groupPropsGrid.forEachRow(function(rId){
+        groupObj.permissions.push(m_groupPropsGrid.getUserData(rId,"object"))
+    })
+    saveUserGroupToServer(groupObj,true)
+    
+}
+
+function saveUserGroupToServer(groupObj,doreload){
+    $.ajax({
+        url:  ("/usergrouplist") ,
+        type: "POST",
+        context: this,
+        dataType: "json",
+        data: groupObj,
+        //data: JSON.stringify(_obj),
+        success: function () {
+            dhtmlx.message("Saved");
+            if (doreload){loadusergrouplist()}
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
+        }
+    });                           
+}
+
+function loaduserlist(){
+   $.ajax({
+        url:  ("/userlist") ,
+        type: "GET",
+        success: function (userlist) {
+            //render userlist in grid
+            m_usergrid.clearAll();
+            userlist = JSON.parse(userlist);
+            for (i in userlist){
+                
+                m_usergrid.addRow(userlist[i].username,[userlist[i].username]);
+                m_usergrid.setUserData(userlist[i].username,"object",userlist[i]);
+            }
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load userlist. " );
+            document.body.innerHTML="Fatal error, could not load userlist. "+ xhr.responseText;
+        }
+    });
+}
+
+function loadusergrouplist(){
+   $.ajax({
+        url:  ("/usergrouplist") ,
+        type: "GET",
+        success: function (grouplist) {
+            //render userlist in grid
+            grouplist = JSON.parse(grouplist);
+            m_groupgrid.clearAll();
+            for (i in grouplist){                
+                m_groupgrid.addRow(grouplist[i].name,[grouplist[i].name]);
+                m_groupgrid.setUserData(grouplist[i].name,"object",grouplist[i]);
+            }
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load usergrouplist. " );
+            document.body.innerHTML="Fatal error, could not load usergrouplist. "+ xhr.responseText;
+        }
+    });
+}
+
+function loadpermissionlist(){
+   $.ajax({
+        url:  ("/usergrouprightslist") ,
+        type: "GET",
+        success: function (permlist) {
+            //render userlist in grid
+            permlist = JSON.parse(permlist);
+            m_rightsgrid.clearAll();
+            for (i in permlist){                
+                m_rightsgrid.addRow(permlist[i].key,[permlist[i].key]);
+                m_rightsgrid.setUserData(permlist[i].key,"object",permlist[i]);
+            }
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load usergrouplist. " );
+            document.body.innerHTML="Fatal error, could not load usergrouplist. "+ xhr.responseText;
+        }
+    });
+}
+
+function createusergroup(name){
+   $.ajax({
+        url:  ("/usergrouplist") ,
+        type: "POST",
+        success: function () {
+            //render userlist in grid
+            dhtmlx.message("Saved");
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
+        }
+    });
+}
+
+function deleteusergoup(){
+    if (!m_groupgrid.getSelectedRowId()){
+        dhtmlx.message("Please select a row to delete");
+        return;
+    }
+   $.ajax({
+        url:  ("/usergrouplist") ,
+        type: "DELETE",
+        dataType: "json",
+        data: {"name":m_groupgrid.getSelectedRowId()},
+        success: function () {
+            //render userlist in grid
+            loadusergrouplist();
+            dhtmlx.message("Saved");
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
+        }
+    });
+}
+
+
+function deleteuser(){
+    if (!m_usergrid.getSelectedRowId()){
+        dhtmlx.message("Please select a row to delete");
+        return;
+    }
+   $.ajax({
+        url: ("/userlist"),
+        type: "DELETE",
+        dataType: "json",
+        data: {"name":m_usergrid.getSelectedRowId()},
+        success: function () {
+            //render userlist in grid
+            loaduserlist();
+            dhtmlx.message("Saved");
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not delete user, check server logs " );
+            document.body.innerHTML="Fatal error, could not delete user. "+ xhr.responseText;
+        }
+    });
+}
+
+
+
+</script>
+
+</head>
+<body onload="init()">
+
+<div id="documentation" style="margin-left:20px;white-space: pre-wrap;overflow:scroll">
+<p>
+<b>User management:</b>
+Select a user and drag&drop groups to the user
+
+<b>Group management:</b>
+Select a group and drag&drop permissions to the group
+
+</p>
+</div>
+</body>

@@ -18,8 +18,10 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:36:14","job_end":"2018/12/30 21:36:20","file":"60186","outcome":"Success","state":"Success","guid":-2078446443,"_id":-2078446443,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:19:26","job_end":"2018/12/31 08:21:10","file":"60455","outcome":"Success","state":"Success","guid":-2076567991,"_id":-2076567991,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:35:22","job_end":"2018/12/30 21:35:28","file":"50180","outcome":"Success","state":"Success","guid":-2058890553,"_id":-2058890553,"duration":"00:00:06"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:21:33","job_end":"2019/01/03 10:21:38","file":"bla.mp4","outcome":"Success","state":"Success","guid":-2049549375,"_id":-2049549375,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 00:06:17","job_end":"2018/12/31 00:08:01","file":"60416","outcome":"Success","state":"Success","guid":-2045673599,"_id":-2045673599,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:42:49","job_end":"2018/12/30 21:42:55","file":"50236","outcome":"Success","state":"Success","guid":-2044029524,"_id":-2044029524,"duration":"00:00:06"}
+{"wf_name":"encode_xdcamhd","job_start":"2019/01/01 17:00:28","job_end":"2019/01/01 17:05:40","file":"Sony.mxf","outcome":"Success","state":"Success","guid":-2043847624,"_id":-2043847624,"duration":"00:05:12"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:47:57","job_end":"2018/12/30 21:48:03","file":"50277","outcome":"Success","state":"Success","guid":-2038654476,"_id":-2038654476,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 09:12:22","job_end":"2018/12/31 09:14:06","file":"60485","outcome":"Success","state":"Success","guid":-2027648962,"_id":-2027648962,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:53:31","job_end":"2018/12/30 21:53:37","file":"60318","outcome":"Success","state":"Success","guid":-2023255115,"_id":-2023255115,"duration":"00:00:06"}
@@ -39,6 +41,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 12:36:42","job_end":"2018/12/31 12:38:25","file":"60601","outcome":"Success","state":"Success","guid":-1942871491,"_id":-1942871491,"duration":"00:01:43"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:28:33","job_end":"2018/12/30 21:28:38","file":"50129","outcome":"Success","state":"Success","guid":-1940776513,"_id":-1940776513,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:48:41","job_end":"2018/12/30 21:48:46","file":"50282","outcome":"Success","state":"Success","guid":-1925570507,"_id":-1925570507,"duration":"00:00:05"}
+{"wf_name":"encode_xdcamhd","job_start":"2019/01/01 17:00:22","job_end":"2019/01/01 17:04:44","file":"Sony.mxf","outcome":"Success","state":"Success","guid":-1923663337,"_id":-1923663337,"duration":"00:04:22"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 00:16:52","job_end":"2018/12/31 00:18:36","file":"60422","outcome":"Success","state":"Success","guid":-1923047839,"_id":-1923047839,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:37:13","job_end":"2018/12/30 21:37:18","file":"50194","outcome":"Success","state":"Success","guid":-1916474421,"_id":-1916474421,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 00:22:09","job_end":"2018/12/31 00:23:53","file":"60425","outcome":"Success","state":"Success","guid":-1911211822,"_id":-1911211822,"duration":"00:01:44"}
@@ -56,6 +59,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:39","job_end":"2018/12/30 21:38:45","file":"60205","outcome":"Success","state":"Success","guid":-1863695077,"_id":-1863695077,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:31:02","job_end":"2018/12/30 21:31:08","file":"50149","outcome":"Success","state":"Success","guid":-1858297784,"_id":-1858297784,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:37:37","job_end":"2018/12/30 21:37:45","file":"50197","outcome":"Success","state":"Success","guid":-1857467470,"_id":-1857467470,"duration":"00:00:08"}
+{"wf_name":"sleep600","job_start":"2019/01/01 16:59:49","job_end":"2019/01/01 17:09:57","file":"screenshot_webinterface_.png","outcome":"Success","state":"Success","guid":-1853119611,"_id":-1853119611,"duration":"00:10:08"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:25:44","job_end":"2018/12/30 21:25:51","file":"60107","outcome":"Success","state":"Success","guid":-1846834877,"_id":-1846834877,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:26:47","job_end":"2018/12/30 21:26:52","file":"60115","outcome":"Success","state":"Success","guid":-1844993954,"_id":-1844993954,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:40:01","job_end":"2018/12/30 22:41:45","file":"60367","outcome":"Success","state":"Success","guid":-1844314038,"_id":-1844314038,"duration":"00:01:44"}
@@ -100,6 +104,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:17:34","job_end":"2018/12/30 20:22:39","file":"21006","outcome":"Success","state":"Success","guid":-1640122509,"_id":-1640122509,"duration":"00:05:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:46:28","job_end":"2018/12/30 21:46:32","file":"50266","outcome":"Success","state":"Success","guid":-1639148399,"_id":-1639148399,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:32:14","job_end":"2018/12/30 21:32:20","file":"60157","outcome":"Success","state":"Success","guid":-1636172239,"_id":-1636172239,"duration":"00:00:06"}
+{"wf_name":"sleep600","job_start":"2019/01/01 16:59:46","job_end":"2019/01/01 17:09:53","file":"webui_release0921.png","outcome":"Success","state":"Success","guid":-1627663791,"_id":-1627663791,"duration":"00:10:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:25","job_end":"2018/12/30 21:55:31","file":"60333","outcome":"Success","state":"Success","guid":-1626155725,"_id":-1626155725,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:56:07","job_end":"2018/12/30 21:56:12","file":"50339","outcome":"Success","state":"Success","guid":-1624510765,"_id":-1624510765,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:00:16","job_end":"2018/12/30 22:02:00","file":"60345","outcome":"Success","state":"Success","guid":-1620247344,"_id":-1620247344,"duration":"00:01:44"}
@@ -141,6 +146,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:00:05","job_end":"2018/12/31 08:01:49","file":"60444","outcome":"Success","state":"Success","guid":-1441937348,"_id":-1441937348,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:52","job_end":"2018/12/30 21:29:58","file":"60139","outcome":"Success","state":"Success","guid":-1439489274,"_id":-1439489274,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:01:32","job_end":"2018/12/30 20:06:37","file":"40483","outcome":"Success","state":"Success","guid":-1438594060,"_id":-1438594060,"duration":"00:05:05"}
+{"wf_name":"sleep600","job_start":"2019/01/01 16:59:40","job_end":"2019/01/01 17:09:49","file":"populate_bug.png","outcome":"Success","state":"Success","guid":-1435676291,"_id":-1435676291,"duration":"00:10:09"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:48:02","job_end":"2018/12/30 21:48:08","file":"60277","outcome":"Success","state":"Success","guid":-1435122383,"_id":-1435122383,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:35:57","job_end":"2018/12/30 21:36:03","file":"60184","outcome":"Success","state":"Success","guid":-1426172402,"_id":-1426172402,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 23:52:12","job_end":"2018/12/30 23:53:56","file":"60408","outcome":"Success","state":"Success","guid":-1419279342,"_id":-1419279342,"duration":"00:01:44"}
@@ -236,6 +242,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:12:33","job_end":"2018/12/30 21:12:40","file":"60012","outcome":"Success","state":"Success","guid":-1001518440,"_id":-1001518440,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:08:09","job_end":"2018/12/31 14:09:53","file":"60653","outcome":"Success","state":"Success","guid":-994126919,"_id":-994126919,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 19:51:57","job_end":"2018/12/30 19:57:02","file":"21001","outcome":"Success","state":"Success","guid":-993274507,"_id":-993274507,"duration":"00:05:05"}
+{"wf_name":"sleep600","job_start":"2019/01/01 16:59:52","job_end":"2019/01/01 17:09:59","file":"webint_varriables.png","outcome":"Success","state":"Success","guid":-991055625,"_id":-991055625,"duration":"00:10:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:11:26","job_end":"2018/12/30 21:11:32","file":"60004","outcome":"Success","state":"Success","guid":-985445294,"_id":-985445294,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:13","job_end":"2018/12/30 21:49:17","file":"50286","outcome":"Success","state":"Success","guid":-985094830,"_id":-985094830,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:30:25","job_end":"2018/12/30 21:30:32","file":"60143","outcome":"Success","state":"Success","guid":-981928791,"_id":-981928791,"duration":"00:00:07"}
@@ -298,6 +305,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:45:18","job_end":"2018/12/31 13:47:02","file":"60640","outcome":"Success","state":"Success","guid":-751009590,"_id":-751009590,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 00:11:34","job_end":"2018/12/31 00:13:19","file":"60419","outcome":"Success","state":"Success","guid":-750454250,"_id":-750454250,"duration":"00:01:45"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:19:29","job_end":"2018/12/30 21:19:35","file":"60064","outcome":"Success","state":"Success","guid":-747390890,"_id":-747390890,"duration":"00:00:06"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:21:33","job_end":"2019/01/03 10:21:38","file":"10s.mov","outcome":"Success","state":"Success","guid":-745150911,"_id":-745150911,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:04:37","job_end":"2018/12/31 14:06:21","file":"60651","outcome":"Success","state":"Success","guid":-741228556,"_id":-741228556,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:29","job_end":"2018/12/30 21:14:33","file":"60024","outcome":"Success","state":"Success","guid":-734228846,"_id":-734228846,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:46:22","job_end":"2018/12/30 21:46:26","file":"50265","outcome":"Success","state":"Success","guid":-731815215,"_id":-731815215,"duration":"00:00:04"}
@@ -415,6 +423,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:15:33","job_end":"2018/12/30 21:15:39","file":"50034","outcome":"Success","state":"Success","guid":-264227661,"_id":-264227661,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:12:04","job_end":"2018/12/30 20:17:09","file":"31006","outcome":"Success","state":"Success","guid":-263162737,"_id":-263162737,"duration":"00:05:05"}
 {"wf_name":"WebUI_Demo_Template","job_start":"2018/12/31 14:07:57","job_end":"2018/12/31 14:07:57","file":"encounters-eqeugedizu_720p.jpg","outcome":"Success","state":"Success","guid":-251626654,"_id":-251626654,"duration":"00:00:00"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:26:59","job_end":"2019/01/03 10:26:59","file":"D:\\10s.mov","outcome":"Job ended with error on Deliver to Folder@DESKTOP-UIFQT86: Got error code 80 - The file exists, when trying to deliver \"C:\\temp\\ffastrans_output\\LOCAL\\10s.mov\"","state":"Error","guid":-248919004,"_id":-248919004,"duration":"00:00:00"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:59:21","job_end":"2018/12/31 14:01:05","file":"60648","outcome":"Success","state":"Success","guid":-242156713,"_id":-242156713,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:01","job_end":"2018/12/30 21:29:06","file":"50133","outcome":"Success","state":"Success","guid":-236614184,"_id":-236614184,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:47:20","job_end":"2018/12/30 21:47:29","file":"50273","outcome":"Success","state":"Success","guid":-229523377,"_id":-229523377,"duration":"00:00:09"}
@@ -471,11 +480,13 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:40:24","job_end":"2018/12/30 21:40:30","file":"50218","outcome":"Success","state":"Success","guid":-86995022,"_id":-86995022,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 19:56:01","job_end":"2018/12/30 20:01:06","file":"2649","outcome":"Success","state":"Success","guid":-84250245,"_id":-84250245,"duration":"00:05:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:56:27","job_end":"2018/12/30 21:56:33","file":"60341","outcome":"Success","state":"Success","guid":-83482546,"_id":-83482546,"duration":"00:00:06"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:26:58","job_end":"2019/01/03 10:26:59","file":"D:\\10s.mov","outcome":"Job ended with error on Deliver to Folder@DESKTOP-UIFQT86: Got error code 80 - The file exists, when trying to deliver \"C:\\temp\\ffastrans_output\\LOCAL\\10s.mov\"","state":"Error","guid":-78079547,"_id":-78079547,"duration":"00:00:01"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:18:39","job_end":"2018/12/30 21:18:43","file":"50058","outcome":"Success","state":"Success","guid":-76429956,"_id":-76429956,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:55:40","job_end":"2018/12/31 14:57:25","file":"60680","outcome":"Success","state":"Success","guid":-74172436,"_id":-74172436,"duration":"00:01:45"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 09:15:53","job_end":"2018/12/31 09:17:37","file":"60487","outcome":"Success","state":"Success","guid":-72368502,"_id":-72368502,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 09:29:59","job_end":"2018/12/31 09:31:42","file":"60495","outcome":"Success","state":"Success","guid":-70900190,"_id":-70900190,"duration":"00:01:43"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 09:26:28","job_end":"2018/12/31 09:28:11","file":"60493","outcome":"Success","state":"Success","guid":-53379327,"_id":-53379327,"duration":"00:01:43"}
+{"wf_name":"encode_xdcamhd","job_start":"2019/01/01 17:05:38","job_end":"2019/01/01 17:08:14","file":"Sony.mxf","outcome":"Success","state":"Success","guid":-45601930,"_id":-45601930,"duration":"00:02:36"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:40:02","job_end":"2018/12/31 13:41:46","file":"60637","outcome":"Success","state":"Success","guid":-42458196,"_id":-42458196,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:12:13","job_end":"2018/12/30 21:12:19","file":"50010","outcome":"Success","state":"Success","guid":-41486873,"_id":-41486873,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:42:31","job_end":"2018/12/30 21:42:38","file":"60233","outcome":"Success","state":"Success","guid":-24944180,"_id":-24944180,"duration":"00:00:07"}
@@ -492,6 +503,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:46","job_end":"2018/12/30 21:49:51","file":"60290","outcome":"Success","state":"Success","guid":28222806,"_id":28222806,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:15:07","job_end":"2018/12/30 21:15:11","file":"50030","outcome":"Success","state":"Success","guid":31102766,"_id":31102766,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:53:47","job_end":"2018/12/30 21:53:53","file":"60320","outcome":"Success","state":"Success","guid":31448461,"_id":31448461,"duration":"00:00:06"}
+{"wf_name":"sleep600","job_start":"2019/01/01 16:59:46","job_end":"2019/01/01 17:09:54","file":"populate_bug.png","outcome":"Success","state":"Success","guid":31674781,"_id":31674781,"duration":"00:10:08"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:16","job_end":"2018/12/30 21:29:21","file":"50135","outcome":"Success","state":"Success","guid":32334813,"_id":32334813,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:25:20","job_end":"2018/12/30 21:25:26","file":"60104","outcome":"Success","state":"Success","guid":33320218,"_id":33320218,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:37:30","job_end":"2018/12/30 21:37:35","file":"50196","outcome":"Success","state":"Success","guid":37760151,"_id":37760151,"duration":"00:00:05"}
@@ -509,6 +521,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:15:54","job_end":"2018/12/31 08:17:38","file":"60453","outcome":"Success","state":"Success","guid":83019945,"_id":83019945,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:45:35","job_end":"2018/12/30 21:45:43","file":"60258","outcome":"Success","state":"Success","guid":91260087,"_id":91260087,"duration":"00:00:08"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:26:43","job_end":"2018/12/30 20:29:22","file":"2655","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":97042711,"_id":97042711,"duration":"00:02:39"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:16:13","job_end":"2019/01/03 10:16:17","file":"10s.mov","outcome":"Success","state":"Success","guid":98904810,"_id":98904810,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:51","job_end":"2018/12/30 21:55:57","file":"50337","outcome":"Success","state":"Success","guid":104553337,"_id":104553337,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:47:03","job_end":"2018/12/31 13:48:48","file":"60641","outcome":"Success","state":"Success","guid":105049584,"_id":105049584,"duration":"00:01:45"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:22:31","job_end":"2018/12/30 20:27:37","file":"11323","outcome":"Success","state":"Success","guid":112505972,"_id":112505972,"duration":"00:05:06"}
@@ -520,6 +533,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:16:04","job_end":"2018/12/30 21:16:10","file":"50038","outcome":"Success","state":"Success","guid":133864252,"_id":133864252,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:45:24","job_end":"2018/12/30 21:45:30","file":"50257","outcome":"Success","state":"Success","guid":144357815,"_id":144357815,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:04:50","job_end":"2018/12/31 13:06:35","file":"60617","outcome":"Success","state":"Success","guid":144923302,"_id":144923302,"duration":"00:01:45"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:16:36","job_end":"2019/01/03 10:16:36","file":"D:\\10s.mov","outcome":"Job ended with error on Deliver to Folder@DESKTOP-UIFQT86: Got error code 80 - The file exists, when trying to deliver \"%s_webui_select_target%\\10s.mov\"","state":"Error","guid":149450757,"_id":149450757,"duration":"00:00:00"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:13:08","job_end":"2018/12/30 21:13:13","file":"60016","outcome":"Success","state":"Success","guid":164365584,"_id":164365584,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:12:22","job_end":"2018/12/30 21:12:27","file":"50011","outcome":"Success","state":"Success","guid":165214285,"_id":165214285,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:43:21","job_end":"2018/12/31 14:45:05","file":"60673","outcome":"Success","state":"Success","guid":167986665,"_id":167986665,"duration":"00:01:44"}
@@ -653,6 +667,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:25:40","job_end":"2018/12/30 21:25:46","file":"50107","outcome":"Success","state":"Success","guid":669101472,"_id":669101472,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:49","job_end":"2018/12/30 21:38:56","file":"60206","outcome":"Success","state":"Success","guid":680497917,"_id":680497917,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:31:47","job_end":"2018/12/31 08:33:31","file":"60462","outcome":"Success","state":"Success","guid":681923262,"_id":681923262,"duration":"00:01:44"}
+{"wf_name":"Lores","job_start":"2019/01/03 10:29:44","job_end":"2019/01/03 10:31:52","file":"10s.mov","outcome":"Success","state":"Success","guid":697077074,"_id":697077074,"duration":"00:02:08"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:52:00","job_end":"2018/12/30 21:52:06","file":"60307","outcome":"Success","state":"Success","guid":698500175,"_id":698500175,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:25:36","job_end":"2018/12/30 21:25:42","file":"60106","outcome":"Success","state":"Success","guid":700599005,"_id":700599005,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:54:06","job_end":"2018/12/30 22:55:50","file":"60375","outcome":"Success","state":"Success","guid":701206830,"_id":701206830,"duration":"00:01:44"}
@@ -791,6 +806,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:44:06","job_end":"2018/12/30 21:44:12","file":"50247","outcome":"Success","state":"Success","guid":1340747150,"_id":1340747150,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:16:44","job_end":"2018/12/30 21:16:50","file":"50043","outcome":"Success","state":"Success","guid":1341092702,"_id":1341092702,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:35:54","job_end":"2018/12/30 21:36:00","file":"50184","outcome":"Success","state":"Success","guid":1344039763,"_id":1344039763,"duration":"00:00:06"}
+{"wf_name":"sleep600","job_start":"2019/01/01 16:59:49","job_end":"2019/01/01 17:09:56","file":"ffastrans_webint_.png","outcome":"Success","state":"Success","guid":1344722862,"_id":1344722862,"duration":"00:10:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:53:23","job_end":"2018/12/30 21:53:30","file":"60317","outcome":"Success","state":"Success","guid":1349705816,"_id":1349705816,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:43:53","job_end":"2018/12/30 21:43:57","file":"50245","outcome":"Success","state":"Success","guid":1356057553,"_id":1356057553,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:13:29","job_end":"2018/12/30 21:13:36","file":"60018","outcome":"Success","state":"Success","guid":1356114066,"_id":1356114066,"duration":"00:00:07"}

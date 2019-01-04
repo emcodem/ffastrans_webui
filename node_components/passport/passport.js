@@ -26,50 +26,50 @@ passport.deserializeUser(function(user, done) {
 // by default, if there was no name, it would just be called 'local'
 
     passport.use('local-signup', new LocalStrategy({
-        usernameField: 'username',    // define the parameter in req.body that passport can use as username and password
-        passwordField: 'password',
-        passReqToCallback : true // allows us to pass back the entire request to the callback
-    },
-    function(req, username, password, done){
-        console.log("New user signup: " + username);
-        // asynchronous
-        process.nextTick(function() {
-        // find a user whose username is the same as the forms username
-        // we are checking to see if the user trying to login already exists
-        global.db.config.findOne({ 'local.username' :  username }, function(err, user) {
-            // if there are any errors, return the error
-            if (err){
-                console.log(err)
-                return done(err);
-            }
-            // check to see if theres already a user with that username
-            if (user) {
-                console.log("user "+user+" already exists")
-                return done(null, false, req.flash('signupMessage', 'That username is already taken.'));
-            } else {
-                console.log("creating new user in db " + username)
-                //create user in db
-                var newUser            = new User();
-                // set the user's local credentials
-                newUser.local.username    = username;
-                newUser.local.password = newUser.generateHash(password);
-                //save user to db
-                global.db.config.insert({local:{"username":newUser.local.username,"password":newUser.local.password}}, function (err, newDoc) {
-                    if (err){
-                        throw err;
-                    }
-                    return done(null, newUser);
-                });
-                
-            }
+            usernameField: 'username',    // define the parameter in req.body that passport can use as username and password
+            passwordField: 'password',
+            passReqToCallback : true // allows us to pass back the entire request to the callback
+        },
+        function(req, username, password, done){
+            console.log("New user signup: " + username);
+            // asynchronous
+            process.nextTick(function() {
+            // find a user whose username is the same as the forms username
+            // we are checking to see if the user trying to login already exists
+            global.db.config.findOne({ 'local.username' :  username }, function(err, user) {
+                // if there are any errors, return the error
+                if (err){
+                    console.log(err)
+                    return done(err);
+                }
+                // check to see if theres already a user with that username
+                if (user) {
+                    console.log("user "+user+" already exists")
+                    return done(null, false, req.flash('signupMessage', 'That username is already taken.'));
+                } else {
+                    console.log("creating new user in db " + username)
+                    //create user in db
+                    var newUser            = new User();
+                    // set the user's local credentials
+                    newUser.local.username    = username;
+                    newUser.local.password = newUser.generateHash(password);
+                    //save user to db
+                    global.db.config.insert({local:{"username":newUser.local.username,"password":newUser.local.password}}, function (err, newDoc) {
+                        if (err){
+                            throw err;
+                        }
+                        return done(null, newUser);
+                    });
+                    
+                }
 
-        });    
+            });    
 
         });
 
     }));//local-signup
     
-       passport.use('local-login', new LocalStrategy({
+   passport.use('local-login', new LocalStrategy({
         usernameField : 'username',
         passwordField : 'password',
         passReqToCallback : true // allows us to pass back the entire request to the callback
