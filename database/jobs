@@ -159,6 +159,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:44:55","job_end":"2018/12/30 21:44:59","file":"50253","outcome":"Success","state":"Success","guid":-1396236564,"_id":-1396236564,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 12:40:13","job_end":"2018/12/31 12:41:56","file":"60603","outcome":"Success","state":"Success","guid":-1393329170,"_id":-1393329170,"duration":"00:01:43"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:35:38","job_end":"2018/12/30 21:35:44","file":"50182","outcome":"Success","state":"Success","guid":-1391611766,"_id":-1391611766,"duration":"00:00:06"}
+{"wf_name":"Lores","job_start":"2019/01/04 21:31:49","job_end":"2019/01/04 21:32:06","file":"out.mp4","outcome":"Success","state":"Success","guid":-1390284555,"_id":-1390284555,"duration":"00:00:17"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:18:41","job_end":"2018/12/30 21:18:46","file":"60058","outcome":"Success","state":"Success","guid":-1386764893,"_id":-1386764893,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:14:21","job_end":"2018/12/30 22:16:05","file":"60353","outcome":"Success","state":"Success","guid":-1367432780,"_id":-1367432780,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:11:19","job_end":"2018/12/30 21:11:25","file":"60003","outcome":"Success","state":"Success","guid":-1365067895,"_id":-1365067895,"duration":"00:00:06"}
@@ -190,6 +191,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:02:13","job_end":"2018/12/30 20:07:18","file":"21003","outcome":"Success","state":"Success","guid":-1248961391,"_id":-1248961391,"duration":"00:05:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:44","job_end":"2018/12/30 21:55:49","file":"50336","outcome":"Success","state":"Success","guid":-1244650287,"_id":-1244650287,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:11:22","job_end":"2018/12/30 20:16:27","file":"2652","outcome":"Success","state":"Success","guid":-1239845532,"_id":-1239845532,"duration":"00:05:05"}
+{"wf_name":"Lores","job_start":"2019/01/04 21:32:22","job_end":"2019/01/04 21:32:34","file":"out.mp4","outcome":"Success","state":"Success","guid":-1232416480,"_id":-1232416480,"duration":"00:00:12"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:23","job_end":"2018/12/30 21:29:27","file":"60135","outcome":"Success","state":"Success","guid":-1225513220,"_id":-1225513220,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 23:36:21","job_end":"2018/12/30 23:38:05","file":"60399","outcome":"Success","state":"Success","guid":-1215906828,"_id":-1215906828,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:51:10","job_end":"2018/12/30 21:51:14","file":"60301","outcome":"Success","state":"Success","guid":-1208315637,"_id":-1208315637,"duration":"00:00:04"}
@@ -768,6 +770,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:43:41","job_end":"2018/12/30 21:43:45","file":"50243","outcome":"Success","state":"Success","guid":1168462929,"_id":1168462929,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:53","job_end":"2018/12/30 21:14:58","file":"50028","outcome":"Success","state":"Success","guid":1169401659,"_id":1169401659,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:12:26","job_end":"2018/12/30 20:17:32","file":"21005","outcome":"Success","state":"Success","guid":1169997239,"_id":1169997239,"duration":"00:05:06"}
+{"wf_name":"Lores","job_start":"2019/01/04 21:46:02","job_end":"2019/01/04 21:46:15","file":"out.mp4","outcome":"Success","state":"Success","guid":1182778753,"_id":1182778753,"duration":"00:00:13"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:32:36","job_end":"2018/12/30 21:32:42","file":"50160","outcome":"Success","state":"Success","guid":1183693384,"_id":1183693384,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:35","job_end":"2018/12/30 21:14:41","file":"60025","outcome":"Success","state":"Success","guid":1186226011,"_id":1186226011,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 19:50:54","job_end":"2018/12/30 19:55:59","file":"2648","outcome":"Success","state":"Success","guid":1189897511,"_id":1189897511,"duration":"00:05:05"}

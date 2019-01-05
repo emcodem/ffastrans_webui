@@ -6,7 +6,6 @@
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
 <script src="../dependencies/jquery/jquery.js"></script>
-<script src="../configuration/staticStrings.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -105,7 +104,7 @@ Note: make sure the port you are entering is free on your server by using netsta
 Webserver restart required after change
 
 <b>STATIC_USE_WEB_AUTHENTIFICATION</b>
-<a href="/signup"><b>Create Users here before (and after) enabling this option</b></a>
+<a href="/webinterface/admin/usermanager.html"><b>Create Users here before (and after) enabling this option</b></a>
 Enables password login for users and admins. <b>Make sure you have a created a user before you enable this or you cannot access the webserver anymore at all. </b>
 In case you locked yourself out, open the database using a text editor (%installpath%\database\config) and set the authentification to false.
 

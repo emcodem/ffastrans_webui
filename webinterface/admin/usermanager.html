@@ -15,13 +15,32 @@
         margin: 0px;
         overflow: hidden;
     }
-
+    
+  /*layout headers (big blue lines)*/        
+  .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr{
+    height:25px;
+    line-height: 23px;
+    font-size : 12px;
+  }
+  
+  /*collapse icon in layout header*/
+  .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_ha{
+    background-position: -32px -5px;
+    z-index: 1;
+    margin-top: -3;
+  }
+  /*collapse icon in layout header*/
+  div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_vb{
+    margin-top: -8px;
+    z-index: 1;
+  }
+  
 </style>
 
 <script>
 
 /* GLOBALS */
-var m_mainLayout,m_usergrid,m_groupgrid,m_userPropsGrid,m_rightsgrid,m_groupPropsGrid;
+var m_mainLayout,m_usergrid,m_groupgrid,m_userPropsGrid,m_permissiongrid,m_groupPropsGrid;
 var socket = io();
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -40,7 +59,7 @@ function init(){
     m_mainLayout.cells("d").attachObject("documentation")
     
     //m_mainLayout.cells("d").attachObject("Groups");
-    m_mainLayout.cells("d").showInnerScroll();
+    //m_mainLayout.cells("d").showInnerScroll();
     
 	m_usergrid = m_mainLayout.cells("a").attachGrid();
     m_usergrid.setImagePath("dependencies/dhtmlx/imgs");                 
@@ -61,15 +80,15 @@ function init(){
     m_groupgrid.enableDragAndDrop(true);
     m_groupgrid.init();      //finishes initialization and renders the grid on the page 
 
-    m_rightsgrid = m_mainLayout.cells("c").attachGrid();
-    m_rightsgrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_rightsgrid.setHeader("Permission name");//the headers of columns  
-    m_rightsgrid.setInitWidthsP("*");          //the widths of columns  
-    m_rightsgrid.setColAlign("left");       //the alignment of columns   
-    m_rightsgrid.setColTypes("ro");                //the types of columns  
-    m_rightsgrid.setColSorting("str");          //the sorting types    
-    m_rightsgrid.enableDragAndDrop(true);
-    m_rightsgrid.init();      //finishes initialization and renders the grid on the page 
+    m_permissiongrid = m_mainLayout.cells("c").attachGrid();
+    m_permissiongrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_permissiongrid.setHeader("Permission name");//the headers of columns  
+    m_permissiongrid.setInitWidthsP("*");          //the widths of columns  
+    m_permissiongrid.setColAlign("left");       //the alignment of columns   
+    m_permissiongrid.setColTypes("ro");                //the types of columns  
+    m_permissiongrid.setColSorting("str");          //the sorting types    
+    m_permissiongrid.enableDragAndDrop(true);
+    m_permissiongrid.init();      //finishes initialization and renders the grid on the page 
 	
 	
     m_groupgrid.attachEvent("onDrag",function(sid,tid){
@@ -78,9 +97,9 @@ function init(){
         return true;
     });
 
-    m_rightsgrid.attachEvent("onDrag",function(sid,tid){
+    m_permissiongrid.attachEvent("onDrag",function(sid,tid){
     // copies an item instead of moving it
-        m_rightsgrid.dragContext.mode="copy"; 
+        m_permissiongrid.dragContext.mode="copy"; 
         return true;
     });
     
@@ -158,7 +177,19 @@ function init(){
                 deleteusergoup();
             }
     });      
-
+    
+    m_groupgrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+        //disallow drag&drop rows to self   
+            dhtmlx.message("Please first select a group on the left and then drag from \"Group Permissions\" to the right side")
+            tObj.deleteRow(dId);//row was already pasted, delete it!
+    })
+    m_permissiongrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+        //disallow drag&drop rows to self   
+            dhtmlx.message("Please first select a group on the left and then drag from \"Group Permissions\" to the right side")
+            tObj.deleteRow(dId);//row was already pasted, delete it!
+    })
+    
+    
     m_groupgrid.attachEvent("onRowSelect", function (rId){
         //show properties on the right side
         showGroupProps(m_groupgrid.getUserData(rId,"object"));
@@ -288,7 +319,7 @@ function showGroupProps(groupObj){
         }
     });
     m_groupPropsGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
-        if (sObj == m_rightsgrid){//ok
+        if (sObj == m_permissiongrid){//ok
             saveGroupProps();
         }else{//wrong source grid
             dhtmlx.message("Only Group Permissions allowed ")
@@ -402,10 +433,10 @@ function loadpermissionlist(){
         success: function (permlist) {
             //render userlist in grid
             permlist = JSON.parse(permlist);
-            m_rightsgrid.clearAll();
+            m_permissiongrid.clearAll();
             for (i in permlist){                
-                m_rightsgrid.addRow(permlist[i].key,[permlist[i].key]);
-                m_rightsgrid.setUserData(permlist[i].key,"object",permlist[i]);
+                m_permissiongrid.addRow(permlist[i].key,[permlist[i].key]);
+                m_permissiongrid.setUserData(permlist[i].key,"object",permlist[i]);
             }
         },
         error: function (xhr, status) {
@@ -482,13 +513,16 @@ function deleteuser(){
 </head>
 <body onload="init()">
 
-<div id="documentation" style="margin-left:20px;white-space: pre-wrap;overflow:scroll">
+<div id="documentation" style="height:100%;width:100%;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
+<b>General:</b>
+User management is only needed when Web Authentification is enabled in Admin settings.
+
 <b>User management:</b>
-Select a user and drag&drop groups to the user
+Select a user and drag&drop groups to the user (drag a grid row from left to right)
 
 <b>Group management:</b>
-Select a group and drag&drop permissions to the group
+Select a group and drag&drop permissions to the group (drag a grid row from left to right)
 
 </p>
 </div>

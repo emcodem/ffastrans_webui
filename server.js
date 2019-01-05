@@ -136,6 +136,9 @@ function init(conf){
     });
 
     //allow access to dynamic stuff
+
+    require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
+    require('./node_components/passport/passport')(passport); // pass passport for configuration
     require("./upload_backend/common")(app, express);
     require("./upload_backend/saverename")(app, express);
     require("./upload_backend/getFullUploadPath")(app, express);
@@ -148,35 +151,33 @@ function init(conf){
     require("./node_components/views/userlist")(app, express);
     require("./node_components/views/usergrouplist")(app, express);
     require("./node_components/views/usergrouprightslist")(app, express);
-    require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
-    require('./node_components/passport/passport')(passport); // pass passport for configuration
-
+    require("./node_components/get_userpermissions")(app, passport);
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
 
-    //startup
+    //startup server
     console.log('Hello and welcome, thank you for using FFAStrans') 
 
-        http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', function(err) { 
-            console.log(err)//prevents the program keeps running when port is in use
-            if (err.code == "EADDRINUSE"){
-                const { exec } = require('child_process');
-                   exec('netstat -ano |findstr '+global.config.STATIC_WEBSERVER_LISTEN_PORT, (err, stdout, stderr) => {
-                      console.log("\nError starting webserver, please check if Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+" is in use or the server is already running... " ) 
-                      if (err) {
-                        console.log("was not able to start netstat, please enter it manually")
-                        process.exit();
-                      }
-                        console.log(`stdout: ${stdout}`);
-                        
-                        console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+ " and close the process")
-                        process.exit();
-                   })
-                
-                
-                
-        }});
+    http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', function(err) { 
+        console.log(err)//prevents the program keeps running when port is in use
+        if (err.code == "EADDRINUSE"){
+            const { exec } = require('child_process');
+               exec('netstat -ano |findstr '+global.config.STATIC_WEBSERVER_LISTEN_PORT, (err, stdout, stderr) => {
+                  console.log("\nError starting webserver, please check if Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+" is in use or the server is already running... " ) 
+                  if (err) {
+                    console.log("was not able to start netstat, please enter it manually")
+                    process.exit();
+                  }
+                    console.log(`stdout: ${stdout}`);
+                    
+                    console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+ " and close the process")
+                    process.exit();
+               })
+            
+            
+            
+    }});
     
     
 }
