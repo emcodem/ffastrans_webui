@@ -1,18 +1,39 @@
-// app/routes.js
+/*routes takes care about authentification for all urls*/
 const express = require('express');
 module.exports = function(app, passport) {
 
     // =====================================
-    // WEBINTERFACE ===============================
+    // LOGIN Must be frist, otherwise we end up in an indefinite loop for login redir
     // =====================================
+    // show the login form
 
-    //serve static website
-    app.use('/webinterface', isLoggedIn);//ensure user is logged in
-    app.use(express.static('./'));
-    //app.use(express.static(__dirname + '/webinterface'));
-    //app.use('/admin', express.static(global.approot+'/webinterface/admin/'));
+    //allow unauthorized access to login and dependencies
+    app.get('/webinterface/components/login.html', function(req, res) {
+        console.log("Login page called")
+        // render the page and pass in any flash data if it exists
+         //res.redirect('/webinterface/components/login.html');
+         res.sendFile(global.approot + '/webinterface/components/login.html');
+    });
+    app.get('/webinterface/dependencies/*', function(req, res) {
+         res.sendFile(global.approot + req.originalUrl);
+    });    
+    //redirect /login
+    app.get('/login', function(req, res) {
+        // render the page and pass in any flash data if it exists
+         res.redirect('/webinterface/components/login.html');
+    });
+    //accept form authentification    
+    app.post('/login', passport.authenticate('local-login'),function(req,res){
+        console.log("auth!")
+        res.redirect("/");
+    });
     
+    //protect all other urls
+    app.use('/*', isLoggedIn);//ensure user is logged in
+    
+    //redirect request from /
     app.get('/', function(req, res, next) {
+        console.log("Request to root, deleteme")
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
             res.redirect('/webinterface');          
         }else{
@@ -21,6 +42,7 @@ module.exports = function(app, passport) {
         }
     });
 
+    //redirect /admin
     app.get('/admin', function(req, res, next) {
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
             res.redirect('/webinterface/admin');          
@@ -30,36 +52,8 @@ module.exports = function(app, passport) {
         }
     });
     
-    // =====================================
-    // LOGIN ===============================
-    // =====================================
-    // show the login form
-    app.get('/login', function(req, res) {
-        // render the page and pass in any flash data if it exists
-         res.render('login.ejs', { message: req.flash('loginMessage') });
-    });
+    app.use(express.static('./'));
     
-    app.post('/login', passport.authenticate('local-login', {
-        successRedirect : '/', // login success, show website
-        failureRedirect : '/login', 
-        failureFlash : true // allow flash messages
-    }));
-    
-    // =====================================
-    // SIGNUP ==============================
-    // =====================================
-    // show the signup form
-    app.get('/signup', function(req, res) {
-        // render the page and pass in any flash data if it exists
-        res.render('signup.ejs', { message: req.flash('signupMessage') });
-    });
-    // process the signup form
-    app.post('/signup', passport.authenticate('local-signup', {
-        successRedirect : '/login', // redirect to the login page
-        failureRedirect : '/login', // redirect back to the signup page if there is an error
-        failureFlash : true // allow flash messages
-    }));
-
     // =====================================
     // LOGOUT ==============================
     // =====================================
@@ -73,9 +67,6 @@ module.exports = function(app, passport) {
 function isLoggedIn(req, res, next) {
     // if user is authenticated in the session, carry on 
     if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" =="false")){
-        return next();
-    }
-    if (req.originalUrl.indexOf(".css") != -1){//allow css files (for login page ;-))
         return next();
     }
     // if they aren't redirect them to the home page

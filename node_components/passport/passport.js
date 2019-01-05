@@ -6,16 +6,18 @@ var LocalStrategy   = require('passport-local').Strategy;
 var User            = require('./models/user');
 
 module.exports = function(passport) {
-    // =========================================================================
-    // passport session setup ==================================================
-    // =========================================================================
-    // required for persistent login sessions
-    // passport needs ability to serialize and unserialize users out of session
+// =========================================================================
+// passport session setup ==================================================
+// =========================================================================
+// required for persistent login sessions
+// passport needs ability to serialize and unserialize users out of session
 passport.serializeUser(function(user, done) {
+
   done(null, user);
 });
 
 passport.deserializeUser(function(user, done) {
+
   done(null, user);
 });
 
@@ -88,7 +90,7 @@ passport.deserializeUser(function(user, done) {
             // if no user is found, return the message
             if (!doc){
                 console.log("Login attempt for user "+username+" failed, username not found ");
-                return done(null, false, req.flash('loginMessage', 'Username not found')); // req.flash is the way to set flashdata using connect-flash
+                return done("Wrong username"); // req.flash is the way to set flashdata using connect-flash
             }
             
             var newUser            = new User();
