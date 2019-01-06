@@ -246,7 +246,7 @@ var selectedid = (localStorage.getItem("selected_start_menu_item"));
         mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
     }else{
         m_mainSidebar.items("GROUPRIGHT_MENU_VIEW_JOB_STATUS").setActive(); 
-        mainLayout.cells("b").attachURL("GROUPRIGHT_MENU_VIEW_JOB_STATUS"); 
+        mainLayout.cells("b").attachURL(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 
     }
 }
 
