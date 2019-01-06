@@ -13,13 +13,14 @@ You should install this on the same machine that is your ffastrans main controll
 
 How to start developing: 
 
-install node.js on your computer
+install node.js
 
 chdir to the extracted files and run "npm install" to download the dependencies
 
 run "node server.js" to start the webserver
 
+run compile.bat to compile (uses nexe module)
 
-configure ffastrans server and ip in webinterface/configuration/staticString.js
+configure ffastrans server and ip on admin settings page
 
 "# ffastrans_webui" 
