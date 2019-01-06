@@ -540,7 +540,9 @@ function startJobs(){
 function saveRestoreUserState(tabbarId){
 //stores/restores some user settings
     if (!tabbarId){
-        m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected")).setActive();
+        if (localStorage.getItem("tabbaritemselected")){
+            m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected")).setActive();
+        }
     }else{
         localStorage.setItem("tabbaritemselected",tabbarId);
     }

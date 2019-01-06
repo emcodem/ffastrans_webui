@@ -596,6 +596,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:27:24","job_end":"2018/12/30 20:29:21","file":"31009","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":402372383,"_id":402372383,"duration":"00:01:57"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:12:06","job_end":"2018/12/30 21:12:11","file":"50009","outcome":"Success","state":"Success","guid":403217013,"_id":403217013,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:11:06","job_end":"2018/12/30 21:11:10","file":"60001","outcome":"Success","state":"Success","guid":404812941,"_id":404812941,"duration":"00:00:04"}
+{"wf_name":"Lores","job_start":"2019/01/05 13:01:06","job_end":"2019/01/05 13:01:23","file":"out.mp4","outcome":"Success","state":"Success","guid":405666426,"_id":405666426,"duration":"00:00:17"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:34:59","job_end":"2018/12/30 21:35:05","file":"50177","outcome":"Success","state":"Success","guid":405998187,"_id":405998187,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:08","job_end":"2018/12/30 21:14:15","file":"50023","outcome":"Success","state":"Success","guid":408485099,"_id":408485099,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:19:44","job_end":"2018/12/30 21:19:50","file":"60066","outcome":"Success","state":"Success","guid":410184102,"_id":410184102,"duration":"00:00:06"}
@@ -986,4 +987,3 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:41","job_end":"2018/12/30 21:49:45","file":"50290","outcome":"Success","state":"Success","guid":2145829365,"_id":2145829365,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:33:33","job_end":"2018/12/31 08:35:17","file":"60463","outcome":"Success","state":"Success","guid":2146477950,"_id":2146477950,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:15","job_end":"2018/12/30 21:29:20","file":"60134","outcome":"Success","state":"Success","guid":2147447711,"_id":2147447711,"duration":"00:00:05"}
-{"wf_name":"Lores","job_start":"2019/01/05 13:01:06","job_end":"2019/01/05 13:01:23","file":"out.mp4","outcome":"Success","state":"Success","guid":405666426,"_id":405666426,"duration":"00:00:17"}
