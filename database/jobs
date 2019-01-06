@@ -986,3 +986,4 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:41","job_end":"2018/12/30 21:49:45","file":"50290","outcome":"Success","state":"Success","guid":2145829365,"_id":2145829365,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:33:33","job_end":"2018/12/31 08:35:17","file":"60463","outcome":"Success","state":"Success","guid":2146477950,"_id":2146477950,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:15","job_end":"2018/12/30 21:29:20","file":"60134","outcome":"Success","state":"Success","guid":2147447711,"_id":2147447711,"duration":"00:00:05"}
+{"wf_name":"Lores","job_start":"2019/01/05 13:01:06","job_end":"2019/01/05 13:01:23","file":"out.mp4","outcome":"Success","state":"Success","guid":405666426,"_id":405666426,"duration":"00:00:17"}
