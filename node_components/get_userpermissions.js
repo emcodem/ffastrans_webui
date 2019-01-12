@@ -20,7 +20,6 @@ module.exports = function(app, passport){
                 }            
            })
         }//else
-
 	});
 }
 

@@ -2,6 +2,16 @@ const fs = require('fs');
 var path = require('path');
 var regexEscape = require('escape-string-regexp');
 
+function twoDigits(d) {
+    if(0 <= d && d < 10) return "0" + d.toString();
+    if(-10 < d && d < 0) return "-0" + (-1*d).toString();
+    return d.toString();
+}
+
+Date.prototype.toMysqlFormat = function() {
+    return this.getUTCFullYear() + "-" + twoDigits(1 + this.getUTCMonth()) + "-" + twoDigits(this.getUTCDate()) + " " + twoDigits(this.getUTCHours()) + ":" + twoDigits(this.getUTCMinutes()) + ":" + twoDigits(this.getUTCSeconds());
+};
+
 module.exports = function(app, express){
 /* presents files from filesystem based on allowed directories in config and post/get params*/
 	app.get('/filebrowser', (req, res) => {
@@ -11,7 +21,7 @@ module.exports = function(app, express){
 				baseFolder = req.body.name || req.query.name;
                 if (!baseFolder){
                     console.log("Filebrowser was called without valid directory");
-                    res.status(500);//Send error response here
+                    res.status(500);
                     res.send("Filebrowser was called without valid directory");
                     res.end();
                 }
@@ -39,8 +49,8 @@ module.exports = function(app, express){
                     
 				  files.forEach(filename => {
 					  try{//ignore non accessible files and folders
-						const stats = fs.statSync(baseFolder + filename)
-					  rows.rows.push({id:Math.random(),data:[filename,baseFolder + filename, stats.isDirectory(), stats.size]});//name,fullpath,is_folder,size
+						const stats = fs.statSync(baseFolder + filename);
+                        rows.rows.push({id:Math.random(),data:[filename,baseFolder + filename, stats.isDirectory(), getReadableFileSizeString(stats.size), stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size]});//name,fullpath,is_folder,size
 					  }catch(exce){
 						  console.log("WARNING: cannot stat file: " + baseFolder + filename +" , Exception: " + exce);
 					  }
@@ -59,6 +69,23 @@ module.exports = function(app, express){
 		}
 	});
 	
+
+    function getReadableFileSizeString(fileSizeInBytes) {
+    //helper, translates number of file size bytes into human readable value
+        var originalFilesize = fileSizeInBytes;
+        if (fileSizeInBytes == 0){
+            return "0 kB";
+        }
+        var i = -1;
+        var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+        do {
+            fileSizeInBytes = fileSizeInBytes / 1024;
+            i++;
+        } while (fileSizeInBytes > 1024);
+        return (Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i]) ;
+    }
+
+
     function checkFolderInGlobalConfig(folder,res){
         //checks if global conf allows changing into this folder
         var allowed = false;

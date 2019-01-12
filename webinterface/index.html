@@ -225,6 +225,10 @@ function init(permissions){
         mainLayout.cells("b").attachURL(m_permissionUrls[id]); 
     });
     
+    m_mainSidebar.attachEvent("onBubbleClick", function(id, content){
+        alert()
+    });
+
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 
         document.getElementById("cancelledjobcount").innerHTML = msg.cancelledjobcount;
