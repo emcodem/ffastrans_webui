@@ -152,6 +152,7 @@ function init(conf){
     require("./node_components/views/usergrouplist")(app, express);
     require("./node_components/views/usergrouprightslist")(app, express);
     require("./node_components/get_userpermissions")(app, passport);
+    require("./node_components/resumeable_backend.js")(app, passport);
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 

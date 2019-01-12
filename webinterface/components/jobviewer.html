@@ -108,6 +108,7 @@
     .harry{
     
     }
+    
     .ffastransheadertext{
        display: inline-block;
     }
@@ -118,6 +119,15 @@
     .description{
        margin-top: 0px;
     }
+    
+    .progressbar {
+      border-radius: 5px;
+
+      height: 80%;
+      background-color: #4CAF50;
+      text-align: center;
+    }
+    
       /*.dhxlayout_base_material div.dhx_cell_layout {
           background-color: #333;
       }
@@ -153,7 +163,8 @@ var socket = io();
 
 /* GLOBALS */
 var mainLayout,runningJobGrid,finishedJobGrid,m_serverconfig;
-
+var m_rowColorError = "#f28d80"
+var m_rowColorCancelled = "#ffcc80"
 /* STRUCTS */
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];//todo:ask steinar if there are more states and whats queued state
 
@@ -197,10 +208,9 @@ function init(){
     mainLayout.cells("b").setWidth($(document).width()/3);
     //mainLayout.cells("c").setText("Finished");
     mainLayout.cells("a").setHeight($(document).height()/3.5);
-    saveRestoreUserState();
+    restoreLayoutSizes(mainLayout,"mainLayout");
 
     runningJobGrid = mainLayout.cells("a").attachGrid();
-    
     finishedJobGrid = mainLayout.cells("b").attachGrid();
     
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
@@ -268,10 +278,10 @@ function init(){
             var state= finishedJobGrid.cells(id,0).getValue();
             
             if (state =="Error"){
-                finishedJobGrid.setRowColor(id,"#ffe6e6");
+                finishedJobGrid.setRowColor(id,m_rowColorError);
             }            
             if (state =="Cancelled"){
-                finishedJobGrid.setRowColor(id,"#ffcc80");
+                finishedJobGrid.setRowColor(id,m_rowColorCancelled);
             }
         });
     });
@@ -296,7 +306,11 @@ function init(){
         }
         return true;
     });
-
+    
+    mainLayout.attachEvent("onPanelResizeFinish", function(){
+        saveLayoutSizes(mainLayout,"mainLayout");
+    });
+    
     finishedJobGrid.setSortImgState(true,2,"desc");
     runningJobGrid.setSortImgState  (true,5,"desc");  
     mainLayout.cells("a").progressOn();
@@ -313,10 +327,10 @@ function init(){
             var rowValues = [obj.state,obj.wf_name,obj.job_start,obj.duration,obj.job_end,obj.file,obj.outcome] //state,wf_id,job_start,duration,job_end,file,duration,outcome
                finishedJobGrid.addRow(obj.guid,rowValues,0);
                 if (obj.state =="Error"){
-                    finishedJobGrid.setRowColor(obj.guid,"#ffe6e6");
+                    finishedJobGrid.setRowColor(obj.guid,m_rowColorError);
                 }            
                 if (obj.state =="Cancelled"){
-                    finishedJobGrid.setRowColor(obj.guid,"#ffcc80");
+                    finishedJobGrid.setRowColor(obj.guid,m_rowColorCancelled);
                 }
     });
 
@@ -339,6 +353,32 @@ function init(){
         getQueuedJobs(runningJobGrid);
         getActiveJobs(runningJobGrid);
         getFinishedJobs(finishedJobGrid);
+    }
+}
+
+function saveLayoutSizes(dhxLayout,name){
+//store layout cells height and with into html5 storage (in percentage of document height)
+    var aw = (dhxLayout.cells("a").getWidth()/document.body.scrollWidth ) ;
+    var ah = (dhxLayout.cells("a").getHeight()/document.body.scrollHeight ) ;
+    var bw = (dhxLayout.cells("b").getWidth()/document.body.scrollWidth ) ;
+    var bh = (dhxLayout.cells("b").getHeight()/document.body.scrollHeight ) ;
+    localStorage.setItem(name+"_aw",aw);
+    localStorage.setItem(name+"_ah",ah);
+    localStorage.setItem(name+"_bw",bw);
+    localStorage.setItem(name+"_bh",bh);
+    
+}
+
+function restoreLayoutSizes(dhxLayout,name){
+    if (localStorage.getItem(name+"_aw")){
+        var aw = localStorage.getItem(name+"_aw");
+        var ah = localStorage.getItem(name+"_ah");
+        var bw = localStorage.getItem(name+"_bw");
+        var bh = localStorage.getItem(name+"_bh");
+        dhxLayout.cells("a").setWidth(aw*document.body.scrollWidth);
+        dhxLayout.cells("a").setHeight(ah*document.body.scrollHeight);
+        dhxLayout.cells("b").setWidth(bw*document.body.scrollWidth);
+        dhxLayout.cells("b").setHeight(bh*document.body.scrollHeight);
     }
 }
 
@@ -460,31 +500,6 @@ function abortJob(){
 }
 
 
-function saveRestoreUserState(){
-//stores some layout properties in html5 local store
-
-//collapsed state
-    mainLayout.attachEvent("onCollapse", function(name){
-        localStorage.setItem("mainLayoutCell_"+name+"_Collapsed", mainLayout.cells(name).isCollapsed());
-    });
-    mainLayout.attachEvent("onExpand", function(name){
-        localStorage.setItem("mainLayoutCell_"+name+"_Collapsed", mainLayout.cells(name).isCollapsed());
-        if (name == "b"){
-            //due to bug in dhtmlx that makes bottom right cell full screen on expand, we just reload the content
-            //mainLayout.cells("b").attachHTMLString("<iframe src='jobstarter.html' width='100%' height='100%' />");
-        }
-    });
-    if (localStorage.getItem("mainLayoutCell_a_Collapsed") == "true"){
-        mainLayout.cells("a").collapse();
-    } 
-    if (localStorage.getItem("mainLayoutCell_b_Collapsed") == "true"){
-        mainLayout.cells("b").collapse();
-    } 
-    if (localStorage.getItem("mainLayoutCell_c_Collapsed") == "true"){
-        mainLayout.cells("c").collapse();
-    } 
-}
-
 function getQueuedJobs(targetGridObj){
 //todo: make this work
     $.ajax({
@@ -526,15 +541,16 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                 
                 var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
                 var _state = m_jobStates[jobArray[i].state];
+                var progressBar = "<div class='progressbar' style='width:"+jobArray[i].splits[splitindex].progress +"%'>" + jobArray[i].splits[splitindex].progress  + "%</div>";
                 if (targetGridObj.doesRowExist(rowid)){
                     //update existing task
                     targetGridObj.cells(rowid,2).setValue(jobArray[i].splits[splitindex].node);
                     targetGridObj.cells(rowid,3).setValue(jobArray[i].splits[splitindex].processor);
                     targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
-                    targetGridObj.cells(rowid,10).setValue(jobArray[i].splits[splitindex].progress + "%");//todo: update more values or better all!
+                    targetGridObj.cells(rowid,10).setValue(progressBar);//todo: update more values or better all!
                 }else{
                     //add new task (ffastrans calls it split)
-                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid,jobArray[i].splits[splitindex].progress],0);
+                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid,progressBar],0);
                     targetGridObj.cells(rowid,8).setValue(status);
                 }                        
                 targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
