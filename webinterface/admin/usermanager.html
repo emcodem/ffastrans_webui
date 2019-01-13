@@ -64,7 +64,7 @@ function init(){
 	m_usergrid = m_mainLayout.cells("a").attachGrid();
     m_usergrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_usergrid.setHeader("Username");//the headers of columns  
-    m_usergrid.setInitWidthsP("*");          //the widths of columns  
+    m_usergrid.setInitWidthsP("100");          //the widths of columns  
     m_usergrid.setColAlign("left");       //the alignment of columns   
     m_usergrid.setColTypes("ro");                //the types of columns  
     m_usergrid.setColSorting("str");          //the sorting types    
@@ -105,15 +105,15 @@ function init(){
     
 	m_usermenu = m_mainLayout.cells("a").attachMenu({                                               
 		items:[
-            {id:"add", text:"<i class='fas fa-add'></i>Create User"},
-            {id:"del", text:"<i class='fas fa-add'></i>Delete"},
+            {id:"add", text:"<i class='fas fa-plus-square'></i>Create User"},
+            {id:"del", text:"<i class='fas fa-trash'></i>Delete"},
 		]
 	});
 
 	m_groupmenu = m_mainLayout.cells("b").attachMenu({                                               
 		items:[
-            {id:"add", text:"<i class='fas fa-add'></i>Create Group"},
-            {id:"del", text:"<i class='fas fa-add'></i>Delete"},
+            {id:"add", text:"<i class='fas fa-plus-square'></i>Create Group"},
+            {id:"del", text:"<i class='fas fa-trash'></i>Delete"},
 		]
 	});
     
@@ -198,6 +198,7 @@ function init(){
     m_usergrid.attachEvent("onRowSelect", function (rId){
         //show properties on the right side
         //dhtmlx.message(JSON.stringify(m_usergrid.getUserData(rId,"object")));
+        var userobj = m_usergrid.getUserData(rId,"object");
         showUserProps(m_usergrid.getUserData(rId,"object"));
     });  
     
@@ -255,7 +256,7 @@ function showUserProps(userObj){
         
     _menu = m_mainLayout.cells("d").attachMenu({                                               
 		items:[
-            {id:"del", text:"<i class='fas fa-delete'></i>Remove Group from User"}
+            {id:"del", text:"<i class='fas fa-trash'></i>Remove Group from User"}
 		]
 	});
     _menu.attachEvent("onClick", function (name, value, state){
@@ -304,7 +305,6 @@ function showGroupProps(groupObj){
     m_groupPropsGrid.init();      //finishes initialization and renders the grid on the page 
     m_groupPropsGrid.setUserData("","groupobj",groupObj) //store group name
 
-    
     m_groupPropsGrid.attachEvent("onDrag",function(sid,tid){
     // copies an item instead of moving it
         m_groupPropsGrid.dragContext.mode="copy"; 
@@ -331,28 +331,74 @@ function showGroupProps(groupObj){
     m_mainLayout.cells("d").detachMenu();
     _menu = m_mainLayout.cells("d").attachMenu({                                               
 		items:[
-            {id:"del", text:"<i class='fas fa-delete'></i>Remove Permission from Group"}
+            {id:"del", text:"<i class='fas fa-trash'></i>Remove Permission from Group"},
+            {id:"edit", text:"<i class='fas fa-edit'></i>Edit"},
+            {id:"up", text:"<i class='fas fa-arrow-up'></i>Move Up"},
+            {id:"down", text:"<i class='fas fa-arrow-down'></i>Move Down"},
 		]
 	});
     
-    //delete a property from group on menu item click
+    //usergroupprops menu onclick
     _menu.attachEvent("onClick", function (name, value, state){
-        m_groupPropsGrid.deleteSelectedRows();
+        //collect current configuration
+        if (name == "edit"){
+            editPermissionInGroupPropsGrid();
+            return;
+        }
+        if (name == "up"){
+            m_groupPropsGrid.moveRowUp(m_groupPropsGrid.getSelectedRowId());
+        }
+        if (name == "down"){
+            m_groupPropsGrid.moveRowDown(m_groupPropsGrid.getSelectedRowId());
+        }
+        if (name == "del"){
+            m_groupPropsGrid.deleteSelectedRows();
+        }
+        //save new data 
         var groupObj = m_groupPropsGrid.getUserData("","groupobj");
-            groupObj.permissions = [];
-            m_groupPropsGrid.forEachRow(function(rId){
-                var permObj = m_groupPropsGrid.getUserData(rId,"object");
-                groupObj.permissions.push(permObj)
-        })
+        groupObj.permissions = [];
+        for (i=0;i<(m_groupPropsGrid.getRowsNum());i++){
+            var permObj = m_groupPropsGrid.getUserData(m_groupPropsGrid.getRowId(i),"object");
+            groupObj.permissions.push(permObj)
+        }
         saveUserGroupToServer(groupObj,true)
     })
     
     //create rows with existing data
     for (i in groupObj.permissions){
         var _perm = groupObj.permissions[i];
-        m_groupPropsGrid.addRow(_perm.key,[_perm.key])
+        var displayname = _perm.key;
+        if (displayname.indexOf("FILTER")!= -1){
+            displayname = displayname + " ["+_perm["value"]["filter"] + "]";
+        }
+        m_groupPropsGrid.addRow(_perm.key,[displayname])
         m_groupPropsGrid.setUserData(_perm.key,"object",_perm);
     }
+}
+
+function editPermissionInGroupPropsGrid(){
+//bring up window to allow filter configuration
+    if (m_groupPropsGrid.getSelectedRowId().indexOf("FILTER")== -1){
+        dhtmlx.alert("Please select a FILTER item to edit");
+        return;
+    }
+    var currentFilter = m_groupPropsGrid.getUserData(m_groupPropsGrid.getSelectedRowId(),"object");
+    var box = dhtmlx.modalbox({
+        title:"Edit Filter",
+        text: "Filter Expression:<br/><br/><input class='inform' type='text' value='"+currentFilter["value"]["filter"]+"'>",
+        buttons:["OK",  "Cancel"],
+        callback: function(result){
+            if (result == 0){
+                var input = box.getElementsByTagName("input")[0];
+                //save data to server
+                currentFilter["value"]["filter"] = input.value;
+                saveGroupProps()
+                showGroupProps(m_groupPropsGrid.getUserData("","groupobj"));
+            }
+        }
+    });
+                
+
 }
 
 //save group props on change
@@ -363,7 +409,6 @@ function saveGroupProps(){
         groupObj.permissions.push(m_groupPropsGrid.getUserData(rId,"object"))
     })
     saveUserGroupToServer(groupObj,true)
-    
 }
 
 function saveUserGroupToServer(groupObj,doreload){
@@ -394,9 +439,9 @@ function loaduserlist(){
             m_usergrid.clearAll();
             userlist = JSON.parse(userlist);
             for (i in userlist){
-                
-                m_usergrid.addRow(userlist[i].username,[userlist[i].username]);
-                m_usergrid.setUserData(userlist[i].username,"object",userlist[i]);
+                var id = Math.random()
+                m_usergrid.addRow(id,[userlist[i].username]);
+                m_usergrid.setUserData(id,"object",userlist[i]);
             }
         },
         error: function (xhr, status) {
@@ -434,7 +479,7 @@ function loadpermissionlist(){
             //render userlist in grid
             permlist = JSON.parse(permlist);
             m_permissiongrid.clearAll();
-            for (i in permlist){                
+            for (i in permlist){
                 m_permissiongrid.addRow(permlist[i].key,[permlist[i].key]);
                 m_permissiongrid.setUserData(permlist[i].key,"object",permlist[i]);
             }
@@ -489,11 +534,13 @@ function deleteuser(){
         dhtmlx.message("Please select a row to delete");
         return;
     }
+    var username = m_usergrid.getUserData(m_usergrid.getSelectedRowId(),"object")["username"];
+    
    $.ajax({
         url: ("/userlist"),
         type: "DELETE",
         dataType: "json",
-        data: {"name":m_usergrid.getSelectedRowId()},
+        data: {"name":username},
         success: function () {
             //render userlist in grid
             loaduserlist();
@@ -523,6 +570,34 @@ Select a user and drag&drop groups to the user (drag a grid row from left to rig
 
 <b>Group management:</b>
 Select a group and drag&drop permissions to the group (drag a grid row from left to right)
+
+<b>Filter management:</b>
+Filters are configured per Group.
+How to use Filters:
+-) create a usergroup and add a Filter permission
+-) select the Filter in the Permissions list (right side) and hit Edit button
+
+Filter rules:
+-) We "include" matching data, not "exclude". If you want to "exclude", you need to use a complex regex (e.g. "(?!^ABC$)")
+-) If you create a filter that results in "no item (workflow) being shown", we automatically fall back and show ALL items
+-) Filter strings are regular expressions, case insensitive
+-) If you create an invalid regular expression, no workflows can be loaded
+
+<b>Filter Regular expression (regex) hints:</b>
+You do not need to care about how regex works when you just want to allow a certain job name e.g. "Lowres" is perfectly fine without knowledge of regex. It would show all workflows that contain Lowres anywhere in the name.
+
+-) DO NOT USE "*" but instead use ".*?" (typically you do not need to specify this anyway)
+-) use the "|" (which means OR in regex) to specify multiple conditions
+-) avoid special characters like &, slashes and backslashes
+-) avoid ".", in regex . means "one character"
+
+    Examples:
+        "Lowres": Match all Worfklows that contain the word Lowres
+        "Lowres|Highres": Match all Worfklows that contain the word "Lowres or Highres"
+        ".*?": Match all workflows
+
+
+
 
 </p>
 </div>
