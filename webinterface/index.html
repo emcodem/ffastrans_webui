@@ -224,10 +224,6 @@ function init(permissions){
         localStorage.setItem("selected_start_menu_item", id);
         mainLayout.cells("b").attachURL(m_permissionUrls[id]); 
     });
-    
-    m_mainSidebar.attachEvent("onBubbleClick", function(id, content){
-        alert()
-    });
 
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 

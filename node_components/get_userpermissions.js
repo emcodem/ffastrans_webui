@@ -3,7 +3,6 @@ var userpermissions = require("../node_components/userpermissions");
 module.exports = function(app, passport){
 //create navigation menu based on user permissions
 	app.get('/getusermenue', function(req, res) { 
-       //TODO: handle case of not logged in user
        passport.authenticate('local-login');//fills req.user with infos from cookie
        if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
            var allperms = userpermissions.getallallpossiblemenupermissions();

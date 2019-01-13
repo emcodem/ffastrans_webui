@@ -173,7 +173,7 @@ function init(){
     //sort workflows by name
     window.setTimeout(function(){//we dont have any event for data loaded in the grid
             //restore last selected workflow
-            m_workflowSelectorGrid.selectRowById(localStorage.getItem("m_workflowSelectorGrid_selectedid"),false,true,true);
+            m_workflowSelectorGrid.selectRowById(localStorage.getItem("m_workflowSelectorGrid_selectedid"),false,true,false);
             //sort data
             m_workflowSelectorGrid.enableStableSorting(true);
             m_workflowSelectorGrid.sortRows(1,"str","asc");    // sort by the sibling column
@@ -352,7 +352,6 @@ function restoreLayoutSizes(dhxLayout,name){
 
 
 function saveLocation(){
-    localStorage.setItem("savedbrowselocations","[]")
     //saves current location to html5 storage
     if (localStorage.getItem("lastVisitedBrowseLocation")){
         //check if location is already there
@@ -446,7 +445,8 @@ function getFileList(dhtmlxGrid,path){
 			});
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR, unexpected error from filebrowser. " + path + " " + xhr.responseText);
+            dhtmlx.message("ERROR from filebrowser. " + path + " " + xhr.responseText);
+            m_mainLayout.cells("a").progressOff();
         }
     });
 }
@@ -632,7 +632,7 @@ function parseWorkflows(wfArray){
 function getWorkflows(){
 
     $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
+        url:  "/getworkflowlist",//buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
         type: "GET",
         crossDomain: true,
         dataType: "json",
@@ -645,7 +645,8 @@ function getWorkflows(){
             }
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+            m_mainLayout.cells("b").progressOff();
+            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
         }
     });
 }
