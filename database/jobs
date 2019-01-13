@@ -84,6 +84,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:28:21","job_end":"2018/12/30 21:28:26","file":"60127","outcome":"Success","state":"Success","guid":-1798605376,"_id":-1798605376,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:01:50","job_end":"2018/12/30 20:06:55","file":"31004","outcome":"Success","state":"Success","guid":-1797743265,"_id":-1797743265,"duration":"00:05:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:27:00","job_end":"2018/12/30 21:27:05","file":"60117","outcome":"Success","state":"Success","guid":-1797205411,"_id":-1797205411,"duration":"00:00:05"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/13 13:34:11","job_end":"2019/01/13 13:34:15","file":"sample_iTunes.mov","outcome":"Success","state":"Success","guid":-1793284367,"_id":-1793284367,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:13","job_end":"2018/12/30 21:14:20","file":"60023","outcome":"Success","state":"Success","guid":-1790076488,"_id":-1790076488,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 00:25:41","job_end":"2018/12/31 00:27:25","file":"60427","outcome":"Success","state":"Success","guid":-1784196126,"_id":-1784196126,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:05","job_end":"2018/12/30 21:55:10","file":"50331","outcome":"Success","state":"Success","guid":-1779759155,"_id":-1779759155,"duration":"00:00:05"}
@@ -116,6 +117,7 @@
 {"wf_name":"sleep600","job_start":"2019/01/01 16:59:46","job_end":"2019/01/01 17:09:53","file":"webui_release0921.png","outcome":"Success","state":"Success","guid":-1627663791,"_id":-1627663791,"duration":"00:10:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:25","job_end":"2018/12/30 21:55:31","file":"60333","outcome":"Success","state":"Success","guid":-1626155725,"_id":-1626155725,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:56:07","job_end":"2018/12/30 21:56:12","file":"50339","outcome":"Success","state":"Success","guid":-1624510765,"_id":-1624510765,"duration":"00:00:05"}
+{"wf_name":"Untitled","job_start":"2019/01/13 13:33:21","job_end":"2019/01/13 13:33:28","file":"10s.mov","outcome":"Success","state":"Success","guid":-1620438167,"_id":-1620438167,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:00:16","job_end":"2018/12/30 22:02:00","file":"60345","outcome":"Success","state":"Success","guid":-1620247344,"_id":-1620247344,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:20:22","job_end":"2018/12/30 21:20:29","file":"60071","outcome":"Success","state":"Success","guid":-1616989696,"_id":-1616989696,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 23:13:27","job_end":"2018/12/30 23:15:11","file":"60386","outcome":"Success","state":"Success","guid":-1607573105,"_id":-1607573105,"duration":"00:01:44"}
@@ -173,6 +175,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:18:41","job_end":"2018/12/30 21:18:46","file":"60058","outcome":"Success","state":"Success","guid":-1386764893,"_id":-1386764893,"duration":"00:00:05"}
 {"wf_name":"Lores","job_start":"2019/01/10 22:45:28","job_end":"2019/01/10 22:45:39","file":"D:\\out.mp4","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":-1376363917,"_id":-1376363917,"duration":"00:00:11"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:14:21","job_end":"2018/12/30 22:16:05","file":"60353","outcome":"Success","state":"Success","guid":-1367432780,"_id":-1367432780,"duration":"00:01:44"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/13 13:34:05","job_end":"2019/01/13 13:34:10","file":"D:\\1a_wildFiles\\sample_mpeg2.m2v","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":-1365225017,"_id":-1365225017,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:11:19","job_end":"2018/12/30 21:11:25","file":"60003","outcome":"Success","state":"Success","guid":-1365067895,"_id":-1365067895,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:43:08","job_end":"2018/12/30 21:43:13","file":"60238","outcome":"Success","state":"Success","guid":-1359712500,"_id":-1359712500,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:26","job_end":"2018/12/30 21:49:32","file":"60287","outcome":"Success","state":"Success","guid":-1355167975,"_id":-1355167975,"duration":"00:00:06"}
@@ -182,6 +185,7 @@
 {"wf_name":"Untitled","job_start":"2019/01/12 21:16:39","job_end":"2019/01/12 21:16:44","file":"sample_iPod.m4v","outcome":"Success","state":"Success","guid":-1344197778,"_id":-1344197778,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:53:55","job_end":"2018/12/30 21:54:02","file":"60321","outcome":"Success","state":"Success","guid":-1336238674,"_id":-1336238674,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:26:40","job_end":"2018/12/30 21:26:45","file":"60114","outcome":"Success","state":"Success","guid":-1335990560,"_id":-1335990560,"duration":"00:00:05"}
+{"wf_name":"Untitled","job_start":"2019/01/13 13:33:23","job_end":"2019/01/13 13:33:30","file":"sample_iTunes.mov","outcome":"Success","state":"Success","guid":-1332197885,"_id":-1332197885,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:51:36","job_end":"2018/12/30 21:51:42","file":"60304","outcome":"Success","state":"Success","guid":-1322230129,"_id":-1322230129,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:26:54","job_end":"2018/12/30 21:26:58","file":"60116","outcome":"Success","state":"Success","guid":-1321317379,"_id":-1321317379,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:09","job_end":"2018/12/30 21:29:13","file":"50134","outcome":"Success","state":"Success","guid":-1316868811,"_id":-1316868811,"duration":"00:00:04"}
@@ -196,6 +200,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:16:08","job_end":"2018/12/30 21:16:15","file":"60038","outcome":"Success","state":"Success","guid":-1268437100,"_id":-1268437100,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:51:12","job_end":"2018/12/31 08:52:56","file":"60473","outcome":"Success","state":"Success","guid":-1264778088,"_id":-1264778088,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 07:38:52","job_end":"2018/12/31 07:40:36","file":"60432","outcome":"Success","state":"Success","guid":-1261372281,"_id":-1261372281,"duration":"00:01:44"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:32:20","job_end":"2019/01/13 13:33:19","file":"D:\\10s.mov","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":-1259402239,"_id":-1259402239,"duration":"00:00:59"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:31:32","job_end":"2018/12/30 21:31:39","file":"50153","outcome":"Success","state":"Success","guid":-1256100282,"_id":-1256100282,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:39:56","job_end":"2018/12/30 21:40:01","file":"50215","outcome":"Success","state":"Success","guid":-1255848266,"_id":-1255848266,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 19:51:42","job_end":"2018/12/30 19:56:47","file":"50481","outcome":"Success","state":"Success","guid":-1254402089,"_id":-1254402089,"duration":"00:05:05"}
@@ -241,6 +246,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:22:34","job_end":"2018/12/30 21:22:39","file":"60088","outcome":"Success","state":"Success","guid":-1080277782,"_id":-1080277782,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:33:51","job_end":"2018/12/30 21:33:57","file":"60168","outcome":"Success","state":"Success","guid":-1079322794,"_id":-1079322794,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:25:32","job_end":"2018/12/30 21:25:37","file":"50106","outcome":"Success","state":"Success","guid":-1078431942,"_id":-1078431942,"duration":"00:00:05"}
+{"wf_name":"Untitled","job_start":"2019/01/13 13:33:22","job_end":"2019/01/13 13:33:29","file":"10s.mov","outcome":"Success","state":"Success","guid":-1077599321,"_id":-1077599321,"duration":"00:00:07"}
 {"wf_name":"aworkflow","job_start":"2019/01/12 11:21:29","job_end":"2019/01/12 11:21:29","file":"c:\\.rnd","outcome":"Job ended with error on ChannelMapper@DESKTOP-UIFQT86: No AVS source! Please insert \"A/V Media\" decoder.","state":"Error","guid":-1077549574,"_id":-1077549574,"duration":"00:00:00"}
 {"wf_name":"Lores","job_start":"2019/01/12 15:28:18","job_end":"2019/01/12 15:28:27","file":"sample_mpeg2.m2v","outcome":"Success","state":"Success","guid":-1076033223,"_id":-1076033223,"duration":"00:00:09"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:17:06","job_end":"2018/12/30 21:17:11","file":"60045","outcome":"Success","state":"Success","guid":-1074568200,"_id":-1074568200,"duration":"00:00:05"}
@@ -378,6 +384,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:46:34","job_end":"2018/12/30 21:46:38","file":"50267","outcome":"Success","state":"Success","guid":-544220591,"_id":-544220591,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:22:27","job_end":"2018/12/30 20:27:32","file":"50487","outcome":"Success","state":"Success","guid":-531564938,"_id":-531564938,"duration":"00:05:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 23:20:30","job_end":"2018/12/30 23:22:13","file":"60390","outcome":"Success","state":"Success","guid":-513171322,"_id":-513171322,"duration":"00:01:43"}
+{"wf_name":"aworkflow","job_start":"2019/01/13 13:31:57","job_end":"2019/01/13 13:31:58","file":"D:\\bla.mp4","outcome":"Job ended with error on ChannelMapper@DESKTOP-UIFQT86: No AVS source! Please insert \"A/V Media\" decoder.","state":"Error","guid":-511678796,"_id":-511678796,"duration":"00:00:01"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:45:40","job_end":"2018/12/30 21:45:47","file":"50259","outcome":"Success","state":"Success","guid":-511488679,"_id":-511488679,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:19:48","job_end":"2018/12/30 21:19:54","file":"50067","outcome":"Success","state":"Success","guid":-509939426,"_id":-509939426,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:08","job_end":"2018/12/30 21:38:14","file":"60201","outcome":"Success","state":"Success","guid":-507216557,"_id":-507216557,"duration":"00:00:06"}
@@ -396,6 +403,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:57:37","job_end":"2018/12/30 22:59:21","file":"60377","outcome":"Success","state":"Success","guid":-458733259,"_id":-458733259,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 12:29:40","job_end":"2018/12/31 12:31:23","file":"60597","outcome":"Success","state":"Success","guid":-458228038,"_id":-458228038,"duration":"00:01:43"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:40","job_end":"2018/12/30 21:49:45","file":"60289","outcome":"Success","state":"Success","guid":-451868799,"_id":-451868799,"duration":"00:00:05"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:30:29","job_end":"2019/01/13 13:31:38","file":"10s.mov","outcome":"Success","state":"Success","guid":-450914639,"_id":-450914639,"duration":"00:01:09"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:52:40","job_end":"2018/12/30 21:52:48","file":"60312","outcome":"Success","state":"Success","guid":-450076625,"_id":-450076625,"duration":"00:00:08"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:47:00","job_end":"2018/12/30 21:47:05","file":"60270","outcome":"Success","state":"Success","guid":-448661427,"_id":-448661427,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:22:27","job_end":"2018/12/31 13:24:11","file":"60627","outcome":"Success","state":"Success","guid":-446485291,"_id":-446485291,"duration":"00:01:44"}
@@ -479,6 +487,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:30:58","job_end":"2018/12/30 21:31:03","file":"60148","outcome":"Success","state":"Success","guid":-189872661,"_id":-189872661,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:31:59","job_end":"2018/12/30 21:32:05","file":"60155","outcome":"Success","state":"Success","guid":-187238618,"_id":-187238618,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:41:35","job_end":"2018/12/31 14:43:19","file":"60672","outcome":"Success","state":"Success","guid":-182933026,"_id":-182933026,"duration":"00:01:44"}
+{"wf_name":"aworkflow","job_start":"2019/01/13 13:31:56","job_end":"2019/01/13 13:31:56","file":"D:\\10s.mov","outcome":"Job ended with error on ChannelMapper@DESKTOP-UIFQT86: No AVS source! Please insert \"A/V Media\" decoder.","state":"Error","guid":-176989903,"_id":-176989903,"duration":"00:00:00"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:41:46","job_end":"2018/12/30 22:43:30","file":"60368","outcome":"Success","state":"Success","guid":-173841519,"_id":-173841519,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:28:40","job_end":"2018/12/30 21:28:45","file":"50130","outcome":"Success","state":"Success","guid":-173729123,"_id":-173729123,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:11:54","job_end":"2018/12/30 21:12:00","file":"60007","outcome":"Success","state":"Success","guid":-173489510,"_id":-173489510,"duration":"00:00:06"}
@@ -554,6 +563,7 @@
 {"wf_name":"WebUI_Demo_Template","job_start":"2019/01/03 10:16:13","job_end":"2019/01/03 10:16:17","file":"10s.mov","outcome":"Success","state":"Success","guid":98904810,"_id":98904810,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:51","job_end":"2018/12/30 21:55:57","file":"50337","outcome":"Success","state":"Success","guid":104553337,"_id":104553337,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:47:03","job_end":"2018/12/31 13:48:48","file":"60641","outcome":"Success","state":"Success","guid":105049584,"_id":105049584,"duration":"00:01:45"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:33:20","job_end":"2019/01/13 13:33:25","file":"D:\\10s.mov","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":105332935,"_id":105332935,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:22:31","job_end":"2018/12/30 20:27:37","file":"11323","outcome":"Success","state":"Success","guid":112505972,"_id":112505972,"duration":"00:05:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:26:26","job_end":"2018/12/30 21:26:30","file":"60112","outcome":"Success","state":"Success","guid":116515514,"_id":116515514,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:43:01","job_end":"2018/12/30 21:43:07","file":"60237","outcome":"Success","state":"Success","guid":118871917,"_id":118871917,"duration":"00:00:06"}
@@ -599,6 +609,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:16","job_end":"2018/12/30 21:38:22","file":"60202","outcome":"Success","state":"Success","guid":270735834,"_id":270735834,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:28:47","job_end":"2018/12/30 21:28:53","file":"50131","outcome":"Success","state":"Success","guid":286848506,"_id":286848506,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 07:33:30","job_end":"2018/12/31 07:35:15","file":"60429","outcome":"Success","state":"Success","guid":290703471,"_id":290703471,"duration":"00:01:45"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:33:48","job_end":"2019/01/13 13:33:55","file":"sample_3GPP2.3g2","outcome":"Success","state":"Success","guid":292488405,"_id":292488405,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:46:48","job_end":"2018/12/30 21:46:53","file":"50269","outcome":"Success","state":"Success","guid":295979639,"_id":295979639,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:39:47","job_end":"2018/12/30 21:39:54","file":"50214","outcome":"Success","state":"Success","guid":300086175,"_id":300086175,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:26","job_end":"2018/12/30 21:38:33","file":"50204","outcome":"Success","state":"Success","guid":301486140,"_id":301486140,"duration":"00:00:07"}
@@ -719,6 +730,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:06:23","job_end":"2018/12/31 14:08:07","file":"60652","outcome":"Success","state":"Success","guid":723326132,"_id":723326132,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:22:40","job_end":"2018/12/30 20:27:46","file":"21007","outcome":"Success","state":"Success","guid":724998332,"_id":724998332,"duration":"00:05:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:40:43","job_end":"2018/12/30 21:40:50","file":"50220","outcome":"Success","state":"Success","guid":725937646,"_id":725937646,"duration":"00:00:07"}
+{"wf_name":"WebUI_Demo_Template","job_start":"2019/01/13 13:34:12","job_end":"2019/01/13 13:34:16","file":"sample_iPod.m4v","outcome":"Success","state":"Success","guid":726531028,"_id":726531028,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:33:05","job_end":"2018/12/30 21:33:12","file":"50163","outcome":"Success","state":"Success","guid":757051368,"_id":757051368,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:44:46","job_end":"2018/12/30 21:44:52","file":"60251","outcome":"Success","state":"Success","guid":766450992,"_id":766450992,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:25:19","job_end":"2018/12/30 21:25:23","file":"50104","outcome":"Success","state":"Success","guid":772403922,"_id":772403922,"duration":"00:00:04"}
@@ -794,6 +806,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:32:02","job_end":"2018/12/30 21:32:08","file":"50156","outcome":"Success","state":"Success","guid":1071392742,"_id":1071392742,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:54:31","job_end":"2018/12/30 21:54:35","file":"60326","outcome":"Success","state":"Success","guid":1078563734,"_id":1078563734,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:55:13","job_end":"2018/12/30 21:55:19","file":"50332","outcome":"Success","state":"Success","guid":1081409256,"_id":1081409256,"duration":"00:00:06"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:33:50","job_end":"2019/01/13 13:33:59","file":"sample_mpeg2.m2v","outcome":"Success","state":"Success","guid":1082389842,"_id":1082389842,"duration":"00:00:09"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:55:50","job_end":"2018/12/31 13:57:34","file":"60646","outcome":"Success","state":"Success","guid":1084169307,"_id":1084169307,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:13:40","job_end":"2018/12/31 13:15:24","file":"60622","outcome":"Success","state":"Success","guid":1099948571,"_id":1099948571,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:27:54","job_end":"2018/12/30 21:28:00","file":"50124","outcome":"Success","state":"Success","guid":1100204255,"_id":1100204255,"duration":"00:00:06"}
@@ -841,17 +854,20 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:42:35","job_end":"2018/12/30 21:42:41","file":"50234","outcome":"Success","state":"Success","guid":1266683568,"_id":1266683568,"duration":"00:00:06"}
 {"wf_name":"Untitled","job_start":"2019/01/12 11:08:30","job_end":"2019/01/12 11:08:36","file":"c:\\.rnd","outcome":"Job ended with error on A/V Media@DESKTOP-UIFQT86: Could not recognize content in file!","state":"Error","guid":1270474548,"_id":1270474548,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 15:00:58","job_end":"2018/12/31 15:02:43","file":"60683","outcome":"Success","state":"Success","guid":1276113194,"_id":1276113194,"duration":"00:01:45"}
+{"wf_name":"aworkflow","job_start":"2019/01/13 13:32:00","job_end":"2019/01/13 13:32:01","file":"D:\\cap.mp4","outcome":"Job ended with error on ChannelMapper@DESKTOP-UIFQT86: No AVS source! Please insert \"A/V Media\" decoder.","state":"Error","guid":1276651859,"_id":1276651859,"duration":"00:00:01"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:35:19","job_end":"2018/12/30 21:35:25","file":"60179","outcome":"Success","state":"Success","guid":1278479277,"_id":1278479277,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:41:46","job_end":"2018/12/30 21:41:53","file":"50228","outcome":"Success","state":"Success","guid":1279515826,"_id":1279515826,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 19:45:46","job_end":"2018/12/30 19:50:52","file":"2647","outcome":"Success","state":"Success","guid":1288107585,"_id":1288107585,"duration":"00:05:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:03:35","job_end":"2018/12/31 08:05:19","file":"60446","outcome":"Success","state":"Success","guid":1294760069,"_id":1294760069,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:54:33","job_end":"2018/12/30 21:54:39","file":"50327","outcome":"Success","state":"Success","guid":1300942672,"_id":1300942672,"duration":"00:00:06"}
+{"wf_name":"aworkflow","job_start":"2019/01/13 13:31:58","job_end":"2019/01/13 13:31:59","file":"D:\\bmxtimecode.exe","outcome":"Job ended with error on ChannelMapper@DESKTOP-UIFQT86: No AVS source! Please insert \"A/V Media\" decoder.","state":"Error","guid":1306290821,"_id":1306290821,"duration":"00:00:01"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:34:55","job_end":"2018/12/30 21:35:01","file":"60176","outcome":"Success","state":"Success","guid":1326121715,"_id":1326121715,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:04","job_end":"2018/12/30 21:14:11","file":"60022","outcome":"Success","state":"Success","guid":1328608627,"_id":1328608627,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:44:06","job_end":"2018/12/30 21:44:12","file":"50247","outcome":"Success","state":"Success","guid":1340747150,"_id":1340747150,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:16:44","job_end":"2018/12/30 21:16:50","file":"50043","outcome":"Success","state":"Success","guid":1341092702,"_id":1341092702,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:35:54","job_end":"2018/12/30 21:36:00","file":"50184","outcome":"Success","state":"Success","guid":1344039763,"_id":1344039763,"duration":"00:00:06"}
 {"wf_name":"sleep600","job_start":"2019/01/01 16:59:49","job_end":"2019/01/01 17:09:56","file":"ffastrans_webint_.png","outcome":"Success","state":"Success","guid":1344722862,"_id":1344722862,"duration":"00:10:07"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:33:50","job_end":"2019/01/13 13:34:09","file":"D:\\1a_wildFiles\\sample_iTunes.mov","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":1344879162,"_id":1344879162,"duration":"00:00:19"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:53:23","job_end":"2018/12/30 21:53:30","file":"60317","outcome":"Success","state":"Success","guid":1349705816,"_id":1349705816,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:43:53","job_end":"2018/12/30 21:43:57","file":"50245","outcome":"Success","state":"Success","guid":1356057553,"_id":1356057553,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:13:29","job_end":"2018/12/30 21:13:36","file":"60018","outcome":"Success","state":"Success","guid":1356114066,"_id":1356114066,"duration":"00:00:07"}
@@ -918,6 +934,7 @@
 {"wf_name":"Lores","job_start":"2019/01/12 20:21:35","job_end":"2019/01/12 20:21:38","file":"D:\\1a_wildFiles\\öü &amp;kFD!§$%&amp;()=}]{³''.3gp","outcome":"Job ended with error on H.264@DESKTOP-UIFQT86: No video or audio found in media.","state":"Error","guid":1645766981,"_id":1645766981,"duration":"00:00:03"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:40:51","job_end":"2018/12/30 21:40:57","file":"50221","outcome":"Success","state":"Success","guid":1647944011,"_id":1647944011,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:51:39","job_end":"2018/12/30 21:51:45","file":"50305","outcome":"Success","state":"Success","guid":1654283849,"_id":1654283849,"duration":"00:00:06"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:32:18","job_end":"2019/01/13 13:33:13","file":"D:\\10s.mov","outcome":"Job aborted by: API Service@DESKTOP-UIFQT86","state":"Cancelled","guid":1656724862,"_id":1656724862,"duration":"00:00:55"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:32:34","job_end":"2018/12/30 21:32:39","file":"60159","outcome":"Success","state":"Success","guid":1657105677,"_id":1657105677,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 12:47:14","job_end":"2018/12/31 12:48:58","file":"60607","outcome":"Success","state":"Success","guid":1661721117,"_id":1661721117,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:41:15","job_end":"2018/12/30 21:41:21","file":"50224","outcome":"Success","state":"Success","guid":1666413323,"_id":1666413323,"duration":"00:00:06"}
@@ -956,6 +973,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:48:06","job_end":"2018/12/30 21:48:13","file":"50278","outcome":"Success","state":"Success","guid":1795667411,"_id":1795667411,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 22:05:33","job_end":"2018/12/30 22:07:17","file":"60348","outcome":"Success","state":"Success","guid":1799587804,"_id":1799587804,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:37:52","job_end":"2018/12/30 21:37:57","file":"50199","outcome":"Success","state":"Success","guid":1799966746,"_id":1799966746,"duration":"00:00:05"}
+{"wf_name":"Lores","job_start":"2019/01/13 13:33:49","job_end":"2019/01/13 13:34:05","file":"sample_iPod.m4v","outcome":"Success","state":"Success","guid":1802408785,"_id":1802408785,"duration":"00:00:16"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:40:32","job_end":"2018/12/30 21:40:38","file":"50219","outcome":"Success","state":"Success","guid":1804592366,"_id":1804592366,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:42:24","job_end":"2018/12/30 21:42:30","file":"60232","outcome":"Success","state":"Success","guid":1807184495,"_id":1807184495,"duration":"00:00:06"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:57","job_end":"2018/12/30 21:30:03","file":"50140","outcome":"Success","state":"Success","guid":1814419500,"_id":1814419500,"duration":"00:00:06"}
@@ -1006,6 +1024,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:04","job_end":"2018/12/30 21:38:09","file":"50201","outcome":"Success","state":"Success","guid":2008719792,"_id":2008719792,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:12:47","job_end":"2018/12/30 21:12:52","file":"50014","outcome":"Success","state":"Success","guid":2008775253,"_id":2008775253,"duration":"00:00:05"}
 {"wf_name":"Lores","job_start":"2019/01/12 20:21:18","job_end":"2019/01/12 20:21:38","file":"sample_iTunes.mov","outcome":"Success","state":"Success","guid":2009583469,"_id":2009583469,"duration":"00:00:20"}
+{"wf_name":"Untitled","job_start":"2019/01/13 13:33:23","job_end":"2019/01/13 13:33:30","file":"sample_iPod.m4v","outcome":"Success","state":"Success","guid":2014070056,"_id":2014070056,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:14:29","job_end":"2018/12/30 21:14:34","file":"50025","outcome":"Success","state":"Success","guid":2016876785,"_id":2016876785,"duration":"00:00:05"}
 {"wf_name":"Untitled","job_start":"2019/01/12 11:08:33","job_end":"2019/01/12 11:08:36","file":"c:\\.rnd","outcome":"Job ended with error on A/V Media@DESKTOP-UIFQT86: Could not recognize content in file!","state":"Error","guid":2018309751,"_id":2018309751,"duration":"00:00:03"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:22:11","job_end":"2018/12/30 21:22:17","file":"60085","outcome":"Success","state":"Success","guid":2023734152,"_id":2023734152,"duration":"00:00:06"}
@@ -1036,3 +1055,5 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:41","job_end":"2018/12/30 21:49:45","file":"50290","outcome":"Success","state":"Success","guid":2145829365,"_id":2145829365,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:33:33","job_end":"2018/12/31 08:35:17","file":"60463","outcome":"Success","state":"Success","guid":2146477950,"_id":2146477950,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:15","job_end":"2018/12/30 21:29:20","file":"60134","outcome":"Success","state":"Success","guid":2147447711,"_id":2147447711,"duration":"00:00:05"}
+{"wf_name":"öäü&%","job_start":"2019/01/13 22:52:19","job_end":"2019/01/13 22:52:19","file":"desktop.ini","outcome":"Success","state":"Success","guid":-1007474856,"_id":-1007474856,"duration":"00:00:00"}
+{"wf_name":"Abc","job_start":"2019/01/13 22:56:21","job_end":"2019/01/13 22:56:26","file":"D:\\$RECYCLE.BIN\\S-1-5-21-3069358053-1388952826-2108482743-1001\\desktop.ini","outcome":"Job ended with error on A/V Media@DESKTOP-UIFQT86: Could not recognize content in file!","state":"Error","guid":190730197,"_id":190730197,"duration":"00:00:05"}

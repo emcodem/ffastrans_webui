@@ -57,6 +57,7 @@ function init(){
     m_mainLayout.cells("a").setMinHeight(50);
     m_mainLayout.cells("b").setMinHeight(50);  
     m_mainLayout.cells("a").setText("Uploads");
+    
     //m_mainLayout.cells("a").setWidth();
     m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
         mode:               "top",
@@ -77,12 +78,12 @@ function init(){
 
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_fileBrowserGrid.setHeader("Name,Path,is_folder,Size,Created,Modified");//the headers of columns  
+    m_fileBrowserGrid.setHeader("Name,Path,is_folder,Size,Created,Modified,original_size");//the headers of columns  
     m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
-    m_fileBrowserGrid.setInitWidthsP("*,0,0,10,20");          //the widths of columns  
-    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left");       //the alignment of columns   
-    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str");          //the sorting types    
+    m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0");          //the widths of columns  
+    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left");       //the alignment of columns   
+    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
+    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int");          //the sorting types    
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
 	
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
@@ -112,7 +113,7 @@ function init(){
     });
 
     //workflow forms
-    var jobLayout = m_mainLayout.cells("b").attachLayout({
+    jobLayout = m_mainLayout.cells("b").attachLayout({
         parent: document.body,  
         pattern: "2E"           
     });
@@ -131,9 +132,8 @@ function init(){
             {
                 id: "workflowtab", text:"Workflows",width:null,index:0,active:true, enabled: true, close:false
             },
-             
             {
-                id:"variabletab",text:"Variables",width:null,index:1,active:false,enabled:false,close:false 
+                id:"variabletab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
             },
         ]
     });
@@ -168,8 +168,19 @@ function init(){
     m_selectedFileGrid.setColAlign("left,left,left");
     m_selectedFileGrid.setColTypes("ed,ed,ed");
     m_selectedFileGrid.setColSorting("str,str,str");   
-  
     m_selectedFileGrid.init();
+   
+    //sort workflows by name
+    window.setTimeout(function(){//we dont have any event for data loaded in the grid
+            //restore last selected workflow
+            m_workflowSelectorGrid.selectRowById(localStorage.getItem("m_workflowSelectorGrid_selectedid"),false,true,false);
+            //sort data
+            m_workflowSelectorGrid.enableStableSorting(true);
+            m_workflowSelectorGrid.sortRows(1,"str","asc");    // sort by the sibling column
+            m_workflowSelectorGrid.sortRows(0,"sort_custom","asc");    // sort by the main column
+            
+	},500)
+    
     
     //EVENTS
     m_workflowSelectorGrid.attachEvent("onRowSelect", function(id,ind){
@@ -178,18 +189,22 @@ function init(){
 	});
     
     
-    window.setTimeout(function(){//we dont have any event for data loaded in the grid
-        m_workflowSelectorGrid.enableStableSorting(true);
-        m_workflowSelectorGrid.sortRows(1,"str","asc");    // sort by the sibling column
-        m_workflowSelectorGrid.sortRows(0,"sort_custom","asc");    // sort by the main column
-	},500)
+    m_fileBrowserGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
+        //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
+        if (colindex == 3){//sorted by file size
+            m_fileBrowserGrid.sortRows(6,"int",dir);
+            m_fileBrowserGrid.setSortImgState(true,3,dir);//this is important to let the js grid know how it is sorted (not just the user)
+            return false;//do not allow grid to apply default sorting
+        }
+        return true ;
+    });  
     
-    //workflow and start proc selected event
-    m_mainForm.attachEvent("onChange", function (name, value, state){
-            if (name == 'start_proc'){
+                                            
+                                                                     
+                                      
                 
-            }
-    });
+             
+       
     
     m_mainForm.attachEvent("onButtonClick", function (name, value, state){
             if (name == 'show_wf'){
@@ -262,16 +277,41 @@ function init(){
         getFileList(m_fileBrowserGrid,id)
 	})
     
-    //tabbar changed event
+    //disable auto job submission when another workflow is selected
+    
     m_mainTabBar.attachEvent("onSelect", function(id, lastId){
-        saveRestoreUserState(id)
+        saveRestoreUserState(id);
         return true;
     });
+    
+    
+    m_workflowTabBar.attachEvent("onTabClick", function(id, lastId){ 
+        if (id=="workflowtab"){
+            m_workflowTabBar.cells("variabletab").setText("Job Setup");
+            if (m_fileAddedEventId){
+                m_selectedFileGrid.detachEvent(m_fileAddedEventId);
+            }
+        }
+    })
+    
+    m_mainLayout.attachEvent("onPanelResizeFinish", function(){
+        saveLayoutSizes(jobLayout,"jobLayout");
+        saveLayoutSizes(m_mainLayout,"m_mainLayout");
+    });
+    
+    jobLayout.attachEvent("onPanelResizeFinish", function(){
+        saveLayoutSizes(jobLayout,"jobLayout");
+        saveLayoutSizes(m_mainLayout,"m_mainLayout");
+    });
+    
+    
     
 //MAIN STARTING POINT
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
     saveRestoreUserState(); //restores last selected tab
+    restoreLayoutSizes(jobLayout,"jobLayout");
+    restoreLayoutSizes(m_mainLayout,"m_mainLayout");
     getWorkflows();
     getBrowseLocations();
     
@@ -281,15 +321,42 @@ function init(){
         m_mainLayout.cells("a").setWidth(0);
         jobLayout.cells("a").setHeight(150)
     }
+   
 }
 
+function saveLayoutSizes(dhxLayout,name){
+//store layout cells height and with into html5 storage (in percentage of document height)
+    var aw = (dhxLayout.cells("a").getWidth()/document.body.scrollWidth ) ;
+    var ah = (dhxLayout.cells("a").getHeight()/document.body.scrollHeight ) ;
+    var bw = (dhxLayout.cells("b").getWidth()/document.body.scrollWidth ) ;
+    var bh = (dhxLayout.cells("b").getHeight()/document.body.scrollHeight ) ;
+    localStorage.setItem(name+"_aw",aw);
+    localStorage.setItem(name+"_ah",ah);
+    localStorage.setItem(name+"_bw",bw);
+    localStorage.setItem(name+"_bh",bh);
+    
+}
+
+function restoreLayoutSizes(dhxLayout,name){
+    if (localStorage.getItem(name+"_aw")){
+        var aw = localStorage.getItem(name+"_aw");
+        var ah = localStorage.getItem(name+"_ah");
+        var bw = localStorage.getItem(name+"_bw");
+        var bh = localStorage.getItem(name+"_bh");
+        dhxLayout.cells("a").setWidth(aw*document.body.scrollWidth);
+        dhxLayout.cells("a").setHeight(ah*document.body.scrollHeight);
+        dhxLayout.cells("b").setWidth(bw*document.body.scrollWidth);
+        dhxLayout.cells("b").setHeight(bh*document.body.scrollHeight);
+    }
+}
+
+
 function saveLocation(){
-    localStorage.setItem("savedbrowselocations","[]")
     //saves current location to html5 storage
     if (localStorage.getItem("lastVisitedBrowseLocation")){
         //check if location is already there
         if (m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")) != -1){
-            dhtmlx.alert("This path is already stored in Locations, position: " + m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")))
+            dhtmlx.alert("This path is already stored in Locations on Position: " + m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")))
             return;
         }
         var _path = localStorage.getItem("lastVisitedBrowseLocation");
@@ -302,7 +369,7 @@ function saveLocation(){
                             var inputs = box.getElementsByTagName("input");
                             var newId = (new Date()).valueOf();
                             _loc = {};
-                            _loc.displayname    = inputs[0].value + "<i style='cursor:pointer;float:right;margin-top:8px' class='fa fa-trash' aria-hidden='true' onclick=\"removeItemFromLocationMenu('"+escape(_path)+"')\" ></i>"
+                            _loc.displayname    = inputs[0].value + "&nbsp&nbsp<i style='cursor:pointer;float:right;margin-top:8px' class='fa fa-trash' aria-hidden='true' onclick=\"removeItemFromLocationMenu('"+escape(_path)+"')\" ></i>"
                             
                             _loc.path           = _path;
                             var storedArray = localStorage.getItem("savedbrowselocations") || "[]";
@@ -348,21 +415,6 @@ function sort_custom(a,b,order){//dhtmlx grid custom sorting function
         return n<m?1:-1;
 }
 
-function getReadableFileSizeString(fileSizeInBytes) {
-//helper, translates number of file size bytes into human readable value
-	if (fileSizeInBytes == 0){
-		return "0 kB";
-	}
-    var i = -1;
-    var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
-    do {
-        fileSizeInBytes = fileSizeInBytes / 1024;
-        i++;
-    } while (fileSizeInBytes > 1024);
-
-    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
-}
-
 function selectFileToProcess(){
     //transfer selected file to processing grid
     m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
@@ -370,16 +422,18 @@ function selectFileToProcess(){
 
 function getFileList(dhtmlxGrid,path){
 //browse files on server
+        m_mainLayout.cells("a").progressOn();
 	    $.ajax({
         url: "/filebrowser?name=" + path +"&"+Math.random(),
         type: "GET",
         success: function (response,textStatus, xhr) {
+            m_mainLayout.cells("a").progressOff();
             localStorage.setItem("lastVisitedBrowseLocation", path);
 			dhtmlxGrid.clearAll();
 			dhtmlxGrid.parse(response,"json");
 			dhtmlxGrid.forEachRow(function(id){
 			//convert filesize to human readable
-				dhtmlxGrid.cells(id,3).setValue( getReadableFileSizeString(dhtmlxGrid.cells(id,3).getValue()));
+				dhtmlxGrid.cells(id,3).setValue( (dhtmlxGrid.cells(id,3).getValue()));
 				if (dhtmlxGrid.cells(id,2).getValue() =="true"){
                     //folders get a folder icon attached
 					dhtmlxGrid.cells(id,0).setValue( '<i class="fas fa-folder"></i> ' + (dhtmlxGrid.cells(id,0).getValue()) );
@@ -391,7 +445,8 @@ function getFileList(dhtmlxGrid,path){
 			});
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR, unexpected error from filebrowser. " + path + " " + xhr.responseText);
+            dhtmlx.message("ERROR from filebrowser. " + path + " " + xhr.responseText);
+            m_mainLayout.cells("a").progressOff();
         }
     });
 }
@@ -456,7 +511,7 @@ function on_processorSelected(selectedWorkflow){
                     
                     //m_subForm.addItem("data", {type: "label", label:"This Workflow does not provide any userinput" ,offsetLeft:10 }, 2);
 					m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);
-                    m_workflowTabBar.goToNextTab();
+                                                   
                     return;
                 }
                 //show user variables
@@ -487,7 +542,7 @@ function on_processorSelected(selectedWorkflow){
                 //m_subForm.addItem(null, {type: "button", name:"submit",value: "Start Job",width:200},10000);
                 m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"});
                 
-                m_workflowTabBar.goToNextTab();
+                
             }
         },
         error: function (xhr, status) {
@@ -519,13 +574,17 @@ function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
 
 
 function on_gridWorkflowSelected(rowId){
+
     //called from select event of grid select
     //populates start processor drowdown
+    localStorage.setItem("m_workflowSelectorGrid_selectedid",rowId);
+    m_workflowTabBar.cells("variabletab").setActive();
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
     var options = [];
     m_mainForm.removeItem("start_proc");
     var selected_wf = m_workflowSelectorGrid.getUserData(rowId,"workflow_object");
     
+    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+selected_wf["general"]["wf_name"]+"]");
     var proc_root = selected_wf.variable["start_procs"] || selected_wf.variable["start_proc"];
     if (!proc_root){
         dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
@@ -573,7 +632,7 @@ function parseWorkflows(wfArray){
 function getWorkflows(){
 
     $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
+        url:  "/getworkflowlist",//buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
         type: "GET",
         crossDomain: true,
         dataType: "json",
@@ -586,7 +645,8 @@ function getWorkflows(){
             }
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+            m_mainLayout.cells("b").progressOff();
+            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
         }
     });
 }
@@ -663,9 +723,12 @@ function saveRestoreUserState(tabbarId){
 //stores/restores some user settings
     if (!tabbarId){
         if (localStorage.getItem("tabbaritemselected")){
-            m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected")).setActive();
+            if (m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected"))){
+                m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected")).setActive();
+            }
         }
     }else{
+        
         localStorage.setItem("tabbaritemselected",tabbarId);
     }
 }
