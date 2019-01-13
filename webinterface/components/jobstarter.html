@@ -7,6 +7,9 @@
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+<script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+<link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -14,6 +17,10 @@
         height: 100%;
         margin: 0px;
         overflow: hidden;
+    }
+    ul.fancytree-container {
+        border: none;
+        outline:none !important;
     }
 
 </style>
@@ -169,18 +176,6 @@ function init(){
     m_selectedFileGrid.setColTypes("ed,ed,ed");
     m_selectedFileGrid.setColSorting("str,str,str");   
     m_selectedFileGrid.init();
-   
-    //sort workflows by name
-    window.setTimeout(function(){//we dont have any event for data loaded in the grid
-            //restore last selected workflow
-            m_workflowSelectorGrid.selectRowById(localStorage.getItem("m_workflowSelectorGrid_selectedid"),false,true,false);
-            //sort data
-            m_workflowSelectorGrid.enableStableSorting(true);
-            m_workflowSelectorGrid.sortRows(1,"str","asc");    // sort by the sibling column
-            m_workflowSelectorGrid.sortRows(0,"sort_custom","asc");    // sort by the main column
-            
-	},500)
-    
     
     //EVENTS
     m_workflowSelectorGrid.attachEvent("onRowSelect", function(id,ind){
@@ -387,20 +382,27 @@ function saveLocation(){
 }
 
 function removeItemFromLocationMenu(id){
-    id= unescape(id)
-//delete selected item from menu and local storage
-    m_fileBrowseGridMenu.removeItem(id);
-    if (localStorage.getItem("savedbrowselocations")){
-        var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
-        var indexToDelete = -1;
-        for (i=0;i<_locs.length;i++){
-            if (_locs[i].path == id){
-                indexToDelete = i;
-            }
+    dhtmlx.message({
+        type:"confirm",
+        text: "Delete this stored location?<br/><br/>" +unescape(id),
+        callback: function() {
+                id= unescape(id)
+                //delete selected item from menu and local storage
+                    m_fileBrowseGridMenu.removeItem(id);
+                    if (localStorage.getItem("savedbrowselocations")){
+                        var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
+                        var indexToDelete = -1;
+                        for (i=0;i<_locs.length;i++){
+                            if (_locs[i].path == id){
+                                indexToDelete = i;
+                            }
+                        }
+                        _locs.splice(i,1);
+                         localStorage.setItem("savedbrowselocations",JSON.stringify(_locs))
+                   }
         }
-        _locs.splice(i,1);
-         localStorage.setItem("savedbrowselocations",JSON.stringify(_locs))
-   }
+    });
+
 }
 
 function sort_custom(a,b,order){//dhtmlx grid custom sorting function 
@@ -573,19 +575,19 @@ function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
 }
 
 
-function on_gridWorkflowSelected(rowId){
+function on_gridWorkflowSelected(wf_name,wf_object){
 
     //called from select event of grid select
     //populates start processor drowdown
-    localStorage.setItem("m_workflowSelectorGrid_selectedid",rowId);
+    localStorage.setItem("lastselectedworkflow",wf_name);
     m_workflowTabBar.cells("variabletab").setActive();
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
     var options = [];
     m_mainForm.removeItem("start_proc");
-    var selected_wf = m_workflowSelectorGrid.getUserData(rowId,"workflow_object");
+    //var selected_wf = m_workflowSelectorGrid.getUserData(wf_name,"workflow_object");
     
-    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+selected_wf["general"]["wf_name"]+"]");
-    var proc_root = selected_wf.variable["start_procs"] || selected_wf.variable["start_proc"];
+    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["general"]["wf_name"]+"]");
+    var proc_root = wf_object.variable["start_procs"] || wf_object.variable["start_proc"];
     if (!proc_root){
         dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
     }
@@ -593,39 +595,93 @@ function on_gridWorkflowSelected(rowId){
         var proc = proc_root[i];
         var proc_name_default= proc.split(/ /)[0]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
         var proc_name = "First Processor";
-        if (selected_wf[proc]["properties"]){
-            proc_name = selected_wf[proc].properties.custom_node_name ||proc_name_default; 
+        if (wf_object[proc]["properties"]){
+            proc_name = wf_object[proc].properties.custom_node_name ||proc_name_default; 
         }
         
         options.push({text:proc_name,value:proc});
     }
     var itemData = {type: "select",name: "start_proc", label: "Start Processor:", width:200,options: options,  offsetLeft:10};   
     m_mainForm.addItem("data", itemData, 2);
-    m_mainForm.setUserData("start_proc", "workflow_object", selected_wf);       //store selected workflow along with start_proc
+    m_mainForm.setUserData("start_proc", "workflow_object", wf_object);       //store selected workflow along with start_proc
     //switch to variables tab
-    on_processorSelected(selected_wf);                                           //auto select first processor    
+    on_processorSelected(wf_object);                                           //auto select first processor    
     //switch to variables Tab
     
 }
 
 
 function parseWorkflows(wfArray){
-//callback for getWorkflows
+//callback for getWorkflows, builds workflow selection tree
+    //build tree object structure and events
+    var finalTreeObj = {
+        source:[],
+        selectMode: 1,
+        click: function(event, data) {
+           if (! data.node.folder){
+                //a workflow was selected!
+                if (localStorage.getItem("lastselectedworkflow")){
+                    var tree = $("#workflowtree").fancytree("getTree");
+                    var n = localStorage.getItem("lastselectedworkflow")
+                    var node = tree.findAll(n)[0]
+                    node.setSelected(false);//de-select 
+                }
+                on_gridWorkflowSelected(data.node.title,data.node.data.wf_object);
+           }
+        }
+    };
+    
+//build fancytree showing all workflows
     m_mainLayout.cells("b").progressOff();
-
-    //fill drowdowns
-    var parents = [];
-    var options = [];
+    m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
+    m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+    var treeObj = {};
+    //collect data for fancytree obj
     for (i=0;i<wfArray.length;i++){
-        var folder = "";
+        var folder;
         if (wfArray[i].general.folder){
-            folder = wfArray[i].general.folder;
+            folder = wfArray[i].general.folder;//support < ffastrans 0.9.4
         }else{
             folder = wfArray[i].general.wf_folder;
         }
-        
-        var row = m_workflowSelectorGrid.addRow(wfArray[i].general.wf_id,[folder,wfArray[i].general.wf_name]);
-        m_workflowSelectorGrid.setUserData(wfArray[i].general.wf_id,"workflow_object",wfArray[i]);
+        if (folder == ""){
+            //workflow in root of tree
+            treeObj[wfArray[i].general.wf_name] = {};
+            treeObj[wfArray[i].general.wf_name].title = wfArray[i].general.wf_name;
+            treeObj[wfArray[i].general.wf_name].wf_object = wfArray[i];
+        }else{
+           
+            if (treeObj[folder]){   //a workflow in a folder that already exists
+                treeObj[folder].children.push({title:wfArray[i].general.wf_name,wf_object:wfArray[i]});
+            }else{  //a workflow in a new folder
+                treeObj[folder] = {};
+                treeObj[folder].title = folder;
+                treeObj[folder].folder = true;
+                treeObj[folder].children = [{title:wfArray[i].general.wf_name,wf_object:wfArray[i]}];//
+            }
+        }
+    }
+    
+    //attach final treeObj items
+    for (itm in treeObj){
+        finalTreeObj.source.push(treeObj[itm]);
+    }
+    $("#workflowtree").fancytree(finalTreeObj); //finally render tree on page
+    var cmp= function(a, b) {//sort by folder name but folders first
+        var x = (a.folder ? "0" : "1") + a.title.toLowerCase(),                    
+            y = (b.folder ? "0" : "1") + b.title.toLowerCase();                 
+            return x === y ? 0 : x > y ? 1 : -1;
+    };
+    var node = $("#workflowtree").fancytree("getRootNode");
+    node.sortChildren(cmp,true);
+    
+    //restore user selection from last time
+    if (localStorage.getItem("lastselectedworkflow")){
+        var tree = $("#workflowtree").fancytree("getTree");
+        var n = localStorage.getItem("lastselectedworkflow")
+        var node = tree.findAll(n)[0]
+        node.setSelected(true);
+        node.parent.setExpanded(true);
     }
 }
 
