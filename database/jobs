@@ -266,6 +266,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 20:06:15","job_end":"2018/12/30 20:11:20","file":"2651","outcome":"Success","state":"Success","guid":-1021515585,"_id":-1021515585,"duration":"00:05:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:38:59","job_end":"2018/12/30 21:39:04","file":"50208","outcome":"Success","state":"Success","guid":-1017748099,"_id":-1017748099,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 23:09:56","job_end":"2018/12/30 23:11:40","file":"60384","outcome":"Success","state":"Success","guid":-1014696200,"_id":-1014696200,"duration":"00:01:44"}
+{"wf_name":"öäü&%","job_start":"2019/01/13 22:52:19","job_end":"2019/01/13 22:52:19","file":"desktop.ini","outcome":"Success","state":"Success","guid":-1007474856,"_id":-1007474856,"duration":"00:00:00"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:12:33","job_end":"2018/12/30 21:12:40","file":"60012","outcome":"Success","state":"Success","guid":-1001518440,"_id":-1001518440,"duration":"00:00:07"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:08:09","job_end":"2018/12/31 14:09:53","file":"60653","outcome":"Success","state":"Success","guid":-994126919,"_id":-994126919,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 19:51:57","job_end":"2018/12/30 19:57:02","file":"21001","outcome":"Success","state":"Success","guid":-993274507,"_id":-993274507,"duration":"00:05:05"}
@@ -584,6 +585,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 13:11:55","job_end":"2018/12/31 13:13:38","file":"60621","outcome":"Success","state":"Success","guid":177777647,"_id":177777647,"duration":"00:01:43"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:19:01","job_end":"2018/12/30 21:19:07","file":"50061","outcome":"Success","state":"Success","guid":179260307,"_id":179260307,"duration":"00:00:06"}
 {"wf_name":"Untitled","job_start":"2019/01/12 11:09:47","job_end":"2019/01/12 11:09:52","file":"c:\\bootmgr","outcome":"Job ended with error on A/V Media@DESKTOP-UIFQT86: Could not recognize content in file!","state":"Error","guid":187985248,"_id":187985248,"duration":"00:00:05"}
+{"wf_name":"Abc","job_start":"2019/01/13 22:56:21","job_end":"2019/01/13 22:56:26","file":"D:\\$RECYCLE.BIN\\S-1-5-21-3069358053-1388952826-2108482743-1001\\desktop.ini","outcome":"Job ended with error on A/V Media@DESKTOP-UIFQT86: Could not recognize content in file!","state":"Error","guid":190730197,"_id":190730197,"duration":"00:00:05"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 09:35:15","job_end":"2018/12/31 09:36:59","file":"60498","outcome":"Success","state":"Success","guid":192282079,"_id":192282079,"duration":"00:01:44"}
 {"wf_name":"Lores","job_start":"2019/01/12 20:21:19","job_end":"2019/01/12 20:21:27","file":"sample_mpeg4.mp4","outcome":"Success","state":"Success","guid":193020350,"_id":193020350,"duration":"00:00:08"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 14:02:52","job_end":"2018/12/31 14:04:36","file":"60650","outcome":"Success","state":"Success","guid":194807538,"_id":194807538,"duration":"00:01:44"}
@@ -1055,5 +1057,7 @@
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:49:41","job_end":"2018/12/30 21:49:45","file":"50290","outcome":"Success","state":"Success","guid":2145829365,"_id":2145829365,"duration":"00:00:04"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/31 08:33:33","job_end":"2018/12/31 08:35:17","file":"60463","outcome":"Success","state":"Success","guid":2146477950,"_id":2146477950,"duration":"00:01:44"}
 {"wf_name":"Loop_Start_Self","job_start":"2018/12/30 21:29:15","job_end":"2018/12/30 21:29:20","file":"60134","outcome":"Success","state":"Success","guid":2147447711,"_id":2147447711,"duration":"00:00:05"}
-{"wf_name":"öäü&%","job_start":"2019/01/13 22:52:19","job_end":"2019/01/13 22:52:19","file":"desktop.ini","outcome":"Success","state":"Success","guid":-1007474856,"_id":-1007474856,"duration":"00:00:00"}
-{"wf_name":"Abc","job_start":"2019/01/13 22:56:21","job_end":"2019/01/13 22:56:26","file":"D:\\$RECYCLE.BIN\\S-1-5-21-3069358053-1388952826-2108482743-1001\\desktop.ini","outcome":"Job ended with error on A/V Media@DESKTOP-UIFQT86: Could not recognize content in file!","state":"Error","guid":190730197,"_id":190730197,"duration":"00:00:05"}
+{"wf_name":"Abc","job_start":"2019/01/14 22:05:08","job_end":"2019/01/14 22:05:18","file":"10s.mov","outcome":"Success","state":"Success","guid":102568542,"_id":102568542,"duration":"00:00:10"}
+{"wf_name":"Abc","job_start":"2019/01/14 22:05:16","job_end":"2019/01/14 22:05:22","file":"10s.mov","outcome":"Success","state":"Success","guid":-372813592,"_id":-372813592,"duration":"00:00:06"}
+{"wf_name":"Untitled","job_start":"2019/01/14 22:29:27","job_end":"2019/01/14 22:29:34","file":"10s.mov","outcome":"Success","state":"Success","guid":-175126532,"_id":-175126532,"duration":"00:00:07"}
+{"wf_name":"Untitled","job_start":"2019/01/14 22:30:14","job_end":"2019/01/14 22:30:19","file":"10s.mov","outcome":"Success","state":"Success","guid":-459907805,"_id":-459907805,"duration":"00:00:05"}
