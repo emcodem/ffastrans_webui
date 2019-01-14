@@ -158,9 +158,7 @@ function init(){
     m_workflowSelectorGrid.attachHeader("#text_filter,#text_filter");    
     m_workflowSelectorGrid.init();
     
-    
     m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:130px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
-    
     
     //mainform is for workflow and processor selection, subform for variables
     m_mainForm  = new dhtmlXForm("mainform");
@@ -193,13 +191,6 @@ function init(){
         }
         return true ;
     });  
-    
-                                            
-                                                                     
-                                      
-                
-             
-       
     
     m_mainForm.attachEvent("onButtonClick", function (name, value, state){
             if (name == 'show_wf'){
@@ -299,8 +290,6 @@ function init(){
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
     
-    
-    
 //MAIN STARTING POINT
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
@@ -385,7 +374,8 @@ function removeItemFromLocationMenu(id){
     dhtmlx.message({
         type:"confirm",
         text: "Delete this stored location?<br/><br/>" +unescape(id),
-        callback: function() {
+        callback: function(ok) {
+            if(ok){
                 id= unescape(id)
                 //delete selected item from menu and local storage
                     m_fileBrowseGridMenu.removeItem(id);
@@ -400,6 +390,7 @@ function removeItemFromLocationMenu(id){
                         _locs.splice(i,1);
                          localStorage.setItem("savedbrowselocations",JSON.stringify(_locs))
                    }
+            }//if ok
         }
     });
 
@@ -617,6 +608,18 @@ function parseWorkflows(wfArray){
     var finalTreeObj = {
         source:[],
         selectMode: 1,
+        extensions: ["filter"],
+        quicksearch: true,
+        filter: {
+            autoExpand: true, // Expand all branches that contain matches while filtered
+            fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
+            hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+            hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
+            highlight: true,   // Highlight matches by wrapping inside <mark> tags
+            leavesOnly: false, // Match end nodes only
+            nodata: true,      // Display a 'no data' status node if result is empty
+            mode: "dimm"       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+        },
         click: function(event, data) {
            if (! data.node.folder){
                 //a workflow was selected!
@@ -634,7 +637,7 @@ function parseWorkflows(wfArray){
 //build fancytree showing all workflows
     m_mainLayout.cells("b").progressOff();
     m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
-    m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+    m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><span style='margin-left:10px' >Filter:</span><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' /></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
     var treeObj = {};
     //collect data for fancytree obj
     for (i=0;i<wfArray.length;i++){
@@ -683,6 +686,24 @@ function parseWorkflows(wfArray){
         node.setSelected(true);
         node.parent.setExpanded(true);
     }
+    
+    //search button 
+    $("input[name=wf_filter]").keyup(function(e){
+      var n,
+            tree = $.ui.fancytree.getTree(),
+            opts = {},
+            filterFunc = tree.filterNodes,
+            match = $(this).val();
+            if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                tree.clearFilter();
+                return;
+            }
+        // Pass a string to perform case insensitive matching
+        dhtmlx.message(match)
+        n = filterFunc.call(tree, match, opts);
+    }).focus();
+    
+    
 }
 
 function getWorkflows(){
