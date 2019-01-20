@@ -24,7 +24,11 @@ module.exports = function(app, passport){
 
 function renderUserMenue(req,res,permArray){
         //userpermissions.haspermission(req.user.local.username,"GROUPRIGHT_MENU_ADMIN",function(hasperm){ });
-        var dhxSideBarConfig = {items:[]};
+        var _user = "";
+        if (req.user){
+            _user = req.user.local.username;
+        }
+        var dhxSideBarConfig = {items:[],userdata:{"logged_in_user":_user}};
         var alreadyExisting = [];//removes duplicates
         for (i in permArray){
             if (!permArray[i].key){

@@ -70,6 +70,10 @@
     .div_cancel_jobs {
         margin-left:750px;
     }
+    .div_logged_in_users {
+        margin-left:850px;
+        visibility:hidden;
+    }
     .itemrowtopright {
         float:right;
         margin-right:0;
@@ -127,7 +131,8 @@ var m_permissionUrls = {
     "GROUPRIGHT_MENU_VIEW_JOB_STATUS" : "components/jobviewer.html",
     "GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS": "components/jobstarter.html",
     "GROUPRIGHT_MENU_VIEW_ADMIN_USERS": "admin/usermanager.html",
-    "GROUPRIGHT_MENU_VIEW_ADMIN": "admin/index.html"
+    "GROUPRIGHT_MENU_VIEW_ADMIN": "admin/index.html",
+    "GROUPRIGHT_MENU_VIEW_SCHEDULER": "components/scheduler.html"
 }
 /*load config from server*/
 function loadserverconfig(){
@@ -165,7 +170,6 @@ function loadusermenu(){
 /* build basic page layout and init periodic job loading*/
 function init(permissions){
 
-
     //check if html5 features supported
     if (typeof(Storage) !== "undefined") {
     } else {
@@ -181,12 +185,25 @@ function init(permissions){
     '<div class="counter_jobs div_success_jobs">&nbsp Success   <div class="header_counter_number" id="successjobcount">0</div></div>'+
     '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
-    '<a href="/logout" style="cursor:pointer" class="itemrowtopright">Logout</a>'+ 
+    '<div class="counter_jobs div_logged_in_users">&nbsp Online Users  <div class="header_counter_number" id="loggedinusercount">0</div></div>'+
+    '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
     '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div></a>'+
     '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="harry itemrowtopright"></a>'+ 
     '<h1 style="cursor:pointer"  onclick="onHeaderClick()"><img class="ffastransheadertext" alt="" height="16" src="images/F364x64.png"  title="" width="16"><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></h1><p class="description">The free automated transcoder.</p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
+    
+    //show logged in username
+    
+    try{
+        var _perm = JSON.parse(permissions);
+        document.getElementById("logout").innerHTML = "Logout <br/>" + _perm['userdata']["logged_in_user"];
+        if (_perm['userdata']["logged_in_user"].toLowerCase().indexOf("admin") != -1){
+            $(".div_logged_in_users").css('visibility', 'visible');
+        }
+    }catch(ex){
+        console.log(ex)
+    }
     
     //start with dhtmlx layouts
     headerLayout.cells("a").hideHeader();
@@ -230,6 +247,11 @@ function init(permissions){
         document.getElementById("cancelledjobcount").innerHTML = msg.cancelledjobcount;
         document.getElementById("successjobcount").innerHTML = msg.successjobcount;
         document.getElementById("errorjobcount").innerHTML = msg.errorjobcount;
+    });
+
+    socket.on('logged_in_users_count', function(msg){
+        //server should inform us periodically by cron job 
+        document.getElementById("loggedinusercount").innerHTML = Math.round(msg/2);
     });
     
     //load last selected menu item

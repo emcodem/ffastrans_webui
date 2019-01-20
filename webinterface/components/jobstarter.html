@@ -1,6 +1,6 @@
 <html>
 <head>
-
+<script src="/socket.io/socket.io.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
@@ -26,6 +26,8 @@
 </style>
 
 <script>
+/* init SOCKET.IO */
+var socket = io(); 
 
 /* GLOBALS */
 var m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
@@ -148,16 +150,6 @@ function init(){
     //add workflow selection components
     m_workflowTabBar.tabs("workflowtab").showInnerScroll();
     m_workflowTabBar.tabs("variabletab").showInnerScroll();    
-    m_workflowSelectorGrid = m_workflowTabBar.tabs("workflowtab").attachGrid();
-    m_workflowSelectorGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_workflowSelectorGrid.setHeader("Group,Name");
-    m_workflowSelectorGrid.setInitWidthsP("50,50");
-    m_workflowSelectorGrid.setColAlign("left,left");
-    m_workflowSelectorGrid.setColTypes("ro,ro");
-    m_workflowSelectorGrid.setColSorting("sort_custom,str"); 
-    m_workflowSelectorGrid.attachHeader("#text_filter,#text_filter");    
-    m_workflowSelectorGrid.init();
-    
     m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:130px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
     
     //mainform is for workflow and processor selection, subform for variables
@@ -174,14 +166,7 @@ function init(){
     m_selectedFileGrid.setColTypes("ed,ed,ed");
     m_selectedFileGrid.setColSorting("str,str,str");   
     m_selectedFileGrid.init();
-    
-    //EVENTS
-    m_workflowSelectorGrid.attachEvent("onRowSelect", function(id,ind){
-		//workflow was selected
-		on_gridWorkflowSelected(id);
-	});
-    
-    
+  
     m_fileBrowserGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
         //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
         if (colindex == 3){//sorted by file size
@@ -381,13 +366,14 @@ function removeItemFromLocationMenu(id){
                     m_fileBrowseGridMenu.removeItem(id);
                     if (localStorage.getItem("savedbrowselocations")){
                         var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
-                        var indexToDelete = -1;
+                        var newLocs = [];
                         for (i=0;i<_locs.length;i++){
                             if (_locs[i].path == id){
-                                indexToDelete = i;
+                            }else{
+                                newLocs.push(_locs[i]);
                             }
                         }
-                        _locs.splice(i,1);
+                        _locs = newLocs;
                          localStorage.setItem("savedbrowselocations",JSON.stringify(_locs))
                    }
             }//if ok
@@ -699,10 +685,8 @@ function parseWorkflows(wfArray){
                 return;
             }
         // Pass a string to perform case insensitive matching
-        dhtmlx.message(match)
         n = filterFunc.call(tree, match, opts);
     }).focus();
-    
     
 }
 
@@ -781,7 +765,6 @@ function startJobs(){
             url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
             type: "POST",
             crossDomain: true,
-            //dataType: "json",
             data: JSON.stringify(postBody),
             success: function (response) {
                 dhtmlx.message(_filepath + " was submitted")
