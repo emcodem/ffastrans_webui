@@ -14,7 +14,8 @@ const http = require('http').Server(app);
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
-
+//job scheduler - TODO: reset isactive state at program start
+global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log 
 
@@ -45,6 +46,8 @@ global.socketio.use(wildcard);
 //register supported functions
 global.socketio.on('connection', function(socket){
   console.log('New socket io client connected');
+  global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
+  console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
     socket.on('*', function(data){
         var regex = /cancel/
         var result = data.data[0].match(regex);
@@ -56,6 +59,8 @@ global.socketio.on('connection', function(socket){
         }
     })
   socket.on('disconnect', function(){
+    global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
+    console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
     console.log('client disconnected');
   });
 });
@@ -91,11 +96,9 @@ function init(conf){
     app.use(passport.session()); // persistent login sessions
     app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
     
-    
     //redirect views - for passport
     app.set('views', path.join(__dirname, './node_components/passport/views/'));
 
-    
     //proxy, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
       parseReqBody: false,
@@ -115,7 +118,23 @@ function init(conf){
 
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
     var jobfetcher = require("./node_components/cron_tasks/jobfetcher");
+    
     cron.schedule("*/3 * * * * *", function() {
+    //SCHEDULED JOBS
+        if (!global.jobscheduleractive){
+            global.jobscheduleractive = true;
+                try{
+                    jobScheduler.execute();
+                }catch (ex){
+                    //TODO: what to do when scheduler runs into error?
+                    console.trace("Error, scheduler exception. " + ex)
+                }
+                global.jobscheduleractive = false;
+            }else{
+                console.error("Scheduler still active, that should not happen!");
+            }
+        
+    //GET LATEST JOBS FROM FFASTRANS API      
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;
             try{
@@ -125,7 +144,7 @@ function init(conf){
             }
             global.dbfetcheractive = false;
         }else{
-            console.log("Jobfetcher still active, that should not happen");
+            console.error("Jobfetcher still active, that should not happen");
         }
     });
 
@@ -152,6 +171,7 @@ function init(conf){
     require("./node_components/views/usergrouplist")(app, express);
     require("./node_components/views/usergrouprightslist")(app, express);
     require("./node_components/views/getworkflowlist")(app, passport);
+    require("./node_components/views/scheduledjobs")(app, passport);
     require("./node_components/get_userpermissions")(app, passport);
     require("./node_components/resumeable_backend.js")(app, passport);
     //favicon

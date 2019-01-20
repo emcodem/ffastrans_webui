@@ -12,9 +12,21 @@ module.exports = {
         });
         return;
     },
-    multiply: (x, y) => {
-        return x * y;
-    }
+    startJob: (job,callbackSuccess,callbackError) => {
+        console.log("Starting job:");
+        console.log(job);
+        Request({ url: buildApiUrl(global.config.STATIC_START_JOB_URL), method: 'POST',body:job}, function(error, response, body){ 
+            if (error){
+                console.log(error);
+                callbackError(error)
+            }else{
+                console.log("Success starting ffastrans api job");
+                console.log(body);
+                callbackSuccess(body);
+            }
+        });
+        return;
+    },
 };
 
 function buildApiUrl(what){

@@ -25,13 +25,17 @@
     "connect-flash": "^0.1.1",
     "connect-multiparty": "^2.2.0",
     "console-stamp": "^0.2.7",
+    "cron-parser": "^2.7.3",
+    "dir-compare": "^1.6.0",
     "encoding": "^0.1.12",
     "express-http-proxy": "^1.5.0",
     "express-session": "^1.15.6",
     "firstline": "^2.0.2",
+    "is-running": "^2.1.0",
     "mongoose": "^5.4.0",
     "nedb": "^1.8.0",
     "node-cron": "^2.0.3",
+    "npm": "^6.6.0",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
     "request": "^2.88.0",
@@ -39,6 +43,7 @@
     "routes": "^2.1.0",
     "serve-favicon": "^2.5.0",
     "socket.io": "^2.2.0",
-    "socketio-wildcard": "^2.0.0"
+    "socketio-wildcard": "^2.0.0",
+    "tmp": "0.0.33"
   }
 }
