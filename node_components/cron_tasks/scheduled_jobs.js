@@ -51,7 +51,7 @@ module.exports = {
         });
   },
   
-  executeImmediate:function(id){
+  executeImmediate:function(id,socketioClientId,informCallback){
       global.db.config.findOne({ "scheduled_jobs.id": id },function (err, data) {
         if (err) {
             console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
@@ -59,8 +59,7 @@ module.exports = {
         }
         if (data){
             console.log("Executing immediate: " + id);
-            console.log(data);
-            executeJob(data["scheduled_jobs"]);
+            executeJob(data["scheduled_jobs"],socketioClientId,informCallback);
         }else{
             console.error("Could not find job in database for executeimmediate, jobid: " + id)
         }
@@ -71,25 +70,41 @@ module.exports = {
   }
 };
 
+//starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
 
-function executeJob(current_job){
+function executeJob(current_job,socketioClientId,informCallback){
     tmp.file({ mode: 0644, prefix: 'userscript-', postfix: '.js' },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
         console.log('Scheduled job user script File: ', path);
         var userScript = current_job["script"];
         //write user script into tmp file
-        fs.appendFile(path, new Buffer(userScript), function (err) {
+        fs.appendFileSync(path, new Buffer(userScript), function (err) {
             if (err) {
                 console.error("FATAL ERROR, could not write userscript to tmp file: " + path)
+                if (informCallback){
+                    informCallback(0);
+                }
                 throw err;
                 };
         });
         //execute tmp file
-        
-        const forked = fork(path);
+        const forked = fork(path,[],{ silent: true });
         console.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
+        if (informCallback){
+            informCallback(forked.pid);
+        }
         updateScheduledJob(current_job["id"],"last_start",new Date().toMysqlFormat());
         updateScheduledJob(current_job["id"],"last_pid",forked.pid);
+        forked.stdout.on('data', (data) => { 
+            //capture stdout 
+            console.log("STDOUT Message from fork PID " +  forked.pid + ": "+ data);
+            //TODO: if client requested, forward message to client!
+            if (socketioClientId){
+                console.log("Emitting logmessage")
+                global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:""+data})
+            }
+        })
+
         forked.on('message', (msg) => {
             console.log("MESSAGE FROM FORK: " + msg);
             //if we have an array of values, execute the ffastrans job
@@ -117,8 +132,19 @@ function executeJob(current_job){
                 var pid = forked.pid;
                 updateScheduledJob(current_job["id"],"last_end",new Date().toMysqlFormat());
                 updateScheduledJob(current_job["id"],"last_pid",0);
+                if (socketioClientId){
+                    global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"Process Ended"})
+                }
+                //delete userscript file
+                fs.unlink(path, (err) => {
+                    if (err) {
+                        console.log("failed to delete temp script file: " + err);
+                    } else {                            
+                    }
+                });
             })()
         });
+        
         
     });
 }

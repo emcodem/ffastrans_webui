@@ -134,7 +134,7 @@ eXcell_cron.prototype = new eXcell;
 </script>
 <script>
 /* GLOBALS */
-var m_mainGrid,m_codemirror,m_lastSelectedWorkflow,m_allWorfklows = {};
+var m_mainGrid,m_codemirror,m_lastSelectedWorkflow,m_allWorfklows = {},m_socketId;
 
 /*load config from server*/
 function loadserverconfig(){
@@ -154,7 +154,14 @@ function loadserverconfig(){
 
 /* build basic page layout and init periodic job loading*/
 function init(){
-
+    //store clientid of socket.io in order to receive custom messages (e.g. job log)
+    socket.on('socketid', function(msg){
+       m_socketId = msg;
+    });
+    socket.on('logmessage', function(msg){
+        //todo: create log window on demand and pass log message to this window.
+       dhtmlx.message(msg)
+    });    
     //main layout
     m_mainLayout = new dhtmlXLayoutObject({
         parent: document.body,  
@@ -323,7 +330,7 @@ function loadWorkflows(wf_combo,procCombo){
 
 
 function startJobImmediate(){
-
+    
     saveUserScript(function(){
         var cellindex = m_mainGrid.getColIndexById('id');
         var _id = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
@@ -332,7 +339,7 @@ function startJobImmediate(){
             type: "POST",
             dataType: "json",
             context: this,
-            data: {jobid : _id},
+            data: {jobid : _id,socketid: m_socketId},
             success: function () {
                 dhtmlx.message("Job was started.");
             },
