@@ -44,11 +44,16 @@ global.socketio = socket(http);
 var wildcard = socketwildcard();
 global.socketio.use(wildcard);
 //register supported functions
-global.socketio.on('connection', function(socket){
-  console.log('New socket io client connected');
+global.socketio.on('connection', function(_socket){
+  console.log('New socket io client connected, client: ' + _socket.id);
   global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
   console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
-    socket.on('*', function(data){
+  
+  //send back the socketio id to the client
+    _socket.emit("socketid",_socket.id);
+  
+  //register to all events from client
+    _socket.on('*', function(data){
         var regex = /cancel/
         var result = data.data[0].match(regex);
         var cmd = data.data[0];
@@ -58,10 +63,13 @@ global.socketio.on('connection', function(socket){
             return;
         }
     })
-  socket.on('disconnect', function(){
+    
+    //client disconnected
+  _socket.on('disconnect', function(){
     global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
     console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
     console.log('client disconnected');
+    
   });
 });
 
