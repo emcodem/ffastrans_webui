@@ -178,9 +178,11 @@ function init(){
     m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,script,workflow");    
     m_mainGrid.setInitWidthsP("0,10,10,20,20,20,20,0,0,0");          
     m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,ro,ro");               
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,ro");               
     m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str");         
     m_mainGrid.init();    
+    m_mainGrid.setColValidators(",NotEmpty,NotEmpty,NotEmpty,NotEmpty"); 
+    
 	loadJobs(m_mainGrid);
     
 	m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
@@ -202,6 +204,7 @@ function init(){
         }
         if (id=="delete"){
             deleteJob(m_mainGrid.getSelectedRowId());
+            saveJobGrid();
         }
         if (id=="save"){
             saveJobGrid();
@@ -215,7 +218,6 @@ function init(){
             pattern: "1C"  
     })
     detailsLayout.cells("a").setText("Documentation");
-    
     detailsLayout.cells("a").attachObject("documentation");
     
     //detailsLayout.cells("b").setText("Custom script");
@@ -239,6 +241,12 @@ function init(){
         }
     })
     //EVENTS
+    m_mainGrid.attachEvent("onValidationCorrect", function(id,index,value,rule){
+        saveJobGrid();
+    });
+    m_mainGrid.attachEvent("onCheck", function(rId,cInd,state){
+        saveJobGrid();
+    });
     m_mainGrid.attachEvent("onRowSelect", function(id,ind){
         detailsLayout.cells("a").setText("Target Workflow");
         //show workflow selection
@@ -361,13 +369,13 @@ function startJobImmediate(jobId,dhxLayoutCell){
             context: this,
             data: {jobid : _id,socketid: m_socketId},
             success: function (msg) {
-                dhxLayoutCell.attachHTMLString("<div id='"+msg.pid+"' style='width:100%;height:100%'/>");//log message div
+                dhxLayoutCell.attachHTMLString("<div id='"+msg.pid+"' style='width:100%;height:100%;overflow:scroll'/>");//log message div
                 
                 dhtmlx.message("Job was started, " + msg.pid);
                 socket.off('logmessage');//unregister event listener
                 socket.on('logmessage', function(msg){
                     //todo: create log window on demand and pass log message to this window.
-                    document.getElementById(msg.pid).innerHTML += "<p style='margin-left:5px'>" + new Date().toLocaleTimeString() + " " + msg.msg + "</p>"; 
+                    document.getElementById(msg.pid).innerHTML += "<pre style='margin-left:5px'>" + new Date().toLocaleTimeString() + " " + msg.msg + "</pre>"; 
                     
                    
                 });    
@@ -384,7 +392,9 @@ function startJobImmediate(jobId,dhxLayoutCell){
 function saveUserScript(rId,callback){
     //saves code to selected job in grid
     var cellindex = m_mainGrid.getColIndexById('script');
+    
     m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).setValue(m_codemirror.getValue());
+    m_mainGrid.setUserData(m_mainGrid.getSelectedRowId(),"script",m_codemirror.getValue());
     saveJobGrid(rId,callback)
 }
 
@@ -419,12 +429,16 @@ function saveJobGrid(rIdToSave,callback){
                 return;//used to save only one row instead of all rows
             }
         }
+        
+        var jobobj = m_mainGrid.getRowData(rId);
+        jobobj.script = m_mainGrid.getUserData(rId,"script");
+        
         $.ajax({
             url:  ("/scheduledjobs"),
             type: "POST",
             dataType: "json",
             context: this,
-            data: {job :JSON.stringify(m_mainGrid.getRowData(rId))},
+            data: {job :JSON.stringify(jobobj)},
             success: function () {;
                 if (callback){
                     callback();
@@ -474,7 +488,9 @@ function deleteJob(id){
 <div id="documentation" style="height:100%;width:100%;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
 <b>General:</b>
-Job Scheduling is for advanced users only. 
+Scheduled jobs are used to start workflows in a specific frequency. 
+A simple usecase is for example to start a Job that executes some Batch for file deletion every night. 
+In more complex usecases, you can use the "Condition" script and check if the workflow really needs to be executed.
 
 <b>Overwiew:</b>
 In first place, Scheduled Jobs (Left pane) are NOT ffastrans jobs. Instead they run internally on the webserver.
@@ -484,11 +500,32 @@ A scheduled job is executed at a certain interval (or multiple intervals). How i
 3) start one ffastrans job (using the selected workflow) for each file in the sent Array
 
 <b>Scripting:</b>
+BEGINNERS: All you have to do in order to start a job is to write this line for example:
+process.send(["EXAMPLE"]);
+
+ADVANCED USERS:
 The scripting language is node.js. It is best if you develop your script outside of this editor and when the script works as intended, you paste it into this edtior.
 To use custom modules/dependencies, it is best if you just specify the full path like this:
 var dircompare = require('C:\\ffastrans_webui\\node_modules\\dir-compare');
 
-As mentioned, all you have to do in order to start a job is to write this line for example:
-process.send(["EXAMPLE"]);
+Your script logic should determine if a new ffastrans jobs needs to be started. 
+One workflow will be started for each item you send using "process.send([])" command.
+
+Example Script, start one workflow for each file found in c:\temp\input. 
+Variant 1 uses just one "process.send" command to submit multiple jobs
+Variant 2 issues process.send one time for each file
+ 
+var fs = require('fs');
+
+fs.readdir("C:\\temp\\input", function(err, items) {
+  //variant 1: start one ffastrans job for each file in the "items" array
+  process.send(items)
+  for (var i=0; &lt; items.length;i++){	
+    //variant 2: iterate through all files in the items array and start one ffastrans job per file
+    process.send([items[i]])
+  }
+})
+
+
 </p>
 </body>

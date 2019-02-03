@@ -248,7 +248,15 @@ function init(permissions){
         document.getElementById("successjobcount").innerHTML = msg.successjobcount;
         document.getElementById("errorjobcount").innerHTML = msg.errorjobcount;
     });
-
+    socket.on('activejobcount', function(msg){
+        //server should inform us periodically by cron job 
+        document.getElementById("activejobcount").innerHTML = msg;
+    });
+    socket.on('queuedjobcount', function(msg){
+        //server should inform us periodically by cron job 
+        document.getElementById("queuedjobcount").innerHTML = msg;
+    });
+    
     socket.on('logged_in_users_count', function(msg){
         //server should inform us periodically by cron job 
         document.getElementById("loggedinusercount").innerHTML = Math.round(msg/2);
