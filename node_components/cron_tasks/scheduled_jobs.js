@@ -100,7 +100,6 @@ function executeJob(current_job,socketioClientId,informCallback){
             console.log("STDOUT Message from fork PID " +  forked.pid + ": "+ data);
             //TODO: if client requested, forward message to client!
             if (socketioClientId){
-                console.log("Emitting logmessage")
                 global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:""+data})
             }
         })
