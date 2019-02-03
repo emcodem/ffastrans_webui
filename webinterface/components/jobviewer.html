@@ -334,6 +334,7 @@ function init(){
     });
 
     socket.on('queuedjobs', function(msg){
+    
         //TODO: queued jobs dont seem to work in ffastrans 9.3
         addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg))
         mainLayout.cells("a").progressOff();
@@ -596,8 +597,9 @@ function addQueuedJobsToGrid(targetGridObj,jobArray){
         jobObj.job_id = jobArray[i].item.guid;//store job_id to allow abortjobs
         targetGridObj.setRowColor(rowid,"#ffffcc");
         targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
-        targetGridObj.sortRows(5,"str","des");     
+          
     }
+    targetGridObj.sortRows(5,"str","des");   
     //update job count display
     //delete jobs that are in the grid but not in the list of jobs from server
     targetGridObj.forEachRow(function(id){

@@ -16,6 +16,7 @@ module.exports = {
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
         global.socketio.emit("activejobs", JSON.stringify(JSON.parse(body).jobs));
+        global.socketio.emit("activejobcount", JSON.parse(body).jobs.length);
  
     });
     
@@ -31,6 +32,7 @@ module.exports = {
         //send the new jobs to connected clients, todo: only notify clients about new stuff
 
         global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).queue));
+        global.socketio.emit("queuedjobcount", JSON.parse(body).queue.length);
         return;
         //store in database
 

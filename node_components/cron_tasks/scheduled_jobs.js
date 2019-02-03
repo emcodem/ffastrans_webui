@@ -2,6 +2,7 @@ const assert = require('assert');
 const Request = require("request");
 const parser = require('cron-parser');
 var tmp = require('tmp');
+tmp.setGracefulCleanup();
 const { fork } = require('child_process');
 const fs = require('fs');
 const isRunning = require('is-running')
@@ -73,7 +74,7 @@ module.exports = {
 //starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
 
 function executeJob(current_job,socketioClientId,informCallback){
-    tmp.file({ mode: 0644, prefix: 'userscript-', postfix: '.js' },function _tempFileCreated(err, path, fd, cleanupCallback) {
+    tmp.file({ mode: 0777, prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
         console.log('Scheduled job user script File: ', path);
         var userScript = current_job["script"];
@@ -89,12 +90,23 @@ function executeJob(current_job,socketioClientId,informCallback){
         });
         //execute tmp file
         const forked = fork(path,[],{ silent: true });
+        
         console.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
         if (informCallback){
             informCallback(forked.pid);
         }
         updateScheduledJob(current_job["id"],"last_start",new Date().toMysqlFormat());
         updateScheduledJob(current_job["id"],"last_pid",forked.pid);
+        //console.log(forked.stdout, forked.stderr); // prints "null null"
+        
+        forked.stderr.on('data', (data) => { 
+            //capture stdout 
+            console.log("STDERR Message from fork PID " +  forked.pid + ": "+ data);
+            //TODO: if client requested, forward message to client!
+            if (socketioClientId){
+                global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"ERROR: "+ data })
+            }
+        })
         forked.stdout.on('data', (data) => { 
             //capture stdout 
             console.log("STDOUT Message from fork PID " +  forked.pid + ": "+ data);
@@ -112,12 +124,20 @@ function executeJob(current_job,socketioClientId,informCallback){
                     var fileArray = msg;
                     var _workflow = JSON.parse(current_job["workflow"]);
                     if (!_workflow){
-                        console.log("Now target workflow configured for scheduled_job " +  current_job["job_name"]);
+                        console.log("No target workflow configured for scheduled_job " +  current_job["job_name"]);
+                        global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"No target workflow configured for scheduled_job " +  current_job["job_name"] })
                         return;
                     }
                     for (i in fileArray){
                         _workflow['inputfile'] = fileArray[i];
-                        ffastransapi.startJob(JSON.stringify(_workflow),function(){},function(){});
+                        ffastransapi.startJob(JSON.stringify(_workflow),function(data){
+                            console.log("Return message from ffastrans job: " + data)
+                            global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"FFAStrans Job was started, Message: "+ data })
+                        },function(err){
+                            console.log("Error occured starting ffastrans job: " + err)
+                            global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"Error starting FFAStrans Job, Message: "+ err })
+                        });
+                        
                     }
                 }
             }catch(ex){
@@ -126,6 +146,12 @@ function executeJob(current_job,socketioClientId,informCallback){
             }
             
         });
+        forked.on('error', function(e){
+            //forked.send(e);
+            console.log("uncaught Exception from fork: " + e)
+            global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:e})
+        })
+
         forked.on('exit', (exitcode,signaltype) => {
             (function() {
                 var pid = forked.pid;
@@ -134,18 +160,22 @@ function executeJob(current_job,socketioClientId,informCallback){
                 if (socketioClientId){
                     global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"Process Ended"})
                 }
-                //delete userscript file
-                fs.unlink(path, (err) => {
-                    if (err) {
-                        console.log("failed to delete temp script file: " + err);
-                    } else {                            
-                    }
-                });
+
             })()
+            //delete userscript file
+            fs.unlink(path, (err) => {
+                if (err) {
+                    console.log("failed to delete temp script file: " + err);
+                } else {     
+                    
+                }
+            });
+            
         });
         
         
     });
+    
 }
 
 function needsExecution(current_job){    
