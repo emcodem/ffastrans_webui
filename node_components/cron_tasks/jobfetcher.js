@@ -9,7 +9,7 @@ module.exports = {
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
     }
-    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 7000},(error, response, body) => {
+    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 2000},(error, response, body) => {
         if(error) {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;

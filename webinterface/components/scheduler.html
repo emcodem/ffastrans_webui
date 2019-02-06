@@ -174,8 +174,8 @@ function init(){
     m_mainLayout.cells("a").setText("Schedule");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
-    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,script,workflow");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,script,workflow");    
+    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow");
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");    
     m_mainGrid.setInitWidthsP("0,10,10,20,20,20,20,0,0,0");          
     m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left");       
     m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,ro");               
@@ -257,7 +257,7 @@ function init(){
         m_workflowForm.addItem("data", {type: "combo", label: "Start Proc", name: "start_proc", width:200   , options:[]},2);
         //loads workflows from server and adds options to the combo
         loadWorkflows(m_workflowForm.getCombo("wf_id"),m_workflowForm.getCombo("start_proc"));
-        m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(wf_id){            
+        m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(wf_id){
             //workflow was selected, show start_procs
             m_workflowForm.getCombo("start_proc").clearAll();
             var startProcs = m_allWorfklows[wf_id]['variable']['start_proc'];
@@ -303,8 +303,8 @@ function showScriptEditor(selectedRowId){
             }
         })
 
-        var cellindex = m_mainGrid.getColIndexById('script');
-        var value = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
+        //load script from row userdata
+        var value = m_mainGrid.getUserData(selectedRowId,"script");
         scriptDevLayout.cells("a").attachHTMLString("<div style='height:100%' id='codemirror'></div>");
             var base = document.getElementById("codemirror");
               m_codemirror = CodeMirror(base, {
@@ -391,9 +391,6 @@ function startJobImmediate(jobId,dhxLayoutCell){
 
 function saveUserScript(rId,callback){
     //saves code to selected job in grid
-    var cellindex = m_mainGrid.getColIndexById('script');
-    
-    m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).setValue(m_codemirror.getValue());
     m_mainGrid.setUserData(m_mainGrid.getSelectedRowId(),"script",m_codemirror.getValue());
     saveJobGrid(rId,callback)
 }
@@ -405,13 +402,16 @@ function loadJobs(dhxGrid){
         success: function (response) {
             response = JSON.parse(response) 
             for (i in response){
-                jsonObj = {};
-                jsonObj = {};
-                jsonObj.pos = dhxGrid.getRowsNum();         
-                jsonObj.id = response[i]['scheduled_jobs']['id'];
-                jsonObj.data = [];
-                jsonObj.data.push(response[i]['scheduled_jobs']);
-                dhxGrid.parse(jsonObj,"js");
+                var _job = response[i]['scheduled_jobs'];
+                var rowData = [];
+                for (colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                    var colName = m_mainGrid.getColumnId(colidx);
+                    rowData.push(_job[colName]);                    
+                }
+                dhxGrid.addRow(_job["id"],rowData);
+                dhxGrid.setUserData(_job["id"],"script",_job["script"]);
+                m_mainGrid.getColIndexById('script');
+                continue;
             }
         },
         error: function (xhr, status) {
@@ -432,6 +432,7 @@ function saveJobGrid(rIdToSave,callback){
         
         var jobobj = m_mainGrid.getRowData(rId);
         jobobj.script = m_mainGrid.getUserData(rId,"script");
+        console.log("script at saving:" +jobobj.script)
         
         $.ajax({
             url:  ("/scheduledjobs"),
