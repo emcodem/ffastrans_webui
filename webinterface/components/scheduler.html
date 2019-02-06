@@ -176,7 +176,7 @@ function init(){
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
     m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow");
     m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");    
-    m_mainGrid.setInitWidthsP("0,10,10,20,20,20,20,0,0,0");          
+    m_mainGrid.setInitWidthsP("0,5,25,20,20,15,15,0,0,0");          
     m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left");       
     m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,ro");               
     m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str");         
@@ -199,7 +199,8 @@ function init(){
         //create new job rows
         if (id=="new"){
             var newId = Math.random();
-            m_mainGrid.addRow(newId,[newId,"false", "New Job", "", "*/5 * * * *",  "", new Date().toMysqlFormat(), "process.send(['']);//starts one job"]);
+            m_mainGrid.addRow(newId,[newId,"false", "New Job", "", "*/5 * * * *",  "", new Date().toMysqlFormat()]);
+            m_mainGrid.setUserData(newId,"script","process.send(['']);//starts one job");
             saveJobGrid();
         }
         if (id=="delete"){
@@ -218,10 +219,9 @@ function init(){
             pattern: "1C"  
     })
     detailsLayout.cells("a").setText("Documentation");
+    document.getElementById("documentation").style.visibility = "visible";
     detailsLayout.cells("a").attachObject("documentation");
-    
-    //detailsLayout.cells("b").setText("Custom script");
-   // detailsLayout.cells("b").setText("Custom script");
+    detailsLayout.cells("a").setWidth(380);
     
     var worfklowmenu = detailsLayout.cells("a").attachMenu({
         icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
@@ -289,6 +289,7 @@ function showScriptEditor(selectedRowId){
                 items:[
                     {id:"save", text:'<i class="fas fa-save"></i>Save'},
                     {id:"start", text:'<i class="fas fa-play"></i>Test Run'},
+                    //{id:"examplebrowser", text:'<i class="fas fa-info"></i>Examples'},
                 ]
             });
         scriptMenu.setUserData("save", "jobid", selectedRowId);//stores scheduled jobid for this window so later on we find out which job we are connected to
@@ -301,6 +302,11 @@ function showScriptEditor(selectedRowId){
             if (id == "start"){
                 startJobImmediate(scriptMenu.getUserData("save","jobid"),scriptDevLayout.cells("b"));
             }
+            if (id == "examplebrowser"){
+               //open example window
+               showExampleBrowser();
+            }            
+            
         })
 
         //load script from row userdata
@@ -312,6 +318,35 @@ function showScriptEditor(selectedRowId){
                   value: value, //"//when you are done and this array contains filepaths, one job per contained path will be started.\nvar filesToProcess = [];",
                   mode:  "javascript"
         });
+}
+
+function showExampleBrowser(){
+        //show script editor
+        var myWins= new dhtmlXWindows();
+        var win = myWins.createWindow(Math.random(), 120,60, 600,600);
+        win.setText("Example Browser");
+        var exampleLayout = win.attachLayout({
+                pattern: "2E"  
+        });
+
+        exampleLayout.cells("a").setHeight(30);        
+        exampleLayout.cells("a").hideHeader();
+        exampleLayout.cells("b").hideHeader();
+        exampleLayout.cells("a").attachHTMLString("<span style='margin-left:20px;margin-top:5px'>Examples:</span><div style='margin-left:20px;margin-top:5px' id='examplesCombo'/>");
+        var exampleCombo = new dhtmlXCombo("examplesCombo","alfa2",200);
+        exampleCombo.addOption([
+            ["1","Compare Folders (Same Filename but different Extensions)"],
+        ]);
+        exampleCombo.attachEvent("onChange", function(value, text){
+            scriptDevLayout.cells("a").attachHTMLString("<div style='height:100%' id='codemirror'></div>");
+                var base = document.getElementById("codemirror");
+                  m_codemirror = CodeMirror(base, {
+                      lineNumbers: true,
+                      value: value, //"//when you are done and this array contains filepaths, one job per contained path will be started.\nvar filesToProcess = [];",
+                      mode:  "javascript"
+            });
+        });
+        
 }
 
 
@@ -486,7 +521,7 @@ function deleteJob(id){
 </head>
 <body onload="loadserverconfig()">
 
-<div id="documentation" style="height:100%;width:100%;margin-left:20px;white-space: pre-wrap;overflow:scroll">
+<div id="documentation" style="visibility:hidden;height:100%;width:100%;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
 <b>General:</b>
 Scheduled jobs are used to start workflows in a specific frequency. 
