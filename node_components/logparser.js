@@ -145,7 +145,7 @@ function parseLogFile(filepath){
             return "Log too big: " + stat.size;
         }  
         
-        var readOptions = { 'flags': 'r', 'encoding': 'utf16le', 'mode': 0666, 'bufferSize': 4 * 1024};
+        var readOptions = { 'flags': 'r', 'encoding': 'utf16le', 'mode': '0666', 'bufferSize': 4 * 1024};
         var text = fs.readFileSync(filepath, readOptions);
         var i = 0;
         var linearray = text.split("\r\n");

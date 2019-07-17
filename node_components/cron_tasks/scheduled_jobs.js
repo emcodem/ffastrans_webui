@@ -74,7 +74,7 @@ module.exports = {
 //starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
 
 function executeJob(current_job,socketioClientId,informCallback){
-    tmp.file({ mode: 0777, prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
+    tmp.file({ mode: '0777', prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
         console.log('Scheduled job user script File: ', path);
         var userScript = current_job["script"];

@@ -100,7 +100,7 @@ function init(){
             {id:"location", text:"Locations"},
 			{id:"savelocation", text:"Save Location"},
             {id:"select", text:"Add File"},
-            
+            {id:"selectall", text:"Add All"},
 		]
 	});
 	
@@ -238,6 +238,15 @@ function init(){
 			selectFileToProcess();
             return;
 		}
+        
+        if (id == "selectall") {
+            m_fileBrowserGrid.forEachRow(function(id){
+                if ( m_fileBrowserGrid.getRowIndex(id) != -1){
+                    m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
+                }
+            })
+            return;
+        }
         
         if (id == "savelocation"){
             saveLocation();
