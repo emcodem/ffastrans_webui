@@ -19,6 +19,8 @@ module.exports = function(app, express){
 			if (req.method === 'GET' || req.method === 'POST') {
 				var baseFolder;
 				baseFolder = req.body.name || req.query.name;
+                baseFolder = baseFolder.replace(/&amp;/g, '&');
+                console.log("Filebrowser request to: " + baseFolder)
                 if (!baseFolder){
                     console.log("Filebrowser was called without valid directory");
                     res.status(500);
@@ -42,7 +44,7 @@ module.exports = function(app, express){
 				fs.readdir(baseFolder, (err, files) => {
                     if (!files){
                         res.status(500);//Send error response here
-                        res.send("ERROR: could not list files in " + baseFolder);
+                        res.send("ERROR: could not list files in " + baseFolder +" " + err);
                         res.end();
                         return;//todo: get out how to catch error of nested 
                     }
