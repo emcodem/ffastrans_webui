@@ -417,7 +417,7 @@ function getFileList(dhtmlxGrid,path){
 //browse files on server
         m_mainLayout.cells("a").progressOn();
 	    $.ajax({
-        url: "/filebrowser?name=" + path +"&"+Math.random(),
+        url: "/filebrowser?name=" + encodeURIComponent(path) +"&"+Math.random(),
         type: "GET",
         success: function (response,textStatus, xhr) {
             m_mainLayout.cells("a").progressOff();
@@ -481,7 +481,7 @@ function on_processorSelected(selectedWorkflow){
         context: this,
         success: function (response) {
             //rebuild subform for variable selection
-            if (m_subForm){ 
+            if (m_subForm){
                 m_subForm.unload();//clear existing form items
                 m_subForm = null;
             }
@@ -767,7 +767,7 @@ function startJobs(){
          postBody.wf_id = selectedWorkflow.wf_id;
          var selectedStartProc = m_mainForm.getSelect("start_proc").selectedOptions[0].value;
          postBody.start_proc = selectedStartProc;
-         postBody.inputfile = _filepath;
+         postBody.inputfile = _filepath.replace(/&amp;/g, '&'); 
          postBody.variables = [];
          m_subForm.forEachItem(function(name){
             if (m_subForm.getItemValue(name)){

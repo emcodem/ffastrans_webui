@@ -64,8 +64,8 @@ module.exports = {
                 {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu item'}},
                 {key:"GROUPRIGHT_MENU_VIEW_SCHEDULER",value:{'description':'Scheduler menu item'}},
                 {key:"FILTER_WORKFLOW_GROUP",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}},
-                {key:"FILTER_WORKFLOW_NAME",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}}
-                
+                {key:"FILTER_WORKFLOW_NAME",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}},
+                {key:"FILTER_WORKFLOW_VARIABLES",value:{'description':'Filters user_variables presented to the user',filter:".*?"}}
             ];
             return rights;
     },

@@ -4,17 +4,26 @@ var userpermissions = require("../userpermissions");
 module.exports = function(app, passport){
 //serve and store admin config as dhtmlx form json config 
 
-	app.get('/getworkflowlist', (req, res) => {
+	app.get('/getworkflowdetails', (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                passport.authenticate('local-login');//fills req.user with infos from cookie
-
+               wf_id = req.body.name || req.query.name;
+               if (!wf_id){
+                   throw("Error, need workflowid parameter")
+               }
+               //TODO: make this work
+               
                //download workflowlist from ffastrans server
-                Request.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000},(error, workflowResponse, body) => {
+                Request.get(buildApiUrl(global.config.STATIC_GET_WORKFLOWS_URL + "/" + wf_id), {timeout: 7000},(error, workflowResponse, body) => {
                     if(error) {
                         global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+                        res.writeHead(200,{"Content-Type" : "text/text"});
+                        res.write("");//output json array to client
+                        res.end();
                         return;
                     }
+                    
                     //disabled web security, show all worfklows
                     if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
                         res.writeHead(200,{"Content-Type" : "application/JSON"});
@@ -22,13 +31,23 @@ module.exports = function(app, passport){
                         res.end();
                         return;
                     }
-                   //apply filter if any
-                   var workflowlist = JSON.parse(workflowResponse.body);
-                   var filteredWorkflowList = [];
-                   var alreadyAdded = {};
-                   console.log(req.user);
+                   
+                   var workflowlist
+                   var filteredWorkflowList
+                   var alreadyAdded
+                   
+                   try{
+                       //apply filter if any
+                       workflowlist = JSON.parse(workflowResponse.body);
+                       filteredWorkflowList = [];
+                       alreadyAdded = {};
+                       console.log(req.user);
+                    }catch(exc){
+                       global.socketio.emit("error", 'Error getting workflow details, see logs ' + exc );
+                        
+                   }
                    userpermissions.getpermissionlist(req.user["local"]["username"],function(allpermissions){
-                       
+                  
                        
                        try{
                            for (x in allpermissions){
@@ -62,36 +81,6 @@ module.exports = function(app, passport){
                                
                        
                        
-                        //FILTER WORFKLOWS
-                               if (allpermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
-                                   var filter = allpermissions[x]["value"]["filter"];
-                                   for (var i in workflowlist["workflows/details"]){
-                                        var wf = workflowlist["workflows/details"][i];
-                                       if (wf["general"]["wf_folder"].toLowerCase().match(filter.toLowerCase())){
-                                           if (!alreadyAdded[wf["general"]["wf_name"]]){
-                                               console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " matches filter "+ filter);
-                                               alreadyAdded[wf["general"]["wf_name"]] = 1;
-                                               filteredWorkflowList.push(wf);//allow workflow
-                                           }
-                                       }else{
-                                          //console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " NOT MATCHES filter "+ filter); 
-                                       }
-                                   };
-                               }
-                               if (allpermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
-                                   var filter = allpermissions[x]["value"]["filter"];
-                                   for (var i in workflowlist["workflows/details"]){
-                                       var wf = workflowlist["workflows/details"][i];
-                                       if (wf["general"]["wf_name"].toLowerCase().match(filter.toLowerCase())){
-                                           //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
-                                           if (!alreadyAdded[wf["general"]["wf_name"]]){
-                                               console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " matches filter "+ filter);
-                                               alreadyAdded[wf["general"]["wf_name"]] = 1;
-                                               filteredWorkflowList.push(wf);//allow workflow
-                                           }
-                                       }
-                                   };
-                               }
                            }//for allpermissions
                        }catch(ex){
                             console.log("ERROR: error in getworkflowlist: " + ex);
