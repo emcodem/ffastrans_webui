@@ -15,6 +15,7 @@
 -->
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/skins/skyblue_grey/dhtmlx.css" type="text/css"/>
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"> 
 <script src="../dependencies/jquery/jquery.js"></script>
@@ -210,8 +211,11 @@ function init(){
     restoreLayoutSizes(mainLayout,"mainLayout");
 
     runningJobGrid = mainLayout.cells("a").attachGrid();
+    runningJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
+    runningJobGrid.setSkin("dhx_skyblue");
     finishedJobGrid = mainLayout.cells("b").attachGrid();
-    
+    finishedJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
+    finishedJobGrid.setSkin("dhx_skyblue");
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
         items:[
              {id:"abort", text:'<i class="fas fa-stop"></i>Abort'},
@@ -254,7 +258,8 @@ function init(){
     finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns  
     finishedJobGrid.setHeader("State,Workflow,Job Start,Duration,Job End,File,Outcome");//the headers of columns 
     finishedJobGrid.setColumnIds("state,wf_name,job_start,duration,job_end,file,outcome");
-    finishedJobGrid.enableSmartRendering(true,50);
+    finishedJobGrid.enableSmartRendering(true,100);
+    finishedJobGrid.setAwaitedRowHeight(25);
     finishedJobGrid.setImagePath("../dependencies/dhtmlx/imgs");                 
     finishedJobGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); 
     finishedJobGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns   
@@ -271,18 +276,31 @@ function init(){
         finishedJobGrid.setSortImgState(true,colindex,dir);//this is important to let the js grid know how it is sorted (not just the user)
         return false ;
     });    
-    finishedJobGrid.attachEvent("onXLE", function(grid_obj,count){
+    finishedJobGrid.attachEvent("onRowCreated", function(rId,rObj,rXml){
+            var state= finishedJobGrid.cells(rId,0).getValue();
+            if (state =="Error"){
+                
+                finishedJobGrid.setRowColor(rId,m_rowColorError);
+            }            
+            if (state =="Cancelled"){
+                
+                finishedJobGrid.setRowColor(rId,m_rowColorCancelled);
+            }
+    /*
+        console.log("onRowCreated")
         //data was loaded from the server, re-color the rows
         finishedJobGrid.forEachRow(function(id){
             var state= finishedJobGrid.cells(id,0).getValue();
-            
             if (state =="Error"){
+                
                 finishedJobGrid.setRowColor(id,m_rowColorError);
             }            
             if (state =="Cancelled"){
+                
                 finishedJobGrid.setRowColor(id,m_rowColorCancelled);
             }
         });
+        */
     });
 
     finishedJobGrid.attachEvent("onFilterStart", function(indexes,values){
@@ -403,8 +421,8 @@ function openLogViewer(dhxgrid){
         win.setText("Log ");
         //win.keepInViewport(true);
         var logGrid = win.attachGrid();
-        
-        logGrid.setImagePath("../dependencies/dhtmlx/imgs");                 
+        //logGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
+        logGrid.setSkin("material");           
         logGrid.setHeader("Time,Processor,Host,PID,Message");//the headers of columns  
         logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
         logGrid.setInitWidthsP("10,10,10,5,*");          //the widths of columns  
