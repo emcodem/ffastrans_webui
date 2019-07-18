@@ -92,14 +92,15 @@ function init(){
     m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int");          //the sorting types    
+    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int");          //the sorting types  
+    m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
 	
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
 		items:[
             {id:"location", text:"Locations"},
 			{id:"savelocation", text:"Save Location"},
-            {id:"select", text:"Add File"},
+            {id:"select", text:"Add Selected"},
             {id:"selectall", text:"Add All"},
 		]
 	});
@@ -165,6 +166,7 @@ function init(){
     m_selectedFileGrid.setColAlign("left,left,left");
     m_selectedFileGrid.setColTypes("ed,ed,ed");
     m_selectedFileGrid.setColSorting("str,str,str");   
+    m_selectedFileGrid.enableMultiselect(true);
     m_selectedFileGrid.init();
   
     m_fileBrowserGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
@@ -405,7 +407,10 @@ function sort_custom(a,b,order){//dhtmlx grid custom sorting function
 
 function selectFileToProcess(){
     //transfer selected file to processing grid
-    m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId(),1).getValue()]);
+    //for (rowId in m_fileBrowserGrid.getSelectedRowId().split(',')){
+    for (i = 0; i < m_fileBrowserGrid.getSelectedRowId().split(',').length; i++) {
+        m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId().split(',')[i],1).getValue()]);
+    }
 }
 
 function getFileList(dhtmlxGrid,path){
