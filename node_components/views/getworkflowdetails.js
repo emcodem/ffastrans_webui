@@ -49,44 +49,50 @@ module.exports = function(app, passport){
                    userpermissions.getpermissionlist(req.user["local"]["username"],function(allpermissions){
                         
                       // FILTER VARIABLES - this needs to be done in a to be generated getworkflow.js file and webui needs to use this url instead of proxy
-                       
+                       var allowed_variable_array = [];
                        try{
-                           for (x in allpermissions){
+                           var alreadyAdded = {};
+                           for (x in allpermissions){   //parse through all permissions from all groups
                                 try{
                                        //if we have a filter, iterate all variables of this workflow and filter them
-                                       var allowed_variable_array = [];
                                        if (allpermissions[x]["key"] == "FILTER_WORKFLOW_VARIABLES"){
-                                           
                                            console.log(req.user["local"]["username"] + " has got Filter permissions FILTER_WORKFLOW_VARIABLES: " );
                                            console.log(allpermissions[x]["value"]);
                                            var filter = allpermissions[x]["value"]["filter"];
                                            console.log("VARIABLE FILTER ACTIVE: " + filter)
                                            
                                            for (var i in workflowlist["workflows"]){
+                                               
                                                console.log(workflowlist["workflows"][i]);
                                                for (var user_var_index in (workflowlist["workflows"][i]["variables"])){
-                                                   
                                                    var user_var = (workflowlist["workflows"][i]["variables"][user_var_index])
                                                         if (user_var["name"].toLowerCase().match(filter.toLowerCase())){
                                                              //allow
                                                              console.log("Matched allowed User variable: " + user_var["name"])
-                                                             allowed_variable_array.push(user_var)
+                                                             if (!alreadyAdded[user_var["name"]]){
+                                                                 allowed_variable_array.push(user_var);
+                                                                 alreadyAdded[user_var["name"]] = 1;
+                                                             }
+                                                             
                                                         }else{
                                                             console.log("Hiding User variable due to filter settings: " + user_var["name"])
                                                         }
                                                    }
-                                               }//for all workflows
-                                            //finally update workflowlist with new allowed variable array 
+                                               
+                                           }//for all workflows
+                                               
+                                            
                                        }
-                                       workflowlist["workflows"][i]["variables"] = allowed_variable_array;
+                                       
                                    }
                                    catch(exec){
                                        console.error("Error parsing user variables from workflows (contact developer): " + exec);
                                    }
-                               
-                       
-                       
                            }//for allpermissions
+                           
+                           //finally update workflowlist with new allowed variable array 
+                           workflowlist["workflows"][i]["variables"] = allowed_variable_array;
+                           
                        }catch(ex){
                             console.log("ERROR: error in getworkflow variables: " + ex);
                             res.status(500);//Send error response here
