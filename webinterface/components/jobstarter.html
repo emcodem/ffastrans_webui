@@ -474,7 +474,7 @@ function on_processorSelected(selectedWorkflow){
     var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
     //workaround load user_variables from workflow api call
     $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_WORKFLOWS_URL'] + "/" + selectedWorkflow.wf_id ),
+        url:  ("/getworkflowdetails" + "?workflowid=" + selectedWorkflow.wf_id ),
         type: "GET",
         crossDomain: true,
         dataType: "json",
