@@ -73,11 +73,11 @@ module.exports = {
         //inform clients about current job count
         var countObj = {errorjobcount:0,successjobcount:0,cancelledjobcount :0};
         //inform the client about current count in DB
-        global.db.jobs.count({"state":"Success"},function(err,success_count){
+        global.db.jobs.count({"state":"Success","deleted":{ $exists: false }},function(err,success_count){
             countObj.successjobcount=success_count;
-            global.db.jobs.count({"state":"Error"},function(err,error_count){
+            global.db.jobs.count({"state":"Error","deleted":{ $exists: false }},function(err,error_count){
                 countObj.errorjobcount=error_count;
-                global.db.jobs.count({"state":"Cancelled"},function(err,cancelled_count){
+                global.db.jobs.count({"state":"Cancelled","deleted":{ $exists: false }},function(err,cancelled_count){
                     countObj.cancelledjobcount=cancelled_count;
                     //push data to client
                     global.socketio.emit("historyjobcount", countObj);

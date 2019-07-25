@@ -62,6 +62,14 @@ global.socketio.on('connection', function(_socket){
             jobcontrol.pausejob(obj);
             return;
         }
+        if (cmd == "deletejob"){
+            jobcontrol.deletejob(obj);
+            return;
+        }
+        if (cmd == "deletealljobs"){
+            jobcontrol.deletealljobs();
+            return;
+        }
     })
     
     //client disconnected

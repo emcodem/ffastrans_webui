@@ -52,6 +52,22 @@ module.exports = function(app, passport){
                        var allowed_variable_array = [];
                        try{
                            var alreadyAdded = {};
+                           var show_all_variables = true;
+                           //check if we have any workflow variable filter, if no, show all variables
+                           for (x in allpermissions){ 
+                                if (allpermissions[x]["key"] == "FILTER_WORKFLOW_VARIABLES"){
+                                    show_all_variables = false;
+                                }
+                           }
+                           
+                           if (show_all_variables){
+                               console.log("serving filtered workflow variables list")
+                                res.writeHead(200,{"Content-Type" : "application/JSON"});
+                                res.write(JSON.stringify(workflowlist));//output json array to client
+                                res.end();
+                                return;
+                           }
+                           
                            for (x in allpermissions){   //parse through all permissions from all groups
                                 try{
                                        //if we have a filter, iterate all variables of this workflow and filter them
