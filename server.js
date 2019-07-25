@@ -135,7 +135,7 @@ function init(conf){
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
     var jobfetcher = require("./node_components/cron_tasks/jobfetcher");
     
-    cron.schedule("*/3 * * * * *", function() {
+    cron.schedule("*/2 * * * * *", function() {
     //SCHEDULED JOBS
         if (!global.jobscheduleractive){
             global.jobscheduleractive = true;
