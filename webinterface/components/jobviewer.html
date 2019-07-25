@@ -15,8 +15,7 @@
 -->
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
-<link rel="stylesheet" href="../dependencies/dhtmlx/skins/skyblue_grey/dhtmlx.css" type="text/css"/>
-<script src="../dependencies/dhtmlx/vault/vault.js"></script>
+ <script src="../dependencies/dhtmlx/vault/vault.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"> 
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
@@ -166,7 +165,7 @@ var mainLayout,runningJobGrid,finishedJobGrid,m_serverconfig;
 var m_rowColorError = "#f28d80"
 var m_rowColorCancelled = "#ffcc80"
 /* STRUCTS */
-var m_jobStates = ["Error","Success","Cancelled","Unknown"];//todo:ask steinar if there are more states and whats queued state
+var m_jobStates = ["Error","Success","Cancelled","Unknown"]; 
 
 /*load config from server*/
 function loadserverconfig(){
@@ -211,10 +210,10 @@ function init(){
     restoreLayoutSizes(mainLayout,"mainLayout");
 
     runningJobGrid = mainLayout.cells("a").attachGrid();
-    runningJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
+    //runningJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
     runningJobGrid.setSkin("dhx_skyblue");
     finishedJobGrid = mainLayout.cells("b").attachGrid();
-    finishedJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
+    //finishedJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
     finishedJobGrid.setSkin("dhx_skyblue");
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
         items:[
@@ -289,7 +288,7 @@ function init(){
     runningJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns 
     runningJobGrid.setHeader("State,Workflow,Host,Processor,File,Job Start,End,Duration,Status,Splitindex,Progress");//the headers of columns    
     configureJobGrid(runningJobGrid);
-    //finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']);          //TODO: uncomment for production
+    finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']); 
     finishedJobGrid.setHeader("State,Workflow,Job Start,Duration,End,File,Outcome,ID");//the headers of columns 
     finishedJobGrid.setColumnIds("state,wf_name,job_start,duration,job_end,file,outcome,_id");
     finishedJobGrid.enableSmartRendering(true,100);
@@ -388,8 +387,7 @@ function init(){
     });
 
     socket.on('queuedjobs', function(msg){
-    
-        //TODO: queued jobs dont seem to work in ffastrans 9.3
+     
         addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg))
         mainLayout.cells("a").progressOff();
     });
@@ -417,7 +415,7 @@ function delete_jobs(array_of_rows){
     selectedRowIds.forEach(function(rId) {
         var jobObj = runningJobGrid.getUserData(rId,"jobobject");
         var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) ;
-        var postBody = {"action": pause,"split": splitid};//TODO: ask steinar why the api does not work for multiple splits, it seems a bit random if splitid 0 or 1 is used, even using postman, if a job has 2 splits, how to pause both?
+        var postBody = {"action": pause,"split": splitid};  
         socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
         dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
     })
@@ -463,15 +461,13 @@ function openLogViewer(dhxgrid){
     selectedRowIds.forEach(function(rId) {
         var jobObj = dhxgrid.getUserData(rId,"jobobject");
         var dhxwins = new dhtmlXWindows();
-        dhxwins.attachViewportTo(window.parent.document.body);
+        //dhxwins.attachViewportTo(window.parent.document.body);
         var win = dhxwins.createWindow("Workflow",  50 + win_offset, 150 + win_offset, 1200, 800);
         win_offset+=30;
-        //win.denyMove();//moving and resizing behaves strange, possibly because of svg content. TODO: open workflow in new tab
-        win.setText("Log ");
-        //win.keepInViewport(true);
-        var logGrid = win.attachGrid();
-        //logGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
-        logGrid.setSkin("material");           
+         win.setText("Log ");
+         
+        var logGrid = win.attachGrid();  
+        logGrid.setImagesPath("../dependencies/dhtmlx/imgs/");
         logGrid.setHeader("Time,Processor,Host,PID,Message");//the headers of columns  
         logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
         logGrid.setInitWidthsP("10,10,10,5,*");          //the widths of columns  
@@ -490,7 +486,7 @@ function openLogViewer(dhxgrid){
             var job_end = (dhxgrid.cells(rId,dhxgrid.getColIndexById("job_end")).getValue());
             var job_start = (dhxgrid.cells(rId,dhxgrid.getColIndexById("job_start")).getValue());
             var wf_name = (dhxgrid.cells(rId,dhxgrid.getColIndexById("wf_name")).getValue());
-            //we don'T have a jobid, server will need to find files based on the infos we have. TODO: ask steinar if we can get a jobid for history jobs
+            //we don'T have a jobid, server will need to find files based on the infos we have. this is currently being changed in ffastrans
              var url = ("/logparser?file=" + encodeURI(file) +"&job_end=" + encodeURI(job_end) +"&job_start=" + encodeURI(job_start) +"&wf_name=" + encodeURI(wf_name )  );
              logGrid.load(url,"json");
         } 
@@ -511,14 +507,14 @@ function pauseResumeJob(pause,httpMethod){
     selectedRowIds.forEach(function(rId) {
         var jobObj = runningJobGrid.getUserData(rId,"jobobject");
         var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) ;
-        var postBody = {"action": pause,"split": splitid};//TODO: ask steinar why the api does not work for multiple splits, it seems a bit random if splitid 0 or 1 is used, even using postman, if a job has 2 splits, how to pause both?
+        var postBody = {"action": pause,"split": splitid}; 
         socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
         dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
     })
 }
 
 function abortJobWithSplit(){
-//only available in ffastrans 9.4>//TODO: wait for the new version, then do version detection
+//only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
     if (!runningJobGrid.getSelectedRowId()){
         dhtmlx.alert("Please select a Job to abort");
         return;
@@ -568,7 +564,7 @@ function abortJob(){
 
 
 function getQueuedJobs(targetGridObj){
-//todo: make this work
+ 
     $.ajax({
         url:  buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
         type: "GET",
@@ -576,8 +572,7 @@ function getQueuedJobs(targetGridObj){
         dataType: "json",
         context: this,
         success: function (response) {
-            //todo: find a way that queued jobs does not influence active jobs, e.g. parse state in addHistoryJobsToGrid function
-            mainLayout.cells("a").progressOff();
+             mainLayout.cells("a").progressOff();
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
@@ -588,8 +583,7 @@ function getQueuedJobs(targetGridObj){
 function addActiveJobsToGrid(targetGridObj,jobArray){
     var newjobIds = [];
     var activejobcount=0;
-    //add new jobs if any//TODO: at top
-    for (i=0;i<jobArray.length;i++){
+      for (i=0;i<jobArray.length;i++){
         
         if (("splits" in jobArray[i])){
             for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task

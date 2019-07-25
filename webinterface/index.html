@@ -102,14 +102,16 @@
     }
     .ffastransheadertext{
        display: inline-block;
+       font-size:30px;
+       margin-left:3px;
+       opacity:0.97;
+       text-shadow:1px 1px #888;
     }
     .instancename{
        margin-top: 5px;
        display: inline-block;
     }
-    .description{
-       margin-top: 0px;
-    }
+ 
       /*.dhxlayout_base_material div.dhx_cell_layout {
           background-color: #333;
       }
@@ -190,7 +192,7 @@ function init(permissions){
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
     '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div></a>'+
     '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="harry itemrowtopright"></a>'+ 
-    '<h1 style="cursor:pointer"  onclick="onHeaderClick()"><img class="ffastransheadertext" alt="" height="16" src="images/F364x64.png"  title="" width="16"><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></h1><p class="description">The free automated transcoder.</p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
+    '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class=" " alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
     
@@ -210,7 +212,7 @@ function init(permissions){
     headerLayout.cells("a").hideHeader();
     headerLayout.cells("b").hideHeader();
 
-    headerLayout.cells("a").setHeight(75);
+    headerLayout.cells("a").setHeight(80);
     headerLayout.cells("a").fixSize(true, true);
     
     mainLayout = headerLayout.cells("b").attachLayout({
