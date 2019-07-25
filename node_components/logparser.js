@@ -38,14 +38,20 @@ module.exports = function(app, express){
                                                 res.write("Debug info: " + JSON.stringify(wf.special));
                                                 res.end();
                                             }
+                                             //work_folder
+                                               console.log("The Working directory is here todo: zip and make available for download: "  +findExistingWorkingDir(wf,"work_folder"))
+                                              
+ 
+                                             
                                             if (wf.special.log_file){ //log_file is actually the log directory
                                                 //finally we have a log directory. but as we dont have a jobid, we must grep for the file of interest.
                                                 fs.readdir( wf.special.log_file, function( err, files ) {
-                                                    if( err ) {
+                                                    if( err ||!files ) {
                                                         global.socketio.emit("error", "Unexpected Error finding log file: " + err);
                                                         res.write("Unexpected Error finding log file: " + err);
                                                         res.end();
                                                     }  
+                                                    console.log("attempting to open logfile")
                                                     files.forEach( function( file, index ) {
                                                         //loop through files on filesystem - read first line in file an see if start_date is contained
                                                         var filename = path.join( wf.special.log_file, file );
@@ -227,4 +233,22 @@ function getRowColor(stringToParse,validprefix){
 	}
 
 	return style;//default is gray
+}
+
+function findExistingWorkingDir(object, key) {
+    var value = [];
+    Object.keys(object).some(function(k) {
+        if (k === key) {
+            value = object[k];
+            return true;
+        }
+        if (object[k] && typeof object[k] === 'object') {
+             var vl = findExistingWorkingDir(object[k], key);
+             if (fs.existsSync(vl)){
+                 value.push(vl)
+             }
+            
+        }
+    });
+    return value;
 }
