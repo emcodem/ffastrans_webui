@@ -228,11 +228,13 @@ function init(){
     var headerMenuFinished = mainLayout.cells("b").attachMenu({                                               
         items:[
              {id:"log", text:'<i class="fas fa-info"></i>Log'},
+             {id:"delsel", text:'<i class="fas fa-trash-alt"></i>Delete Selected'},
+             {id:"delall", text:'<i class="fas fa-trash-alt"></i>Delete All'},
           ]
     });
     
 //events for button clicks
-    headerMenu.attachEvent("onClick", function(id, zoneId, cas){
+    headerMenu.attachEvent("onClick", function(id, zoneId, cas){k
             if (id == "abort") {
                 abortJob()
             }
@@ -250,24 +252,58 @@ function init(){
             if (id == "log") {
                 openLogViewer(finishedJobGrid)
             }
+            if (id == "delsel") {
+            //delete selected jobs
+                if (!finishedJobGrid.getSelectedRowId()){
+                    dhtmlx.alert("Please select rows to delete " );
+                    return;
+                }
+                var selectedRowIds = finishedJobGrid.getSelectedRowId().split(',');
+                var array_to_delete = [];
+                selectedRowIds.forEach(function(rId) {
+                    var id = (finishedJobGrid.cells(rId,finishedJobGrid.getColIndexById("_id")).getValue());
+                    array_to_delete.push(parseInt(id));
+                    finishedJobGrid.deleteRow(rId);
+                })
+                socket.emit("deletejob", JSON.stringify( array_to_delete));//note, custom structure for socket.emit messages
+                
+            }
+            if (id == "delall") {
+            //delete all jobs
+               dhtmlx.confirm({
+								title:"Delete ALL Jobs",
+								type:"confirm-error",
+								text:"Really delete ALL Jobs?",
+                                callback:function(yesno){
+                                    if (yesno){
+                                         socket.emit("deletealljobs");//note, custom structure for socket.emit messages
+                                         finishedJobGrid.clearAll();
+                                    }
+                                }
+							});
+            }
+            
+            
     });
     
     runningJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns 
-    runningJobGrid.setHeader("State,Workflow,Host,Processor,File,Job Start,Job End,Duration,Status,Splitindex,Progress");//the headers of columns      
+    runningJobGrid.setHeader("State,Workflow,Host,Processor,File,Job Start,End,Duration,Status,Splitindex,Progress");//the headers of columns    
     configureJobGrid(runningJobGrid);
-    finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns  
-    finishedJobGrid.setHeader("State,Workflow,Job Start,Duration,Job End,File,Outcome");//the headers of columns 
-    finishedJobGrid.setColumnIds("state,wf_name,job_start,duration,job_end,file,outcome");
+    //finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']);          //TODO: uncomment for production
+    finishedJobGrid.setHeader("State,Workflow,Job Start,Duration,End,File,Outcome,ID");//the headers of columns 
+    finishedJobGrid.setColumnIds("state,wf_name,job_start,duration,job_end,file,outcome,_id");
     finishedJobGrid.enableSmartRendering(true,100);
     finishedJobGrid.setAwaitedRowHeight(25);
     finishedJobGrid.setImagePath("../dependencies/dhtmlx/imgs");                 
-    finishedJobGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); 
+    finishedJobGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); 
+    
     finishedJobGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     finishedJobGrid.setColTypes("ed,ed,ed,ed,ed,ed,ed,ed,ed,ed,ed,ed,ed");                //the types of columns  
     finishedJobGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");          //the sorting types   
     finishedJobGrid.enableMultiselect(true);
     finishedJobGrid.init();      //finishes initialization and renders the grid on the page 
     finishedJobGrid.load("/gethistoryjobsajax?filtercol=job_end&direction=des","js")
+    
     finishedJobGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
         //as we sort on the server instead of the client, we need to override the filter function
         var fieldname = this.columnIds[colindex];
@@ -372,6 +408,19 @@ function init(){
         getActiveJobs(runningJobGrid);
         getFinishedJobs(finishedJobGrid);
     }
+}
+
+
+function delete_jobs(array_of_rows){
+
+    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+    selectedRowIds.forEach(function(rId) {
+        var jobObj = runningJobGrid.getUserData(rId,"jobobject");
+        var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) ;
+        var postBody = {"action": pause,"split": splitid};//TODO: ask steinar why the api does not work for multiple splits, it seems a bit random if splitid 0 or 1 is used, even using postman, if a job has 2 splits, how to pause both?
+        socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
+        dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
+    })
 }
 
 function saveLayoutSizes(dhxLayout,name){

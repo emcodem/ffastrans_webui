@@ -19,6 +19,8 @@ var configServer = require(global.approot  + '/node_components/server_config');
                     }
                     filterobj = newfilter;
                 }
+                filterobj["deleted"] =  { $exists: false } ; //always only show non deleted jobs
+                console.log("added filter deleted")
                 var filtercol = req.query.filtercol;
                 if (filtercol == 'undefined'){
                     fitler = 'job_end'
