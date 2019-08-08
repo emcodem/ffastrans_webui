@@ -30,9 +30,16 @@
 var socket = io(); 
 
 /* GLOBALS */
+//dhtmlx ui
 var m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 
+//mediainfo
+
+var MediaInfoModule,MI;
+
+var mediainfo_url_ff = "../dependencies/MediaInfo_DLL_JavaScript/MediaInfoWasm.js";//todo: get out how to load the wasm file from relative path
+var mediainfo_url_ie = "../dependencies/MediaInfo_DLL_JavaScript/MediaInfo.js";
 /*load config from server*/
 function loadserverconfig(){
    $.ajax({
@@ -49,6 +56,39 @@ function loadserverconfig(){
     });
 }
 
+/* register mediainfo functions */
+function mediainfo_init(){/*needs to be called onload of body, at least before using mediainfo*/
+
+    /*IE or FF or Chrome, loads different asm scripts?*/
+    var MediaInfoJs = document.createElement('script');
+    if ('WebAssembly' in window) {
+      MediaInfoJs.src = mediainfo_url_ff;
+    } else {
+      MediaInfoJs.src = mediainfo_url_ie;
+    }
+    document.body.appendChild(MediaInfoJs);
+
+    // after script is loaded, initalize Mediainfo
+    MediaInfoJs.onload = function () {
+      MediaInfoModule = MediaInfoLib({'postRun': function() {
+            console.log('MediaInfo ready');
+            MI = new MediaInfoModule.MediaInfo();
+        }});
+    }
+}
+      
+function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
+       var processResult = function() {
+            MI.Option('Inform','HTML');
+            var infoHtml = (MI.Inform())
+            _callback(_file,infoHtml)
+            MI.Close();
+            //MI.delete();   
+      }
+    MI.Open(_file, processResult);            
+}
+      
+      
 /* build basic page layout and init periodic job loading*/
 function init(){
     //load config data from server
@@ -102,6 +142,7 @@ function init(){
 			{id:"savelocation", text:"Save Location"},
             {id:"select", text:"Add Selected"},
             {id:"selectall", text:"Add All"},
+            {id:"mediainfo", text:"Info"},
 		]
 	});
 	
@@ -255,6 +296,21 @@ function init(){
             return;
         }
         
+        if (id == "mediainfo"){
+           var rId = m_fileBrowserGrid.getSelectedRowId()
+           var file = new File([""],m_fileBrowserGrid.cells(rId,1).getValue());
+            get_mediainfo_analysis_html(file,function(_fileobj,minfo_html){
+                    var dhxwins = new dhtmlXWindows();
+                    //dhxwins.attachViewportTo(window.parent.document.body);
+                    win_offset = 0;
+                    var win = dhxwins.createWindow("File [" + file.name + "]",  50 + win_offset, 150 + win_offset, 1200, 800);
+                    win_offset+=30;
+                    win.setText("File [" + file.name + "]");
+                    win.attachHTMLString(minfo_html);
+            });
+            return;
+        }
+        
         //in any other case, a location was chosen
         getFileList(m_fileBrowserGrid,id)
 	})
@@ -285,7 +341,8 @@ function init(){
         saveLayoutSizes(jobLayout,"jobLayout");
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
-    
+   
+   
 //MAIN STARTING POINT
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
@@ -301,6 +358,9 @@ function init(){
         m_mainLayout.cells("a").setWidth(0);
         jobLayout.cells("a").setHeight(150)
     }
+
+    //init mediainfo
+    mediainfo_init();
    
 }
 
