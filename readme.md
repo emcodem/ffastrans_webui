@@ -1,5 +1,4 @@
-Created 2018 by Harald Jordan
-
+Created 2018 by emcodem
 *** USERS please check out your release here https://github.com/haraldjordan78/ffastrans_webui/releases ***
 
 Interim documentation:
