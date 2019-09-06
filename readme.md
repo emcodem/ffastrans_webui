@@ -1,6 +1,6 @@
 Created 2018 by emcodem
 
-*** USERS please check out your release here https://github.com/haraldjordan78/ffastrans_webui/releases ***
+*** USERS please check out your release here https://github.com/emcodem/ffastrans_webui/releases ***
 
 Interim documentation:
 http://www.ffastrans.com/frm/forum/viewtopic.php?f=5&t=789&p=3069#p3069
