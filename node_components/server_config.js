@@ -31,6 +31,7 @@ defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
 
 
 //Please do not change these values
+/*
 defaultConfig.STATIC_START_JOB_URL = "/api/json/v1/jobs/";
 defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v1/workflows";
 defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v1/workflows/details";
@@ -38,6 +39,16 @@ defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v1/jobs";
 defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v1/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v1/queue/";
 defaultConfig.STATIC_USE_PROXY_URL =  true;
+*/
+defaultConfig.STATIC_START_JOB_URL = "/api/json/v2/jobs/";
+defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v2/workflows";
+defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v2/workflows/details";
+defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v2/jobs";
+defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
+defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
+defaultConfig.STATIC_USE_PROXY_URL =  true;
+
+
 
 //this line is mandatory, do not remove it!
 //module.exports = config;

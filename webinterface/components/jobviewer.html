@@ -367,11 +367,11 @@ function init(){
     runningJobGrid.setSortImgState  (true,5,"desc");  
     mainLayout.cells("a").progressOn();
     /* events from socket.io*/
-    socket.on('activejobs', function(msg){
+    /*socket.on('activejobs', function(msg){
         mainLayout.cells("a").progressOff();
         //instead of polling periodically from the client, the server polls periodically and notifies connected clients with the job arrays
         addActiveJobsToGrid(runningJobGrid,JSON.parse(msg))
-    });
+    });*/
     socket.on('newhistoryjob', function(msg){
         //server informs us about new history jobs in db, if there are new, we fetch them
             var obj =  msg;
@@ -387,8 +387,13 @@ function init(){
     });
 
     socket.on('queuedjobs', function(msg){
-     
-        addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg))
+		if (JSON.parse(msg)){
+			addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg),"queued");
+		}
+        mainLayout.cells("a").progressOff();
+    });
+	socket.on('activejobs', function(msg){    
+        addActiveJobsToGrid(runningJobGrid,JSON.parse(msg))
         mainLayout.cells("a").progressOff();
     });
     socket.on('error', function(msg){
@@ -583,10 +588,12 @@ function getQueuedJobs(targetGridObj){
 function addActiveJobsToGrid(targetGridObj,jobArray){
     var newjobIds = [];
     var activejobcount=0;
+	console.log(jobArray)
       for (i=0;i<jobArray.length;i++){
-        
-        if (("splits" in jobArray[i])){
-            for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
+		
+        if (("splits" in jobArray[i])){//ffastrans <95
+            /*
+			for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
                 activejobcount++;
                 var splitid = 1;
                 if (splitindex != 0){
@@ -596,7 +603,9 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                     splitid = jobArray[i].splits[splitindex].split_id; //newer ffastrans versions introduce splitid
                 }
 
-                var rowid =  "active_" + i + splitid + jobArray[i].job_start;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+                //var rowid =  "active_" + i + splitid + jobArray[i].job_start;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+                var rowid =  jobArray[i].id;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+
                 newjobIds.push(rowid);
                 var status = jobArray[i].splits[splitindex].status;           
                 
@@ -616,8 +625,29 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
                 }                        
                 targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
                    
-            }
-        }      
+            }*/
+        }else{
+		//ffastrans version 95>
+                var rowid =  jobArray[i].id + jobArray[i].split;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+                newjobIds.push(rowid);
+                var status = jobArray[i].status;                           
+                var duration = "";
+                var _state = "active";
+                var progressBar = "<div class='progressbar' style='width:"+jobArray[i].progress+"%'>" + jobArray[i].progress  + "%</div>";
+                if (targetGridObj.doesRowExist(rowid)){
+                    //update existing task
+                    targetGridObj.cells(rowid,2).setValue(jobArray[i].host);
+                    targetGridObj.cells(rowid,3).setValue(jobArray[i].proc);
+                    targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
+                    targetGridObj.cells(rowid,10).setValue(progressBar);//todo: update more values or better all!
+                }else{
+                    //add new task (ffastrans calls it split)
+                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].host,jobArray[i].proc,jobArray[i].file,jobArray[i].start_time,"","",status,jobArray[i].split,progressBar],0);
+                    targetGridObj.cells(rowid,8).setValue(status);
+                }                        
+                targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
+			
+		}
     }
     targetGridObj.sortRows(5,"str","des");  
     //delete non existing/orphaned jobs e.g. active job got finished 
@@ -633,16 +663,16 @@ function addActiveJobsToGrid(targetGridObj,jobArray){
 }
 
 
-function addQueuedJobsToGrid(targetGridObj,jobArray){
-    
+function addQueuedJobsToGrid(targetGridObj,jobArray,state){//state added as of ffastrans 9.5, queued or active
+	
     var newjobIds = [];
     var queuedjobcount=0;
     //add new jobs if any//TODO: at top
-
+	
     //parse jobarray of all history jobs and add new/delete missed rows
     for (i=0;i<jobArray.length;i++){
         queuedjobcount++;
-        var rowid = "queued_"+jobArray[i].item.guid;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+        var rowid = state + "_"+jobArray[i].id;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
         newjobIds.push(rowid);
         var status = "Queued"
         var duration = "";
@@ -652,10 +682,10 @@ function addQueuedJobsToGrid(targetGridObj,jobArray){
             //no update needed for queued tasks
         }else{
             //add new job to grid
-            targetGridObj.addRow(rowid,[_state,"",jobArray[i].item.host,"",jobArray[i].item.display,"","",jobArray[i].item.source,"Queued"],0); 
+            targetGridObj.addRow(rowid,[_state,"",jobArray[i].submit.client,"",jobArray[i].sources.pretty_name,"","",jobArray[i].submit.system,"Queued"],0); 
         }                       
         var jobObj = jobArray[i];
-        jobObj.job_id = jobArray[i].item.guid;//store job_id to allow abortjobs
+        jobObj.job_id = jobArray[i].id;//store job_id to allow abortjobs
         targetGridObj.setRowColor(rowid,"#ffffcc");
         targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
           
