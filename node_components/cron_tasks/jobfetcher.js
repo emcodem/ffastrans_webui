@@ -15,9 +15,12 @@ module.exports = {
             return;
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
-        global.socketio.emit("activejobs", JSON.stringify(JSON.parse(body).jobs));
-        global.socketio.emit("activejobcount", JSON.parse(body).jobs.length);
- 
+		try{
+			global.socketio.emit("activejobs", JSON.stringify(JSON.parse(body).jobs));
+			global.socketio.emit("activejobcount", JSON.parse(body).jobs.length);
+		}catch(exc){
+			console.error("Error occured while sending activejobs to clients: " + exc + body)
+		}
     });
     
     //fetch queued jobs from api
@@ -30,10 +33,13 @@ module.exports = {
             return;
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
-
-        global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).queue));
-        global.socketio.emit("queuedjobcount", JSON.parse(body).queue.length);
-        return;
+		try{
+			global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).tickets.queue));
+			global.socketio.emit("queuedjobcount", JSON.parse(body).tickets.queue.length);
+		}catch(exc){
+			console.error("Error occured while sending queuedjobs to clients: " + exc + body)
+		}
+		return;
         //store in database
 
     });
@@ -47,8 +53,16 @@ module.exports = {
             global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
         }
-        var jobArray = JSON.parse(body).history;
-        //store history jobs in database
+		
+        var jobArray 
+		
+		try{
+			jobArray = JSON.parse(body).history;
+        
+		}catch(exc){
+			console.error("Error occured while parsing history jobs to json: " + exc + body)
+		}
+		//store history jobs in database
         var newjobsfound = 0;
         for (i=0;i<jobArray.length;i++){
             //todo: check if we need to insert anything before calling insert (save amount of calls per second)
