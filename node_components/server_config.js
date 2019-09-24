@@ -42,7 +42,7 @@ defaultConfig.STATIC_USE_PROXY_URL =  true;
 */
 defaultConfig.STATIC_START_JOB_URL = "/api/json/v2/jobs/";
 defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v2/workflows";
-defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v2/workflows/details";
+defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v2/workflows";
 defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v2/jobs";
 defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
