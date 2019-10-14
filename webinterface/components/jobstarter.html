@@ -638,17 +638,25 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     //var selected_wf = m_workflowSelectorGrid.getUserData(wf_name,"workflow_object");
     
     m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["general"]["wf_name"]+"]");
+    
+    wf_object.variable["start_procs"] = []
+    for (i=0;i<wf_object["nodes"].length;i++){
+        if (wf_object["nodes"][i]["start_proc"])
+            wf_object.variable["start_procs"].push(wf_object["nodes"][i]);
+    }
     var proc_root = wf_object.variable["start_procs"] || wf_object.variable["start_proc"];
     if (!proc_root){
         dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
+        console.log(wf_object)
     }
     for (i=0;i<proc_root.length;i++){
         var proc = proc_root[i];
-        var proc_name_default= proc.split(/ /)[0]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
-        var proc_name = "First Processor";
-        if (wf_object[proc]["properties"]){
-            proc_name = wf_object[proc].properties.custom_node_name ||proc_name_default; 
-        }
+        var proc_name_default= proc["type"]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
+        var proc_name = proc_name_default;
+        //TODO: change api to get us the processor displayname
+        //if (wf_object[proc]["properties"]){
+          //  proc_name = wf_object[proc].properties.custom_node_name ||proc_name_default; 
+        //}
         
         options.push({text:proc_name,value:proc});
     }
@@ -657,7 +665,6 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     m_mainForm.setUserData("start_proc", "workflow_object", wf_object);       //store selected workflow along with start_proc
     //switch to variables tab
     on_processorSelected(wf_object);                                           //auto select first processor    
-    //switch to variables Tab
     
 }
 
@@ -686,8 +693,11 @@ function parseWorkflows(wfArray){
                 if (localStorage.getItem("lastselectedworkflow")){
                     var tree = $("#workflowtree").fancytree("getTree");
                     var n = localStorage.getItem("lastselectedworkflow")
-                    var node = tree.findAll(n)[0]
-                    node.setSelected(false);//de-select 
+                    if (n && n != "undefined"){alert(n)
+                        var node = tree.findAll(n)[0]
+                        node.setSelected(false);//de-select 
+                    }
+                    
                 }
                 on_gridWorkflowSelected(data.node.title,data.node.data.wf_object);
            }
@@ -742,9 +752,11 @@ function parseWorkflows(wfArray){
     if (localStorage.getItem("lastselectedworkflow")){
         var tree = $("#workflowtree").fancytree("getTree");
         var n = localStorage.getItem("lastselectedworkflow")
-        var node = tree.findAll(n)[0]
-        node.setSelected(true);
-        node.parent.setExpanded(true);
+        if (n && n!= "undefined"){
+            var node = tree.findAll(n)[0]
+            node.setSelected(true);
+            node.parent.setExpanded(true);
+        }
     }
     
     //search button 
@@ -772,10 +784,10 @@ function getWorkflows(){
         crossDomain: true,
         dataType: "json",
         success: function (response) {
-            if (response['workflows/details'].length == 0){
+            if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{
-                m_workflowArray = response['workflows/details'];
+                m_workflowArray = response['workflows'];
                 parseWorkflows(m_workflowArray);
             }
         },
