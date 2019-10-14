@@ -26,6 +26,7 @@
     "connect-multiparty": "^2.2.0",
     "console-stamp": "^0.2.7",
     "cron-parser": "^2.7.3",
+    "date-and-time": "^0.10.0",
     "dir-compare": "^1.6.0",
     "encoding": "^0.1.12",
     "express-http-proxy": "^1.5.0",

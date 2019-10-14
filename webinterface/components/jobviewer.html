@@ -387,7 +387,7 @@ function init(){
     });
 
     socket.on('queuedjobs', function(msg){
-		if (JSON.parse(msg)){
+        if (JSON.parse(msg)){
 			addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg),"queued");
 		}
         mainLayout.cells("a").progressOff();
@@ -695,8 +695,9 @@ function addQueuedJobsToGrid(targetGridObj,jobArray,state){//state added as of f
     //delete jobs that are in the grid but not in the list of jobs from server
     targetGridObj.forEachRow(function(id){
         if (newjobIds.indexOf(id)==-1){
-            if (id.indexOf("active_") != -1){
-                //active jobs are not deleted
+            var _status = targetGridObj.cells(id,0).getValue()
+            if (_status == "active"){
+                //active jobs are not deleted                
             }else{
                 targetGridObj.deleteRow(id);
             }

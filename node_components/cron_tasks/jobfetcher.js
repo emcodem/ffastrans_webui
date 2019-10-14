@@ -1,5 +1,6 @@
 const assert = require('assert');
 const Request = require("request");
+const date = require('date-and-time');
 //todo: implement queued jobs
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 
@@ -34,8 +35,13 @@ module.exports = {
         }
         //send the new jobs to connected clients, todo: only notify clients about new stuff
 		try{
-			global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body).tickets.queue));
-			global.socketio.emit("queuedjobcount", JSON.parse(body).tickets.queue.length);
+            if (JSON.parse(body)["tickets"]["queue"]){
+                global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body)["tickets"]["queue"]));
+                global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["queue"].length);                
+            }else{
+                global.socketio.emit("queuedjobs", "[]");
+                global.socketio.emit("queuedjobcount", 0);               
+            }
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc + body)
 		}
@@ -58,7 +64,6 @@ module.exports = {
 		
 		try{
 			jobArray = JSON.parse(body).history;
-        
 		}catch(exc){
 			console.error("Error occured while parsing history jobs to json: " + exc + body)
 		}
@@ -71,6 +76,9 @@ module.exports = {
             jobArray[i]._id = guid;
             jobArray[i].duration = getDurationStringFromDates(jobArray[i].job_start,jobArray[i].job_end);
             jobArray[i].state = m_jobStates[jobArray[i].state];
+            jobArray[i].job_start = getDate(jobArray[i].job_start);
+            jobArray[i].job_end = getDate(jobArray[i].job_end);
+            
             global.db.jobs.insert(jobArray[i], function (err, newDoc) {
                 if (err){
                     //console.log("Error inserting history job into DB: " + err)
@@ -106,7 +114,23 @@ module.exports = {
 
 /* HELPERS */
 
+function getDate(str){
+    //ffastrans date:2019-10-14T21:22:35.046-01.00
+    var re = new RegExp("-.....");
+    //TODO CARE ABOUT DATE
+        var newdatestr = (str.replace("T"," ").replace("-01.00",""))
+    try{
+        return date.parse(str.replace("T"," ").replace("-01.00",""),"YYYY-MM-DD HH:mm:ss.SSS")
+    }catch(e){
+        console.error("Could not parse date string: " + str + " replaced: "+ newdatestr);
+        return str;
+    }
+    
+}
+
 function getDurationStringFromDates(start_date,end_date){
+        start_date = getDate(start_date)
+        end_date = getDate(end_date)
         var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
         var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
         delta -= days * 86400;// calculate (and subtract) whole hours

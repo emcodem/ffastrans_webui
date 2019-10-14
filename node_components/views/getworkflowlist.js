@@ -8,10 +8,14 @@ module.exports = function(app, passport){
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                passport.authenticate('local-login');//fills req.user with infos from cookie
-
+                
+                console.log("Calling " + buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL))
                //download workflowlist from ffastrans server
                 Request.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000},(error, workflowResponse, body) => {
                     if(error) {
+                        console.error("Error calling workflowlist, " + error)
+                        res.status(500);//Send error response here
+                        res.end();
                         global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                         return;
                     }
@@ -22,6 +26,7 @@ module.exports = function(app, passport){
                         res.end();
                         return;
                     }
+                    console.log("-------------------")
                    //apply filter if any
                    var workflowlist = JSON.parse(workflowResponse.body);
                    var filteredWorkflowList = [];
@@ -38,18 +43,18 @@ module.exports = function(app, passport){
                                        // if (allpermissions[x]["key"] == "FILTER_WORKFLOW_VARIABLES"){
                                            // var filter = allpermissions[x]["value"]["filter"];
                                            // console.log("VARIABLE FILTER ACTIVE: " + filter)
-                                           // for (var i in workflowlist["workflows/details"]){
-                                               // console.log(workflowlist["workflows/details"][i]["user_variables"]);
-                                               // for (var user_var_index in (workflowlist["workflows/details"][i]["user_variables"])){
+                                           // for (var i in workflowlist["workflows"]){
+                                               // console.log(workflowlist["workflows"][i]["user_variables"]);
+                                               // for (var user_var_index in (workflowlist["workflows"][i]["user_variables"])){
                                                    
-                                                   // var user_var = (workflowlist["workflows/details"][i]["user_variables"][user_var_index])
+                                                   // var user_var = (workflowlist["workflows"][i]["user_variables"][user_var_index])
                                                         // if (user_var["name"].toLowerCase().match(filter.toLowerCase())){
                                                              // //allow
                                                              // console.log("Matched allowed User variable: " + user_var["name"])
                                                         // }else{
                                                             // console.log("Hiding User variable due to filter settings: " + user_var["name"])
-                                                            // workflowlist["workflows/details"][i]["user_variables"] = [];
-                                                            // console.log(workflowlist["workflows/details"][i]["user_variables"])
+                                                            // workflowlist["workflows"][i]["user_variables"] = [];
+                                                            // console.log(workflowlist["workflows"][i]["user_variables"])
                                                             
                                                         // }
                                                    // }
@@ -65,9 +70,9 @@ module.exports = function(app, passport){
                         //FILTER WORFKLOWS
                                if (allpermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
                                    var filter = allpermissions[x]["value"]["filter"];
-                                   for (var i in workflowlist["workflows/details"]){
-                                        var wf = workflowlist["workflows/details"][i];
-                                       if (wf["general"]["wf_folder"].toLowerCase().match(filter.toLowerCase())){
+                                   for (var i in workflowlist["workflows"]){
+                                        var wf = workflowlist["workflows"][i];
+                                        if (wf["general"]["wf_folder"].toLowerCase().match(filter.toLowerCase())){
                                            if (!alreadyAdded[wf["general"]["wf_name"]]){
                                                console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " matches filter "+ filter);
                                                alreadyAdded[wf["general"]["wf_name"]] = 1;
@@ -80,12 +85,11 @@ module.exports = function(app, passport){
                                }
                                if (allpermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
                                    var filter = allpermissions[x]["value"]["filter"];
-                                   for (var i in workflowlist["workflows/details"]){
-                                       var wf = workflowlist["workflows/details"][i];
+                                   for (var i in workflowlist["workflows"]){
+                                       var wf = workflowlist["workflows"][i];
                                        if (wf["general"]["wf_name"].toLowerCase().match(filter.toLowerCase())){
                                            //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
                                            if (!alreadyAdded[wf["general"]["wf_name"]]){
-                                               console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " matches filter "+ filter);
                                                alreadyAdded[wf["general"]["wf_name"]] = 1;
                                                filteredWorkflowList.push(wf);//allow workflow
                                            }
@@ -113,7 +117,7 @@ module.exports = function(app, passport){
                        
                        //finally output filtered list 
                         console.log("serving filtered workflow list")
-                        workflowlist["workflows/details"] = filteredWorkflowList;
+                        workflowlist["workflows"] = filteredWorkflowList;
                         res.writeHead(200,{"Content-Type" : "application/JSON"});
                         res.write(JSON.stringify(workflowlist));//output json array to client
                         res.end();
