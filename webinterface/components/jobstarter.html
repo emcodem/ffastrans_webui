@@ -653,12 +653,13 @@ function on_gridWorkflowSelected(wf_name,wf_object){
         var proc = proc_root[i];
         var proc_name_default= proc["type"]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
         var proc_name = proc_name_default;
+        console.log(proc_root[i])
         //TODO: change api to get us the processor displayname
         //if (wf_object[proc]["properties"]){
           //  proc_name = wf_object[proc].properties.custom_node_name ||proc_name_default; 
         //}
         
-        options.push({text:proc_name,value:proc});
+        options.push({text:proc_name,value:proc_root[i]["id"]});
     }
     var itemData = {type: "select",name: "start_proc", label: "Start Processor:", width:200,options: options,  offsetLeft:10};   
     m_mainForm.addItem("data", itemData, 2);
@@ -836,8 +837,10 @@ function startJobs(){
         
          var postBody = {}; //the JSON STructure for start job api
          var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
+         
          postBody.wf_id = selectedWorkflow.wf_id;
          var selectedStartProc = m_mainForm.getSelect("start_proc").selectedOptions[0].value;
+         console.log(m_mainForm.getSelect("start_proc").selectedOptions[0])
          postBody.start_proc = selectedStartProc;
          postBody.inputfile = _filepath.replace(/&amp;/g, '&'); 
          postBody.variables = [];
