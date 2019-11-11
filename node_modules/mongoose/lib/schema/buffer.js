@@ -4,11 +4,13 @@
 
 'use strict';
 
+const MongooseBuffer = require('../types/buffer');
+const SchemaBufferOptions = require('../options/SchemaBufferOptions');
+const SchemaType = require('../schematype');
 const handleBitwiseOperator = require('./operators/bitwise');
 const utils = require('../utils');
 
-const MongooseBuffer = require('../types/buffer');
-const SchemaType = require('../schematype');
+const populateModelSymbol = require('../helpers/symbols').populateModelSymbol;
 
 const Binary = MongooseBuffer.Binary;
 const CastError = SchemaType.CastError;
@@ -40,6 +42,7 @@ SchemaBuffer.schemaName = 'Buffer';
  */
 SchemaBuffer.prototype = Object.create(SchemaType.prototype);
 SchemaBuffer.prototype.constructor = SchemaBuffer;
+SchemaBuffer.prototype.OptionsConstructor = SchemaBufferOptions;
 
 /*!
  * ignore
@@ -125,7 +128,7 @@ SchemaBuffer.prototype.cast = function(value, doc, init) {
     const path = doc.$__fullPath(this.path);
     const owner = doc.ownerDocument ? doc.ownerDocument() : doc;
     const pop = owner.populated(path, true);
-    ret = new pop.options.model(value);
+    ret = new pop.options[populateModelSymbol](value);
     ret.$__.wasPopulated = true;
     return ret;
   }

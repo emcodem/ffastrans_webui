@@ -10,29 +10,60 @@ module.exports = {
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
     }
-    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 2000},(error, response, body) => {
-        if(error) {
-            global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
-            return;
-        }
+    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 4000},(error, response, body) => {
+            if(error) {
+                global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+                console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+                console.error(error);
+                return;
+            }
+                
+            var jobArray;		
+            try{
+                jobArray = JSON.parse(body).jobs;
+            }catch(exc){
+                console.error("Error occured while parsing active jobs to json: " + exc + body)
+            }
+            
+            for (i=0;i<jobArray.length;i++){
+                jobArray[i]["guid"] = jobArray[i]["id"] + "~" + jobArray[i]["split"];
+                var idx = jobArray[i]["guid"].split("~");
+                //data for client display
+                jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
+                jobArray[i].guid = jobArray[i]["guid"]
+                jobArray[i]._id = jobArray[i].guid;
+                jobArray[i].state = "Active";
+                jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
+                jobArray[i].file = jobArray[i]["file"]
+                jobArray[i].outcome = jobArray[i]["status"]
+                jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
+                jobArray[i].wf_name = jobArray[i]["workflow"];
+                
+            }//for all jobs
+                       
+           //todo: store last active jobs array in DB for immediate client initialisation?
+           
         //send the new jobs to connected clients, todo: only notify clients about new stuff
 		try{
-			global.socketio.emit("activejobs", JSON.stringify(JSON.parse(body).jobs));
-			global.socketio.emit("activejobcount", JSON.parse(body).jobs.length);
+			global.socketio.emit("activejobs", JSON.stringify(jobArray));
+			global.socketio.emit("activejobcount", jobArray.length);
 		}catch(exc){
 			console.error("Error occured while sending activejobs to clients: " + exc + body)
 		}
     });
     
     //fetch queued jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {
+    Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {        
+        
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
         }
         if(error) {
-            global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+            global.socketio.emit("error", 'Error getting Queued Jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
         }
+        
+        
         //send the new jobs to connected clients, todo: only notify clients about new stuff
 		try{
             if (JSON.parse(body)["tickets"]["queue"]){
@@ -56,12 +87,16 @@ module.exports = {
             return;
         }
         if(error) {
-            global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+            global.socketio.emit("error", 'Error retrieving queued jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
             return;
         }
-		
-        var jobArray 
-		
+
+        if (global.lasthistory == body){
+            return;
+        }
+        global.lasthistory = body;
+        
+        var jobArray;		
 		try{
 			jobArray = JSON.parse(body).history;
 		}catch(exc){
@@ -69,27 +104,61 @@ module.exports = {
 		}
 		//store history jobs in database
         var newjobsfound = 0;
+//TRY GET CHILDS FOR TREEGRID        
+        
+        //restructure array from ffastrans,build famliy tree
+        
         for (i=0;i<jobArray.length;i++){
-            //todo: check if we need to insert anything before calling insert (save amount of calls per second)
-            var guid = hashCode(JSON.stringify(jobArray[i]));//TODO: the +i is just for making every entry unique, this is to workaround missing job ids and split ids in ffastrans 093. DELETE THIS 
-            jobArray[i].guid = guid;
-            jobArray[i]._id = guid;
-            jobArray[i].duration = getDurationStringFromDates(jobArray[i].job_start,jobArray[i].job_end);
-            jobArray[i].state = m_jobStates[jobArray[i].state];
-            jobArray[i].job_start = getDate(jobArray[i].job_start);
-            jobArray[i].job_end = getDate(jobArray[i].job_end);
+                //only jobguid plus split makes each job entry unique (hopefully)
+                jobArray[i]["guid"] = jobArray[i]["guid"] + "~" + jobArray[i]["split"];
+                var idx = jobArray[i]["guid"].split("~");
+                //data for client display
+                jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
+                jobArray[i].guid = jobArray[i]["guid"]
+                jobArray[i]._id = jobArray[i].guid;
+                jobArray[i].state = m_jobStates[jobArray[i]["state"]];
+                jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
+                jobArray[i].file = jobArray[i]["file"]
+                jobArray[i].outcome = jobArray[i]["result"]
+                jobArray[i].job_start = getDate(jobArray[i]["job_start"]);
+                jobArray[i].job_end = getDate(jobArray[i]["job_end"]);
+                jobArray[i].duration = (getDurationStringFromDates(jobArray[i]["job_start"],jobArray[i]["job_end"])+"");
+                jobArray[i].wf_name = jobArray[i]["workflow"];
+                //internal data for sorting
+                jobArray[i]["id"] = idx[0];
+                jobArray[i]["sort_family_name"] = idx[0];
+                jobArray[i]["sort_child_id"] = idx[1];                
+                jobArray[i]["sort_family_index"] =  idx[1].slice(0, -1) || 1;    //if own splitid is 123, family index is 12
+                if (jobArray[i]["sort_family_index"] === "undefined"){
+                    jobArray[i]["sort_family_index"] = 1;//first anchestor in family
+                }
+                jobArray[i]["sort_parent_id"] = idx[1].split('')[idx[1].split('').length-2] || 0; //finds out parent id, e.g. split id 132 is second child of parent_id 3.
+                jobArray[i]["sort_generation"] = idx[1].length-1;
+                
+        }
+        
+//END OF Family sorting
+        jobArray = getFancyTreeArray(jobArray);
+
+        for (i=0;i<jobArray.length;i++){
+
+            //Unique ID is now jobid~splitid + time_end!!!
             
-            global.db.jobs.insert(jobArray[i], function (err, newDoc) {
-                if (err){
-                    //console.log("Error inserting history job into DB: " + err)
+            (function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
+                //upsert history record (if family_member_count changed)
+                global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
+                if(docs > 0 ){
+                        console.log("inserted " + job_to_insert["file"])
+                        console.log("emitting newhistjob");
+                        global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
+
+                }else{
+                //        console.log("Job already exists");
                 }
-                if (newDoc){
-                    newjobsfound ++;
-                    //inform clients about the presence of new history job(s)
-                    //todo: calculate duration and store along with object
-                    global.socketio.emit("newhistoryjob", newDoc);//inform clients about the current num of history jobs so they can poll for the joblist if they need new jobs
-                }
-            });
+                    
+                })//job update
+            })(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
+            continue;            
         }
 
         //inform clients about current job count
@@ -116,9 +185,8 @@ module.exports = {
 
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
-    var re = new RegExp("-.....");
-    //TODO CARE ABOUT DATE
-        var newdatestr = (str.replace("T"," ").replace("-01.00",""))
+     var re = new RegExp("-.....");
+    var newdatestr = (str.replace("T"," ").replace("-01.00",""))
     try{
         return date.parse(str.replace("T"," ").replace("-01.00",""),"YYYY-MM-DD HH:mm:ss.SSS")
     }catch(e){
@@ -129,8 +197,8 @@ function getDate(str){
 }
 
 function getDurationStringFromDates(start_date,end_date){
-        start_date = getDate(start_date)
-        end_date = getDate(end_date)
+        //start_date = getDate(start_date)
+        //end_date = getDate(end_date)
         var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
         var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
         delta -= days * 86400;// calculate (and subtract) whole hours
@@ -139,13 +207,13 @@ function getDurationStringFromDates(start_date,end_date){
         var minutes = Math.floor(delta / 60) % 60;
         delta -= minutes * 60;// what's left is seconds
         var seconds = delta % 60;  // in theory the modulus is not required
-        return pad(hours) + ":" + pad (minutes) + ":" + pad (seconds);
+        return pad(hours) + ":" + pad (minutes) + ":" + pad ((seconds+"").replace(/\.\d+/,"")); //TODO: seconds now contain ms... split this off
 }
 
-function pad(n, z) { //add leading zero if there is none
-  z = z || '0';
-  n = n + '';
-  return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
+function pad(num) {
+    var s = num+"";
+    while (s.length < 2) s = "0" + s;
+    return s;
 }
 
 function hashCode (string) {
@@ -162,4 +230,57 @@ function hashCode (string) {
 
 function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
+}
+
+function getFancyTreeArray(jobArray){
+    
+            //find out all parents
+        var godfathers = jobArray.filter(function (el) {
+                return el["sort_generation"] === 0; 
+        });
+        console.log("num godfathers " + godfathers.length) 
+        //find out all subjobs of same id
+        for (var i in godfathers){
+            
+            var godfather = godfathers[i]; 
+            var family_name = godfather["sort_family_name"]; //family_name is actually jobguid
+            var family = jobArray.filter(function (el) {
+                return el["sort_family_name"] === family_name;
+             });
+             godfather["sort_family_member_count"] = family.length;
+            
+             //array of families now contains all family members but flat only
+             
+             //build family tree             
+             var generation_count = 1;
+             if (family.length > 1){
+                //it is family with childs, get out how many generations we have
+                generation_count = Math.max.apply(Math, family.map(function(o) { return o["sort_generation"]; }))  
+             }
+             
+            //foreach generation
+            var generations = []
+           
+            for (genidx=0;genidx<generation_count;genidx++){
+                //foreach parent in this generation
+                _parents = family.filter(function (el) {return el["sort_generation"] == genidx})
+                //console.log(_parents)
+                //find children of current parent in current generation
+                for (paridx=0;paridx<_parents.length;paridx++){
+                    _parents[paridx]["children"] = family.filter(function (el) {
+                        if (el["state"] == "Error"){
+                            godfather["state"] = "Error";
+                            godfather["outcome"] += " Child: " + el["outcome"];
+                        }
+                         return (el["sort_generation"] == genidx+1 && el["sort_family_index"] == _parents[paridx]["sort_child_id"]) ;
+                    });
+                }                
+            }
+            //godfather now contains full family tree
+                
+            }
+        
+        return godfathers;
+
+    
 }

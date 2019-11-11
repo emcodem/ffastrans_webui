@@ -47,6 +47,7 @@ defaultConfig.STATIC_GET_WORKFLOW_VARS_URL = "/api/json/v2/workflows/<wf_id>/use
 defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v2/jobs";
 defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
+defaultConfig.STATIC_GET_JOB_LOG_URL = "/api/json/v2/joblog/" //+ <job_id>?start=0&count=100
 defaultConfig.STATIC_USE_PROXY_URL =  true;
 
 

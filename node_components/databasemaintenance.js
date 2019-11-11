@@ -46,8 +46,10 @@ module.exports = function(app, express){
     
 //insert test records into job DB   
 	app.get('/generatetestjobs', (req, res) => {
-            console.log("generatetestjobs inserter called, inserting 10000 test jobs")
-            var date_start = new Date("2018/12/30 16:32:15");
+            console.log("generatetestjobs inserter called, inserting 10000 test jobs");
+            var m_jobStates = ["Error","Success","Cancelled","Unknown"];
+
+            var date_start = new Date("2020/12/31 16:32:15");
             for (i=0;i<10;i++){
                 var jobArray =[];
                 for (x=0;x<1000;x++){ 
@@ -65,7 +67,7 @@ module.exports = function(app, express){
             }
             
             res.writeHead(200,{"Content-Type" : "application/JSON"});
-            res.write(JSON.stringify({}));//output json array to client
+            res.write(JSON.stringify({"OK":"true"}));//output json array to client
             res.end();
     });
 }

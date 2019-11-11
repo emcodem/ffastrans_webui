@@ -9,6 +9,13 @@
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-151931970-1"></script>
+<script >
+
+</script>
+
+
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -139,6 +146,12 @@ var m_permissionUrls = {
 }
 /*load config from server*/
 function loadserverconfig(){
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-151931970-1', { 'anonymize_ip': true });
+  gtag('config', 'UA-151931970-1');
+  
    $.ajax({
         url:  ("/getserverconfig") ,
         type: "GET",
@@ -190,8 +203,8 @@ function init(permissions){
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
     '<div class="counter_jobs div_logged_in_users">&nbsp Online Users  <div class="header_counter_number" id="loggedinusercount">0</div></div>'+
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
-    '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div></a>'+
-    '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="harry itemrowtopright"></a>'+ 
+    '<img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div>'+
+    '<img src="images/austria_helmet_white.png" class="harry itemrowtopright">'+ 
     '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class=" " alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];

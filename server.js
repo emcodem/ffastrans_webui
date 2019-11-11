@@ -181,7 +181,8 @@ function init(conf){
     require("./node_components/getserverconfig")(app, express);
     require("./node_components/logparser")(app, express);
     require("./node_components/views/adminconfig")(app, express);
-    require("./node_components/views/gethistoryjobsajax")(app, express);
+    require("./node_components/views/gethistoryjobsajax_treegrid")(app, express);
+    require("./node_components/views/getactivejobsajax_treegrid")(app, express);
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/userlist")(app, express);
     require("./node_components/views/usergrouplist")(app, express);

@@ -47,7 +47,7 @@ module.exports = {
 
             } else {
                 //no scheduled jobs in DB, create a default job!
-                console.log("No Scheduled jobs stored in DB");
+                //console.log("No Scheduled jobs stored in DB");
             }
         });
   },

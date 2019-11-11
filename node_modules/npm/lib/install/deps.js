@@ -665,7 +665,7 @@ function resolveWithNewModule (pkg, tree, log, next) {
   validate('OOOF', arguments)
 
   log.silly('resolveWithNewModule', packageId(pkg), 'checking installable status')
-  return isInstallable(pkg, (err) => {
+  return isInstallable(tree, pkg, (err) => {
     let installable = !err
     addBundled(pkg, (bundleErr) => {
       var parent = earliestInstallable(tree, tree, pkg, log) || tree
@@ -711,6 +711,12 @@ function resolveWithNewModule (pkg, tree, log, next) {
   })
 }
 
+var isOptionalPeerDep = exports.isOptionalPeerDep = function (tree, pkgname) {
+  if (!tree.package.peerDependenciesMeta) return
+  if (!tree.package.peerDependenciesMeta[pkgname]) return
+  return !!tree.package.peerDependenciesMeta[pkgname].optional
+}
+
 var validatePeerDeps = exports.validatePeerDeps = function (tree, onInvalid) {
   if (!tree.package.peerDependencies) return
   Object.keys(tree.package.peerDependencies).forEach(function (pkgname) {
@@ -719,7 +725,7 @@ var validatePeerDeps = exports.validatePeerDeps = function (tree, onInvalid) {
       var spec = npa.resolve(pkgname, version)
     } catch (e) {}
     var match = spec && findRequirement(tree.parent || tree, pkgname, spec)
-    if (!match) onInvalid(tree, pkgname, version)
+    if (!match && !isOptionalPeerDep(tree, pkgname)) onInvalid(tree, pkgname, version)
   })
 }
 

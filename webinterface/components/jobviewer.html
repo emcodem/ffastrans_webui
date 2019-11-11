@@ -1,18 +1,5 @@
 <html>
-
 <script src="/socket.io/socket.io.js"></script>
-<!--<script src="../dependencies/dhtmlx/standalone/dhtmlxCommon/codebase/dhtmlxcommon.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxCommon/codebase/dhtmlxcontainer.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxCommon/codebase/dhtmlxcore.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxGrid/codebase/dhtmlxgrid.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxGrid/codebase/ext/dhtmlxgrid_srnd.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxGrid/codebase/ext/dhtmlxgrid_filter.js"></script>
-
-<script src="../dependencies/dhtmlx/standalone/dhtmlxLayout/codebase/dhtmlxlayout.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxMessage/codebase/dhtmlxmessage.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxWindows/codebase/dhtmlxwindows.js"></script>
-<script src="../dependencies/dhtmlx/standalone/dhtmlxMenu/codebase/dhtmlxmenu.js"></script>
--->
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
  <script src="../dependencies/dhtmlx/vault/vault.js"></script>
@@ -21,10 +8,30 @@
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 
+  
+  <!-- <link href="../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
+  <!-- <script src="../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
+
+  <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+
+
+  <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">  
+  
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+  <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
+  
+
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
-        width: 100%;
+        /* width: 100%; */
         height: 100%;
         margin: 0px;
         overflow: hidden;
@@ -32,108 +39,18 @@
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
     }
-    header {
-        background: #333;
-        border-bottom: 3px solid #aaa;
-        height: 80px;
-    }
-    header h1 {
-        color: #fff;
-        margin: 0 0 3px;
-        font-size: 22px;
-        padding: 12px 9px 0;
-        margin-top: 1px;
-    }
-    header p {
-        color: #ccc;
-        font-size: 8 px;
-        font-weight: bold;
-        padding: 0 27px;
-    }
-    .counter_jobs {
-      color: #ccc;
-      border-radius: 5px;
-      border: 2px solid #ccc;
-      width: 80px;
-      height: 60px;
-      background-color: #333;
-      font-size:20px;
-      font-family:"Times New Roman";
-      display:inline;
-      margin-bottom: 0;
-      position: absolute;
-      display: block;
-      font-size:12px;
-      font-family:arial;
-      margin-top: 8px;
-    }
-    .div_active_jobs {
-        margin-left:350px;
-    }
-    .div_queued_jobs {
-        margin-left:450px;
-    }
-    .div_success_jobs {
-        margin-left:550px;
-    }
-    .div_error_jobs {
-        margin-left:650px;
-    }
-    .div_cancel_jobs {
-        margin-left:750px;
-    }
-    .itemrowtopright {
-        float:right;
-        margin-right:0;
-        margin-top:10px;
-        margin-right:10px;
-        height: 50px;
-        color:white;
-    }
-    .header_counter_number{
-      margin: auto;
-      width: 50%;
-      height: 60%;
-      text-align: center;
-      vertical-align: middle;
-      line-height: 30px;
-      font-size: 20px;
-      display: block;
-      margin-top: 3px;
-      }
-    .steinar {
-        height: 38;
-        margin-top: 16px;
-    }
-    .harry{
-    
-    }
-    
-    .ffastransheadertext{
-       display: inline-block;
-    }
-    .instancename{
-       margin-top: 5px;
-       display: inline-block;
-    }
-    .description{
-       margin-top: 0px;
-    }
-    
+
     .progressbar {
       border-radius: 5px;
-
-      height: 80%;
+      height: 15px;
       background-color: #4CAF50;
-      text-align: center;
+      margin:0;
+      padding:0;
+      text-align:center;
+      vertical-align: middle;
+      white-space:nowrap;
     }
     
-      /*.dhxlayout_base_material div.dhx_cell_layout {
-          background-color: #333;
-      }
-      .body.dhxlayout_base_material{
-          //background-color: #AAA;
-      }*/
       
         /*layout headers (big blue lines)*/     
       .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr{
@@ -154,6 +71,41 @@
         z-index: 1;
       }
       
+      /*fancytree line break*/
+      table.fancytree-ext-table tbody tr td {
+        text-overflow: ellipsis;
+        /*white-space: nowrap;*/
+        text-overflow: ellipsis;
+          overflow: hidden; 
+           white-space: nowrap;
+    }
+
+/* tree column resize issues*/
+table {
+  border: 1px;
+  table-layout: fixed;
+  width: 100%;
+
+}
+/* tree column resize issues*/
+th,
+td {
+  border: 1px;
+  overflow: hidden;
+  font-weight:unset;
+  
+}
+/* text in tree title column */
+span.fancytree-title{
+padding:0 0 0;
+}
+/*three dots on text overflow*/
+.celltext{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
 </style>
 
 <script>
@@ -164,8 +116,10 @@ var socket = io();
 var mainLayout,runningJobGrid,finishedJobGrid,m_serverconfig;
 var m_rowColorError = "#f28d80"
 var m_rowColorCancelled = "#ffcc80"
+
 /* STRUCTS */
 var m_jobStates = ["Error","Success","Cancelled","Unknown"]; 
+
 
 /*load config from server*/
 function loadserverconfig(){
@@ -182,6 +136,21 @@ function loadserverconfig(){
         }
     });
 }
+
+/*get active jobs immediately - should cause server to push jobs to us via socket.io*/
+function forcejobloading(){
+   $.ajax({
+        url:  ("/getactivejobsajax_treegrid.js") ,
+        type: "GET",
+        success: function (response) {
+           
+        },
+        error: function (xhr, status) {
+           
+        }
+    });
+}
+
 
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -209,12 +178,12 @@ function init(){
     mainLayout.cells("a").setHeight($(document).height()/3.5);
     restoreLayoutSizes(mainLayout,"mainLayout");
 
-    runningJobGrid = mainLayout.cells("a").attachGrid();
-    //runningJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
-    runningJobGrid.setSkin("dhx_skyblue");
-    finishedJobGrid = mainLayout.cells("b").attachGrid();
-    //finishedJobGrid.setImagesPath("../dependencies/dhtmlx/skins/skyblue_grey/imgs/");
-    finishedJobGrid.setSkin("dhx_skyblue");
+//attach grids
+mainLayout.cells("b").attachObject("history_div");
+mainLayout.cells("b").showInnerScroll();
+mainLayout.cells("a").attachObject("active_div");
+mainLayout.cells("a").showInnerScroll();
+
     var headerMenu = mainLayout.cells("a").attachMenu({                                               
         items:[
              {id:"abort", text:'<i class="fas fa-stop"></i>Abort'},
@@ -253,17 +222,20 @@ function init(){
             }
             if (id == "delsel") {
             //delete selected jobs
-                if (!finishedJobGrid.getSelectedRowId()){
+                var tree = $('#treetable_history').fancytree('getTree');
+                var selected = tree.getSelectedNodes();
+
+                if (selected.length == 0){
                     dhtmlx.alert("Please select rows to delete " );
                     return;
                 }
-                var selectedRowIds = finishedJobGrid.getSelectedRowId().split(',');
+                
+                
                 var array_to_delete = [];
-                selectedRowIds.forEach(function(rId) {
-                    var id = (finishedJobGrid.cells(rId,finishedJobGrid.getColIndexById("_id")).getValue());
-                    array_to_delete.push(parseInt(id));
-                    finishedJobGrid.deleteRow(rId);
-                })
+                for (i=0;i<selected.length;i++){
+                    array_to_delete.push(selected[i].data["guid"]);
+                    selected[i].remove();
+                }
                 socket.emit("deletejob", JSON.stringify( array_to_delete));//note, custom structure for socket.emit messages
                 
             }
@@ -285,105 +257,32 @@ function init(){
             
     });
     
-    runningJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT']);          //the widths of columns 
-    runningJobGrid.setHeader("State,Workflow,Host,Processor,File,Job Start,End,Duration,Status,Splitindex,Progress");//the headers of columns    
-    configureJobGrid(runningJobGrid);
-    finishedJobGrid.setInitWidthsP(m_serverconfig['STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT']); 
-    finishedJobGrid.setHeader("State,Workflow,Job Start,Duration,End,File,Outcome,ID");//the headers of columns 
-    finishedJobGrid.setColumnIds("state,wf_name,job_start,duration,job_end,file,outcome,_id");
-    finishedJobGrid.enableSmartRendering(true,100);
-    finishedJobGrid.setAwaitedRowHeight(25);
-    finishedJobGrid.setImagePath("../dependencies/dhtmlx/imgs");                 
-    finishedJobGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); 
-    
-    finishedJobGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns   
-    finishedJobGrid.setColTypes("ed,ed,ed,ed,ed,ed,ed,ed,ed,ed,ed,ed,ed");                //the types of columns  
-    finishedJobGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");          //the sorting types   
-    finishedJobGrid.enableMultiselect(true);
-    finishedJobGrid.init();      //finishes initialization and renders the grid on the page 
-    finishedJobGrid.load("/gethistoryjobsajax?filtercol=job_end&direction=des","js")
-    
-    finishedJobGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
-        //as we sort on the server instead of the client, we need to override the filter function
-        var fieldname = this.columnIds[colindex];
-        finishedJobGrid.clearAll()
-        finishedJobGrid.load("/gethistoryjobsajax?filtercol="+fieldname+"&direction="+dir,"js")
-        finishedJobGrid.setSortImgState(true,colindex,dir);//this is important to let the js grid know how it is sorted (not just the user)
-        return false ;
-    });    
-    finishedJobGrid.attachEvent("onRowCreated", function(rId,rObj,rXml){
-            var state= finishedJobGrid.cells(rId,0).getValue();
-            if (state =="Error"){
-                
-                finishedJobGrid.setRowColor(rId,m_rowColorError);
-            }            
-            if (state =="Cancelled"){
-                
-                finishedJobGrid.setRowColor(rId,m_rowColorCancelled);
-            }
-    /*
-        console.log("onRowCreated")
-        //data was loaded from the server, re-color the rows
-        finishedJobGrid.forEachRow(function(id){
-            var state= finishedJobGrid.cells(id,0).getValue();
-            if (state =="Error"){
-                
-                finishedJobGrid.setRowColor(id,m_rowColorError);
-            }            
-            if (state =="Cancelled"){
-                
-                finishedJobGrid.setRowColor(id,m_rowColorCancelled);
-            }
-        });
-        */
-    });
-
-    finishedJobGrid.attachEvent("onFilterStart", function(indexes,values){
-        //we need to override grid filter method as we filter on the server
-        var filterobj = {};
-        var activefiltercount = 0;
-        for (i=0;i<values.length;i++){
-            if (values[i] != ("")){
-                var fieldname = this.columnIds[i];
-                filterobj[fieldname] = values[i];
-                activefiltercount++;
-            }
-        }
-        if (activefiltercount != 0){
-            finishedJobGrid.clearAll();
-            finishedJobGrid.load("/gethistoryjobsajax?filtercol="+fieldname+"&direction=des" +  "&filterobj=" +JSON.stringify(filterobj)  ,"js");
-        }else{
-            //filter is empty, restore normal view
-            finishedJobGrid.clearAndLoad("/gethistoryjobsajax?filtercol=job_end&direction=des","js")
-        }
-        return true;
-    });
     
     mainLayout.attachEvent("onPanelResizeFinish", function(){
         saveLayoutSizes(mainLayout,"mainLayout");
     });
     
-    finishedJobGrid.setSortImgState(true,2,"desc");
-    runningJobGrid.setSortImgState  (true,5,"desc");  
-    mainLayout.cells("a").progressOn();
-    /* events from socket.io*/
-    /*socket.on('activejobs', function(msg){
-        mainLayout.cells("a").progressOff();
-        //instead of polling periodically from the client, the server polls periodically and notifies connected clients with the job arrays
-        addActiveJobsToGrid(runningJobGrid,JSON.parse(msg))
-    });*/
-    socket.on('newhistoryjob', function(msg){
+//    mainLayout.cells("a").progressOn();
+
+     socket.on('newhistoryjob', function(msg){
         //server informs us about new history jobs in db, if there are new, we fetch them
-            var obj =  msg;
-            //we do not like to disturb user interaction, so instead of //finishedJobGrid.filterByAll(); we just add a row
-            var rowValues = [obj.state,obj.wf_name,obj.job_start,obj.duration,obj.job_end,obj.file,obj.outcome] //state,wf_id,job_start,duration,job_end,file,duration,outcome
-               finishedJobGrid.addRow(obj.guid,rowValues,0);
-                if (obj.state =="Error"){
-                    finishedJobGrid.setRowColor(obj.guid,m_rowColorError);
-                }            
-                if (obj.state =="Cancelled"){
-                    finishedJobGrid.setRowColor(obj.guid,m_rowColorCancelled);
-                }
+            var obj =  msg;                
+            var rootNode = $("#treetable_history").fancytree("getRootNode");
+
+            var existing_node = rootNode.tree.getNodeByKey(msg.key) 
+            if (existing_node){
+                existing_node.remove();
+            }
+            
+            firstnode = rootNode.findFirst("")
+            if (firstnode.extraClasses == "odd_dhx_skyblue"){
+                msg.extraClasses="ev_dhx_skyblue";
+            }else{
+                msg.extraClasses="odd_dhx_skyblue";
+            }
+            //add new node
+            var childNode = rootNode.addChildren(msg,$("#treetable_history").fancytree("getRootNode").getFirstChild());                
+
     });
 
     socket.on('queuedjobs', function(msg){
@@ -393,7 +292,7 @@ function init(){
         mainLayout.cells("a").progressOff();
     });
 	socket.on('activejobs', function(msg){    
-        addActiveJobsToGrid(runningJobGrid,JSON.parse(msg))
+        addActiveJobsToGrid(runningJobGrid,JSON.parse(msg));
         mainLayout.cells("a").progressOff();
     });
     socket.on('error', function(msg){
@@ -404,6 +303,7 @@ function init(){
     });
     
     if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])){
+        alert("running in pull mode, this should not happen")
         window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(3000));
         window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(3000));
         window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(3000));
@@ -411,8 +311,241 @@ function init(){
         getActiveJobs(runningJobGrid);
         getFinishedJobs(finishedJobGrid);
     }
+    
+    buildHistoryGrid();
+    buildActiveGrid();
+    forcejobloading();
 }
 
+
+function buildActiveGrid(){
+
+var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
+//var sourceUrl = "testdata.xml";
+  $("#treetable_active").fancytree({
+    icon:false,
+    checkbox: false,
+    titlesTabbable: true,     // Add all node titles to TAB chain
+    <!-- source: { -->
+        <!-- url: sourceUrl, -->
+        <!-- cache: true, -->
+      <!-- }, -->
+
+    multi: {//multiselct
+      mode: "",
+    },
+    init: function(event,data){
+            //ENABLE RESIZE COLUMNS 
+        $("#treetable_active").colResizable({
+            resizeMode:'fit',
+            hoverCursor:"col-resize",     
+            dragCursor:"col-resize",  
+            postbackSafe:true,
+            useLocalStorage:true,
+            minWidth: 10, 
+            liveDrag:true,  
+        })
+    },
+    modifyChild: function(event, data) {
+        //reset all odd even row colors
+        var rootNode = $("#treetable_active").fancytree("getRootNode");
+        var oldnodes = rootNode.children;
+        for (i=0;i<oldnodes.length;i++){
+            if (i%2==0){
+                oldnodes[i].toggleClass("ev_dhx_skyblue",true)
+                oldnodes[i].toggleClass("odd_dhx_skyblue",false)                 
+            }else{
+                oldnodes[i].toggleClass("odd_dhx_skyblue",true) 
+                oldnodes[i].toggleClass("ev_dhx_skyblue",false)
+            }
+        }        
+    },
+    renderColumns: function(event, data) {
+        var node = data.node;
+
+        if (data.node.getIndex() %2 == 0){
+            node.removeClass("odd_dhx_skyblue");//apply dthmlx style to node
+            node.addClass ("ev_dhx_skyblue");//apply dthmlx style to node
+        }else{
+            node.removeClass("ev_dhx_skyblue");//apply dthmlx style to node
+            node.addClass("odd_dhx_skyblue");//apply dthmlx style to node
+        }
+        
+          $tdList = $(node.tr).find(">td");
+        // (index #0 is rendered by fancytree (title node))
+        //$tdList.eq(0).text(node.data.state);
+            <!-- <th>State</th> -->
+            <!-- <th>Workflow</th>  -->
+            <!-- <th>Start</th> -->
+            <!-- <th>Source</th>  -->
+            <!-- <th>Processor@Host</th> -->
+            <!-- <th>Status</th> -->
+            <!-- <th>Progress</th> -->
+        $tdList.eq(1).text(node.data.workflow);  //.addClass("alignRight");
+        $tdList.eq(2).text(node.data.job_start);
+        $tdList.eq(3).text(node.data.file);
+        $tdList.eq(4).text(node.data.proc + "@" +node.data.host);
+        $tdList.eq(5).text(node.data.status);
+        $tdList.eq(6).html('<div class="progressbar" style=" width:'+node.data.progress+'%">'+node.data.progress+'% '+node.data.steps.replace(/ /g,"")+'</div>');
+      },
+    postProcess: function(event, data) {
+        // transform gethistoryjobsajax result into tree compatible
+        // data is a treegrid specific object          
+      data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+    },
+    extensions: [ "table","gridnav","multi"],
+      
+    table: {
+      indentation: 15,
+      nodeColumnIdx: 0,
+    },
+    gridnav: {
+      autofocusInput: false,
+      handleCursorKeys: true
+    },
+    select: function(event, data){
+        if (data.node.isSelected()){
+            data.node.addClass("rowselected");
+        }else{
+            data.node.removeClass("rowselected");
+        }
+    }
+  })
+    
+
+
+
+}
+
+
+
+function buildHistoryGrid(){
+
+var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
+//var sourceUrl = "testdata.xml";
+  $("#treetable_history").fancytree({
+    checkbox: false,
+    titlesTabbable: false,     // Add all node titles to TAB chain
+    source: {
+        url: sourceUrl,
+        cache: true,
+      },
+    icon:false,
+    multi: {//multiselct
+      mode: ""
+    },
+    modifyChild: function(event, data) {
+        //reset all odd even row colors
+        var rootNode = $("#treetable_history").fancytree("getRootNode");
+        var oldnodes = rootNode.children;
+        for (i=0;i<oldnodes.length;i++){
+            if (i%2==0){
+                oldnodes[i].toggleClass("ev_dhx_skyblue",false)
+                oldnodes[i].toggleClass("odd_dhx_skyblue",true)                 
+            }else{
+                oldnodes[i].toggleClass("odd_dhx_skyblue",false) 
+                oldnodes[i].toggleClass("ev_dhx_skyblue",true)
+            }
+        }        
+    },
+    renderColumns: function(event, data) {
+        var node = data.node;
+
+        <!-- if (data.node.extraClasses == null){ //need to do this whenever rowcount changes -->
+            if (data.node.getIndex() %2 == 0){
+                //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
+                node.toggleClass ("ev_dhx_skyblue");//apply dthmlx style to node
+            }else{
+                //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
+                node.toggleClass("odd_dhx_skyblue");//apply dthmlx style to node
+            }
+        <!-- } -->
+        
+          $tdList = $(node.tr).find(">td");
+        // (index #0 is rendered by fancytree (title node))
+        //$tdList.eq(0).text(node.data.state);
+        $tdList.eq(1).html("<div class='celltext'>"+node.data.workflow+"</div>");  //.addClass("alignRight");
+        $tdList.eq(2).html("<div class='celltext'>"+node.data.job_start+"</div>");
+        $tdList.eq(3).html("<div class='celltext'>"+node.data.duration+"</div>");
+        $tdList.eq(4).html("<div class='celltext'>"+node.data.job_end+"</div>");
+        $tdList.eq(5).html("<div class='celltext'>"+node.data.file+"</div>");
+        $tdList.eq(5).html("<div class='celltext'>"+node.data.file+"</div>");
+        $tdList.eq(6).html("<div class='celltext'>"+node.data.outcome+"</div>");        
+      },
+      init: function(event,data){           
+        //ENABLE RESIZE COLUMNS 
+        $("#treetable_history").colResizable({
+            resizeMode:'fit',
+            hoverCursor:"col-resize",     
+            dragCursor:"col-resize",  
+            postbackSafe:true,
+            useLocalStorage:true,
+            minWidth: 10, 
+            liveDrag:true,  
+        });
+      },
+    postProcess: function(event, data) {
+        // transform gethistoryjobsajax result into tree compatible
+        // data is a treegrid specific object          
+      data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+           
+    },
+    extensions: [ "table","gridnav","multi"],
+      
+    table: {
+      indentation: 15,
+      nodeColumnIdx: 0,
+    },
+    gridnav: {
+      autofocusInput: false,
+      handleCursorKeys: true
+    },
+    select: function(event, data){
+        if (data.node.isSelected()){
+            data.node.addClass("rowselected");
+        }else{
+            data.node.removeClass("rowselected");
+        }
+    }
+  })
+  
+  
+
+//tree events
+
+
+    //search btn
+    $('input[name=search]').bind("enterKey",function(e){
+            //iterate all search fields
+            var search_obj = {};
+            for (i=0;i<$("input[name=search]").length;i++){
+                var input = $("input[name=search]")[i];
+                match = $.trim(input.value);
+                var keyname = input.placeholder.toLowerCase();
+                if (match){
+                    search_obj[keyname] = (match)                
+                    console.log(search_obj)
+                }
+            }
+            
+            var tree = $('#treetable_history').fancytree('getTree');
+            tree.reload(  {   
+                            url:  "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj=" + JSON.stringify(search_obj),
+                            cache: false
+                            }
+            );        
+
+    });
+
+    $("input[name=search]").keyup(function(e){
+        if(e.keyCode == 13)
+        {
+            $(this).trigger("enterKey");
+        }
+    });
+
+
+}//buildhistorygrid
 
 function delete_jobs(array_of_rows){
 
@@ -457,14 +590,18 @@ function onHeaderClick(){
 }
 
 function openLogViewer(dhxgrid){
-    if (!dhxgrid.getSelectedRowId()){
-        dhtmlx.alert("Please select a Job" );
+    var tree = $('#treetable_history').fancytree('getTree');
+    var selected = tree.getSelectedNodes();
+
+    if (selected.length == 0){
+        dhtmlx.alert("Please select rows to view Log" );
         return;
     }
-    var selectedRowIds = dhxgrid.getSelectedRowId().split(',');
+                
     var win_offset = 0;
-    selectedRowIds.forEach(function(rId) {
-        var jobObj = dhxgrid.getUserData(rId,"jobobject");
+    selected.forEach(function(treeNode) {
+        var jobObj = treeNode.data;
+        
         var dhxwins = new dhtmlXWindows();
         //dhxwins.attachViewportTo(window.parent.document.body);
         var win = dhxwins.createWindow("Workflow",  50 + win_offset, 150 + win_offset, 1200, 800);
@@ -482,9 +619,9 @@ function openLogViewer(dhxgrid){
         logGrid.enableMultiline(true); 
         logGrid.init();      //finishes initialization and renders the grid on the page 
         
-        if (jobObj.job_id){
+        if (jobObj["sort_family_name"]){
             //we have a job_id that eases the life of finding jobs
-            var url = "/logparser?job_id=" +encodeURI(jobObj.job_id) +"&wf_name=" + encodeURI(jobObj.wf_name) ;
+            var url = "/logparser?job_id=" +encodeURI(jobObj["sort_family_name"]) +"&wf_name=" + encodeURI(jobObj["wf_name"]) ;
             logGrid.load(url,"json")
         }else{
             var file = (dhxgrid.cells(rId,dhxgrid.getColIndexById("file")).getValue());
@@ -586,85 +723,35 @@ function getQueuedJobs(targetGridObj){
 }
 
 function addActiveJobsToGrid(targetGridObj,jobArray){
-    var newjobIds = [];
-    var activejobcount=0;
-	console.log(jobArray)
-      for (i=0;i<jobArray.length;i++){
-		
-        if (("splits" in jobArray[i])){//ffastrans <95
-            /*
-			for (splitindex=0;splitindex<jobArray[i].splits.length;splitindex++){//all running jobs have "splits" which stands for concurrent tasks. We create one row in the grid for each task
-                activejobcount++;
-                var splitid = 1;
-                if (splitindex != 0){
-                    splitid = "1" + (splitindex + 1); //ffastrans 0.9.3 does not have correct splitid in api, we have to calculate our own. it works like: (1 + (1+splitindex))
-                }
-                if (typeof (jobArray[i].splits[splitindex].split_id) == "number"){
-                    splitid = jobArray[i].splits[splitindex].split_id; //newer ffastrans versions introduce splitid
-                }
-
-                //var rowid =  "active_" + i + splitid + jobArray[i].job_start;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
-                var rowid =  jobArray[i].id;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
-
-                newjobIds.push(rowid);
-                var status = jobArray[i].splits[splitindex].status;           
-                
-                var duration = getDurationStringFromDates(rowid,jobArray[i].job_end);
-                var _state = m_jobStates[jobArray[i].state];
-                var progressBar = "<div class='progressbar' style='width:"+jobArray[i].splits[splitindex].progress +"%'>" + jobArray[i].splits[splitindex].progress  + "%</div>";
-                if (targetGridObj.doesRowExist(rowid)){
-                    //update existing task
-                    targetGridObj.cells(rowid,2).setValue(jobArray[i].splits[splitindex].node);
-                    targetGridObj.cells(rowid,3).setValue(jobArray[i].splits[splitindex].processor);
-                    targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
-                    targetGridObj.cells(rowid,10).setValue(progressBar);//todo: update more values or better all!
-                }else{
-                    //add new task (ffastrans calls it split)
-                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].splits[splitindex].node,jobArray[i].splits[splitindex].processor,jobArray[i].file,jobArray[i].job_start,jobArray[i].job_end,duration,jobArray[i].outcome,splitid,progressBar],0);
-                    targetGridObj.cells(rowid,8).setValue(status);
-                }                        
-                targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
-                   
-            }*/
+    var rootNode = $("#treetable_active").fancytree("getRootNode");
+    var tree = $("#treetable_active").fancytree("getTree");
+//add or update new jobs
+    var activeJobIds = [];
+    for (y=0;y<jobArray.length;y++){
+        var key = jobArray[y]["key"];
+        activeJobIds.push(key); 
+        var existing = tree.getNodeByKey(key);
+        if (existing){
+            existing.data = jobArray[y];
+            existing.renderTitle();//forces reload of node
         }else{
-		//ffastrans version 95>
-                var rowid =  jobArray[i].id + jobArray[i].split;//split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
-                newjobIds.push(rowid);
-                var status = jobArray[i].status;                           
-                var duration = "";
-                var _state = "active";
-                var progressBar = "<div class='progressbar' style='width:"+jobArray[i].progress+"%'>" + jobArray[i].progress  + "%</div>";
-                if (targetGridObj.doesRowExist(rowid)){
-                    //update existing task
-                    targetGridObj.cells(rowid,2).setValue(jobArray[i].host);
-                    targetGridObj.cells(rowid,3).setValue(jobArray[i].proc);
-                    targetGridObj.cells(rowid,8).setValue(status);//todo: update more values or better all!
-                    targetGridObj.cells(rowid,10).setValue(progressBar);//todo: update more values or better all!
-                }else{
-                    //add new task (ffastrans calls it split)
-                    targetGridObj.addRow(rowid,[_state,jobArray[i].wf_name,jobArray[i].host,jobArray[i].proc,jobArray[i].file,jobArray[i].start_time,"","",status,jobArray[i].split,progressBar],0);
-                    targetGridObj.cells(rowid,8).setValue(status);
-                }                        
-                targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
-			
-		}
+            rootNode.addChildren(jobArray[y]);
+        }
     }
-    targetGridObj.sortRows(5,"str","des");  
-    //delete non existing/orphaned jobs e.g. active job got finished 
-    targetGridObj.forEachRow(function(id){
-        //check if we deal with a queued job
-        if (newjobIds.indexOf(id)==-1){
-            if (id.indexOf("queued_" )!= -1){
-            }else{
-                targetGridObj.deleteRow(id);
+//remove orphand
+    var oldnodes = rootNode.children;
+    if(oldnodes){
+        for (a=0;a<oldnodes.length;a++){
+            if (activeJobIds.indexOf(oldnodes[a]["key"] ) == -1){
+                oldnodes[a].remove();
             }
         }
-    });
+    }
 }
 
 
 function addQueuedJobsToGrid(targetGridObj,jobArray,state){//state added as of ffastrans 9.5, queued or active
-	
+	return;
     var newjobIds = [];
     var queuedjobcount=0;
     //add new jobs if any//TODO: at top
@@ -690,7 +777,7 @@ function addQueuedJobsToGrid(targetGridObj,jobArray,state){//state added as of f
         targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
           
     }
-    targetGridObj.sortRows(5,"str","des");   
+    //targetGridObj.sortRows(5,"str","des");   
     //update job count display
     //delete jobs that are in the grid but not in the list of jobs from server
     targetGridObj.forEachRow(function(id){
@@ -816,5 +903,60 @@ function getFinishedJobs(targetGridObj){
 
 </head>
 <body onload="loadserverconfig()">
+<div style="display:none"><!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
 
+ <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
+ <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
+    <table id="treetable_active" class="obj">
+    <colgroup>
+    <col width="5%"></col>
+    <col width="10%"></col>
+    <col width="5%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    </colgroup>      
+        <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
+          <tr > 
+            <th>State</th>
+            <th>Workflow</th> 
+            <th>Start</th>
+            <th>Source</th> 
+            <th>Processor@Host</th>
+            <th>Status</th>
+            <th>Progress</th>
+          </tr>
+        </thead>
+      </table>
+ </div> 
+
+
+
+ <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
+ <div id="history_div" style="" class="gridbox_dhx_skyblue gridbox">
+      <table id="treetable_history" class="obj">
+          <colgroup>
+    <col width="5%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    <col width="10%"></col>
+    </colgroup>      
+        <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+          <tr class=""> 
+              <th><input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+              <th><input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th> 
+              <th><input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+              <th>Duration</th> 
+              <th><input placeholder="End" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+              <th><input placeholder="File" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+              <th><input placeholder="Outcome" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+          </tr>
+        </thead>
+      </table>
+ </div> 
+ </div><!-- global hiding div -->
 </body>
