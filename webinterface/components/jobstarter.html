@@ -624,14 +624,14 @@ function on_gridWorkflowSelected(wf_name,wf_object){
 
     //called from select event of grid select
     //populates start processor drowdown
-    localStorage.setItem("lastselectedworkflow",wf_name);
+    localStorage.setItem("lastselectedworkflow",wf_object["wf_id"]);
     m_workflowTabBar.cells("variabletab").setActive();
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
     var options = [];
     m_mainForm.removeItem("start_proc");
     //var selected_wf = m_workflowSelectorGrid.getUserData(wf_name,"workflow_object");
     
-    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["general"]["wf_name"]+"]");
+    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
     
     wf_object.variable["start_procs"] = []
     for (i=0;i<wf_object["nodes"].length;i++){
@@ -645,14 +645,8 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     }
     for (i=0;i<proc_root.length;i++){
         var proc = proc_root[i];
-        var proc_name_default= proc["type"]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
+        var proc_name_default=  proc["name"] || proc["type"]; //on non renamed nodes, name is not defined
         var proc_name = proc_name_default;
-        
-        //TODO: change api to get us the processor displayname
-        //if (wf_object[proc]["properties"]){
-          //  proc_name = wf_object[proc].properties.custom_node_name ||proc_name_default; 
-        //}
-        
         options.push({text:proc_name,value:proc_root[i]["id"]});
     }
     var itemData = {type: "select",name: "start_proc", label: "Start Processor:", width:200,options: options,  offsetLeft:10};   
@@ -687,10 +681,14 @@ function parseWorkflows(wfArray){
                 //a workflow was selected!
                 if (localStorage.getItem("lastselectedworkflow")){
                     var tree = $("#workflowtree").fancytree("getTree");
-                    var n = localStorage.getItem("lastselectedworkflow")
+                    var n = localStorage.getItem("lastselectedworkflow");
+                    
                     if (n && n != "undefined"){
-                        var node = tree.findAll(n)[0]
-                        node.setSelected(false);//de-select 
+                        //var node = tree.findAll(n)[0];
+                        var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"));
+                        if (node && node != "undefined" ){
+                            node.setSelected(false);//de-select 
+                        }
                     }
                     
                 }
@@ -711,16 +709,18 @@ function parseWorkflows(wfArray){
             //workflow in root of tree
             treeObj[wfArray[i]["wf_id"]] = {};
             treeObj[wfArray[i]["wf_id"]].title = wfArray[i]["wf_name"];
-            treeObj[wfArray[i]["wf_id"]].wf_object = wfArray[i];
+            treeObj[wfArray[i]["wf_id"]].key = wfArray[i]["wf_id"]; 
+            treeObj[wfArray[i]["wf_id"]].data.wf_object = wfArray[i];
+            
         }else{
            
             if (treeObj[folder]){   //a workflow in a folder that already exists
-                treeObj[folder].children.push({title:wfArray[i]["wf_name"],wf_object:wfArray[i]});
-            }else{  //a workflow in a new folder
+                treeObj[folder].children.push({title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}});
+            }else{  //a workflow in a new folder 
                 treeObj[folder] = {};
                 treeObj[folder].title = folder;
                 treeObj[folder].folder = true;
-                treeObj[folder].children = [{title:wfArray[i]["wf_name"],wf_object:wfArray[i]}];//
+                treeObj[folder].children = [{title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}}];//
             }
         }
     }
@@ -744,9 +744,12 @@ function parseWorkflows(wfArray){
         var tree = $("#workflowtree").fancytree("getTree");
         var n = localStorage.getItem("lastselectedworkflow")
         if (n && n!= "undefined"){
-            var node = tree.findAll(n)[0]
-            node.setSelected(true);
-            node.parent.setExpanded(true);
+            //var node = tree.findAll(n)[0]
+            var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"))
+            if (node && node!= "undefined"){
+                node.setSelected(true);
+                node.parent.setExpanded(true);            
+            }
         }
     }
     

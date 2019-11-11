@@ -12,6 +12,19 @@ module.exports = {
         });
         return;
     },
+    getJobLog: (job_id,start,count,callbackSuccess,callbackError) => {
+        if (!start){start = 0;}
+        if (!count){ count = 300; }
+        var url = global.config.STATIC_GET_JOB_LOG_URL + job_id + "?start=" + start + "&count=" + count;
+        Request({ url: buildApiUrl(global.config.STATIC_GET_JOB_LOG_URL), method: 'GET'}, function(error, response, body){ 
+            if (error){
+                callbackError(error)
+            }else{
+                callbackSuccess(body)
+            }
+        });
+        return;
+    },
     startJob: (job,callbackSuccess,callbackError) => {
         console.log("Starting job:");
         console.log(job);

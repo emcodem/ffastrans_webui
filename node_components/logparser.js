@@ -11,127 +11,24 @@ module.exports = function(app, express){
 	//find log file and return result
 	app.get('/logparser', (req, res) => {
 		try{
-			if (req.method === 'GET') {
-                const url_parts = url.parse(req.url, true);
-                const query = url_parts.query;
-                console.log("Request for log file ");
-                console.log(url_parts);
-				if (!req.query.job_id){
-                    //nightmare mode: we did not get a jobid (job was a history job) but instead wf_name,start_date,end_date and filename - now we have to find a matching log file
-                    //the first logfile that matches all search params is returned
-                    var wf_id = req.query.wf_id;
-                    var wf_name = req.query.wf_name;
-                    //the following is crazy. TODO: in a future version, when all jobs have a jobid, delete this whole very if body content 
-                    //I'M SORRY.
-                    ffastransapi.getWorkflowDetails(
-                            function(allworkflows){
-                                //find workflow log directory 
-                                allworkflows=JSON.parse(allworkflows);
-                                allworkflows["workflows/details"].forEach(
-                                    function(wf){
-                                        if (wf.general.wf_name== wf_name){
-                                            if (!wf.special.log_jobs){
-                                                global.socketio.emit("error", "Workflow \"" + wf_name + "\" is not log enabled, contact your ffastrans Admin");
-                                                res.status(500);
-                                                res.write("Workflow \"" + wf_name + "\" is not log enabled, contact your ffastrans Admin<br>");
-                                                res.write(wf.special.log_jobs + "<br>");
-                                                res.write("Debug info: " + JSON.stringify(wf.special));
-                                                res.end();
-                                            }
-                                             //work_folder
-                                               console.log("The Working directory is here todo: zip and make available for download: "  +findExistingWorkingDir(wf,"work_folder"))
-                                              
- 
-                                             
-                                            if (wf.special.log_file){ //log_file is actually the log directory
-                                                //finally we have a log directory. but as we dont have a jobid, we must grep for the file of interest.
-                                                fs.readdir( wf.special.log_file, function( err, files ) {
-                                                    if( err ||!files ) {
-                                                        global.socketio.emit("error", "Unexpected Error finding log file: " + err);
-                                                        res.write("Unexpected Error finding log file: " + err);
-                                                        res.end();
-                                                    }  
-                                                    console.log("attempting to open logfile")
-                                                    files.forEach( function( file, index ) {
-                                                        //loop through files on filesystem - read first line in file an see if start_date is contained
-                                                        var filename = path.join( wf.special.log_file, file );
-                                                        var stat = fs.statSync(filename);
-                                                        var dateRequired = new Date(req.query.job_start);//only logs on the same day, otherwise we read too many files
-                                                        var dateCurrentFile = new Date(stat.ctime);//only logs on the same day
-                                                        dateRequired.setHours(0);dateRequired.setMinutes(0);dateRequired.setSeconds(0);
-                                                        dateCurrentFile.setHours(0);dateCurrentFile.setMinutes(0);dateCurrentFile.setSeconds(0);
-                                                       //we are nearly there, now just open all the files from the same day
-                                                        if (dateRequired.toString() == dateCurrentFile.toString()){
-                                                              const opts = {encoding: 'UTF16',lineEnding: '\n'};
-                                                                firstline(filename).then(function(what){
-                                                                //i love that ffastrans logs are utf-16
-                                                                var convertedLine = (encoding.convert(what, "ascii", "UTF16")).toString();
-                                                                //finally, we have a file with required start_date in first line. assum this is the log of interest!
-                                                                var matchdate = req.query.job_start.replace(/\//g,"-");//replaces / by -  as the ffastrans api returns a date with / but in logs it is -
-                                                                if (convertedLine.match(matchdate)){
-                                                                    //todo:output parsed log
-                                                                    try{
-                                                                        var returnstr = parseLogFile(filename);//check if we have a JSON
-                                                                        JSON.parse(JSON.stringify(returnstr));
-                                                                        //res.setHeader('Content-Type', 'application/json');
-                                                                        res.send(JSON.stringify(returnstr));
-                                                                        return;
-                                                                    }catch(ex){
-                                                                        global.socketio.emit("error", ex);
-                                                                        
-                                                                        return;
-                                                                    }
-                                                                        
-                                                                    res.write(parseLogFile(filename));
-                                                                    res.end();
-                                                                    return;
-                                                                }
-                                                            }, function(err){
-                                                                
-                                                            }).catch();
-                                                        }
-                                                    })
-                                                })
-                                            }else{
-                                                console.error("Log File path not found in workflow details")
-                                                global.socketio.emit("error", "Log File path not found in workflow details");
-                                            }
-                                        }
-                                    }
-                                )
-                                
-                            },
-                            function(err){
-                                console.trace(err)
-                            });
-                }else{
-                    //we did get a jobid, finding the matching log should be easier than above
-                    //LIFE IS GOOD
-                    if (!req.query.wf_name || !req.query.job_id){
-                        throw new Error("wf_name or job_id not set in query");
-                    }
-                    ffastransapi.getWorkflowDetails(
-                        function(allworkflows){
-                            allworkflows=JSON.parse(allworkflows);
-                            allworkflows["workflows/details"].forEach(function(wf){
-                            if (wf.general.wf_name== req.query.wf_name){
-                                if (!wf.special.log_jobs){
-                                    global.socketio.emit("error", "Workflow \"" + wf_name + "\" is not log enabled, contact your ffastrans Admin");
-                                    res.status(500);
-                                    res.write("Workflow \"" + wf_name + "\" is not log enabled, contact your ffastrans Admin<br>");
-                                    res.write(wf.special.log_jobs + "<br>");
-                                    res.write("Debug info: " + JSON.stringify(wf.special));
-                                    res.end();
-                                }
-                                var filename = path.join( wf.special.log_file, req.query.job_id+".txt" );
-                                console.log("Calculated Filename for log: " + filename)
-                                res.write(JSON.stringify(parseLogFile(filename)));
-                                res.end();     
-                            }                        
-                        });//foreach
-                        });//getworkflowdetails
-                }
-			}
+            const url_parts = url.parse(req.url, true);
+            const query = url_parts.query;
+            console.log("Request for log file ");
+            console.log(url_parts);
+            ffastransapi.getJobLog(req.query["job_id"],0,200,
+                function(data){
+                    res.status(200);//Send error response here
+                    res.send(data);
+                    res.end();  
+                    
+                },
+                function(error){
+                    console.log("ERROR getting joblog, " + error);
+                    res.status(500);//Send error response here
+                    res.send("ERROR getting joblog, " + error);
+                    res.end();                        
+                })
+			
 		}catch (ex){
                 global.socketio.emit("error", "ERROR: in logparser : " + ex);
                 console.log("ERROR: in logparser : " + ex.stacktrace);
@@ -139,6 +36,7 @@ module.exports = function(app, express){
                 res.send("ERROR: unxepected error in logparser: " + ex);
                 res.end();
 		}
+
 	});
 }
 

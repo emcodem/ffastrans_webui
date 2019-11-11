@@ -4,13 +4,13 @@
  * Allow multiple selection of nodes  by mouse or keyboard.
  * (Extension module for jquery.fancytree.js: https://github.com/mar10/fancytree/)
  *
- * Copyright (c) 2008-2019, Martin Wendt (http://wwWendt.de)
+ * Copyright (c) 2008-2019, Martin Wendt (https://wwWendt.de)
  *
  * Released under the MIT license
  * https://github.com/mar10/fancytree/wiki/LicenseInfo
  *
- * @version 2.30.2
- * @date 2019-01-13T08:17:01Z
+ * @version 2.32.0
+ * @date 2019-09-10T07:42:12Z
  */
 
 (function(factory) {
@@ -39,7 +39,7 @@
 	 */
 	$.ui.fancytree.registerExtension({
 		name: "multi",
-		version: "2.30.2",
+		version: "2.32.0",
 		// Default options for this extension.
 		options: {
 			allowNoSelect: false, //
@@ -61,7 +61,8 @@
 			var //pluginOpts = ctx.options.multi,
 				tree = ctx.tree,
 				node = ctx.node,
-				activeNode = tree.getActiveNode() || tree.getFirstChild(),
+				//activeNode = tree.getActiveNode() || tree.getFirstChild(),
+                activeNode = tree.getSelectedNodes()[0]|| tree.getFirstChild(),
 				isCbClick = ctx.targetType === "checkbox",
 				isExpanderClick = ctx.targetType === "expander",
 				eventStr = $.ui.fancytree.eventToString(ctx.originalEvent);
