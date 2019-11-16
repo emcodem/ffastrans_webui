@@ -16,9 +16,11 @@ module.exports = {
         if (!start){start = 0;}
         if (!count){ count = 300; }
         var url = global.config.STATIC_GET_JOB_LOG_URL + job_id + "?start=" + start + "&count=" + count;
-        Request({ url: buildApiUrl(global.config.STATIC_GET_JOB_LOG_URL), method: 'GET'}, function(error, response, body){ 
+        Request({ url: buildApiUrl(url), method: 'GET'}, function(error, response, body){ 
             if (error){
+                console.error("getJobLog Error " + error , url)
                 callbackError(error)
+                console.error(error.stack)
             }else{
                 callbackSuccess(body)
             }

@@ -137,20 +137,15 @@ var m_workflowdata = {};
                 
                 var connections = [];//build an object used to create the connections between the nodes
                 //parse ffastrans workflow json
-                var node = m_workflowdata;
+                var node = m_workflowdata["nodes"];
                 for (var key in node) {
-                    if (node.hasOwnProperty(key)) {
-                        //console.log(node[key].properties)
-                        if (node[key].properties){//we deal with a processor node //todo: get out if this is the best way how to select processor nodes
-                            var x = node[key].properties.proc_x;
-                            var y =  node[key].properties.proc_y;
+                            var x = node[key]["proc_x"];
+                            var y =  node[key]["proc_y"];
                             var v1 = graph.insertVertex(parent, key, 'Hello,', x,y,200, 200,'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
                             node[key].originalname = key;//expand ffastrans properties by name of processor
                             v1.ffastransobj = node[key];
                             v1.data = new CustomData('v1');//todo: get out what this is used for
-                            connections.push({"from":key,"to": node[key].properties.outbounds})
-                        }
-                    }
+                            connections.push({"from":key,"to": node[key].outbounds})
                 }
                 //create node connections
 
@@ -239,10 +234,10 @@ function getWorkflows(wf_id){
         crossDomain: true,
         dataType: "json",
         success: function (response) {
-            if (response['workflows/details'].length == 0){
+            if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{
-                workflowArray = response['workflows/details'];
+                workflowArray = response['workflows'];
                 for(var wf in workflowArray){
                     if (wf_id == workflowArray[wf].wf_id){
                         m_workflowdata = workflowArray[wf];
@@ -254,7 +249,7 @@ function getWorkflows(wf_id){
             }
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+            alert("ERROR getting workflows, possibly FFASTRANS API is offline. ");
         }
     });
 }

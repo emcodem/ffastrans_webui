@@ -10,6 +10,7 @@ module.exports = function(app, express){
     const ffastransapi = require("./ffastransapi");
 	//find log file and return result
 	app.get('/logparser', (req, res) => {
+                  
 		try{
             const url_parts = url.parse(req.url, true);
             const query = url_parts.query;
@@ -18,7 +19,8 @@ module.exports = function(app, express){
             ffastransapi.getJobLog(req.query["job_id"],0,200,
                 function(data){
                     res.status(200);//Send error response here
-                    res.send(data);
+                    
+                    res.send(parseJsonLog(data));
                     res.end();  
                     
                 },
@@ -39,6 +41,14 @@ module.exports = function(app, express){
 
 	});
 }
+
+function parseJsonLog(json){
+    var all_lines = JSON.parse(json);
+    for (i=0;i<all_lines["lines"].length;i++){
+        console.log(all_lines["lines"][i]["content"]);
+    }
+}
+
 
 function parseLogFile(filepath){
     //return a dhtmlx grid compatible JSON, takes path to log file as parameter

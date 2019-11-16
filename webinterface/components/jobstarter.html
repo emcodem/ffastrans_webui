@@ -692,7 +692,7 @@ function parseWorkflows(wfArray){
                     }
                     
                 }
-                on_gridWorkflowSelected(data.node.title,data.node.data.wf_object);
+                on_gridWorkflowSelected(data.node.title,data.node.data["wf_object"]);
            }
         }
     };
@@ -710,7 +710,7 @@ function parseWorkflows(wfArray){
             treeObj[wfArray[i]["wf_id"]] = {};
             treeObj[wfArray[i]["wf_id"]].title = wfArray[i]["wf_name"];
             treeObj[wfArray[i]["wf_id"]].key = wfArray[i]["wf_id"]; 
-            treeObj[wfArray[i]["wf_id"]].data.wf_object = wfArray[i];
+            treeObj[wfArray[i]["wf_id"]]["wf_object"] = wfArray[i];
             
         }else{
            
