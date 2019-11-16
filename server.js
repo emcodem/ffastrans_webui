@@ -21,7 +21,10 @@ require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every conso
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
-  console.trace('Caught exception: ' + err);
+  console.trace('Global unexpected error: ' + err);
+  if (err.stack){
+      console.erro(err.stack);
+  }
 });
 
 //needed for running as nexe - access to local files (database) is different 
