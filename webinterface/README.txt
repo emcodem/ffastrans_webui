@@ -1,0 +1,1 @@
+this folder contains static web content, e.g. html and javascript stuff only, no backend code at all
