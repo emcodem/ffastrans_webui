@@ -47,6 +47,7 @@
     "serve-favicon": "^2.5.0",
     "socket.io": "^2.3.0",
     "socketio-wildcard": "^2.0.0",
+    "tableify": "^1.1.0",
     "tmp": "0.0.33"
   }
 }

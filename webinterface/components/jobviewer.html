@@ -39,6 +39,9 @@
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
     }
+    button {
+        cursor:pointer;
+    }
 
     .progressbar {
       border-radius: 5px;
@@ -172,7 +175,11 @@ function init(){
     });
     mainLayout.cells("a").setText("Running");
                                         
-    mainLayout.cells("b").setText("Finished");
+    mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
+        <button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
+        <button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button> \
+        <button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> \
+        ');
     mainLayout.cells("b").setWidth($(document).width()/3);
     //mainLayout.cells("c").setText("Finished");
     mainLayout.cells("a").setHeight($(document).height()/3.5);
@@ -193,13 +200,13 @@ mainLayout.cells("a").showInnerScroll();
           ]
     });
     
-    var headerMenuFinished = mainLayout.cells("b").attachMenu({                                               
-        items:[
-             {id:"log", text:'<i class="fas fa-info"></i>Log'},
-             {id:"delsel", text:'<i class="fas fa-trash-alt"></i>Delete Selected'},
-             {id:"delall", text:'<i class="fas fa-trash-alt"></i>Delete All'},
-          ]
-    });
+    //var headerMenuFinished = mainLayout.cells("b").attachMenu({                                               
+    //    items:[
+    //         {id:"log", text:'<i class="fas fa-info"></i>Log'},
+    //         {id:"delsel", text:'<i class="fas fa-trash-alt"></i>Delete Selected'},
+    //         {id:"delall", text:'<i class="fas fa-trash-alt"></i>Delete All'},
+    //      ]
+    //});
     
 //events for button clicks
     headerMenu.attachEvent("onClick", function(id, zoneId, cas){k
@@ -216,47 +223,8 @@ mainLayout.cells("a").showInnerScroll();
                 openLogViewer(runningJobGrid)
             }
     });
-    headerMenuFinished.attachEvent("onClick", function(id, zoneId, cas){
-            if (id == "log") {
-                openLogViewer(finishedJobGrid)
-            }
-            if (id == "delsel") {
-            //delete selected jobs
-                var tree = $('#treetable_history').fancytree('getTree');
-                var selected = tree.getSelectedNodes();
 
-                if (selected.length == 0){
-                    dhtmlx.alert("Please select rows to delete " );
-                    return;
-                }
-                
-                
-                var array_to_delete = [];
-                for (i=0;i<selected.length;i++){
-                    array_to_delete.push(selected[i].data["guid"]);
-                    selected[i].remove();
-                }
-                socket.emit("deletejob", JSON.stringify( array_to_delete));//note, custom structure for socket.emit messages
-                
-            }
-            if (id == "delall") {
-            //delete all jobs
-               dhtmlx.confirm({
-								title:"Delete ALL Jobs",
-								type:"confirm-error",
-								text:"Really delete ALL Jobs?",
-                                callback:function(yesno){
-                                    if (yesno){
-                                         socket.emit("deletealljobs");//note, custom structure for socket.emit messages
-                                         finishedJobGrid.clearAll();
-                                    }
-                                }
-							});
-            }
-            
-            
-    });
-    
+
     
     mainLayout.attachEvent("onPanelResizeFinish", function(){
         saveLayoutSizes(mainLayout,"mainLayout");
@@ -317,6 +285,47 @@ mainLayout.cells("a").showInnerScroll();
     forcejobloading();
 }
 
+function click_b_header(id) {
+
+    var tree = $('#treetable_history').fancytree('getTree');
+    var selected = tree.getSelectedNodes();
+
+    if (id == "b_details") {
+        if (selected.length == 0){
+            dhtmlx.alert("Please select row to show details");
+            return;
+        }
+        dhtmlx.message(selected[0].data["sort_family_name"]);
+    }
+    if (id == "delsel") {
+    //delete selected jobs 
+        if (selected.length == 0){
+            dhtmlx.alert("Please select rows to delete " );
+            return;
+        }
+        var array_to_delete = [];
+        for (i=0;i<selected.length;i++){
+            array_to_delete.push(selected[i].data["guid"]);
+            selected[i].remove();
+        }
+        socket.emit("deletejob", JSON.stringify( array_to_delete));//note, custom structure for socket.emit messages
+    }
+    if (id == "delall") {
+        //delete all jobs
+            dhtmlx.confirm({
+						    title:"Delete ALL Jobs",
+						    type:"confirm-error",
+						    text:"Really delete ALL Jobs?",
+                            callback:function(yesno){
+                                if (yesno){
+                                        socket.emit("deletealljobs");//note, custom structure for socket.emit messages
+                                        finishedJobGrid.clearAll();
+                                }
+                            }//callback
+					    });//confirm
+        }//delall        
+}
+    
 
 function buildActiveGrid(){
 
