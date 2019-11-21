@@ -1,59 +1,520 @@
 <html>
+<head>
+    <title>FFAStrans Workflow</title>
 
-<script src="../dependencies/jquery/jquery.js"></script>
-<script src="../dependencies/json_viewer/json-viewer/jquery.json-viewer.js"></script>
-<link href="../dependencies/json_viewer/json-viewer/jquery.json-viewer.css" type="text/css" rel="stylesheet" />
+    <style type="text/css">
+        /* it's important to set width/height to 100% for full-screen init
 
-<style>
-    /* it's important to set width/height to 100% for full-screen init */
-    html, body {
-        width: 100%;
-        height: 100%;
-        margin: 0px;
-        overflow: hidden;
-    }
-    ul.fancytree-container {
-        border: none;
-        outline:none !important;
-    }
+        */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            overflow: hidden;
+            color: #333;
+            font: 14px Helvetica, Arial, sans-serif;
+            line-height: 18px;
+        }
 
-</style>
+        #graphContainer {
+            background: url('../images/canvas_background.png');
+            position: absolute;
+            border: 1px solid #F2F2F2;
+            white-space: nowrap;
+            font-family: Arial;
+            font-size: 8pt;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
 
-<script>
+        table, th, td {
+            border: 1px solid black;
+        }
 
-function init(){
-    var jobid = getParameterByName("job_id");
-    renderJson();
-}
+        .table_ffastrans_processor_enabled {
+            overflow: hidden;
+            width: 200px;
+            height: 100px;
+            border: 3px rgb(85,85,85);
+            border-style: solid;
+            background-color: rgb(184,184,184);
+        }
 
-function renderJson() {
- var input = {"test":{"1":1,2:"seekme"}};
-    var options = {
-      collapsed: $('#collapsed').is(':checked'),
-      rootCollapsable: $('#root-collapsable').is(':checked'),
-      withQuotes: $('#with-quotes').is(':checked'),
-      withLinks: $('#with-links').is(':checked')
-    };
-    $('#json_viewer').jsonViewer(input, options);
-}
+        .table_ffastrans_processor_disabled {
+            overflow: hidden;
+            width: 200px;
+            height: 100px;
+            border: 3px rgb(85,85,85);
+            border-style: solid;
+            background-color: rgb(184,184,184);
+            opacity: .4
+        }
 
-function getParameterByName(name, url) {
-    if (!url) url = window.location.href;
-    name = name.replace(/[\[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-        results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, ' '));
-}
-</script>
+        .tr_ffastrans_processor_top {
+            background-color: rgb(119,119,119);
+            height: 30%;
+            color: white;
+        }
+    </style>
 
-<body onload="init()">
-<div id="header" style="width:100%;height:20px">
-<input type="submit" value="Download File"/>
-</div>
-<div id="json_viewer" style="width:100%;height:100%">
+    <script src="/socket.io/socket.io.js"></script>
 
-</div>
+    <!-- Sets the basepath for the library if not in same directory -->
+    <script type="text/javascript">
+        mxBasePath = '../dependencies/mxgraph/javascript/src';
+    </script>
+    <script src="../dependencies/jquery/jquery.js"></script>
+    <!-- Loads and initializes the library -->
+    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>
+
+    <!-- Grid dependency -->
+    <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+    <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
+
+    <script src="../dependencies/json.human.js-master/src/json.human.js"></script>
+    <!--    <script src="../dependencies/json.human.js-master/lib/codemirror_min.js"></script>
+        <script src="../dependencies/json.human.js-master/lib/codemirror_mode.js"></script>
+        <script src="../dependencies/json.human.js-master/lib/require.js"></script>
+        <link rel="stylesheet" href="../dependencies/json.human.js-master/lib/codemirror.css" type="text/css">
+        -->
+    <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css">
+
+    json.human.js-master
+
+    <!-- DHTMLX dependencies -->
+    <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+    <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css">
+
+    <script type="text/javascript">
+        //madatory url parameter: workflowid
+        //request job from server
+
+        var m_workflowdata = {};
+        var m_graph = {};
+
+        function start() {
+            buildMainLayout();
+            getWorkflow(getQueryVariable("wf_id"));
+        }
+
+        function buildMainLayout() {
+            var mainLayout = new dhtmlXLayoutObject({
+                // mainLayout = headerLayout.cells("b").attachLayout({
+                parent: document.body,
+                pattern: "2E"
+            });
+            mainLayout.cells("a").setText("Canvas");
+            mainLayout.cells("a").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden;background:url(\'../images/canvas_background.png\');cursor:default;"></div>');
+            mainLayout.cells("b").setText("Log");
+            mainLayout.cells("b").showInnerScroll();
+            mainLayout.cells("b").attachObject("log_div"); //for json_to_table
+        }
+
+
+        function buildMxGraph(container) {
+            //while the graph is built, get job log
+            getLog();
+
+            // Checks if the browser is supported
+            if (!mxClient.isBrowserSupported()) {
+                // Displays an error message if the browser is not supported.
+                mxUtils.error('Browser is not supported!', 200, false);
+            }
+            else {
+                // Disables the built-in context menu
+                mxEvent.disableContextMenu(container);
+
+                // Creates the graph inside the given container
+                var graph = new mxGraph(container);
+                m_graph = graph;    //store graph for global reuse
+                graph.setHtmlLabels(true);
+                graph.panningHandler.ignoreCell = true;
+                graph.setPanning(true);
+
+                graph.getLabel = function (cell) {   //takes care of the table styling and inserts ffastrans values into the cells
+                    if (this.getModel().isVertex(cell)) {
+                        //calculate the text to display on canvas
+                        var FF_NODE_TITLE = cell.ffastransobj["type"];
+                        var FF_NODE_DESC = cell.ffastransobj["description"] || "";
+                        var FF_NODE_ID = cell.ffastransobj["id"];
+                        //create the cell style
+                        if (this.isCellCollapsed(cell)) {
+                            return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
+                                '<tr><th>Customers</th></tr>' +
+                                '</table>';
+                        }
+                        else {   //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
+                            return '<table class="table_ffastrans_processor_disabled" id="' + FF_NODE_ID + '">' +
+                                '<tr class="tr_ffastrans_processor_top" ><th colspan="2">' + FF_NODE_TITLE + '</th></tr>' +
+                                '<tr style="height:70%;"><th colspan="2">' + FF_NODE_DESC + '</th></tr>' +
+                                '</table>';
+                        }
+                    }
+                    else {
+                        return '';
+                    }
+                };
+
+                //GRAPH EVENTS
+                graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
+                    //disable doubleclick evt
+                    var cell = evt.getProperty("cell"); // cell may be null
+                    if (cell != null) {
+                        SelectGraphCell(cell);
+                        graph.setSelectionCell(cell);
+                    }
+                    evt.consume();
+                });
+
+                graph.addListener(mxEvent.CLICK, function (sender, evt) {
+                    //disable doubleclick evt
+                    var cell = evt.getProperty("cell"); // cell may be null
+                    if (cell != null) {
+
+                        //tableify
+
+                    }
+                    evt.consume();
+                });
+
+                //BUILD THE GRAPH
+                // Gets the default parent for inserting new cells. This
+                // is normally the first child of the root (ie. layer 0).
+                var parent = graph.getDefaultParent();
+
+                // Adds cells to the model in a single step
+                graph.getModel().beginUpdate();
+                try {
+                    var style = graph.getStylesheet().getDefaultVertexStyle()
+                    style[mxConstants.STYLE_FONTSIZE] = '10';
+                    style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_TOP;
+
+                    var connections = [];//build an object used to create the connections between the nodes
+                    //parse ffastrans workflow json
+                    var nodes = m_workflowdata["nodes"];
+                    for (var key in nodes) {
+                        var x = nodes[key]["proc_x"];
+                        var y = nodes[key]["proc_y"];
+
+                        var v1 = graph.insertVertex(parent, nodes[key]["id"], '', x, y, 200, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                        nodes[key].originalname = key;//expand ffastrans properties by name of processor
+                        v1.ffastransobj = nodes[key];
+                        v1.data = new CustomData('v1');//todo: get out what this is used for
+                        connections.push({ "from": nodes[key]["id"], "to": nodes[key].outbounds || [] })
+                    }
+                    //create node connections
+
+                    for (i = 0; i < connections.length; i++) {
+                        var from_id = (connections[i]["from"]);
+                        var from_cell = graph.getModel().getCell(from_id);
+                        var to_array = connections[i]["to"];
+                        for (t = 0; t < to_array.length; t++) {
+                            //for each target, create connection arrow
+                            var to_cell = graph.getModel().getCell(to_array[t]["id"]);
+
+                            if (to_cell.ffastransobj["execute_on"] == "success") {//todo: ask steinar why the numbers are so strange
+                                var color = "rgb(0,200,0)";//execute_on success color
+                            }
+                            if (to_cell.ffastransobj["execute_on"] == "error") {//todo: ask steinar why the numbers are so strange
+                                color = "rgb(200,0,0)";//execute_on error color
+                            }
+                            if (to_cell.ffastransobj["execute_on"] == "always") {//todo: ask steinar why the numbers are so strange
+                                color = "rgb(0,0,0)";//execute_on always color
+                            }
+
+                            graph.insertEdge(parent, null, '', from_cell, to_cell, "strokeColor=" + color + ";strokeWidth=2");
+                        }
+                    }
+                    //done with building the graph, auto arrange
+                    var layout = new mxCompactTreeLayout(graph);
+                    layout.execute(graph.getDefaultParent());
+                }
+                finally {
+                    // Updates the display
+                    graph.getModel().endUpdate();
+                }
+            }
+            // Adds an option to view the XML of the graph
+            document.body.appendChild(mxUtils.button('View XML', function () {
+                var encoder = new mxCodec();
+                var node = encoder.encode(graph.getModel());
+                mxUtils.popup(mxUtils.getXml(node), true);
+            }));
+        };
+
+
+
+        function CustomData(value) {
+            this.value = value;
+        }
+
+        var codec = new mxObjectCodec(new CustomData());
+
+        codec.encode = function (enc, obj) {
+            var node = enc.document.createElement('CustomData');
+            mxUtils.setTextContent(node, JSON.stringify(obj));
+
+            return node;
+        };
+
+        codec.decode = function (dec, node, into) {
+            var obj = JSON.parse(mxUtils.getTextContent(node));
+            obj.constructor = CustomData;
+
+            return obj;
+        };
+
+        mxCodecRegistry.register(codec);
+
+        //parse Job log
+        function parseJobLog(lines) {
+            var a_log_per_node = {};
+            var id_pid_mapping = {};
+
+            for (var i = 0; i < lines.length; i++) {
+                var _proc_id;
+                var line = lines[i];
+                try {
+                    //start of new node log
+                    _proc_id = line["data"]["proc"]["id"];
+                    a_log_per_node[_proc_id] = [];
+                    //show processor as enabled on ui
+                    document.getElementById(_proc_id).className = "table_ffastrans_processor_enabled";
+                    //store pid if possible for enhanced threading support
+                    id_pid_mapping[line["pid"]] = _proc_id;
+                } catch (ex) {
+
+                }
+                //sort the current line as accurate as possible
+                if (line["pid"] != "undefined") {   //we have a pid, perfect
+                    var id_from_pid = id_pid_mapping[line["pid"]];
+                    a_log_per_node[id_from_pid].push(line);
+                }
+                else {
+                    //did not get pid, so cannot guarantee that this line belongs to the proc but it is the best we can do...
+                    a_log_per_node[_proc_id].push(line);
+                }
+            }
+            console.log(a_log_per_node);
+        }
+
+        function buildLogGridGrid() {
+
+            //var sourceUrl = "testdata.xml";
+            $("#treetable_log").fancytree({
+                icon: false,
+                checkbox: false,
+                titlesTabbable: true,     // Add all node titles to TAB chain
+                multi: {//multiselct
+                    mode: "",
+                },
+                init: function (event, data) {
+                    //ENABLE RESIZE COLUMNS
+                    $("#treetable_log").colResizable({
+                        resizeMode: 'fit',
+                        hoverCursor: "col-resize",
+                        dragCursor: "col-resize",
+                        postbackSafe: true,
+                        useLocalStorage: true,
+                        minWidth: 10,
+                        liveDrag: true,
+                    })
+                },
+                modifyChild: function (event, data) {
+                    //reset all odd even row colors
+                    var rootNode = $("#treetable_log").fancytree("getRootNode");
+                    var oldnodes = rootNode.children;
+                    for (i = 0; i < oldnodes.length; i++) {
+                        if (i % 2 == 0) {
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                        } else {
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                        }
+                    }
+                },
+                renderColumns: function (event, data) {
+                    var node = data.node;
+
+                    if (data.node.getIndex() % 2 == 0) {
+                        node.removeClass("odd_dhx_skyblue");//apply dthmlx style to node
+                        node.addClass("ev_dhx_skyblue");//apply dthmlx style to node
+                    } else {
+                        node.removeClass("ev_dhx_skyblue");//apply dthmlx style to node
+                        node.addClass("odd_dhx_skyblue");//apply dthmlx style to node
+                    }
+
+                    $tdList = $(node.tr).find(">td");
+                    // (index #0 is rendered by fancytree (title node))
+                    //$tdList.eq(0).text(node.data.state);
+                    $tdList.eq(0).text(node.data.created);  //.addClass("alignRight");
+                    $tdList.eq(1).text(node.data.node_name || node.data.node_type || "");
+                    $tdList.eq(2).text(node.data.host);
+                    var table = (JsonHuman.format(data.node.data["_data"]));
+                    $tdList.eq(3).html(table);
+
+                
+                },
+                postProcess: function (event, data) {
+                    // transform gethistoryjobsajax result into tree compatible
+                    // data is a treegrid specific object
+                    //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+                },
+                extensions: ["table", "gridnav", "multi"],
+
+                table: {
+                    indentation: 15,
+                    nodeColumnIdx: 0,
+                },
+                gridnav: {
+                    autofocusInput: false,
+                    handleCursorKeys: true
+                },
+                beforeSelect: function (event, data) {
+
+                },
+                focusOnSelect: false,
+                autoScroll: false,
+                autoActivate:false,
+                unselectable: true,
+                activeVisible:false,
+                select: function (event, data) {
+                    //show details
+                    if (data.node.isSelected()) {
+                        //data.node.addClass("rowselected");
+                        //display complex data
+                        $tdList = $(data.node.tr).find(">td");
+                        console.log(JSON.stringify(data.node.data["_data"]));
+                        var table = (JsonHuman.format(data.node.data["_data"]));
+                        $tdList.eq(3).html(table);
+
+                    } else {
+                        //data.node.removeClass("rowselected");
+                    }
+                }
+            })
+        }
+
+
+
+        function appendLogLines(proc_id, a_lines) {
+            //checks if lines already exists (for running jobs) and updates log data of node
+            graph.getModel().getCell(to_array[t]["id"])
+
+        }
+
+
+        function getLog(job_id) {
+            //get all workflows from server and start main with the workflow of interest
+            console.log("Getting  Job Log")
+            console.log(getQueryVariable("log_url"))
+
+            $.ajax({
+                url: getQueryVariable("log_url"),
+                type: "GET",
+                crossDomain: true,
+                dataType: "json",
+                success: function (response) {
+                    //PARSE JOB LOG
+                    console.log(response)
+                    parseJobLog(response);
+                    buildLogGridGrid(response);
+                    //load initial data into tree
+                    var rootNode = $("#treetable_log").fancytree("getRootNode");
+                    //tree would delete data property so we need to rename it before adding to tree
+                    for (var a in response) {
+                        response[a]["_data"] = response[a]["data"];
+                    }
+                    rootNode.addChildren(response);
+                },
+                error: function (xhr, status) {
+
+                }
+            });
+        }
+
+
+        function getWorkflow(wf_id) {
+            //get all workflows from server and start main with the workflow of interest
+            console.log(getQueryVariable("wf_url"))
+            $.ajax({
+                url: getQueryVariable("wf_url"),
+                type: "GET",
+                crossDomain: true,
+                dataType: "json",
+                success: function (response) {
+                    if (response['workflows'].length == 0) {
+                        alert("Did not get any workflows from FFASTRANS API");
+                    } else {
+                        workflowArray = response['workflows'];
+                        for (var wf in workflowArray) {
+                            if (wf_id == workflowArray[wf].wf_id) {
+                                m_workflowdata = workflowArray[wf];
+                                buildMxGraph(document.getElementById('graphContainer'));
+                                return;
+                            }
+                        }
+
+                    }
+                },
+                error: function (xhr, status) {
+                    alert("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+                }
+            });
+        }
+
+
+
+
+        //PARSE GET PARAMS
+        function getQueryVariable(variable) {
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[0] == variable) {
+                    return decodeURIComponent(pair[1]);
+                }
+            }
+        }
+
+
+    </script>
+</head>
+
+<!-- Page passes the container for the graph to the program -->
+<body onload="start()">
+    <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
+    <div id="log_div" style="" class="gridbox_dhx_skyblue gridbox">
+        <table id="treetable_log" class="obj">
+            <colgroup>
+                <col width="20%"></col>
+                <col width="10%"></col>
+                <col width="10%"></col>
+                <col width="65%"></col>
+            </colgroup>
+            <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                <tr class="">
+                    <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Proc" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Host" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Data" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+
+                </tr>
+            </thead>
+        </table>
+    </div>
+
 </body>
 </html>

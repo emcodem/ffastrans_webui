@@ -93,13 +93,9 @@ var m_workflowdata = {};
                 if (this.getModel().isVertex(cell))
                 {
                     //calculate the text to display on canvas
-                    var props = cell.ffastransobj.properties;
-                    console.log(cell.ffastransobj.properties);
-                    var FF_NODE_TITLE = cell.ffastransobj.originalname;
-                    if (props.hasOwnProperty ("custom_node_name") ){
-                        FF_NODE_TITLE = cell.ffastransobj.properties["custom_node_name"]
-                    }
-                    var FF_NODE_DESC = cell.ffastransobj.properties.description; 
+                    var FF_NODE_TITLE = cell.ffastransobj["type"];
+                    
+                    var FF_NODE_DESC = cell.ffastransobj["description"]||""; 
                     
                     //create the cell style
                     if (this.isCellCollapsed(cell))
@@ -121,7 +117,19 @@ var m_workflowdata = {};
                     return '';
                 }
             };
-            
+
+            //GRAPH EVENTS
+                graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
+
+                var cell = evt.getProperty("cell"); // cell may be null
+                    if (cell != null) {
+                        SelectGraphCell(cell);
+                        graph.setSelectionCell(cell);
+                    }
+                    evt.consume();
+                });
+
+
             //BUILD THE GRAPH
             // Gets the default parent for inserting new cells. This
             // is normally the first child of the root (ie. layer 0).
@@ -137,15 +145,16 @@ var m_workflowdata = {};
                 
                 var connections = [];//build an object used to create the connections between the nodes
                 //parse ffastrans workflow json
-                var node = m_workflowdata["nodes"];
-                for (var key in node) {
-                            var x = node[key]["proc_x"];
-                            var y =  node[key]["proc_y"];
-                            var v1 = graph.insertVertex(parent, key, 'Hello,', x,y,200, 200,'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
-                            node[key].originalname = key;//expand ffastrans properties by name of processor
-                            v1.ffastransobj = node[key];
+                var nodes = m_workflowdata["nodes"];
+                for (var key in nodes) {
+                            var x = nodes[key]["proc_x"];
+                            var y =  nodes[key]["proc_y"];
+                             
+                            var v1 = graph.insertVertex(parent, nodes[key]["id"], 'Hello,', x,y,200, 200,'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                            nodes[key].originalname = key;//expand ffastrans properties by name of processor
+                            v1.ffastransobj = nodes[key];
                             v1.data = new CustomData('v1');//todo: get out what this is used for
-                            connections.push({"from":key,"to": node[key].outbounds})
+                            connections.push({"from":nodes[key]["id"],"to": nodes[key].outbounds||[]})
                 }
                 //create node connections
 
@@ -155,15 +164,15 @@ var m_workflowdata = {};
                     var to_array = connections[i]["to"];
                     for (t=0;t<to_array.length;t++){
                         //for each target, create connection arrow
-                        var to_cell = graph.getModel().getCell(to_array[t]);
+                        var to_cell = graph.getModel().getCell(to_array[t]["id"]);
                         
-                        if (to_cell.ffastransobj.properties.execute_on == 3800889){//todo: ask steinar why the numbers are so strange
+                        if (to_cell.ffastransobj["execute_on"] == "success"){//todo: ask steinar why the numbers are so strange
                             var color = "rgb(0,200,0)";//execute_on success color
                         }
-                        if (to_cell.ffastransobj.properties.execute_on == 16726329){//todo: ask steinar why the numbers are so strange
+                        if (to_cell.ffastransobj["execute_on"] == "error"){//todo: ask steinar why the numbers are so strange
                             color= "rgb(200,0,0)";//execute_on error color
                         }
-                        if (to_cell.ffastransobj.properties.execute_on == 16777017){//todo: ask steinar why the numbers are so strange
+                        if (to_cell.ffastransobj["execute_on"] == "always"){//todo: ask steinar why the numbers are so strange
                             color= "rgb(0,0,0)";//execute_on always color
                         }
                         
@@ -188,7 +197,9 @@ var m_workflowdata = {};
             mxUtils.popup(mxUtils.getXml(node), true);
         }));
     };
-    
+
+
+
     function CustomData(value)
     {
         this.value = value;
@@ -229,7 +240,7 @@ function getQueryVariable(variable) {
 function getWorkflows(wf_id){
 //get all workflows from server and start main with the workflow of interest
     $.ajax({
-        url: getQueryVariable("url"),
+        url: getQueryVariable("wf_url"),
         type: "GET",
         crossDomain: true,
         dataType: "json",
