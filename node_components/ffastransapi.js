@@ -2,6 +2,7 @@ const assert = require('assert');
 const Request = require("request");
 //todo: implement queued jobs
 module.exports = {
+
     getWorkflowDetails: (callbackSuccess,callbackError) => {
         Request({ url: buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), method: 'GET'}, function(error, response, body){ 
             if (error){
@@ -27,6 +28,20 @@ module.exports = {
         });
         return;
     },
+    getJobDetails: (job_id, callbackSuccess, callbackError) => {
+        var _url = build_new_api_url(global.config["STATIC_API_GET_JOB_LOG_URL"]) ;
+        _url +=  "?" + job_id;
+        Request({ url: _url, method: 'GET' }, function(error, response, body) {
+            if (error) {
+                console.error("getJobDetails Error " + error, url)
+                callbackError(error)
+                console.error(error.stack)
+            } else {
+                callbackSuccess(body)
+            }
+        });
+        return;
+    },
     startJob: (job,callbackSuccess,callbackError) => {
         console.log("Starting job:");
         console.log(job);
@@ -44,6 +59,11 @@ module.exports = {
     },
 };
 
+function build_new_api_url(what){
+    var host = global.config["STATIC_API_HOST"];
+    var port = global.config["STATIC_API_NEW_PORT"];
+    return "http://" + host + ":" + port + what;  
+}
 function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
 }
