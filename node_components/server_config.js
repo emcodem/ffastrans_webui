@@ -22,7 +22,8 @@ defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D
 //FFAStrans server
 defaultConfig.STATIC_API_HOST = "localhost";
 defaultConfig.STATIC_API_PORT = "65445";
-
+defaultConfig.STATIC_API_NEW_PORT = "3003";
+//config port for new node api
 //default user config
 //you can change these variables
 
@@ -48,13 +49,17 @@ defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v2/jobs";
 defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
 defaultConfig.STATIC_GET_JOB_LOG_URL = "/api/json/v2/joblog/" //+ <job_id>?start=0&count=100
-defaultConfig.STATIC_USE_PROXY_URL =  true;
+defaultConfig.STATIC_USE_PROXY_URL = true;
 
+//new methods of node api (WEB_API_PORT )
+//this API must run on STATIC_API_HOST so we need no config for the host
 
+//NEW API Methods are named static_api...
+defaultConfig.STATIC_API_GET_JOB_LOG_URL = "/getjoblog";
 
 //this line is mandatory, do not remove it!
 //module.exports = config;
-require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
+//require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
 module.exports = {
     //set object to config obj
     get: (callback) => {

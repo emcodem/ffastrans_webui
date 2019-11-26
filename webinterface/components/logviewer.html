@@ -2,61 +2,6 @@
 <head>
     <title>FFAStrans Workflow</title>
 
-    <style type="text/css">
-        /* it's important to set width/height to 100% for full-screen init
-
-        */
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0px;
-            overflow: hidden;
-            color: #333;
-            font: 14px Helvetica, Arial, sans-serif;
-            line-height: 18px;
-        }
-
-        #graphContainer {
-            background: url('../images/canvas_background.png');
-            position: absolute;
-            border: 1px solid #F2F2F2;
-            white-space: nowrap;
-            font-family: Arial;
-            font-size: 8pt;
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        table, th, td {
-            border: 1px solid black;
-        }
-
-        .table_ffastrans_processor_enabled {
-            overflow: hidden;
-            width: 200px;
-            height: 100px;
-            border: 3px rgb(85,85,85);
-            border-style: solid;
-            background-color: rgb(184,184,184);
-        }
-
-        .table_ffastrans_processor_disabled {
-            overflow: hidden;
-            width: 200px;
-            height: 100px;
-            border: 3px rgb(85,85,85);
-            border-style: solid;
-            background-color: rgb(184,184,184);
-            opacity: .4
-        }
-
-        .tr_ffastrans_processor_top {
-            background-color: rgb(119,119,119);
-            height: 30%;
-            color: white;
-        }
-    </style>
 
     <script src="/socket.io/socket.io.js"></script>
 
@@ -66,7 +11,8 @@
     </script>
     <script src="../dependencies/jquery/jquery.js"></script>
     <!-- Loads and initializes the library -->
-    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>
+    <!--    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>-->
+    <script type="text/javascript" src="../dependencies/mxgraph/javascript/mxClient.min.js"></script>
 
     <!-- Grid dependency -->
     <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
@@ -89,11 +35,83 @@
         -->
     <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css">
 
-    json.human.js-master
 
     <!-- DHTMLX dependencies -->
     <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
     <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css">
+    <!-- FONTAWESOME -->
+    <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" />
+
+    <style type="text/css">
+        /* it's important to set width/height to 100% for full-screen init
+
+        */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            overflow: hidden;
+            color: #333;
+            font: 14px Helvetica, Arial, sans-serif;
+            line-height: 18px;
+        }
+
+        #graphContainer {
+            /*background: url('../images/canvas_background.png');*/
+            position: absolute;
+            border: 1px solid #F2F2F2;
+            white-space: nowrap;
+            font-family: Arial;
+            font-size: 8pt;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        .table_ffastrans_processor_enabled {
+            overflow: hidden;
+            font-size: 12px; /*wf description as font size 8, header has 15*/
+            font-family: Calibri;
+            border: 3px rgb(85,85,85);
+            background-color: rgb(184,184,184);
+        }
+
+        .table_ffastrans_processor_disabled {
+            overflow: hidden;
+            font-size: 12px;
+            font-family: Calibri;
+            border: 3px rgb(85,85,85);
+            background-color: rgb(184,184,184);
+            opacity: .4
+        }
+
+        .tr_ffastrans_processor_top {
+            background-color: rgb(119,119,119);
+            height: 30%;
+            color: white;
+        }
+
+        .jh-key, .jh-value {
+            margin: 0;
+            padding: 0 5px 0 5px !important;
+            /* padding: 0.2em;*/
+            font-weight: lighter;
+            font-size: 12px
+        }
+
+        div.gridbox {
+            overflow: initial;
+        }
+        
+        .dhx_cell_cont_wins {
+            overflow:scroll!important;
+        }
+    </style>
+
 
     <script type="text/javascript">
         //madatory url parameter: workflowid
@@ -101,29 +119,69 @@
 
         var m_workflowdata = {};
         var m_graph = {};
+        var m_serverconfig;
+        var mainLayout;
+        /*load config from server*/
+        function loadserverconfig() {
+            $.ajax({
+                url: ("/getserverconfig"),
+                type: "GET",
+                success: function (response) {
+                    m_serverconfig = JSON.parse(response)
+                    init();
+                },
+                error: function (xhr, status) {
+                    dhtmlx.message("Fatal error, could not load serverconfig. ");
+                    document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+                }
+            });
+        }
 
-        function start() {
+        /*MAIN ENTRY POINT*/
+        function init() {
             buildMainLayout();
-            getWorkflow(getQueryVariable("wf_id"));
+            get_all_job_details(getQueryVariable("job_id"));
         }
 
         function buildMainLayout() {
-            var mainLayout = new dhtmlXLayoutObject({
+            mainLayout = new dhtmlXLayoutObject({
                 // mainLayout = headerLayout.cells("b").attachLayout({
                 parent: document.body,
-                pattern: "2E"
+                pattern: "3L"
             });
-            mainLayout.cells("a").setText("Canvas");
-            mainLayout.cells("a").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden;background:url(\'../images/canvas_background.png\');cursor:default;"></div>');
-            mainLayout.cells("b").setText("Log");
-            mainLayout.cells("b").showInnerScroll();
-            mainLayout.cells("b").attachObject("log_div"); //for json_to_table
+            mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
+                                                <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
+                                                <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
+                                                ');
+            mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
+            mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
+                                           <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
+            ');
+            mainLayout.cells("c").showInnerScroll();
+            mainLayout.cells("c").attachObject("log_div"); //for json_to_table
+            mainLayout.cells("a").setWidth(200);
+            mainLayout.cells("a").setText("Info");
+            var m_info_layout = mainLayout.cells("a").attachLayout("2E");
+            m_info_layout.cells("a").setText("General");
+            m_info_layout.cells("b").setText("Nodes");
+            m_info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>')
+            m_info_layout.cells("b").attachHTMLString('<div id="nodes_div" style="height:100%;width:100%"/>')
+            m_info_layout.cells("a").showInnerScroll();
+            //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
         }
 
 
         function buildMxGraph(container) {
-            //while the graph is built, get job log
-            getLog();
+            //set default box sizes as defined by ffastrans.au3
+            var i_BOX_WIDTH = 115;
+            var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
+            if ("variable" in m_workflowdata) {
+                if ("wf_size" in m_workflowdata) {
+                    i_BOX_WIDTH = (m_workflowdata["variable"]["wf_size"]);
+                    i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
+
+                }
+            }
 
             // Checks if the browser is supported
             if (!mxClient.isBrowserSupported()) {
@@ -146,18 +204,21 @@
                         //calculate the text to display on canvas
                         var FF_NODE_TITLE = cell.ffastransobj["type"];
                         var FF_NODE_DESC = cell.ffastransobj["description"] || "";
-                        var FF_NODE_ID = cell.ffastransobj["id"];
+                        var FF_NODE_ID = cell.ffastransobj["id"].toUpperCase();
                         //create the cell style
                         if (this.isCellCollapsed(cell)) {
-                            return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
-                                '<tr><th>Customers</th></tr>' +
-                                '</table>';
+                            //return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
+                            //    '<tr><th>Customers</th></tr>' +
+                            //    '</table>';
                         }
                         else {   //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
-                            return '<table class="table_ffastrans_processor_disabled" id="' + FF_NODE_ID + '">' +
-                                '<tr class="tr_ffastrans_processor_top" ><th colspan="2">' + FF_NODE_TITLE + '</th></tr>' +
-                                '<tr style="height:70%;"><th colspan="2">' + FF_NODE_DESC + '</th></tr>' +
+                            var tbl = '<table name="gui_node" style="width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                                'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
+                                '<tr class="tr_ffastrans_processor_top" ><th>' + FF_NODE_TITLE + '</th></tr>' +
+                                '<tr style="height:70%;font-size:8px"><th>' + FF_NODE_DESC + '</th></tr>' +
                                 '</table>';
+                            console.log(tbl);
+                            return tbl;
                         }
                     }
                     else {
@@ -180,9 +241,14 @@
                     //disable doubleclick evt
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell != null) {
-
-                        //tableify
-
+                        var search = cell["ffastransobj"]["id"].toUpperCase();//TODO: filter log
+                        var tree = $.ui.fancytree.getTree();
+                            tree.filterNodes(function (node) {
+                                if (node["data"]["node"]["id"].toUpperCase().match(search)) {
+                                node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                                return true;
+                            } 
+                        }, { mode: "hide" } );
                     }
                     evt.consume();
                 });
@@ -191,7 +257,6 @@
                 // Gets the default parent for inserting new cells. This
                 // is normally the first child of the root (ie. layer 0).
                 var parent = graph.getDefaultParent();
-
                 // Adds cells to the model in a single step
                 graph.getModel().beginUpdate();
                 try {
@@ -199,19 +264,23 @@
                     style[mxConstants.STYLE_FONTSIZE] = '10';
                     style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_TOP;
 
+                    //var estyle = graph.getStylesheet().getDefaultEdgeStyle();
+                    //estyle[mxConstants.STYLE_EDGE] = mxEdgeStyle.SegmentConnector; //OrthConnector,SegmentConnector
+
                     var connections = [];//build an object used to create the connections between the nodes
                     //parse ffastrans workflow json
                     var nodes = m_workflowdata["nodes"];
                     for (var key in nodes) {
-                        var x = nodes[key]["proc_x"];
-                        var y = nodes[key]["proc_y"];
-
-                        var v1 = graph.insertVertex(parent, nodes[key]["id"], '', x, y, 200, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                        var x = nodes[key]["pos_x"];
+                        var y = nodes[key]["pos_y"];
+                        /*width and heigth are defined in ffastrans as 115 and 1.6 aspect ratio. Fontsize as $i_BOX_WIDTH / 15 */
+                        var v1 = graph.insertVertex(parent, nodes[key]["id"].toUpperCase(), '', x, y, i_BOX_WIDTH, i_BOX_HEIGHT, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
                         nodes[key].originalname = key;//expand ffastrans properties by name of processor
                         v1.ffastransobj = nodes[key];
                         v1.data = new CustomData('v1');//todo: get out what this is used for
-                        connections.push({ "from": nodes[key]["id"], "to": nodes[key].outbounds || [] })
+                        connections.push({ "from": nodes[key]["id"].toUpperCase(), "to": nodes[key].outbounds || [] })
                     }
+
                     //create node connections
 
                     for (i = 0; i < connections.length; i++) {
@@ -220,28 +289,40 @@
                         var to_array = connections[i]["to"];
                         for (t = 0; t < to_array.length; t++) {
                             //for each target, create connection arrow
-                            var to_cell = graph.getModel().getCell(to_array[t]["id"]);
+                            try {
+                                var to_cell = graph.getModel().getCell(to_array[t]["id"].toUpperCase());
 
-                            if (to_cell.ffastransobj["execute_on"] == "success") {//todo: ask steinar why the numbers are so strange
-                                var color = "rgb(0,200,0)";//execute_on success color
-                            }
-                            if (to_cell.ffastransobj["execute_on"] == "error") {//todo: ask steinar why the numbers are so strange
-                                color = "rgb(200,0,0)";//execute_on error color
-                            }
-                            if (to_cell.ffastransobj["execute_on"] == "always") {//todo: ask steinar why the numbers are so strange
-                                color = "rgb(0,0,0)";//execute_on always color
+                                if (to_cell.ffastransobj["execute_on"] == "success") {//todo: ask steinar why the numbers are so strange
+                                    var color = "rgb(0,200,0)";//execute_on success color
+                                }
+                                if (to_cell.ffastransobj["execute_on"] == "error") {//todo: ask steinar why the numbers are so strange
+                                    color = "rgb(200,0,0)";//execute_on error color
+                                }
+                                if (to_cell.ffastransobj["execute_on"] == "always") {//todo: ask steinar why the numbers are so strange
+                                    color = "rgb(0,0,0)";//execute_on always color
+                                }
+                            } catch (ex) {
+                                dhtmlx.message("Could not create connection for node " + to_array[t]["id"]);
+                                console.log("Could not create connection for node " + to_array[t]["id"]);
+
                             }
 
-                            graph.insertEdge(parent, null, '', from_cell, to_cell, "strokeColor=" + color + ";strokeWidth=2");
+                            var edge = graph.insertEdge(parent, null, '', from_cell, to_cell, "strokeColor=" + color + ";strokeWidth=2");
+
                         }
                     }
                     //done with building the graph, auto arrange
-                    var layout = new mxCompactTreeLayout(graph);
-                    layout.execute(graph.getDefaultParent());
+
+                    //var layout = new mxCompactTreeLayout(graph);
+                    //layout.maintainParentLocation = true;
+                    //layout.execute(graph.getDefaultParent());
+
                 }
                 finally {
                     // Updates the display
                     graph.getModel().endUpdate();
+                    graph.fit();
+                    m_graph = graph;
                 }
             }
             // Adds an option to view the XML of the graph
@@ -286,7 +367,7 @@
                 var line = lines[i];
                 try {
                     //start of new node log
-                    _proc_id = line["data"]["proc"]["id"];
+                    _proc_id = line["node"]["id"].toUpperCase();
                     a_log_per_node[_proc_id] = [];
                     //show processor as enabled on ui
                     document.getElementById(_proc_id).className = "table_ffastrans_processor_enabled";
@@ -315,6 +396,7 @@
                 icon: false,
                 checkbox: false,
                 titlesTabbable: true,     // Add all node titles to TAB chain
+                quicksearch: true,
                 multi: {//multiselct
                     mode: "",
                 },
@@ -358,20 +440,20 @@
                     $tdList = $(node.tr).find(">td");
                     // (index #0 is rendered by fancytree (title node))
                     //$tdList.eq(0).text(node.data.state);
-                    $tdList.eq(0).text(node.data.created);  //.addClass("alignRight");
-                    $tdList.eq(1).text(node.data.node_name || node.data.node_type || "");
-                    $tdList.eq(2).text(node.data.host);
+                    $tdList.eq(0).text(node.data["created"]);  //.addClass("alignRight");
+//                    $tdList.eq(1).text(node.data["node"]["name"] || node.data["data"]["proc"]["type"] || "");
+                    $tdList.eq(1).text(node.data["host"]);
+                    $tdList.eq(2).text(node.data["split_id"]);
+                    $tdList.eq(3).text(node.data["event"]);
                     var table = (JsonHuman.format(data.node.data["_data"]));
-                    $tdList.eq(3).html(table);
-
-                
+                    $tdList.eq(4).html(table);
                 },
                 postProcess: function (event, data) {
                     // transform gethistoryjobsajax result into tree compatible
                     // data is a treegrid specific object
                     //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
                 },
-                extensions: ["table", "gridnav", "multi"],
+                extensions: ["table", "filter","gridnav", "multi"],
 
                 table: {
                     indentation: 15,
@@ -386,24 +468,46 @@
                 },
                 focusOnSelect: false,
                 autoScroll: false,
-                autoActivate:false,
+                autoActivate: false,
                 unselectable: true,
-                activeVisible:false,
+                activeVisible: false,
                 select: function (event, data) {
                     //show details
                     if (data.node.isSelected()) {
                         //data.node.addClass("rowselected");
                         //display complex data
-                        $tdList = $(data.node.tr).find(">td");
+/*                        $tdList = $(data.node.tr).find(">td");
                         console.log(JSON.stringify(data.node.data["_data"]));
                         var table = (JsonHuman.format(data.node.data["_data"]));
                         $tdList.eq(3).html(table);
-
+                        */
                     } else {
                         //data.node.removeClass("rowselected");
                     }
                 }
             })
+            //attach search event to buttons
+            $("input[name=search]").on("change search", function(e){
+                if (e.type === "change" && e.target.onsearch !== undefined ) {
+                // We fall back to handling the change event only if the search event is not supported.
+                return;
+                }
+			    var n,
+				tree = $.ui.fancytree.getTree(),
+                match = $.trim($(this).val());
+                // Pass a string to perform case insensitive matching
+                var re = new RegExp(match,"i");
+                 
+                tree.filterNodes(function (node) {
+                    if (JSON.stringify((node["data"]["_data"])).match(re)) {
+                        node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                        return true;
+                    } 
+                }, { mode: "hide" } );
+                // This will adjust the start value in case the filtered row set
+                // is not inside the current viewport
+                // tree.setViewport();
+            });
         }
 
 
@@ -415,19 +519,16 @@
         }
 
 
-        function getLog(job_id) {
+        function get_job_log(job_id) {
             //get all workflows from server and start main with the workflow of interest
-            console.log("Getting  Job Log")
-            console.log(getQueryVariable("log_url"))
-
+            var _url = "/getjoblog?jobid=" + job_id;
             $.ajax({
-                url: getQueryVariable("log_url"),
+                url: build_new_api_url(_url),
                 type: "GET",
                 crossDomain: true,
                 dataType: "json",
                 success: function (response) {
                     //PARSE JOB LOG
-                    console.log(response)
                     parseJobLog(response);
                     buildLogGridGrid(response);
                     //load initial data into tree
@@ -439,43 +540,42 @@
                     rootNode.addChildren(response);
                 },
                 error: function (xhr, status) {
-
+                    alert("Did not get Log for job " + job_id);
                 }
             });
         }
 
-
-        function getWorkflow(wf_id) {
+        function get_all_job_details(job_id) {
             //get all workflows from server and start main with the workflow of interest
-            console.log(getQueryVariable("wf_url"))
+            var _url = "/getjobdetails?jobid=" + job_id;
             $.ajax({
-                url: getQueryVariable("wf_url"),
+                url: build_new_api_url(_url),
                 type: "GET",
                 crossDomain: true,
                 dataType: "json",
                 success: function (response) {
-                    if (response['workflows'].length == 0) {
+                    if (response['wf_object'].length == 0) {
                         alert("Did not get any workflows from FFASTRANS API");
                     } else {
-                        workflowArray = response['workflows'];
-                        for (var wf in workflowArray) {
-                            if (wf_id == workflowArray[wf].wf_id) {
-                                m_workflowdata = workflowArray[wf];
-                                buildMxGraph(document.getElementById('graphContainer'));
-                                return;
-                            }
-                        }
+                        m_workflowdata = response['wf_object'];
+                        //populate top left data
+                        var copy = JSON.stringify(response);
+                        copy = JSON.parse(copy);                    //copy the whole object
+                        delete copy["wf_object"];
+                        var table = (JsonHuman.format(copy));
+                        document.getElementById("general_div").appendChild(table);
 
+                        //populate workflow canvas
+                        buildMxGraph(document.getElementById('graphContainer'));
+                        get_job_log(getQueryVariable("job_id"));    //kicks off job log parsing on success
                     }
                 },
                 error: function (xhr, status) {
-                    alert("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
                 }
             });
+
         }
-
-
-
 
         //PARSE GET PARAMS
         function getQueryVariable(variable) {
@@ -489,12 +589,20 @@
             }
         }
 
+        function build_new_api_url(what) {
+            if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+                return "/new_proxy" + what;
+            } else {
+                var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+                return _url;
+            }
+        }
 
     </script>
 </head>
 
 <!-- Page passes the container for the graph to the program -->
-<body onload="start()">
+<body onload="loadserverconfig()">
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
     <div id="log_div" style="" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_log" class="obj">
@@ -502,14 +610,16 @@
                 <col width="20%"></col>
                 <col width="10%"></col>
                 <col width="10%"></col>
+                <col width="10%"></col>
                 <col width="65%"></col>
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">
                     <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Proc" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Host" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Data" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Event" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Data" style="width:70px;height:18px;margin-left:5px;float:left" type="search" name="search" incremental autocomplete="off"></th>
 
                 </tr>
             </thead>

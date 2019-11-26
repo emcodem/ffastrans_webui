@@ -1,0 +1,14 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\node_components",
+    "\\node_components\\cron_tasks",
+    "\\rest_service\\api",
+    "\\rest_service\\api\\controllers",
+    "\\rest_service\\api\\swagger",
+    "\\rest_service\\config",
+    "\\rest_service\\test\\api"
+  ],
+  "SelectedNode": "\\node_components\\cron_tasks\\jobfetcher.js",
+  "PreviewInSolutionExplorer": false
+}

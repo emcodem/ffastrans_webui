@@ -34,6 +34,7 @@
     "express-session": "^1.17.0",
     "firstline": "^2.0.2",
     "is-running": "^2.1.0",
+    "log4js": "^6.1.0",
     "mongoose": "^5.7.9",
     "nedb": "^1.8.0",
     "node-cron": "^2.0.3",
@@ -48,6 +49,8 @@
     "socket.io": "^2.3.0",
     "socketio-wildcard": "^2.0.0",
     "tableify": "^1.1.0",
-    "tmp": "0.0.33"
+    "tmp": "0.0.33",
+    "winston": "^3.2.1",
+    "winston-console-formatter": "^1.0.0-beta.3"
   }
 }

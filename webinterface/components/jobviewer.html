@@ -269,7 +269,8 @@ mainLayout.cells("a").showInnerScroll();
     socket.on('msg', function(msg){
      dhtmlx.message(msg);
     });
-    
+
+    //deprecated!!!
     if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])){
         alert("running in pull mode, this should not happen")
         window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(3000));
@@ -295,7 +296,10 @@ function click_b_header(id) {
             dhtmlx.alert("Please select row to show details");
             return;
         }
-        dhtmlx.message(selected[0].data["sort_family_name"]);
+        var jobid = (selected[0].data["sort_family_name"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+        var url = "logviewer.html?job_id=" + jobid;
+        window.open(url, '_blank');
+
     }
     if (id == "delsel") {
     //delete selected jobs 
@@ -850,8 +854,7 @@ function buildUrl(what){
         var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
         return  _url;
     }
-    //old, delete at next iteration
-    
+    //old, delete at next iteration    
 }
 
 /* NO PROXY MODE */
