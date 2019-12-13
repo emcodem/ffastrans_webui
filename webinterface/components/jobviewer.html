@@ -1,32 +1,37 @@
 <html>
 <script src="/socket.io/socket.io.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
- <script src="../dependencies/dhtmlx/vault/vault.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css">
+<script src="../dependencies/dhtmlx/vault/vault.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css">
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
-<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
-
-  
-  <!-- <link href="../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
-  <!-- <script src="../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
-
-  <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" />
 
 
-  <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">  
-  
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
-  <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
-  
+<!-- <link href="../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
+<!-- <script src="../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
+
+<script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+
+<link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
+
+<script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
+
+<  <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
+<link rel="stylesheet"
+      href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
+<script src="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.js">
+</script>
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -39,786 +44,862 @@
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
     }
+
     button {
-        cursor:pointer;
+        cursor: pointer;
     }
 
     .progressbar {
-      border-radius: 5px;
-      height: 15px;
-      background-color: #4CAF50;
-      margin:0;
-      padding:0;
-      text-align:center;
-      vertical-align: middle;
-      white-space:nowrap;
+        border-radius: 5px;
+        height: 15px;
+        background-color: #4CAF50;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
     }
-    
-      
-        /*layout headers (big blue lines)*/     
-      .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr{
-        height:25px;
+
+
+    /*layout headers (big blue lines)*/
+    .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr {
+        height: 25px;
         line-height: 23px;
-        font-size : 12px;
-      }
-  
-      /*collapse icon in layout header*/
-      .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_ha{
-        background-position: -32px -5px;
-        z-index: 1;
-        margin-top: -3;
-      }
-      /*collapse icon in layout header*/
-      div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_vb{
+        font-size: 12px;
+    }
+
+        /*collapse icon in layout header*/
+        .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_ha {
+            background-position: -32px -5px;
+            z-index: 1;
+            margin-top: -3;
+        }
+    /*collapse icon in layout header*/
+    div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_vb {
         margin-top: -8px;
         z-index: 1;
-      }
-      
-      /*fancytree line break*/
-      table.fancytree-ext-table tbody tr td {
+    }
+
+    /*fancytree line break*/
+    table.fancytree-ext-table tbody tr td {
         text-overflow: ellipsis;
         /*white-space: nowrap;*/
         text-overflow: ellipsis;
-          overflow: hidden; 
-           white-space: nowrap;
+        overflow: hidden;
+        white-space: nowrap;
     }
 
-/* tree column resize issues*/
-table {
-  border: 1px;
-  table-layout: fixed;
-  width: 100%;
+    /* tree column resize issues*/
+    table {
+        border: 1px;
+        table-layout: fixed;
+        width: 100%;
+    }
+    /* tree column resize issues*/
+    th,
+    td {
+        border: 1px;
+        overflow: hidden;
+        font-weight: unset;
+    }
+    /* text in tree title column */
+    span.fancytree-title {
+        padding: 0 0 0;
+    }
+    /*three dots on text overflow*/
+    .celltext {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: text;
+        margin-left: 6px;
+    }
 
-}
-/* tree column resize issues*/
-th,
-td {
-  border: 1px;
-  overflow: hidden;
-  font-weight:unset;
-  
-}
-/* text in tree title column */
-span.fancytree-title{
-padding:0 0 0;
-}
-/*three dots on text overflow*/
-.celltext{
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
-
+    .celltext_clicked {
+        text-overflow: clip;
+        white-space: normal;
+        word-break: break-all;
+        user-select: text;
+    }
+   
+    /*context menu stuff*/
+    td:hover {
+        opacity:0.5;
+    }
+    .context-menu-active {
+        opacity:0.5;
+    }
 </style>
 
 <script>
-/* init SOCKET.IO */
-var socket = io();
+    /* init SOCKET.IO */
+    var socket = io();
 
-/* GLOBALS */
-var mainLayout,runningJobGrid,finishedJobGrid,m_serverconfig;
-var m_rowColorError = "#f28d80"
-var m_rowColorCancelled = "#ffcc80"
+    /* GLOBALS */
+    var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig;
+    var m_rowColorError = "#f28d80"
+    var m_rowColorCancelled = "#ffcc80"
 
-/* STRUCTS */
-var m_jobStates = ["Error","Success","Cancelled","Unknown"]; 
-
-
-/*load config from server*/
-function loadserverconfig(){
-   $.ajax({
-        url:  ("/getserverconfig") ,
-        type: "GET",
-        success: function (response) {
-            m_serverconfig = JSON.parse(response)
-            init();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not load serverconfig. " );
-            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
-        }
-    });
-}
-
-/*get active jobs immediately - should cause server to push jobs to us via socket.io*/
-function forcejobloading(){
-   $.ajax({
-        url:  ("/getactivejobsajax_treegrid.js") ,
-        type: "GET",
-        success: function (response) {
-           
-        },
-        error: function (xhr, status) {
-           
-        }
-    });
-}
+    /* STRUCTS */
+    var m_jobStates = ["Error", "Success", "Cancelled", "Unknown"];
 
 
-/* build basic page layout and init periodic job loading*/
-function init(){
-
-    //kick off DB maintenance verytime a client opens the UI - fire and forget
-    $.get( "/deleteoldrecords" );
-    
-    //check if html5 features supported
-    if (typeof(Storage) !== "undefined") {
-    } else {
-        dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+    /*load config from server*/
+    function loadserverconfig() {
+        $.ajax({
+            url: ("/getserverconfig"),
+            type: "GET",
+            success: function (response) {
+                m_serverconfig = JSON.parse(response)
+                init();
+            },
+            error: function (xhr, status) {
+                dhtmlx.message("Fatal error, could not load serverconfig. ");
+                document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+            }
+        });
     }
-  
-    
-    mainLayout = new dhtmlXLayoutObject({
-   // mainLayout = headerLayout.cells("b").attachLayout({
-        parent: document.body,  
-        pattern: "2E"           
-    });
-    mainLayout.cells("a").setText("Running");
-                                        
-    mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
+
+    /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
+    function forcejobloading() {
+        $.ajax({
+            url: ("/getactivejobsajax_treegrid.js"),
+            type: "GET",
+            success: function (response) {
+
+            },
+            error: function (xhr, status) {
+
+            }
+        });
+    }
+
+
+    /* build basic page layout and init periodic job loading*/
+    function init() {
+
+        //kick off DB maintenance verytime a client opens the UI - fire and forget
+        $.get("/deleteoldrecords");
+
+        //check if html5 features supported
+        if (typeof (Storage) !== "undefined") {
+        } else {
+            dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+        }
+
+
+        mainLayout = new dhtmlXLayoutObject({
+            // mainLayout = headerLayout.cells("b").attachLayout({
+            parent: document.body,
+            pattern: "2E"
+        });
+        mainLayout.cells("a").setText("Running");
+
+        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
         <button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
         <button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button> \
         <button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> \
         ');
-    mainLayout.cells("b").setWidth($(document).width()/3);
-    //mainLayout.cells("c").setText("Finished");
-    mainLayout.cells("a").setHeight($(document).height()/3.5);
-    restoreLayoutSizes(mainLayout,"mainLayout");
+        mainLayout.cells("b").setWidth($(document).width() / 3);
+        //mainLayout.cells("c").setText("Finished");
+        mainLayout.cells("a").setHeight($(document).height() / 3.5);
+        restoreLayoutSizes(mainLayout, "mainLayout");
 
-//attach grids
-mainLayout.cells("b").attachObject("history_div");
-mainLayout.cells("b").showInnerScroll();
-mainLayout.cells("a").attachObject("active_div");
-mainLayout.cells("a").showInnerScroll();
+        //attach grids
+        mainLayout.cells("b").attachObject("history_div");
+        mainLayout.cells("b").showInnerScroll();
+        mainLayout.cells("a").attachObject("active_div");
+        mainLayout.cells("a").showInnerScroll();
 
-    var headerMenu = mainLayout.cells("a").attachMenu({                                               
-        items:[
-             {id:"abort", text:'<i class="fas fa-stop"></i>Abort'},
-             {id:"pause", text:'<i class="fas fa-pause"></i>Pause'}, 
-             {id:"resume", text:'<i class="fas fa-play"></i>Resume'},
-             {id:"log", text:'<i class="fas fa-info"></i>Log'},
-          ]
-    });
-    
-    //var headerMenuFinished = mainLayout.cells("b").attachMenu({                                               
-    //    items:[
-    //         {id:"log", text:'<i class="fas fa-info"></i>Log'},
-    //         {id:"delsel", text:'<i class="fas fa-trash-alt"></i>Delete Selected'},
-    //         {id:"delall", text:'<i class="fas fa-trash-alt"></i>Delete All'},
-    //      ]
-    //});
-    
-//events for button clicks
-    headerMenu.attachEvent("onClick", function(id, zoneId, cas){k
+        var headerMenu = mainLayout.cells("a").attachMenu({
+            items: [
+                { id: "abort", text: '<i class="fas fa-stop"></i>Abort' },
+                { id: "pause", text: '<i class="fas fa-pause"></i>Pause' },
+                { id: "resume", text: '<i class="fas fa-play"></i>Resume' },
+                { id: "log", text: '<i class="fas fa-info"></i>Log' },
+            ]
+        });
+
+        //var headerMenuFinished = mainLayout.cells("b").attachMenu({
+        //    items:[
+        //         {id:"log", text:'<i class="fas fa-info"></i>Log'},
+        //         {id:"delsel", text:'<i class="fas fa-trash-alt"></i>Delete Selected'},
+        //         {id:"delall", text:'<i class="fas fa-trash-alt"></i>Delete All'},
+        //      ]
+        //});
+
+        //events for button clicks
+        headerMenu.attachEvent("onClick", function (id, zoneId, cas) {
+            k
             if (id == "abort") {
                 abortJob()
             }
             if (id == "pause") {
-                pauseResumeJob(id,"PUT")
+                pauseResumeJob(id, "PUT")
             }
             if (id == "resume") {
-                pauseResumeJob(id,"PUT")
+                pauseResumeJob(id, "PUT")
             }
             if (id == "log") {
                 openLogViewer(runningJobGrid)
             }
-    });
+        });
 
 
-    
-    mainLayout.attachEvent("onPanelResizeFinish", function(){
-        saveLayoutSizes(mainLayout,"mainLayout");
-    });
-    
-//    mainLayout.cells("a").progressOn();
 
-     socket.on('newhistoryjob', function(msg){
-        //server informs us about new history jobs in db, if there are new, we fetch them
-            var obj =  msg;                
+        mainLayout.attachEvent("onPanelResizeFinish", function () {
+            saveLayoutSizes(mainLayout, "mainLayout");
+        });
+
+        //    mainLayout.cells("a").progressOn();
+
+        socket.on('newhistoryjob', function (msg) {
+            //server informs us about new history jobs in db, if there are new, we fetch them
+            var obj = msg;
             var rootNode = $("#treetable_history").fancytree("getRootNode");
 
-            var existing_node = rootNode.tree.getNodeByKey(msg.key) 
-            if (existing_node){
+            var existing_node = rootNode.tree.getNodeByKey(msg.key)
+            if (existing_node) {
                 existing_node.remove();
             }
-            
+
             firstnode = rootNode.findFirst("")
-            if (firstnode.extraClasses == "odd_dhx_skyblue"){
-                msg.extraClasses="ev_dhx_skyblue";
-            }else{
-                msg.extraClasses="odd_dhx_skyblue";
+            if (firstnode.extraClasses == "odd_dhx_skyblue") {
+                msg.extraClasses = "ev_dhx_skyblue";
+            } else {
+                msg.extraClasses = "odd_dhx_skyblue";
             }
             //add new node
-            var childNode = rootNode.addChildren(msg,$("#treetable_history").fancytree("getRootNode").getFirstChild());                
+            var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
 
-    });
-
-    socket.on('queuedjobs', function(msg){
-        if (JSON.parse(msg)){
-			addQueuedJobsToGrid(runningJobGrid,JSON.parse(msg),"queued");
-		}
-        mainLayout.cells("a").progressOff();
-    });
-	socket.on('activejobs', function(msg){    
-        addActiveJobsToGrid(runningJobGrid,JSON.parse(msg));
-        mainLayout.cells("a").progressOff();
-    });
-    socket.on('error', function(msg){
-     dhtmlx.message(msg);
-    });
-    socket.on('msg', function(msg){
-     dhtmlx.message(msg);
-    });
-
-    //deprecated!!!
-    if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])){
-        alert("running in pull mode, this should not happen")
-        window.setInterval(function(){getQueuedJobs(runningJobGrid)},parseInt(3000));
-        window.setInterval(function(){getActiveJobs(runningJobGrid)},parseInt(3000));
-        window.setInterval(function(){getFinishedJobs(finishedJobGrid)},parseInt(3000));
-        getQueuedJobs(runningJobGrid);
-        getActiveJobs(runningJobGrid);
-        getFinishedJobs(finishedJobGrid);
-    }
-    
-    buildHistoryGrid();
-    buildActiveGrid();
-    forcejobloading();
-}
-
-function click_b_header(id) {
-
-    var tree = $('#treetable_history').fancytree('getTree');
-    var selected = tree.getSelectedNodes();
-
-    if (id == "b_details") {
-        if (selected.length == 0){
-            dhtmlx.alert("Please select row to show details");
-            return;
-        }
-        var jobid = (selected[0].data["sort_family_name"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
-        var url = "logviewer.html?job_id=" + jobid;
-        window.open(url, '_blank');
-
-    }
-    if (id == "delsel") {
-    //delete selected jobs 
-        if (selected.length == 0){
-            dhtmlx.alert("Please select rows to delete " );
-            return;
-        }
-        var array_to_delete = [];
-        for (i=0;i<selected.length;i++){
-            array_to_delete.push(selected[i].data["guid"]);
-            selected[i].remove();
-        }
-        socket.emit("deletejob", JSON.stringify( array_to_delete));//note, custom structure for socket.emit messages
-    }
-    if (id == "delall") {
-        //delete all jobs
-            dhtmlx.confirm({
-						    title:"Delete ALL Jobs",
-						    type:"confirm-error",
-						    text:"Really delete ALL Jobs?",
-                            callback:function(yesno){
-                                if (yesno){
-                                        socket.emit("deletealljobs");//note, custom structure for socket.emit messages
-                                        finishedJobGrid.clearAll();
-                                }
-                            }//callback
-					    });//confirm
-        }//delall        
-}
-    
-
-function buildActiveGrid(){
-
-var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
-//var sourceUrl = "testdata.xml";
-  $("#treetable_active").fancytree({
-    icon:false,
-    checkbox: false,
-    titlesTabbable: true,     // Add all node titles to TAB chain
-    <!-- source: { -->
-        <!-- url: sourceUrl, -->
-        <!-- cache: true, -->
-      <!-- }, -->
-
-    multi: {//multiselct
-      mode: "",
-    },
-    init: function(event,data){
-            //ENABLE RESIZE COLUMNS 
-        $("#treetable_active").colResizable({
-            resizeMode:'fit',
-            hoverCursor:"col-resize",     
-            dragCursor:"col-resize",  
-            postbackSafe:true,
-            useLocalStorage:true,
-            minWidth: 10, 
-            liveDrag:true,  
-        })
-    },
-    modifyChild: function(event, data) {
-        //reset all odd even row colors
-        var rootNode = $("#treetable_active").fancytree("getRootNode");
-        var oldnodes = rootNode.children;
-        for (i=0;i<oldnodes.length;i++){
-            if (i%2==0){
-                oldnodes[i].toggleClass("ev_dhx_skyblue",true)
-                oldnodes[i].toggleClass("odd_dhx_skyblue",false)                 
-            }else{
-                oldnodes[i].toggleClass("odd_dhx_skyblue",true) 
-                oldnodes[i].toggleClass("ev_dhx_skyblue",false)
-            }
-        }        
-    },
-    renderColumns: function(event, data) {
-        var node = data.node;
-
-        if (data.node.getIndex() %2 == 0){
-            node.removeClass("odd_dhx_skyblue");//apply dthmlx style to node
-            node.addClass ("ev_dhx_skyblue");//apply dthmlx style to node
-        }else{
-            node.removeClass("ev_dhx_skyblue");//apply dthmlx style to node
-            node.addClass("odd_dhx_skyblue");//apply dthmlx style to node
-        }
-        
-          $tdList = $(node.tr).find(">td");
-        // (index #0 is rendered by fancytree (title node))
-        //$tdList.eq(0).text(node.data.state);
-            <!-- <th>State</th> -->
-            <!-- <th>Workflow</th>  -->
-            <!-- <th>Start</th> -->
-            <!-- <th>Source</th>  -->
-            <!-- <th>Processor@Host</th> -->
-            <!-- <th>Status</th> -->
-            <!-- <th>Progress</th> -->
-        $tdList.eq(1).text(node.data.workflow);  //.addClass("alignRight");
-        $tdList.eq(2).text(node.data.job_start);
-        $tdList.eq(3).text(node.data.file);
-        $tdList.eq(4).text(node.data.proc + "@" +node.data.host);
-        $tdList.eq(5).text(node.data.status);
-        $tdList.eq(6).html('<div class="progressbar" style=" width:'+node.data.progress+'%">'+node.data.progress+'% '+node.data.steps.replace(/ /g,"")+'</div>');
-      },
-    postProcess: function(event, data) {
-        // transform gethistoryjobsajax result into tree compatible
-        // data is a treegrid specific object          
-      data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
-    },
-    extensions: [ "table","gridnav","multi"],
-      
-    table: {
-      indentation: 15,
-      nodeColumnIdx: 0,
-    },
-    gridnav: {
-      autofocusInput: false,
-      handleCursorKeys: true
-    },
-    select: function(event, data){
-        if (data.node.isSelected()){
-            data.node.addClass("rowselected");
-        }else{
-            data.node.removeClass("rowselected");
-        }
-    }
-  })
-    
-
-
-
-}
-
-
-
-function buildHistoryGrid(){
-
-var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
-//var sourceUrl = "testdata.xml";
-  $("#treetable_history").fancytree({
-    checkbox: false,
-    titlesTabbable: false,     // Add all node titles to TAB chain
-    source: {
-        url: sourceUrl,
-        cache: true,
-      },
-    icon:false,
-    multi: {//multiselct
-      mode: ""
-    },
-    modifyChild: function(event, data) {
-        //reset all odd even row colors
-        var rootNode = $("#treetable_history").fancytree("getRootNode");
-        var oldnodes = rootNode.children;
-        for (i=0;i<oldnodes.length;i++){
-            if (i%2==0){
-                oldnodes[i].toggleClass("ev_dhx_skyblue",false)
-                oldnodes[i].toggleClass("odd_dhx_skyblue",true)                 
-            }else{
-                oldnodes[i].toggleClass("odd_dhx_skyblue",false) 
-                oldnodes[i].toggleClass("ev_dhx_skyblue",true)
-            }
-        }        
-    },
-    renderColumns: function(event, data) {
-        var node = data.node;
-
-        <!-- if (data.node.extraClasses == null){ //need to do this whenever rowcount changes -->
-            if (data.node.getIndex() %2 == 0){
-                //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
-                node.toggleClass ("ev_dhx_skyblue");//apply dthmlx style to node
-            }else{
-                //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
-                node.toggleClass("odd_dhx_skyblue");//apply dthmlx style to node
-            }
-        <!-- } -->
-        
-          $tdList = $(node.tr).find(">td");
-        // (index #0 is rendered by fancytree (title node))
-        //$tdList.eq(0).text(node.data.state);
-        $tdList.eq(1).html("<div class='celltext'>"+node.data.workflow+"</div>");  //.addClass("alignRight");
-        $tdList.eq(2).html("<div class='celltext'>"+node.data.job_start+"</div>");
-        $tdList.eq(3).html("<div class='celltext'>"+node.data.duration+"</div>");
-        $tdList.eq(4).html("<div class='celltext'>"+node.data.job_end+"</div>");
-        $tdList.eq(5).html("<div class='celltext'>"+node.data.file+"</div>");
-        $tdList.eq(5).html("<div class='celltext'>"+node.data.file+"</div>");
-        $tdList.eq(6).html("<div class='celltext'>"+node.data.outcome+"</div>");        
-      },
-      init: function(event,data){           
-        //ENABLE RESIZE COLUMNS 
-        $("#treetable_history").colResizable({
-            resizeMode:'fit',
-            hoverCursor:"col-resize",     
-            dragCursor:"col-resize",  
-            postbackSafe:true,
-            useLocalStorage:true,
-            minWidth: 10, 
-            liveDrag:true,  
         });
-      },
-    postProcess: function(event, data) {
-        // transform gethistoryjobsajax result into tree compatible
-        // data is a treegrid specific object          
-      data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
-           
-    },
-    extensions: [ "table","gridnav","multi"],
-      
-    table: {
-      indentation: 15,
-      nodeColumnIdx: 0,
-    },
-    gridnav: {
-      autofocusInput: false,
-      handleCursorKeys: true
-    },
-    select: function(event, data){
-        if (data.node.isSelected()){
-            data.node.addClass("rowselected");
-        }else{
-            data.node.removeClass("rowselected");
+
+        socket.on('queuedjobs', function (msg) {
+            if (JSON.parse(msg)) {
+                addQueuedJobsToGrid(runningJobGrid, JSON.parse(msg), "queued");
+            }
+            mainLayout.cells("a").progressOff();
+        });
+        socket.on('activejobs', function (msg) {
+            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg));
+            mainLayout.cells("a").progressOff();
+        });
+        socket.on('error', function (msg) {
+            dhtmlx.message(msg);
+        });
+        socket.on('msg', function (msg) {
+            dhtmlx.message(msg);
+        });
+
+        //deprecated!!!
+        if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            alert("running in pull mode, this should not happen")
+            window.setInterval(function () { getQueuedJobs(runningJobGrid) }, parseInt(3000));
+            window.setInterval(function () { getActiveJobs(runningJobGrid) }, parseInt(3000));
+            window.setInterval(function () { getFinishedJobs(finishedJobGrid) }, parseInt(3000));
+            getQueuedJobs(runningJobGrid);
+            getActiveJobs(runningJobGrid);
+            getFinishedJobs(finishedJobGrid);
         }
+
+        buildHistoryGrid();
+        buildActiveGrid();
+        forcejobloading();
     }
-  })
-  
-  
 
-//tree events
+    function click_b_header(id) {
+
+        var tree = $('#treetable_history').fancytree('getTree');
+        var selected = tree.getSelectedNodes();
+
+        if (id == "b_details") {
+            if (selected.length == 0) {
+                dhtmlx.alert("Please select row to show details");
+                return;
+            }
+            var jobid = (selected[0].data["sort_family_name"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+            var url = "logviewer.html?job_id=" + jobid;
+            window.open(url, '_blank');
+
+        }
+        if (id == "b_delsel") {
+            //delete selected jobs
+            if (selected.length == 0) {
+                dhtmlx.alert("Please select rows to delete ");
+                return;
+            }
+            var array_to_delete = [];
+            for (i = 0; i < selected.length; i++) {
+            }
+            selected.forEach(function (node) {
+                array_to_delete.push(node.data["guid"]);
+                node.remove();
+            });
+            socket.emit("deletejob", JSON.stringify(array_to_delete));//note, custom structure for socket.emit messages
+                
+
+        }
+        if (id == "b_delall") {
+            //delete all jobs
+            dhtmlx.confirm({
+                title: "Delete ALL Jobs",
+                type: "confirm-error",
+                text: "Really delete ALL Jobs?",
+                callback: function (yesno) {
+                    if (yesno) {
+                        socket.emit("deletealljobs");//note, custom structure for socket.emit messages
+                        finishedJobGrid.clearAll();
+                    }
+                }//callback
+            });//confirm
+        }//delall
+    }
 
 
-    //search btn
-    $('input[name=search]').bind("enterKey",function(e){
+    function buildActiveGrid() {
+
+        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
+        //var sourceUrl = "testdata.xml";
+        $("#treetable_active").fancytree({
+            extensions: ["table", "gridnav", "multi"],
+            icon: false,
+            checkbox: false,
+            titlesTabbable: true,     // Add all node titles to TAB chain
+            table: {
+                indentation: 15,
+                nodeColumnIdx: 0,
+            },
+            gridnav: {
+                autofocusInput: false,
+                handleCursorKeys: true
+            },
+            multi: {//multiselct
+                mode: "",
+            },
+            init: function (event, data) {
+                //ENABLE RESIZE COLUMNS
+                console.log("TREE INIT")
+                $("#treetable_active").colResizable({
+                    resizeMode: 'fit',
+                    hoverCursor: "col-resize",
+                    dragCursor: "col-resize",
+                    postbackSafe: true,
+                    useLocalStorage: true,
+                    minWidth: 10,
+                    liveDrag: true,
+                })
+            },
+            modifyChild: function (event, data) {
+                //reset all odd even row colors
+                var rootNode = $("#treetable_active").fancytree("getRootNode");
+                var oldnodes = rootNode.children;
+                for (i = 0; i < oldnodes.length; i++) {
+                    if (i % 2 == 0) {
+                        oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                        oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                    } else {
+                        oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                        oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                    }
+                }
+            },
+            renderColumns: function (event, data) {
+                var node = data.node;
+
+                if (data.node.getIndex() % 2 == 0) {
+                    node.removeClass("odd_dhx_skyblue");//apply dthmlx style to node
+                    node.addClass("ev_dhx_skyblue");//apply dthmlx style to node
+                } else {
+                    node.removeClass("ev_dhx_skyblue");//apply dthmlx style to node
+                    node.addClass("odd_dhx_skyblue");//apply dthmlx style to node
+                }
+
+                $tdList = $(node.tr).find(">td");
+                // (index #0 is rendered by fancytree (title node))
+                //$tdList.eq(0).text(node.data.state);
+
+                $tdList.eq(1).text(node.data.workflow);  //.addClass("alignRight");
+                $tdList.eq(2).text(node.data.job_start);
+                $tdList.eq(3).text(node.data.file);
+                $tdList.eq(4).text(node.data.proc + "@" + node.data.host);
+                $tdList.eq(5).text(node.data.status);
+                $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');
+            },
+            postProcess: function (event, data) {
+                // transform gethistoryjobsajax result into tree compatible
+                // data is a treegrid specific object
+                console.log("POSTPROC")
+                data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+            },
+            dblclick: function (event, data) {
+                console.log(event)
+                //				data.node.toggleSelect();
+            },
+            click: function (event, data) {
+                console.log(targetType)
+                var node = data.node;
+                // Only for click and dblclick events:
+                // 'title' | 'prefix' | 'expander' | 'checkbox' | 'icon'
+                targetType = data.targetType;
+            },
+
+            select: function (event, data) {
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
+            },
+
+
+        })
+
+
+
+
+    }
+
+
+
+    function buildHistoryGrid() {
+
+        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
+        //var sourceUrl = "testdata.xml";
+        $("#treetable_history").fancytree({
+            extensions: ["contextMenu", "table", "gridnav", "multi"],
+            checkbox: false,
+            titlesTabbable: false,     // Add all node titles to TAB chain
+            source: {
+                url: sourceUrl,
+                cache: true,
+            },
+            icon: false,
+            multi: {//multiselct
+                mode: ""
+            },
+            modifyChild: function (event, data) {
+                //reset all odd even row colors
+                var rootNode = $("#treetable_history").fancytree("getRootNode");
+                var oldnodes = rootNode.children;
+
+                for (i = 0; i < oldnodes.length; i++) {
+                    if (i % 2 == 0) {
+                        oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                        oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                    } else {
+                        oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                        oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                    }
+                }
+            },
+            renderColumns: function (event, data) {
+                var node = data.node;
+                if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
+                    if (data.node.getIndex() % 2 == 0) {
+                        //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
+                        node.toggleClass("ev_dhx_skyblue");//apply dthmlx style to node
+                    } else {
+                        //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
+                        node.toggleClass("odd_dhx_skyblue");//apply dthmlx style to node
+                    }
+                }
+                node.addClass("hist_row");//for context menu
+
+                $tdList = $(node.tr).find(">td");
+                // (index #0 is rendered by fancytree (title node))
+                //$tdList.eq(0).text(node.data.state);
+                $tdList.eq(1).html("<div class='celltext'>" + node.data.workflow + "</div>");  //.addClass("alignRight");
+                $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
+                $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
+                $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
+                $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
+                $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
+                var outcome = node.data.outcome.substring(0, 1000);
+                if (outcome.length == 1000) { outcome += " (text was truncated by webinterace...) " }
+                $tdList.eq(6).html("<div class='celltext'>" + node.data.outcome.substring(0, 1000) + "</div>"); //outcome can be lengthy
+            },
+            init: function (event, data) {
+                //ENABLE RESIZE COLUMNS
+                $("#treetable_history").colResizable({
+                    resizeMode: 'fit',
+                    hoverCursor: "col-resize",
+                    dragCursor: "col-resize",
+                    postbackSafe: true,
+                    useLocalStorage: true,
+                    minWidth: 10,
+                    liveDrag: true,
+                });
+            },
+            postProcess: function (event, data) {
+                // transform gethistoryjobsajax result into tree compatible
+                // data is a treegrid specific object
+                console.log("POSTPROCESS")
+                data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+
+            },
+            table: {
+                indentation: 15,
+                nodeColumnIdx: 0,
+            },
+            gridnav: {
+                autofocusInput: false,
+                handleCursorKeys: true
+            },
+            select: function (event, data) {
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
+            },
+            contextMenu: {
+                selector: "hist_row",
+                menu: {
+                    "details": { "name": "Job Details" },
+                    "retry": { "name": "Retry from Start" },
+                    "delete": { "name": "Delete this job" },
+                    "delsel": { "name": "Delete all selected" },
+                },
+                actions: function (node, action, options) {
+                    if (action == "details") {
+                        var jobid = (node.data["sort_family_name"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+                        var url = "logviewer.html?job_id=" + jobid;
+                        window.open(url, '_blank');
+                    }
+                    if (action == "delete") {
+                        $("#treetable_history").fancytree("getTree").selectAll(false); //unselect all nodes
+                        node.setSelected();//select the one that was right clickeds
+                        click_b_header("b_delsel");
+                    }
+                    if (action == "delsel") {
+                        click_b_header("b_delsel");
+                    }
+                    if (action == "retry") {
+                        var tree = $('#treetable_history').fancytree('getTree');
+                        var selected = tree.getSelectedNodes();
+                        selected.forEach(function (node) {
+                            resubmit_job(node["data"]["guid"]);
+                        })
+                        
+                    }
+
+                }
+            }//contextmenu
+        })
+
+        //search btn
+        $('input[name=search]').bind("enterKey", function (e) {
             //iterate all search fields
             var search_obj = {};
-            for (i=0;i<$("input[name=search]").length;i++){
+            for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 match = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
-                if (match){
-                    search_obj[keyname] = (match)                
+                if (match) {
+                    search_obj[keyname] = (match)
                     console.log(search_obj)
                 }
             }
-            
+
             var tree = $('#treetable_history').fancytree('getTree');
-            tree.reload(  {   
-                            url:  "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj=" + JSON.stringify(search_obj),
-                            cache: false
-                            }
-            );        
+            tree.reload({
+                url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj=" + JSON.stringify(search_obj),
+                cache: false
+            }
+            );
 
-    });
+        });
 
-    $("input[name=search]").keyup(function(e){
-        if(e.keyCode == 13)
-        {
-            $(this).trigger("enterKey");
+        $("input[name=search]").keyup(function (e) {
+            if (e.keyCode == 13) {
+                $(this).trigger("enterKey");
+            }
+        });
+
+
+    }//buildhistorygrid
+
+    function delete_jobs(array_of_rows) {
+
+        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+        selectedRowIds.forEach(function (rId) {
+            var jobObj = runningJobGrid.getUserData(rId, "jobobject");
+            var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue());
+            var postBody = { "action": pause, "split": splitid };
+            socket.emit("pausejob", JSON.stringify({ "id": jobObj.job_id, "body": postBody }));//note, custom structure for socket.emit messages
+            dhtmlx.message("Command " + pause + " emitted:" + JSON.stringify(postBody))
+        })
+    }
+
+    function saveLayoutSizes(dhxLayout, name) {
+        //store layout cells height and with into html5 storage (in percentage of document height)
+        var aw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
+        var ah = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
+        var bw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
+        var bh = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+        localStorage.setItem(name + "_aw", aw);
+        localStorage.setItem(name + "_ah", ah);
+        localStorage.setItem(name + "_bw", bw);
+        localStorage.setItem(name + "_bh", bh);
+
+    }
+
+    function restoreLayoutSizes(dhxLayout, name) {
+        if (localStorage.getItem(name + "_aw")) {
+            var aw = localStorage.getItem(name + "_aw");
+            var ah = localStorage.getItem(name + "_ah");
+            var bw = localStorage.getItem(name + "_bw");
+            var bh = localStorage.getItem(name + "_bh");
+            dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
+            dhxLayout.cells("a").setHeight(ah * document.body.scrollHeight);
+            dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
+            dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
         }
-    });
-
-
-}//buildhistorygrid
-
-function delete_jobs(array_of_rows){
-
-    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-    selectedRowIds.forEach(function(rId) {
-        var jobObj = runningJobGrid.getUserData(rId,"jobobject");
-        var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) ;
-        var postBody = {"action": pause,"split": splitid};  
-        socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
-        dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
-    })
-}
-
-function saveLayoutSizes(dhxLayout,name){
-//store layout cells height and with into html5 storage (in percentage of document height)
-    var aw = (dhxLayout.cells("a").getWidth()/document.body.scrollWidth ) ;
-    var ah = (dhxLayout.cells("a").getHeight()/document.body.scrollHeight ) ;
-    var bw = (dhxLayout.cells("b").getWidth()/document.body.scrollWidth ) ;
-    var bh = (dhxLayout.cells("b").getHeight()/document.body.scrollHeight ) ;
-    localStorage.setItem(name+"_aw",aw);
-    localStorage.setItem(name+"_ah",ah);
-    localStorage.setItem(name+"_bw",bw);
-    localStorage.setItem(name+"_bh",bh);
-    
-}
-
-function restoreLayoutSizes(dhxLayout,name){
-    if (localStorage.getItem(name+"_aw")){
-        var aw = localStorage.getItem(name+"_aw");
-        var ah = localStorage.getItem(name+"_ah");
-        var bw = localStorage.getItem(name+"_bw");
-        var bh = localStorage.getItem(name+"_bh");
-        dhxLayout.cells("a").setWidth(aw*document.body.scrollWidth);
-        dhxLayout.cells("a").setHeight(ah*document.body.scrollHeight);
-        dhxLayout.cells("b").setWidth(bw*document.body.scrollWidth);
-        dhxLayout.cells("b").setHeight(bh*document.body.scrollHeight);
     }
-}
 
-function onHeaderClick(){
-    window.open("http://www.ffastrans.com");
-}
-
-function openLogViewer(dhxgrid){
-    var tree = $('#treetable_history').fancytree('getTree');
-    var selected = tree.getSelectedNodes();
-
-    if (selected.length == 0){
-        dhtmlx.alert("Please select rows to view Log" );
-        return;
+    function onHeaderClick() {
+        window.open("http://www.ffastrans.com");
     }
-                
-    var win_offset = 0;
-    selected.forEach(function(treeNode) {
-        var jobObj = treeNode.data;
-        
-        var dhxwins = new dhtmlXWindows();
-        //dhxwins.attachViewportTo(window.parent.document.body);
-        var win = dhxwins.createWindow("Workflow",  50 + win_offset, 150 + win_offset, 1200, 800);
-        win_offset+=30;
-         win.setText("Log ");
-         
-        var logGrid = win.attachGrid();  
-        logGrid.setImagesPath("../dependencies/dhtmlx/imgs/");
-        logGrid.setHeader("Time,Processor,Host,PID,Message");//the headers of columns  
-        logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
-        logGrid.setInitWidthsP("10,10,10,5,*");          //the widths of columns  
-        logGrid.setColAlign("left,left,left,left.left");       //the alignment of columns   
-        logGrid.setColTypes("ed,ed,ed,ed,ed");                //the types of columns  
-        logGrid.setColSorting("str,str,str,int,str");          //the sorting types    
-        logGrid.enableMultiline(true); 
-        logGrid.init();      //finishes initialization and renders the grid on the page 
-        
-        if (jobObj["sort_family_name"]){
-            //we have a job_id that eases the life of finding jobs
-            var url = "/logparser?job_id=" +encodeURI(jobObj["sort_family_name"]) +"&wf_name=" + encodeURI(jobObj["wf_name"]) ;
-            logGrid.load(url,"json")
-        }else{
-            var file = (dhxgrid.cells(rId,dhxgrid.getColIndexById("file")).getValue());
-            var job_end = (dhxgrid.cells(rId,dhxgrid.getColIndexById("job_end")).getValue());
-            var job_start = (dhxgrid.cells(rId,dhxgrid.getColIndexById("job_start")).getValue());
-            var wf_name = (dhxgrid.cells(rId,dhxgrid.getColIndexById("wf_name")).getValue());
-            //we don'T have a jobid, server will need to find files based on the infos we have. this is currently being changed in ffastrans
-             var url = ("/logparser?file=" + encodeURI(file) +"&job_end=" + encodeURI(job_end) +"&job_start=" + encodeURI(job_start) +"&wf_name=" + encodeURI(wf_name )  );
-             logGrid.load(url,"json");
-        } 
-        win.show();
-        //win.attachURL("worfklowcanvas.html?jobid=element&logfolder=element");
-    });
 
-}
+    function openLogViewer(dhxgrid) {
+        var tree = $('#treetable_history').fancytree('getTree');
+        var selected = tree.getSelectedNodes();
 
-function pauseResumeJob(pause,httpMethod){
-//Emits socket.io comman to webserver (the api request is made on the webserver not the client) pause is set to either pause or resume. 
-    if (!runningJobGrid.getSelectedRowId()){
-        dhtmlx.alert("Please select a Job to " + pause);
-        return;
-    }    
+        if (selected.length == 0) {
+            dhtmlx.alert("Please select rows to view Log");
+            return;
+        }
 
-    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-    selectedRowIds.forEach(function(rId) {
-        var jobObj = runningJobGrid.getUserData(rId,"jobobject");
-        var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) ;
-        var postBody = {"action": pause,"split": splitid}; 
-        socket.emit("pausejob", JSON.stringify({"id":jobObj.job_id,"body":postBody}));//note, custom structure for socket.emit messages
-        dhtmlx.message("Command " + pause +" emitted:" + JSON.stringify(postBody))
-    })
-}
+        var win_offset = 0;
+        selected.forEach(function (treeNode) {
+            var jobObj = treeNode.data;
 
-function abortJobWithSplit(){
-//only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
-    if (!runningJobGrid.getSelectedRowId()){
-        dhtmlx.alert("Please select a Job to abort");
-        return;
+            var dhxwins = new dhtmlXWindows();
+            //dhxwins.attachViewportTo(window.parent.document.body);
+            var win = dhxwins.createWindow("Workflow", 50 + win_offset, 150 + win_offset, 1200, 800);
+            win_offset += 30;
+            win.setText("Log ");
+
+            var logGrid = win.attachGrid();
+            logGrid.setImagesPath("../dependencies/dhtmlx/imgs/");
+            logGrid.setHeader("Time,Processor,Host,PID,Message");//the headers of columns
+            logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+            logGrid.setInitWidthsP("10,10,10,5,*");          //the widths of columns
+            logGrid.setColAlign("left,left,left,left.left");       //the alignment of columns
+            logGrid.setColTypes("ed,ed,ed,ed,ed");                //the types of columns
+            logGrid.setColSorting("str,str,str,int,str");          //the sorting types
+            logGrid.enableMultiline(true);
+            logGrid.init();      //finishes initialization and renders the grid on the page
+
+            if (jobObj["sort_family_name"]) {
+                //we have a job_id that eases the life of finding jobs
+                var url = "/logparser?job_id=" + encodeURI(jobObj["sort_family_name"]) + "&wf_name=" + encodeURI(jobObj["wf_name"]);
+                logGrid.load(url, "json")
+            } else {
+                var file = (dhxgrid.cells(rId, dhxgrid.getColIndexById("file")).getValue());
+                var job_end = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_end")).getValue());
+                var job_start = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_start")).getValue());
+                var wf_name = (dhxgrid.cells(rId, dhxgrid.getColIndexById("wf_name")).getValue());
+                //we don'T have a jobid, server will need to find files based on the infos we have. this is currently being changed in ffastrans
+                var url = ("/logparser?file=" + encodeURI(file) + "&job_end=" + encodeURI(job_end) + "&job_start=" + encodeURI(job_start) + "&wf_name=" + encodeURI(wf_name));
+                logGrid.load(url, "json");
+            }
+            win.show();
+            //win.attachURL("worfklowcanvas.html?jobid=element&logfolder=element");
+        });
+
     }
-    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-    selectedRowIds.forEach(function(rId) {
-        var jobObj = runningJobGrid.getUserData(rId,"jobobject");
-        var splitid = parseInt(runningJobGrid.cells(rId,9).getValue()) 
-        var postBody = {"action": "abort","split": splitid};
-           $.ajax({
-                url:  ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
+
+    function resubmit_job(job_id) {
+        //get all workflows from server and start main with the workflow of interest
+        job_id = job_id.split("~")[0];
+        var _url = "/getjobdetails?jobid=" + job_id;
+        $.ajax({
+            url: build_new_api_url(_url),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            success: function (response) {
+                if (response['wf_object'].length == 0) {
+                    alert("Did not get any workflow in job from FFASTRANS API");
+                } else {
+                    dhtmlx.message("resubmit not yet implemented")
+                }
+            },
+            error: function (xhr, status) {
+                alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+            }
+        });
+    }
+
+
+    function pauseResumeJob(pause, httpMethod) {
+        //Emits socket.io comman to webserver (the api request is made on the webserver not the client) pause is set to either pause or resume.
+        if (!runningJobGrid.getSelectedRowId()) {
+            dhtmlx.alert("Please select a Job to " + pause);
+            return;
+        }
+        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+        selectedRowIds.forEach(function (rId) {
+            var jobObj = runningJobGrid.getUserData(rId, "jobobject");
+            var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue());
+            var postBody = { "action": pause, "split": splitid };
+            socket.emit("pausejob", JSON.stringify({ "id": jobObj.job_id, "body": postBody }));//note, custom structure for socket.emit messages
+            dhtmlx.message("Command " + pause + " emitted:" + JSON.stringify(postBody))
+        })
+    }
+
+    function abortJobWithSplit() {
+        //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
+        if (!runningJobGrid.getSelectedRowId()) {
+            dhtmlx.alert("Please select a Job to abort");
+            return;
+        }
+        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+        selectedRowIds.forEach(function (rId) {
+            var jobObj = runningJobGrid.getUserData(rId, "jobobject");
+            var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue())
+            var postBody = { "action": "abort", "split": splitid };
+            $.ajax({
+                url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
                 type: "POST",
                 context: this,
-                data : JSON.stringify(postBody),
+                data: JSON.stringify(postBody),
                 success: function (response) {
-                  dhtmlx.message("Aborted " + jobObj.job_id);  
+                    dhtmlx.message("Aborted " + jobObj.job_id);
                 },
                 error: function (xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
-    })//foreachjob
-}
-
-function abortJob(){
-    if (!runningJobGrid.getSelectedRowId()){
-        dhtmlx.alert("Please select a Job to abort");
-        return;
+        })//foreachjob
     }
-    var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-    selectedRowIds.forEach(function(rId) {
-        var rowId = rId;
-        var jobObj = runningJobGrid.getUserData(rowId,"jobobject");
-           $.ajax({
-                url:  ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
+
+    function abortJob() {
+        if (!runningJobGrid.getSelectedRowId()) {
+            dhtmlx.alert("Please select a Job to abort");
+            return;
+        }
+        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
+        selectedRowIds.forEach(function (rId) {
+            var rowId = rId;
+            var jobObj = runningJobGrid.getUserData(rowId, "jobobject");
+            $.ajax({
+                url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
                 type: "DELETE",
                 context: this,
                 success: function (response) {
-                  dhtmlx.message("Aborted " + jobObj.job_id);  
+                    dhtmlx.message("Aborted " + jobObj.job_id);
                 },
                 error: function (xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
-    })//foreachjob
-}
-
-
-function getQueuedJobs(targetGridObj){
- 
-    $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        context: this,
-        success: function (response) {
-             mainLayout.cells("a").progressOff();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
-        }
-    });
-}
-
-function addActiveJobsToGrid(targetGridObj,jobArray){
-    var rootNode = $("#treetable_active").fancytree("getRootNode");
-    var tree = $("#treetable_active").fancytree("getTree");
-//add or update new jobs
-    var activeJobIds = [];
-    for (y=0;y<jobArray.length;y++){
-        var key = jobArray[y]["key"];
-        activeJobIds.push(key); 
-        var existing = tree.getNodeByKey(key);
-        if (existing){
-            existing.data = jobArray[y];
-            existing.renderTitle();//forces reload of node
-        }else{
-            rootNode.addChildren(jobArray[y]);
-        }
+        })//foreachjob
     }
-//remove orphand
-    var oldnodes = rootNode.children;
-    if(oldnodes){
-        for (a=0;a<oldnodes.length;a++){
-            if (activeJobIds.indexOf(oldnodes[a]["key"] ) == -1){
-                oldnodes[a].remove();
+
+
+    function getQueuedJobs(targetGridObj) {
+
+        $.ajax({
+            url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            context: this,
+            success: function (response) {
+                mainLayout.cells("a").progressOff();
+            },
+            error: function (xhr, status) {
+                dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+            }
+        });
+    }
+
+    function addActiveJobsToGrid(targetGridObj, jobArray) {
+        var rootNode = $("#treetable_active").fancytree("getRootNode");
+        var tree = $("#treetable_active").fancytree("getTree");
+        //add or update new jobs
+        var activeJobIds = [];
+        for (y = 0; y < jobArray.length; y++) {
+            var key = jobArray[y]["key"];
+            activeJobIds.push(key);
+            var existing = tree.getNodeByKey(key);
+            if (existing) {
+                existing.data = jobArray[y];
+                existing.renderTitle();//forces reload of node
+            } else {
+                rootNode.addChildren(jobArray[y]);
+            }
+        }
+        //remove orphand
+        var oldnodes = rootNode.children;
+        if (oldnodes) {
+            for (a = 0; a < oldnodes.length; a++) {
+                if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
+                    oldnodes[a].remove();
+                }
             }
         }
     }
-}
 
 
-function addQueuedJobsToGrid(targetGridObj,jobArray,state){//state added as of ffastrans 9.5, queued or active
-	return;
-    var newjobIds = [];
-    var queuedjobcount=0;
-    //add new jobs if any//TODO: at top
-	
-    //parse jobarray of all history jobs and add new/delete missed rows
-    for (i=0;i<jobArray.length;i++){
-        queuedjobcount++;
-        var rowid = state + "_"+jobArray[i].id;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
-        newjobIds.push(rowid);
-        var status = "Queued"
-        var duration = "";
-        var _state = m_jobStates[jobArray[i].state];
-        var _state = "Queued";
-        if (targetGridObj.doesRowExist(rowid)){
-            //no update needed for queued tasks
-        }else{
-            //add new job to grid
-            targetGridObj.addRow(rowid,[_state,"",jobArray[i].submit.client,"",jobArray[i].sources.pretty_name,"","",jobArray[i].submit.system,"Queued"],0); 
-        }                       
-        var jobObj = jobArray[i];
-        jobObj.job_id = jobArray[i].id;//store job_id to allow abortjobs
-        targetGridObj.setRowColor(rowid,"#ffffcc");
-        targetGridObj.setUserData(rowid,"jobobject",jobArray[i]);           //stores original job object with row for later access
-          
-    }
-    //targetGridObj.sortRows(5,"str","des");   
-    //update job count display
-    //delete jobs that are in the grid but not in the list of jobs from server
-    targetGridObj.forEachRow(function(id){
-        if (newjobIds.indexOf(id)==-1){
-            var _status = targetGridObj.cells(id,0).getValue()
-            if (_status == "active"){
-                //active jobs are not deleted                
-            }else{
-                targetGridObj.deleteRow(id);
+    function addQueuedJobsToGrid(targetGridObj, jobArray, state) {//state added as of ffastrans 9.5, queued or active
+        return;
+        var newjobIds = [];
+        var queuedjobcount = 0;
+        //add new jobs if any//TODO: at top
+
+        //parse jobarray of all history jobs and add new/delete missed rows
+        for (i = 0; i < jobArray.length; i++) {
+            queuedjobcount++;
+            var rowid = state + "_" + jobArray[i].id;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+            newjobIds.push(rowid);
+            var status = "Queued"
+            var duration = "";
+            var _state = m_jobStates[jobArray[i].state];
+            var _state = "Queued";
+            if (targetGridObj.doesRowExist(rowid)) {
+                //no update needed for queued tasks
+            } else {
+                //add new job to grid
+                targetGridObj.addRow(rowid, [_state, "", jobArray[i].submit.client, "", jobArray[i].sources.pretty_name, "", "", jobArray[i].submit.system, "Queued"], 0);
             }
+            var jobObj = jobArray[i];
+            jobObj.job_id = jobArray[i].id;//store job_id to allow abortjobs
+            targetGridObj.setRowColor(rowid, "#ffffcc");
+            targetGridObj.setUserData(rowid, "jobobject", jobArray[i]);           //stores original job object with row for later access
+
         }
-    });
-}
+        //targetGridObj.sortRows(5,"str","des");
+        //update job count display
+        //delete jobs that are in the grid but not in the list of jobs from server
+        targetGridObj.forEachRow(function (id) {
+            if (newjobIds.indexOf(id) == -1) {
+                var _status = targetGridObj.cells(id, 0).getValue()
+                if (_status == "active") {
+                    //active jobs are not deleted
+                } else {
+                    targetGridObj.deleteRow(id);
+                }
+            }
+        });
+    }
 
-/* HELPERS */
-function hashCode (string) {
-//this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
-  var hash = 0, i, chr;
-  if (string.length === 0) return hash;
-  for (i = 0; i < string.length; i++) {
-    chr   = string.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
+    /* HELPERS */
+    function hashCode(string) {
+        //this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
+        var hash = 0, i, chr;
+        if (string.length === 0) return hash;
+        for (i = 0; i < string.length; i++) {
+            chr = string.charCodeAt(i);
+            hash = ((hash << 5) - hash) + chr;
+            hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
+    };
 
-function getDurationStringFromDates(start_date,end_date){
+    function getDurationStringFromDates(start_date, end_date) {
         var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
         var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
         delta -= days * 86400;// calculate (and subtract) whole hours
@@ -827,148 +908,155 @@ function getDurationStringFromDates(start_date,end_date){
         var minutes = Math.floor(delta / 60) % 60;
         delta -= minutes * 60;// what's left is seconds
         var seconds = delta % 60;  // in theory the modulus is not required
-        return pad(hours) + ":" + pad (minutes) + ":" + pad (seconds);
-}
-
-function pad(n, z) { //add leading zero if there is none
-  z = z || '0';
-  n = n + '';
-  return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
-}
-
-function configureJobGrid(dhtmlxGridObj){
-        //todo: this is only for activejobgrid
-        dhtmlxGridObj.setImagePath("../dependencies/dhtmlx/imgs");                 
-        //dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); 
-        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns   
-        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed,ed,ed,ed");                //the types of columns  
-        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");          //the sorting types   
-        dhtmlxGridObj.enableMultiselect(true);
-        dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page 
-}
-
-function buildUrl(what){
-    if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])){
-        return "/proxy" + what;
-    }else{
-        var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
-        return  _url;
+        return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
     }
-    //old, delete at next iteration    
-}
 
-/* NO PROXY MODE */
-function getQueuedJobs(targetGridObj){
-    $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        context: this,
-        success: function (response) {
-            addQueuedJobsToGrid(targetGridObj,response.queue);
-            mainLayout.cells("a").progressOff();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
-        }
-    });
-}
-function getActiveJobs(targetGridObj){
-    $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        context: this,
-        success: function (response) {
-            addActiveJobsToGrid(targetGridObj,response.jobs);
-            mainLayout.cells("a").progressOff();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-        }
-    });
-}
-function getFinishedJobs(targetGridObj){
+    function pad(n, z) { //add leading zero if there is none
+        z = z || '0';
+        n = n + '';
+        return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
+    }
 
-    $.ajax({
-        url:  buildUrl(m_serverconfig['STATIC_GET_FINISHED_JOBS_URL']),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        context: this,
-        success: function (response) {
-           addHistoryJobsToGrid(targetGridObj,response.history);
-           mainLayout.cells("b").progressOff();
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-            
-        }
-    });
-}
-/* /NO PROXY MODE */
+    function configureJobGrid(dhtmlxGridObj) {
+        //todo: this is only for activejobgrid
+        dhtmlxGridObj.setImagePath("../dependencies/dhtmlx/imgs");
+        //dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
+        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns
+        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed,ed,ed,ed");                //the types of columns
+        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");          //the sorting types
+        dhtmlxGridObj.enableMultiselect(true);
+        dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page
+    }
 
+    function buildUrl(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/proxy" + what;
+        } else {
+            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
+            return _url;
+        }
+        //old, delete at next iteration
+    }
+
+    /* NO PROXY MODE */
+    function getQueuedJobs(targetGridObj) {
+        $.ajax({
+            url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            context: this,
+            success: function (response) {
+                addQueuedJobsToGrid(targetGridObj, response.queue);
+                mainLayout.cells("a").progressOff();
+            },
+            error: function (xhr, status) {
+                dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+            }
+        });
+    }
+    function getActiveJobs(targetGridObj) {
+        $.ajax({
+            url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            context: this,
+            success: function (response) {
+                addActiveJobsToGrid(targetGridObj, response.jobs);
+                mainLayout.cells("a").progressOff();
+            },
+            error: function (xhr, status) {
+                dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+            }
+        });
+    }
+    function getFinishedJobs(targetGridObj) {
+
+        $.ajax({
+            url: buildUrl(m_serverconfig['STATIC_GET_FINISHED_JOBS_URL']),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            context: this,
+            success: function (response) {
+                addHistoryJobsToGrid(targetGridObj, response.history);
+                mainLayout.cells("b").progressOff();
+            },
+            error: function (xhr, status) {
+                dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+
+            }
+        });
+    }
+    /* /NO PROXY MODE */
+    function build_new_api_url(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/new_proxy" + what;
+        } else {
+            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            return _url;
+        }
+    }
 
 </script>
 
 </head>
 <body onload="loadserverconfig()">
-<div style="display:none"><!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
+    <div style="display:none">
+        <!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
+        <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
+        <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
+            <table id="treetable_active" class="obj">
+                <colgroup>
+                    <col width="5%"></col>
+                    <col width="10%"></col>
+                    <col width="5%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                </colgroup>
+                <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
+                    <tr>
+                        <th>State</th>
+                        <th>Workflow</th>
+                        <th>Start</th>
+                        <th>Source</th>
+                        <th>Processor@Host</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
 
- <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
- <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
-    <table id="treetable_active" class="obj">
-    <colgroup>
-    <col width="5%"></col>
-    <col width="10%"></col>
-    <col width="5%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    </colgroup>      
-        <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
-          <tr > 
-            <th>State</th>
-            <th>Workflow</th> 
-            <th>Start</th>
-            <th>Source</th> 
-            <th>Processor@Host</th>
-            <th>Status</th>
-            <th>Progress</th>
-          </tr>
-        </thead>
-      </table>
- </div> 
 
 
-
- <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
- <div id="history_div" style="" class="gridbox_dhx_skyblue gridbox">
-      <table id="treetable_history" class="obj">
-          <colgroup>
-    <col width="5%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    <col width="10%"></col>
-    </colgroup>      
-        <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
-          <tr class=""> 
-              <th><input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-              <th><input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th> 
-              <th><input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-              <th>Duration</th> 
-              <th><input placeholder="End" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-              <th><input placeholder="File" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-              <th><input placeholder="Outcome" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-          </tr>
-        </thead>
-      </table>
- </div> 
- </div><!-- global hiding div -->
+        <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
+        <div id="history_div" style="" class="gridbox_dhx_skyblue gridbox">
+            <table id="treetable_history" class="obj">
+                <colgroup>
+                    <col width="5%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                </colgroup>
+                <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                    <tr class="">
+                        <th><input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th><input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th><input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th>Duration</th>
+                        <th><input placeholder="End" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th><input placeholder="File" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th><input placeholder="Outcome" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div><!-- global hiding div -->
 </body>

@@ -1,14 +1,16 @@
 {
   "ExpandedNodes": [
     "",
-    "\\node_components",
-    "\\node_components\\cron_tasks",
+    "\\rest_service",
     "\\rest_service\\api",
-    "\\rest_service\\api\\controllers",
     "\\rest_service\\api\\swagger",
     "\\rest_service\\config",
-    "\\rest_service\\test\\api"
+    "\\webinterface",
+    "\\webinterface\\components",
+    "\\webinterface\\dependencies\\fancytree\\modules",
+    "\\webinterface\\dependencies\\json.human.js-master\\css",
+    "\\webinterface\\dependencies\\json.human.js-master\\lib"
   ],
-  "SelectedNode": "\\node_components\\cron_tasks\\jobfetcher.js",
+  "SelectedNode": "\\server.js",
   "PreviewInSolutionExplorer": false
 }

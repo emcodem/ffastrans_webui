@@ -21,7 +21,7 @@ function start(req, res) {
     console.debug("Locating file " + job_description_path)
 	try {
         if (fs.existsSync(job_description_path)) {
-            console.debug("File existsi, reading contents");
+            console.debug("File exists, reading contents");
           //res.sendFile(path) //cannot use sendfile here as it will freak out about the filename starting with .
             fs.readFile(job_description_path, 'utf8', function (err, job_file_contents) {
                 if (err) {
@@ -29,7 +29,12 @@ function start(req, res) {
                     res_error();
                     return;
                 }
+                //remove UTF8 BOM
+                if (job_file_contents.charCodeAt(0) === 0xFEFF) {
+                    job_file_contents = job_file_contents.substr(1);
+                }
               //enrich job obj with workflow object
+                console.debug("Parsing Job Json... " + job_file_contents )
                 var o_job = JSON.parse(job_file_contents);
                 if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")) {
                     console.debug("workflow exists in jobdir " + global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")
