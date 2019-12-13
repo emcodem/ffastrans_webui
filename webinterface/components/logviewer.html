@@ -164,8 +164,9 @@
             var m_info_layout = mainLayout.cells("a").attachLayout("2E");
             m_info_layout.cells("a").setText("General");
             m_info_layout.cells("b").setText("Nodes");
+
+            m_info_layout.cells("b").attachObject("node_div");
             m_info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>')
-            m_info_layout.cells("b").attachHTMLString('<div id="nodes_div" style="height:100%;width:100%"/>')
             m_info_layout.cells("a").showInnerScroll();
             //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
         }
@@ -510,6 +511,109 @@
             });
         }
 
+        function buildNodeGridGrid() {
+
+            $("#treetable_nodes").fancytree({
+                extensions: ["table", "filter","gridnav"],
+                icon: false,
+                checkbox: false,
+                titlesTabbable: true,     // Add all node titles to TAB chain
+                quicksearch: true,
+                init: function (event, data) {
+                    //ENABLE RESIZE COLUMNS
+                    $("#treetable_nodes").colResizable({
+                        resizeMode: 'fit',
+                        hoverCursor: "col-resize",
+                        dragCursor: "col-resize",
+                        postbackSafe: true,
+                        useLocalStorage: true,
+                        minWidth: 10,
+                        liveDrag: true,
+                    })
+                },
+                modifyChild: function (event, data) {
+                    //reset all odd even row colors
+                    var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    var oldnodes = rootNode.children;
+                    for (i = 0; i < oldnodes.length; i++) {
+                        if (i % 2 == 0) {
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                        } else {
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                        }
+                    }
+                },
+                renderColumns: function (event, data) {
+                    var node = data.node;
+                    
+                    if (data.node.getIndex() % 2 == 0) {
+                        node.removeClass("odd_dhx_skyblue");//apply dthmlx style to node
+                        node.addClass("ev_dhx_skyblue");//apply dthmlx style to node
+                    } else {
+                        node.removeClass("ev_dhx_skyblue");//apply dthmlx style to node
+                        node.addClass("odd_dhx_skyblue");//apply dthmlx style to node
+                    }
+                    //check if this proc already exists 
+                    var new_key = node.data["node"]["id"] + node.data["split_id"]
+                    var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    var existing_node = rootNode.tree.getNodeByKey(new_key)
+                    if (existing_node) {
+                        //dont add node
+                        //$(node.span).closest('tr').css('display', "none");
+                        node.remove()//TODO:make node remove work
+                        return;
+                    }
+                    node.key = new_key;
+                    $tdList = $(node.tr).find(">td");
+                    var nodeid = node.data["node"]["id"];
+                    var nodename = "";
+                    m_workflowdata["nodes"].forEach(function (n) { if (nodeid == n.id) {nodename=n.name }})
+                    console.log(nodename);
+                    $tdList.eq(0).text(nodename);  //.addClass("alignRight");
+                    $tdList.eq(1).text(node.data["created"]);
+                    $tdList.eq(2).text(node.data["host"]);
+                    $tdList.eq(3).text(node.data["split_id"]);                    
+                },
+                    // transform gethistoryjobsajax result into tree compatible
+                postProcess: function (event, data) {
+                    // data is a treegrid specific object
+                    //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+                },
+                table: {
+                    indentation: 15,
+                    nodeColumnIdx: 0,
+                },
+                gridnav: {
+                    autofocusInput: false,
+                    handleCursorKeys: true
+                },
+                beforeSelect: function (event, data) {
+
+                },
+                focusOnSelect: false,
+                autoScroll: false,
+                autoActivate: false,
+                unselectable: true,
+                activeVisible: false,
+                select: function (event, data) {
+                    //show details
+                    if (data.node.isSelected()) {
+                        //data.node.addClass("rowselected");
+                        //display complex data
+/*                        $tdList = $(data.node.tr).find(">td");
+                        console.log(JSON.stringify(data.node.data["_data"]));
+                        var table = (JsonHuman.format(data.node.data["_data"]));
+                        $tdList.eq(3).html(table);
+                        */
+                    } else {
+                        //data.node.removeClass("rowselected");
+                    }
+                }
+            })
+            
+        }
 
 
         function appendLogLines(proc_id, a_lines) {
@@ -530,14 +634,25 @@
                 success: function (response) {
                     //PARSE JOB LOG
                     parseJobLog(response);
+                    buildNodeGridGrid(response)
                     buildLogGridGrid(response);
-                    //load initial data into tree
+
+                    //initial data into log grid 
                     var rootNode = $("#treetable_log").fancytree("getRootNode");
-                    //tree would delete data property so we need to rename it before adding to tree
+                    //!!tree would delete data property so we need to rename it before adding to tree
                     for (var a in response) {
                         response[a]["_data"] = response[a]["data"];
                     }
                     rootNode.addChildren(response);
+
+                    //load data into node grid
+                    rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    //!!tree would delete data property so we need to rename it before adding to tree
+                    for (var a in response) {
+                        response[a]["_data"] = response[a]["data"];
+                    }
+                    rootNode.addChildren(response);
+
                 },
                 error: function (xhr, status) {
                     alert("Did not get Log for job " + job_id);
@@ -560,7 +675,7 @@
                         m_workflowdata = response['wf_object'];
                         //populate top left data
                         var copy = JSON.stringify(response);
-                        copy = JSON.parse(copy);                    //copy the whole object
+                        copy = JSON.parse(copy);                    //copy the whole object to be able to delete wf_object for display in general_div
                         delete copy["wf_object"];
                         var table = (JsonHuman.format(copy));
                         document.getElementById("general_div").appendChild(table);
@@ -620,7 +735,26 @@
                     <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Event" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Data" style="width:70px;height:18px;margin-left:5px;float:left" type="search" name="search" incremental autocomplete="off"></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
 
+    <div id="node_div" style="" class="gridbox_dhx_skyblue gridbox">
+        <table id="treetable_nodes" class="obj">
+            <colgroup>
+                <col width="20%"></col>
+                <col width="10%"></col>
+                <col width="10%"></col>
+                <col width="10%"></col>
+                <col width="65%"></col>
+            </colgroup>
+            <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                <tr class="">
+                    <th><input placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Host" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                 </tr>
             </thead>
         </table>

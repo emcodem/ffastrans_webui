@@ -19,7 +19,7 @@ function start_server(_port,_approot){
     //as this service might run standalone without webint at some time, we need to take care to have our own global config
 
     global.api_config = {
-        s_SYS_DIR: "C:\\dev\\FFAStrans1.0.0_beta1\\"
+        s_SYS_DIR: "C:\\dev\\ffastrans_rework\\FFAStrans\\"
     }
 
     global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
