@@ -1,4 +1,5 @@
 <html>
+<head>
 <script src="/socket.io/socket.io.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css">
@@ -27,7 +28,7 @@
 <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
 
-<  <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
+<!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
 <link rel="stylesheet"
       href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
 <script src="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.js">
@@ -193,6 +194,7 @@
             parent: document.body,
             pattern: "2E"
         });
+
         mainLayout.cells("a").setText("Running");
 
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
@@ -1001,8 +1003,8 @@
 
 </script>
 
-</head>
 <body onload="loadserverconfig()">
+
     <div style="display:none">
         <!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
