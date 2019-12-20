@@ -515,9 +515,11 @@
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
-                $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
                 var outcome = node.data.outcome.substring(0, 1000);
-                if (outcome.length == 1000) { outcome += " (text was truncated by webinterace...) " }
+                if (outcome.length == 1000) {
+                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: "+node.data.file+" \nDate Start: " +node.data.job_start);
+                    outcome += " (text was truncated by webinterace...) "
+                }
                 $tdList.eq(6).html("<div class='celltext'>" + node.data.outcome.substring(0, 1000) + "</div>"); //outcome can be lengthy
             },
             init: function (event, data) {

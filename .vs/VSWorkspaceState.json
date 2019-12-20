@@ -1,16 +1,14 @@
 {
   "ExpandedNodes": [
     "",
-    "\\rest_service",
+    "\\node_components\\cron_tasks",
     "\\rest_service\\api",
+    "\\rest_service\\api\\controllers",
     "\\rest_service\\api\\swagger",
     "\\rest_service\\config",
     "\\webinterface",
-    "\\webinterface\\components",
-    "\\webinterface\\dependencies\\fancytree\\modules",
-    "\\webinterface\\dependencies\\json.human.js-master\\css",
-    "\\webinterface\\dependencies\\json.human.js-master\\lib"
+    "\\webinterface\\components"
   ],
-  "SelectedNode": "\\server.js",
+  "SelectedNode": "\\webinterface\\components\\jobviewer.html",
   "PreviewInSolutionExplorer": false
 }

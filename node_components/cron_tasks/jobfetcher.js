@@ -1,6 +1,7 @@
 const assert = require('assert');
 const Request = require("request");
 const date = require('date-and-time');
+const moment = require('moment');
 //todo: implement queued jobs
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 
@@ -185,14 +186,17 @@ module.exports = {
 
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
-     var re = new RegExp("-.....");
-    var newdatestr = (str.replace("T"," ").replace("-01.00",""))
-    try{
-        return date.parse(str.replace("T"," ").replace("-01.00",""),"YYYY-MM-DD HH:mm:ss.SSS")
-    }catch(e){
-        console.error("Could not parse date string: " + str + " replaced: "+ newdatestr);
-        return str;
-    }
+    var re = new RegExp("-.....");
+    var parsed = moment.parseZone(str.replace(/.00$/,":00"))
+    return parsed.format("YYYY-MM-DD HH:mm:ss");
+    //var newdatestr = (str.replace("T"," ").replace("-01.00",""))
+    //try {
+    //    var dt = date.parse(str.replace("T", " ").replace("-01.00", ""), "YYYY-MM-DD HH:mm:ss.SSS")
+    //    return date.parse(str.replace("T", " ").replace("-01.00", ""), "YYYY-MM-DD HH:mm:ss.SSS")
+    //}catch(e){
+    //    console.error("Could not parse date string: " + str + " replaced: "+ newdatestr);
+    //    return str;
+    //}
     
 }
 

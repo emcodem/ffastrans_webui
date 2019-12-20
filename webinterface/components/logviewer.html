@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>FFAStrans Workflow</title>
+    <title>FFAStrans Workflow</title>
 
     <script src="/socket.io/socket.io.js"></script>
 
@@ -9,6 +9,7 @@
         mxBasePath = '../dependencies/mxgraph/javascript/src';
     </script>
     <script src="../dependencies/jquery/jquery.js"></script>
+    <script src="../dependencies/moment/moment.js"></script>
     <!-- Loads and initializes the library -->
     <!--    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>-->
     <script type="text/javascript" src="../dependencies/mxgraph/javascript/mxClient.min.js"></script>
@@ -66,22 +67,22 @@
             width: 100%;
             height: 100%;
         }
-        
+
         .exec_count {
-          background: #555555;
-          border-radius: 0.9em;
-          -moz-border-radius: 0.9em;
-          -webkit-border-radius: 0.9em;
-          color: #FFFFEE;
-          display: inline-block;
-          line-height: 1.7em;
-          position:absolute;
-          left:-15px;
-          top:0px;
-          text-align: center;
-          width: 1.7em; 
+            background: #555555;
+            border-radius: 0.9em;
+            -moz-border-radius: 0.9em;
+            -webkit-border-radius: 0.9em;
+            color: #FFFFEE;
+            display: inline-block;
+            line-height: 1.7em;
+            position: absolute;
+            left: -15px;
+            top: 0px;
+            text-align: center;
+            width: 1.7em;
         }
-        
+
         table, th, td {
             border: 1px solid black;
         }
@@ -120,12 +121,12 @@
         div.gridbox {
             overflow: initial;
         }
-        
+
         .dhx_cell_cont_wins {
-            overflow:scroll!important;
+            overflow: scroll !important;
         }
-        
-        
+
+
         /*three dots on text overflow*/
         .celltext {
             white-space: nowrap;
@@ -154,7 +155,7 @@
                 type: "GET",
                 success: function (response) {
                     m_serverconfig = JSON.parse(response)
-                        init();
+                    init();
                 },
                 error: function (xhr, status) {
                     dhtmlx.message("Fatal error, could not load serverconfig. ");
@@ -166,17 +167,17 @@
         /*MAIN ENTRY POINT*/
         function init() {
             buildMainLayout();
-           
+
             get_all_job_details(getQueryVariable("job_id"));
         }
 
         function buildMainLayout() {
             mainLayout = new dhtmlXLayoutObject({
-                    // mainLayout = headerLayout.cells("b").attachLayout({
-                    parent: document.body,
-                    pattern: "3L"
-                });
-                
+                // mainLayout = headerLayout.cells("b").attachLayout({
+                parent: document.body,
+                pattern: "3L"
+            });
+
             mainMenu = mainLayout.attachMenu();
             mainMenu.addNewSibling(null, "reload_youngest", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Load latest Job</button>');
             mainMenu.attachEvent("onClick", function () {
@@ -187,34 +188,35 @@
                     crossDomain: true,
                     dataType: "json",
                     success: function (response) {
-                        if (response["data"]){
+                        if (response["data"]) {
                             var jid = response["data"][0]["sort_family_name"];
-                            window.location.href = window.location.href.replace( /[\?#].*|$/, "?job_id=" ) + jid;
-                        } 
+                            window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+                        }
                     },
                     error: function (xhr, status) {
                         alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
                     }
                 });
-                
-                 
+
+
             });
-            
-            
+
+
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
-                <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
-                <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                <button class="btn" name="b_zoomout" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
-                ');
+                    <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
+                    <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
+                    <button class="btn" name="b_zoomout" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                    ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
-                <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
-                ');
+                    <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
+                    ');
             mainLayout.cells("c").showInnerScroll();
             mainLayout.cells("c").attachObject("log_div"); //for json_to_table
+            //todo: on btnclick, hide minfo und ffprobe: set height 10px und display:inline-block
             mainLayout.cells("a").setWidth(400);
             mainLayout.cells("a").setText('Info');
-            
+
             //SIZES
             mainLayout.cells("b").setWidth($(document).width() / 2);
             //mainLayout.cells("c").setText("Finished");
@@ -224,23 +226,24 @@
                 saveLayoutSizes(mainLayout, "mainLayout");
             });
             mainLayout.attachEvent("onUndock", function (name) {
-               var _win = mainLayout.dhxWins.window(name);
+                var _win = mainLayout.dhxWins.window(name);
                 _win.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
                 _win.center();
             });
-            
+
             //Left Layout
             var m_info_layout = mainLayout.cells("a").attachLayout("2E");
-            m_info_layout.cells("a").setText('<button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'a\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button>' + 
-                                            "<span id='general_text'>General</span>");
+            m_info_layout.cells("a").setText('<button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'a\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button>' +
+                "<span id='general_text'>General</span>");
             m_info_layout.cells("b").setText("Nodes");
             m_info_layout.cells("b").attachObject("node_div");
             m_info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>')
             m_info_layout.cells("a").showInnerScroll();
+            m_info_layout.cells("b").showInnerScroll();
             m_info_layout.attachEvent("onPanelResizeFinish", function () {
                 saveLayoutSizes(m_info_layout, "m_info_layout");
             });
-            restoreLayoutSizes(m_info_layout, "m_info_layout",true);
+            restoreLayoutSizes(m_info_layout, "m_info_layout", true);
             //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
         }
 
@@ -274,7 +277,7 @@
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
                     if (this.getModel().isVertex(cell)) {
                         //calculate the text to display on canvas
-                        var FF_NODE_TITLE = cell.ffastransobj["type"];
+                        var FF_NODE_TITLE = cell.ffastransobj["name"] || cell.ffastransobj["type"];
                         var FF_NODE_DESC = cell.ffastransobj["description"] || "";
                         var FF_NODE_ID = cell.ffastransobj["id"].toUpperCase();
                         //create the cell style
@@ -332,7 +335,7 @@
                 graph.getModel().beginUpdate();
                 try {
                     var style = graph.getStylesheet().getDefaultVertexStyle()
-                        style[mxConstants.STYLE_FONTSIZE] = '10';
+                    style[mxConstants.STYLE_FONTSIZE] = '10';
                     style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_TOP;
 
                     //var estyle = graph.getStylesheet().getDefaultEdgeStyle();
@@ -388,7 +391,7 @@
                 finally {
                     // Updates the display, fullscreen zoom graph
                     graph.getModel().endUpdate();
-                    graph.fit(0,false,35);
+                    graph.fit(0, false, 35);
                     m_graph = graph;
                 }
             }
@@ -398,25 +401,6 @@
         function CustomData(value) {
             this.value = value;
         }
-
-        <!-- var codec = new mxObjectCodec(new CustomData()); -->
-
-        <!-- codec.encode = function (enc, obj) { -->
-            <!-- var node = enc.document.createElement('CustomData'); -->
-            <!-- mxUtils.setTextContent(node, JSON.stringify(obj)); -->
-
-            <!-- return node; -->
-        <!-- }; -->
-
-        <!-- codec.decode = function (dec, node, into) { -->
-            <!-- var obj = JSON.parse(mxUtils.getTextContent(node)); -->
-            <!-- obj.constructor = CustomData; -->
-
-            <!-- return obj; -->
-        <!-- }; -->
-
-        <!-- mxCodecRegistry.register(codec); -->
-
 
         //parse Job log
         function parseJobLog(lines) {
@@ -431,25 +415,34 @@
                     var new_key = line["node"]["id"] + line["split_id"]
                     _proc_id = line["node"]["id"].toUpperCase();
                     id_pid_mapping[line["pid"]] = _proc_id;
-                    
+
                     //show processor as enabled on ui
                     a_log_per_node[_proc_id] = [];
                     document.getElementById(_proc_id).className = "table_ffastrans_processor_enabled";
                     //store pid if possible for enhanced threading support
-                    
+
                     //red border for errored nodes
                     if (line["event"] == "_write_job_end") { //when this exists, we have an error
                         document.getElementById(_proc_id).style.border = "2px solid red";
                     }
-                    
+
                     //check processor error state and count
-                    if (!m_unique_nodes[new_key]) {
+                    if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
                         m_unique_nodes[new_key] = (line);
                         //raise proc count on gui
                         var _o_counter = $("#" + _proc_id).parent().find("span");
-                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1 )
+                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
+                    } else {
+                        //check for processor end and state
+                        if (line["event"] == "_OnEnding()") {
+                            m_unique_nodes[new_key]["date_end"] = line["created"];
+                        }
                     }
-                } catch (ex) {}
+
+
+
+
+                } catch (ex) { }
                 //sort the current line as accurate as possible
                 if (line["pid"] != "undefined") { //we have a pid, perfect
                     var id_from_pid = id_pid_mapping[line["pid"]];
@@ -459,7 +452,7 @@
                     a_log_per_node[_proc_id].push(line);
                 }
             }
-            
+
         }
 
         function buildLogGridGrid() {
@@ -481,6 +474,7 @@
                 },
                 init: function (event, data) {
                     //ENABLE RESIZE COLUMNS
+                    /*
                     $("#treetable_log").colResizable({
                         resizeMode: 'fit',
                         hoverCursor: "col-resize",
@@ -489,7 +483,7 @@
                         useLocalStorage: true,
                         minWidth: 10,
                         liveDrag: true,
-                    });
+                    });*/
                 },
                 modifyChild: function (event, data) {
                     //reset all odd even row colors
@@ -517,19 +511,27 @@
                         node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
 
+
+                    var nodeid = node.data["node"]["id"];
+                    var nodename = getNodeNameById(nodeid);
+                    var created = node.data["created"];
+                    created = moment.parseZone(created.replace(/.00$/,":00"))
+                    created = created.format("YYYY-MM-DD HH:mm:ss");
+
                     $tdList = $(node.tr).find(">td");
-                    $tdList.eq(0).text(node.data["created"]); 
-                    $tdList.eq(1).text(node.data["host"]);
-                    $tdList.eq(2).text(node.data["split_id"]);
-                    $tdList.eq(3).text(node.data["event"]);
+                    $tdList.eq(0).html("<div class='celltext'>" + nodename + "</div>");
+                    $tdList.eq(1).html("<div class='celltext'>" + created + "</div>");
+                    $tdList.eq(2).html("<div class='celltext'>" + node.data["host"] + "</div>");
+                    $tdList.eq(3).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
+                    $tdList.eq(4).html("<div class='celltext'>" + node.data["event"] + "</div>");
                     var table = (JsonHuman.format(data.node.data["_data"]));
-                    $tdList.eq(4).html(table);
+                    $tdList.eq(5).html(table);
                 },
                 gridnav: {
                     autofocusInput: false,
                     handleCursorKeys: true
                 },
-                beforeSelect: function (event, data) {},
+                beforeSelect: function (event, data) { },
 
             });
 
@@ -571,15 +573,15 @@
                 unselectable: false,
                 init: function (event, data) {
                     //ENABLE RESIZE COLUMNS
-                    $("#treetable_nodes").colResizable({
-                        resizeMode: 'fit',
-                        hoverCursor: "col-resize",
-                        dragCursor: "col-resize",
-                        postbackSafe: true,
-                        useLocalStorage: true,
-                        minWidth: 10,
-                        liveDrag: true,
-                    })
+                    /*                    $("#treetable_nodes").colResizable({
+                                            resizeMode: 'fit',
+                                            hoverCursor: "col-resize",
+                                            dragCursor: "col-resize",
+                                            postbackSafe: true,
+                                            useLocalStorage: true,
+                                            minWidth: 10,
+                                            liveDrag: true,
+                                        })*/
                 },
                 select: function (event, data) {
                     if (data.node.isSelected()) {
@@ -617,17 +619,25 @@
                     node.key = new_key;
                     $tdList = $(node.tr).find(">td");
                     var nodeid = node.data["node"]["id"];
-                    var nodename = "";
-                    m_workflowdata["nodes"].forEach(function (n) {
-                        if (nodeid == n.id) {
-                            nodename = n.name || n.type
-                        }
-                    });
+                    var nodename = getNodeNameById(nodeid);
+                    //time calculations
+                    var duration = "";
+                    var created = "";
+                    try {
+                        created = node.data["created"];
+                        created = moment.parseZone(created.replace(/.00$/, ":00"))
+                        var end = node.data["date_end"];
+                        end = moment.parseZone(end.replace(/.00$/, ":00"))
+                        duration = end.diff(created, "seconds");
+                    } catch (ex) { }
+
+                    //fill row columns
                     $tdList.eq(0).html("<div class='celltext'>Error</div>"); //.addClass("alignRight");
-                    $tdList.eq(1).html("<div class='celltext'>" + nodename +"</div>"); //.addClass("alignRight");
-                    $tdList.eq(2).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + node.data["created"] +"</div>");
-                    $tdList.eq(3).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + node.data["host"] +"</div>");
-                    $tdList.eq(4).html("<div class='celltext'>" + node.data["split_id"] +"</div>");
+                    $tdList.eq(1).html("<div class='celltext'>" + nodename + "</div>"); //.addClass("alignRight");
+                    $tdList.eq(2).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + duration + "</div>");
+                    $tdList.eq(3).html("<div class='celltext' style='text-align:left;'>" + created.format("YYYY-MM-DD HH:mm:ss") + "</div>");
+                    $tdList.eq(4).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + node.data["host"] + "</div>");
+                    $tdList.eq(5).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
                 },
                 // transform gethistoryjobsajax result into tree compatible
                 postProcess: function (event, data) {
@@ -645,6 +655,15 @@
             })
 
         }
+
+        function getNodeNameById(id) {
+
+            var n = m_workflowdata.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
+            if (n.length != 1) { return "Error, not found" }
+            nodename = n[0].name || n[0].type;
+            return nodename;
+        }
+
 
         function appendLogLines(proc_id, a_lines) {
             //checks if lines already exists (for running jobs) and updates log data of node
@@ -673,16 +692,16 @@
                         response[a]["_data"] = response[a]["data"];
                     }
                     rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
-                    $("#log_div").css("visibility","visible");
+                    $("#log_div").css("visibility", "visible");
                     //load data into node grid
                     rootNode = $("#treetable_nodes").fancytree("getRootNode");
                     //turn m_unique_nodes to array
                     var result = Object.keys(m_unique_nodes).map(function (key) {
-                            return m_unique_nodes[key];
-                        });
+                        return m_unique_nodes[key];
+                    });
                     //add nodegrid rows
                     rootNode.addChildren(result);
-                    $("#node_div").css("visibility","visible");
+                    $("#node_div").css("visibility", "visible");
                 },
                 error: function (xhr, status) {
                     alert("Did not get Log for job " + job_id);
@@ -709,7 +728,7 @@
                         delete copy["wf_object"];
                         var table = (JsonHuman.format(copy));
                         document.getElementById("general_div").appendChild(table);
-                        $("#general_text").text("General [" + response["workflow"]["name"] +"]");
+                        $("#general_text").text("General [" + response["workflow"]["name"] + "]");
                         //populate workflow canvas
                         buildMxGraph(document.getElementById('graphContainer'));
                         get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
@@ -742,53 +761,55 @@
                 return _url;
             }
         }
-        
-        
-        //SAVE AND RESTORE PAGE LAYOUT
-    function saveLayoutSizes(dhxLayout, name) {
-        //store layout cells height and with into html5 storage (in percentage of document height)
-        var aw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
-        var ah = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
-        var bw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
-        var bh = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
-        localStorage.setItem(name + "_aw", aw);
-        localStorage.setItem(name + "_ah", ah);
-        localStorage.setItem(name + "_bw", bw);
-        localStorage.setItem(name + "_bh", bh);
 
-    }
-    function restoreLayoutSizes(dhxLayout, name,ignore_width) {
-        if (localStorage.getItem(name + "_aw")) {
-            var aw = localStorage.getItem(name + "_aw");
-            var ah = localStorage.getItem(name + "_ah");
-            var bw = localStorage.getItem(name + "_bw");
-            var bh = localStorage.getItem(name + "_bh");
-            if (!ignore_width){
-                dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
-                dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
-            }
-            dhxLayout.cells("a").setHeight(ah * document.body.scrollHeight);
-            dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
+
+        //SAVE AND RESTORE PAGE LAYOUT
+        function saveLayoutSizes(dhxLayout, name) {
+            //store layout cells height and with into html5 storage (in percentage of document height)
+            var aw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
+            var ah = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
+            var bw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
+            var bh = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+            localStorage.setItem(name + "_aw", aw);
+            localStorage.setItem(name + "_ah", ah);
+            localStorage.setItem(name + "_bw", bw);
+            localStorage.setItem(name + "_bh", bh);
+
         }
-    }
-    
+        function restoreLayoutSizes(dhxLayout, name, ignore_width) {
+            if (localStorage.getItem(name + "_aw")) {
+                var aw = localStorage.getItem(name + "_aw");
+                var ah = localStorage.getItem(name + "_ah");
+                var bw = localStorage.getItem(name + "_bw");
+                var bh = localStorage.getItem(name + "_bh");
+                if (!ignore_width) {
+                    dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
+                    dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
+                }
+                dhxLayout.cells("a").setHeight(ah * document.body.scrollHeight);
+                dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
+            }
+        }
+
     </script>
 </head>
 
 <!-- Page passes the container for the graph to the program -->
 <body onload="loadserverconfig()">
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
-    <div id="log_div" style="visibility:hidden" class="gridbox_dhx_skyblue gridbox">
+    <div id="log_div" style="visibility:hidden;overflow:visible" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_log" style="width:100%" class="obj">
             <colgroup>
-                <col width="20%"></col>
+                <col width="2%"></col>
                 <col width="10%"></col>
                 <col width="10%"></col>
                 <col width="10%"></col>
-                <col width="65%"></col>
+                <col width="10%"></col>
+                <col width="50%"></col>
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">
+                    <th><input placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Host" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
@@ -803,7 +824,8 @@
         <table id="treetable_nodes" style="width:100%" class="obj">
             <colgroup>
                 <col width="15px"></col>
-                <col width="17%"></col>
+                <col width="10%"></col>
+                <col width="5%"></col>
                 <col width="30%"></col>
                 <col width="40%"></col>
                 <col width="25px"></col>
@@ -812,6 +834,7 @@
                 <tr class="">
                     <th></th>
                     <th><input placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input placeholder="Dur" style="width:40px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Host" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
