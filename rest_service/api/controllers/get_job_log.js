@@ -1,7 +1,8 @@
 'use strict';
 //var util = require('util');
 const fs = require('fs')
-
+var concat = require('concat-files');
+ 
 module.exports = {
   get_job_log: start
 };
@@ -26,10 +27,28 @@ function start(req, res) {
 		res.sendFile(path)
 		console.log("returned");
 	  }else{
-		return res.status(404).json({});		  
+		//serve log for running job
+        serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",0,0);
+        return res.status(404).json({});		  
 	  }
 	} catch(err) {
 		console.debug(err);
 		return res.status(500).json({description: err});
 	}
+}
+
+function serveRunningLog(jobdir,start,end){
+    var files = fs.readdirSync(jobdir)
+              .map(function(v) { 
+                  return { name:v,
+                           time:fs.statSync(jobdir + v).mtime.getTime()
+                         }; 
+               })
+               .sort(function(a, b) { return a.time - b.time; })
+               .map(function(v) { return v.name; });
+    console.log("Number of log files: " + files.length);
+    concat(files, jobdir + "../tmp.json", function(err) {
+            if (err) throw err
+            console.log('done');
+          });
 }
