@@ -10,16 +10,17 @@ const path = require("path");
 
 //require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
 
-exports.init = function (port, approot) {
-	start_server(port,approot);
+exports.init = function (port, approot, ffas_root) {
+    //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
+	start_server(port,approot,ffas_root);
 }
 
-function start_server(_port,_approot){
+function start_server(_port,_approot,_ffas_root){
 	//GLOBAL CONFIG - the keyword global here will make the sub-objects available in all scripts that run in same process
     //as this service might run standalone without webint at some time, we need to take care to have our own global config
-
+    console.log("REST API Service detected installdir: " + _ffas_root)
     global.api_config = {
-        s_SYS_DIR: "F:\\dev\\ffa\\FFAStrans\\"
+        s_SYS_DIR: _ffas_root
     }
 
     global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";

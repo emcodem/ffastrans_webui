@@ -15,6 +15,10 @@ const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
+
+//register special mime types
+//express.mime.type['locallink'] = 'application/internet-shortcut';
+console.log(express.mime)
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
@@ -126,13 +130,23 @@ function init(conf){
     app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
     
     //redirect views - for passport
-    app.set('views', path.join(__dirname, './node_components/passport/views/'));
+    app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
 
-    //NEW REST API - replaces the builtin ffastrans api, possible TODO: disable when not running directly on ffastrans node
-    console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
-    var api_root = path.join(__dirname, 'rest_service');
-    ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"], api_root);
-
+    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
+    var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about")
+    var _request = require('retry-request', {
+        request: require('request')
+    });
+    //we need to get install directory when running as part of webinterface, before we can start new api
+    _request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
+        if (error) {
+            console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
+            return;
+        };
+        console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
+        var api_root = path.join(__dirname, 'rest_service');
+        ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"], api_root, JSON.parse(body)["about"]["general"]["install_dir"]+"\\");
+    })
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY
     app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{

@@ -168,7 +168,30 @@
             if (data === "") {
                 result = sn("span", STRING_EMPTY_CLASS_NAME, "(Empty Text)");
             } else {
-                result = sn("span", STRING_CLASS_NAME, data);
+                try {
+                    //translate file paths to clickable links
+                    if (data.match(/^.:\\|^.:\//)) {
+                        var p = data.substr(0, data.lastIndexOf('\\'));
+                        var span = document.createElement("span");
+                        var a = document.createElement("a");
+                        a.setAttribute('href', p);
+                        var link_node = document.createTextNode(p); 
+                        var filename_text = data.replace(/^.*[\\\/]/, '')
+                        var filetext = document.createTextNode("\\" + filename_text); 
+                        //create downloadable url file
+                        var _bdata = btoa("[InternetShortcut]\nURL=file:///" + p);
+                        var _href = "<a  download='link.URL' href='data:application/internet-shortcut;charset=UTF8;base64," + _bdata + "'>" + p + "</a><span>\\" + filename_text + "</span>"
+
+                        span.innerHTML = _href;
+                        result = span;
+
+                    } else {
+                        result = sn("span", STRING_CLASS_NAME, data);
+                    }
+                } catch (ex) {
+                    console.log(ex)
+                    result = sn("span", STRING_CLASS_NAME, data);
+                }
             }
         } else if (type === INT) {
             result = sn("span", INT_CLASS_NAME, data);
