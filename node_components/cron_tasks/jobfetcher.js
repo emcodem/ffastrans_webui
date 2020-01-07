@@ -27,7 +27,7 @@ module.exports = {
             }
             
             for (i=0;i<jobArray.length;i++){
-                jobArray[i]["guid"] = jobArray[i]["id"] + "~" + jobArray[i]["split"];
+                jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
                 var idx = jobArray[i]["guid"].split("~");
                 //data for client display
                 jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
@@ -35,7 +35,7 @@ module.exports = {
                 jobArray[i]._id = jobArray[i].guid;
                 jobArray[i].state = "Active";
                 jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-                jobArray[i].file = jobArray[i]["file"]
+                jobArray[i].file = jobArray[i]["source"]
                 jobArray[i].outcome = jobArray[i]["status"]
                 jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
                 jobArray[i].wf_name = jobArray[i]["workflow"];
@@ -109,33 +109,37 @@ module.exports = {
         
         //restructure array from ffastrans,build famliy tree
         
-        for (i=0;i<jobArray.length;i++){
-                //only jobguid plus split makes each job entry unique (hopefully)
-                jobArray[i]["guid"] = jobArray[i]["guid"] + "~" + jobArray[i]["split"];
-                var idx = jobArray[i]["guid"].split("~");
+        for (i = 0; i < jobArray.length; i++){
+
+                //only jobguid plus split makes each job entry unique
+                jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
+            
                 //data for client display
                 jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
                 jobArray[i].guid = jobArray[i]["guid"]
                 jobArray[i]._id = jobArray[i].guid;
                 jobArray[i].state = m_jobStates[jobArray[i]["state"]];
                 jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-                jobArray[i].file = jobArray[i]["file"]
+                jobArray[i].file = jobArray[i]["source"]
                 jobArray[i].outcome = jobArray[i]["result"]
                 jobArray[i].job_start = getDate(jobArray[i]["job_start"]);
                 jobArray[i].job_end = getDate(jobArray[i]["job_end"]);
                 jobArray[i].duration = (getDurationStringFromDates(jobArray[i]["job_start"],jobArray[i]["job_end"])+"");
                 jobArray[i].wf_name = jobArray[i]["workflow"];
                 //internal data for sorting
-                jobArray[i]["id"] = idx[0];
-                jobArray[i]["sort_family_name"] = idx[0];
-                jobArray[i]["sort_child_id"] = idx[1];                
-                jobArray[i]["sort_family_index"] =  idx[1].slice(0, -1) || 1;    //if own splitid is 123, family index is 12
+                //jobArray[i]["id"] = 1;
+                jobArray[i]["sort_family_name"] = jobArray[i]["job_id"];
+                //jobArray[i]["sort_child_id"] = jobArray[i]["split_id"];                
                 if (jobArray[i]["sort_family_index"] === "undefined"){
                     jobArray[i]["sort_family_index"] = 1;//first anchestor in family
                 }
-                jobArray[i]["sort_parent_id"] = idx[1].split('')[idx[1].split('').length-2] || 0; //finds out parent id, e.g. split id 132 is second child of parent_id 3.
-                jobArray[i]["sort_generation"] = idx[1].length-1;
-                
+                //jobArray[i]["sort_parent_id"] = 0; //finds out parent id, e.g. split id 132 is second child of parent_id 3.
+                jobArray[i]["sort_generation"] = 1;
+                //workaround splitid does not allow us to parse family tree
+            if (jobArray[i]["split_id"].startsWith("1-")) { //this is the grandfather
+                console.log("Grandpa id ",jobArray[i]["split_id"])
+                    jobArray[i]["sort_generation"] = 0;
+                } 
         }
         
 //END OF Family sorting
@@ -149,7 +153,7 @@ module.exports = {
                 //upsert history record (if family_member_count changed)
                 global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
                 if(docs > 0 ){
-                        console.log("inserted " + job_to_insert["file"])
+                        console.log("inserted " + job_to_insert["source"])
                         console.log("emitting newhistjob");
                         global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
 
@@ -238,11 +242,12 @@ function buildApiUrl(what){
 
 function getFancyTreeArray(jobArray){
     
-            //find out all parents
+        //find out all parents
         var godfathers = jobArray.filter(function (el) {
-                return el["sort_generation"] === 0; 
+                //return el["sort_generation"] === 0; 
+            return el["sort_generation"] === 0;
         });
-        console.log("num godfathers " + godfathers.length) 
+        console.log("Num godfathers ", godfathers.length) 
         //find out all subjobs of same id
         for (var i in godfathers){
             
@@ -252,7 +257,7 @@ function getFancyTreeArray(jobArray){
                 return el["sort_family_name"] === family_name;
              });
              godfather["sort_family_member_count"] = family.length;
-            
+             console.log("Family size: ", family.length)
              //array of families now contains all family members but flat only
              
              //build family tree             
@@ -274,7 +279,7 @@ function getFancyTreeArray(jobArray){
                     _parents[paridx]["children"] = family.filter(function (el) {
                         if (el["state"] == "Error"){
                             godfather["state"] = "Error";
-                            godfather["outcome"] += " Child: " + el["outcome"];
+                            godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
                         }
                          return (el["sort_generation"] == genidx+1 && el["sort_family_index"] == _parents[paridx]["sort_child_id"]) ;
                     });

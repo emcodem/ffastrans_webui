@@ -3,7 +3,7 @@
 const fs = require('fs')
 
 module.exports = {
-    get_job_details: start
+    get: start
 };
 
 /*
@@ -14,7 +14,7 @@ module.exports = {
  */
 function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-	var jobid = req.swagger.params.jobid.value;
+    var jobid = req.query.jobid;
     console.debug("get_job_details called for: " + jobid);
 	//check if full log exists, if yes, serve contents
     const job_description_path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/.json";  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\.json

@@ -1,11 +1,13 @@
 'use strict';
 //var util = require('util');
-const fs = require('fs')
-var concat = require('concat-files');
- 
+const fs = require('fs');
+const strip_bom = require('strip-bom');
+var path = require('path');
+
 module.exports = {
-  get_job_log: start
+  get: start
 };
+
 
 /*
   Functions in a127 controllers used for operations should take two parameters:
@@ -15,7 +17,7 @@ module.exports = {
  */
 function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-	var jobid = req.swagger.params.jobid.value || 'stranger';
+    var jobid = req.query.jobid;
 	console.debug("get_job_log called for: " + jobid);
 	
 	//check if full log exists, if yes, serve contents
@@ -23,32 +25,53 @@ function start(req, res) {
 	console.debug("trying to find file " + path)
 	try {
 	  if (fs.existsSync(path)) {
-		console.debug("File exists, returning contents");
-		res.sendFile(path)
-		console.log("returned");
+		console.debug("Full Log file exists, returning contents");
+          
+          res.set('Content-Type', 'application/json')
+          //res.send("{}")
+          res.sendFile(path);
 	  }else{
 		//serve log for running job
-        serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",0,0);
-        return res.status(404).json({});		  
-	  }
+          console.log("Serving log from running job");
+        serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",0,0,res);
+      }
 	} catch(err) {
 		console.debug(err);
 		return res.status(500).json({description: err});
 	}
 }
 
-function serveRunningLog(jobdir,start,end){
+function serveRunningLog(jobdir, start, end, response) {
+    //a running job has multiple logs, find all files on filesystem by date
     var files = fs.readdirSync(jobdir)
               .map(function(v) { 
-                  return { name:v,
+                  return {
+                           name: jobdir + v,
                            time:fs.statSync(jobdir + v).mtime.getTime()
                          }; 
                })
-               .sort(function(a, b) { return a.time - b.time; })
-               .map(function(v) { return v.name; });
-    console.log("Number of log files: " + files.length);
-    concat(files, jobdir + "../tmp.json", function(err) {
-            if (err) throw err
-            console.log('done');
-          });
+              .sort(function(a, b) { return a.time - b.time; })
+              .map(function (v) { return v.name; });    
+    //concat and serve all logs
+    response.set('Content-Type', 'application/json')
+    response.write("[");
+    require("async").concat(files, readFile, function (err, buffers) {
+        if (err) {
+            console.log(err);
+        }
+        console.log("Num found log files: " + buffers.length);
+        for (i = 0; i < buffers.length; i++) {
+            response.write(strip_bom(buffers[i].toString()));
+            if (i < buffers.length - 1) {
+                response.write(",");
+            }
+        }
+        response.write("]");
+        response.end();
+    })   
+         
+}
+
+function readFile(file, cb) {
+    require('fs').readFile(file, cb)
 }

@@ -195,7 +195,12 @@
             pattern: "2E"
         });
 
-        mainLayout.cells("a").setText("Running");
+        mainLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Running</span> \
+	    <button class="btn" name="a_details" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
+	    <button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-stop" ></i>Abort</button> \
+	    <button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause" ></i>Pause</button> \
+	    <button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play" ></i>Resume</button> \
+	    ');
 
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
         <button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
@@ -212,42 +217,6 @@
         mainLayout.cells("b").showInnerScroll();
         mainLayout.cells("a").attachObject("active_div");
         mainLayout.cells("a").showInnerScroll();
-
-        var headerMenu = mainLayout.cells("a").attachMenu({
-            items: [
-                { id: "abort", text: '<i class="fas fa-stop"></i>Abort' },
-                { id: "pause", text: '<i class="fas fa-pause"></i>Pause' },
-                { id: "resume", text: '<i class="fas fa-play"></i>Resume' },
-                { id: "log", text: '<i class="fas fa-info"></i>Log' },
-            ]
-        });
-
-        //var headerMenuFinished = mainLayout.cells("b").attachMenu({
-        //    items:[
-        //         {id:"log", text:'<i class="fas fa-info"></i>Log'},
-        //         {id:"delsel", text:'<i class="fas fa-trash-alt"></i>Delete Selected'},
-        //         {id:"delall", text:'<i class="fas fa-trash-alt"></i>Delete All'},
-        //      ]
-        //});
-
-        //events for button clicks
-        headerMenu.attachEvent("onClick", function (id, zoneId, cas) {
-            k
-            if (id == "abort") {
-                abortJob()
-            }
-            if (id == "pause") {
-                pauseResumeJob(id, "PUT")
-            }
-            if (id == "resume") {
-                pauseResumeJob(id, "PUT")
-            }
-            if (id == "log") {
-                openLogViewer(runningJobGrid)
-            }
-        });
-
-
 
         mainLayout.attachEvent("onPanelResizeFinish", function () {
             saveLayoutSizes(mainLayout, "mainLayout");
@@ -308,7 +277,29 @@
         buildActiveGrid();
         forcejobloading();
     }
+    function click_a_header(id) {
+        var tree = $('#treetable_active').fancytree('getTree');
+        var selected = tree.getSelectedNodes();
+        if (selected.length == 0) {
+            dhtmlx.alert("Please select row");
+            return;
+        }
 
+        if (id == "a_details") {
+            var jobid = (selected[0].data["job_id"]);//active_jobs dont have a sort_family_name
+            var url = "logviewer.html?job_id=" + jobid;
+            window.open(url, '_blank');
+        }
+        if (id == "a_abort") {
+
+        }
+        if (id == "a_pause") {
+
+        }
+        if (id == "a_resume") {
+
+        }
+    }
     function click_b_header(id) {
 
         var tree = $('#treetable_history').fancytree('getTree');
@@ -319,10 +310,9 @@
                 dhtmlx.alert("Please select row to show details");
                 return;
             }
-            var jobid = (selected[0].data["sort_family_name"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+            var jobid = (selected[0].data["job_id"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
             var url = "logviewer.html?job_id=" + jobid;
             window.open(url, '_blank');
-
         }
         if (id == "b_delsel") {
             //delete selected jobs
@@ -370,6 +360,13 @@
             table: {
                 indentation: 15,
                 nodeColumnIdx: 0,
+            },
+            select: function (event, data) {
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
             },
             gridnav: {
                 autofocusInput: false,
@@ -420,11 +417,11 @@
                 // (index #0 is rendered by fancytree (title node))
                 //$tdList.eq(0).text(node.data.state);
 
-                $tdList.eq(1).text(node.data.workflow);  //.addClass("alignRight");
-                $tdList.eq(2).text(node.data.job_start);
-                $tdList.eq(3).text(node.data.file);
-                $tdList.eq(4).text(node.data.proc + "@" + node.data.host);
-                $tdList.eq(5).text(node.data.status);
+                $tdList.eq(1).html("<div class='celltext'>" +node.data.workflow+ "</div>");  //.addClass("alignRight");
+                $tdList.eq(2).html("<div class='celltext'>" +node.data.job_start+ "</div>");
+                $tdList.eq(3).html("<div class='celltext'>" +node.data.file+ "</div>");
+                $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host+ "</div>");
+                $tdList.eq(5).html("<div class='celltext'>" +node.data.status+ "</div>");
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');
             },
             postProcess: function (event, data) {
@@ -437,14 +434,6 @@
                 console.log(event)
                 //				data.node.toggleSelect();
             },
-            click: function (event, data) {
-                console.log(targetType)
-                var node = data.node;
-                // Only for click and dblclick events:
-                // 'title' | 'prefix' | 'expander' | 'checkbox' | 'icon'
-                targetType = data.targetType;
-            },
-
             select: function (event, data) {
                 if (data.node.isSelected()) {
                     data.node.addClass("rowselected");
@@ -566,7 +555,7 @@
                 },
                 actions: function (node, action, options) {
                     if (action == "details") {
-                        var jobid = (node.data["sort_family_name"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+                        var jobid = (node.data["job_id"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
                         var url = "logviewer.html?job_id=" + jobid;
                         window.open(url, '_blank');
                     }
@@ -695,9 +684,9 @@
             logGrid.enableMultiline(true);
             logGrid.init();      //finishes initialization and renders the grid on the page
 
-            if (jobObj["sort_family_name"]) {
+            if (jobObj["job_id"]) {
                 //we have a job_id that eases the life of finding jobs
-                var url = "/logparser?job_id=" + encodeURI(jobObj["sort_family_name"]) + "&wf_name=" + encodeURI(jobObj["wf_name"]);
+                var url = "/logparser?job_id=" + encodeURI(jobObj["job_id"]) + "&wf_name=" + encodeURI(jobObj["wf_name"]);
                 logGrid.load(url, "json")
             } else {
                 var file = (dhxgrid.cells(rId, dhxgrid.getColIndexById("file")).getValue());
