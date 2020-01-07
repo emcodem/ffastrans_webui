@@ -89,8 +89,35 @@
 			re = new RegExp(".*" + match + ".*", "i");
 			reHighlight = new RegExp(_escapeRegex(filter), "gi");
 			filter = function(node) {
-				if (!node.title) {
-					return false;
+                if (!node.title) {
+                    //custom filter on cells instead of title
+                    var res = false;
+                    var $tdList = $(node.tr).find(">td");
+                    $tdList.each(function (idx) {
+                        var $childs = $(this).children();
+                        $childs = $(this).//filter text nodes only
+                            find('*').contents().filter(function () {
+                                return this.nodeType === 3;
+                            });
+                        $childs.each(
+                            function (idx) {
+                                if (res == false) {
+                                    res = !!re.test($(this).text());
+                                }
+                                temp = $(this).parent().text().replace(reHighlight, function (s) {
+                                    return "\uFFF7" + s + "\uFFF8";
+                                });                                
+                                $(this).parent().html((temp)
+                                    // ... and finally insert the desired `<mark>` tags
+                                    .replace(/\uFFF7/g, "<mark>")
+                                    .replace(/\uFFF8/g, "</mark>"));
+                            }
+                        )
+
+
+                    });
+                    return res;
+                    //END OF CUSTOM CODE
 				}
 				var text = escapeTitles
 						? node.title
@@ -268,6 +295,16 @@
 			enhanceTitle = this.options.enhanceTitle,
 			prevEnableUpdate = this.enableUpdate(false);
 
+
+        //CUSTOM REMOVE MARKS
+//        var $tdList = $(this).find(">td");
+        $('mark').parent().each(function (id) {
+            $(this).html($(this).html().replace(/<\/mark>/g, ""));
+            $(this).html($(this).html().replace(/<mark>/g, ""));
+        })
+        //END OF CUSTOM
+
+
 		if (statusNode) {
 			statusNode.remove();
 		}
@@ -314,7 +351,8 @@
 		);
 		this._callHook("treeStructureChanged", this, "clearFilter");
 		// this.render();
-		this.enableUpdate(prevEnableUpdate);
+        this.enableUpdate(prevEnableUpdate);
+
 	};
 
 	/**

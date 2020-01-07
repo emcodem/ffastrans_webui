@@ -6,19 +6,20 @@
 
     <!-- Sets the basepath for the library if not in same directory -->
     <script type="text/javascript">
-        mxBasePath = '../dependencies/mxgraph/javascript/src';
+        mxBasePath = '../dependencies/mxgraph/406/javascript/src';
     </script>
     <script src="../dependencies/jquery/jquery.js"></script>
     <script src="../dependencies/moment/moment.js"></script>
     <!-- Loads and initializes the library -->
     <!--    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>-->
-    <script type="text/javascript" src="../dependencies/mxgraph/javascript/mxClient.min.js"></script>
+    <script type="text/javascript" src="../dependencies/mxgraph/406/javascript/mxClient.min.js"></script>
 
     <!-- Grid dependency -->
     <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
     <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
     <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
-    <script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
+    <!--<script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>-->
+    <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
     <script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
     <script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
     <script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
@@ -34,7 +35,6 @@
         <link rel="stylesheet" href="../dependencies/json.human.js-master/lib/codemirror.css" type="text/css">
         -->
     <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css">
-
 
     <!-- DHTMLX dependencies -->
     <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
@@ -135,6 +135,81 @@
             user-select: text;
             margin-left: 6px;
         }
+
+
+        .blinking-progress {
+            /* NAME | TIME | ITERATION */
+            -webkit-animation: changeShadowProgress 0.5s infinite alternate;
+            -moz-animation: changeShadowProgress 0.5s infinite alternate;
+            animation: changeShadowProgress 0.5s infinite alternate;
+        }
+
+        @-webkit-keyframes changeShadowProgress {
+            from {
+                box-shadow: 0 0 10px 5px #93ce99;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #269922;
+            }
+        }
+
+        @-moz-keyframes changeShadowProgress {
+            from {
+                box-shadow: 0 0 10px 5px #93ce99;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #269922;
+            }
+        }
+
+        @keyframes changeShadowProgress {
+            from {
+                box-shadow: 0 0 10px 5px #93ce99;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #269922;
+            }
+        }
+
+        .blinking-error {
+            /* NAME | TIME | ITERATION */
+            -webkit-animation: changeShadowError 0.5s infinite alternate;
+            -moz-animation: changeShadowError 0.5s infinite alternate;
+            animation: changeShadowError 0.5s infinite alternate;
+        }
+
+        @-webkit-keyframes changeShadowError {
+            from {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+        }
+
+        @-moz-keyframes changeShadowError {
+            from {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+        }
+
+        @keyframes changeShadowError {
+            from {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+        }
     </style>
 
 
@@ -143,6 +218,7 @@
         //request job from server
 
         var m_workflowdata = {};
+        var m_jobobject = {};
         var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
         var m_graph = {};
         var m_serverconfig;
@@ -167,6 +243,8 @@
         /*MAIN ENTRY POINT*/
         function init() {
             buildMainLayout();
+            buildLogGridGrid();
+            buildNodeGridGrid()
 
             get_all_job_details(getQueryVariable("job_id"));
         }
@@ -181,7 +259,7 @@
             mainMenu = mainLayout.attachMenu();
             mainMenu.addNewSibling(null, "reload_youngest", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Load latest Job</button>');
             mainMenu.attachEvent("onClick", function () {
-                var url = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=1"
+                var url = "/gethistoryjobsajax_treegrid?count=1"
                 $.ajax({
                     url: url,
                     type: "GET",
@@ -203,14 +281,15 @@
 
 
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
-                    <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
-                    <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                    <button class="btn" name="b_zoomout" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
-                    ');
+                                <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
+                                <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
+                                <button class="btn" name="b_zoomout" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
-                    <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
-                    ');
+                                <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
+                                <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
+                                ');
             mainLayout.cells("c").showInnerScroll();
             mainLayout.cells("c").attachObject("log_div"); //for json_to_table
             //todo: on btnclick, hide minfo und ffprobe: set height 10px und display:inline-block
@@ -251,13 +330,18 @@
             //set default box sizes as defined by ffastrans.au3
             var i_BOX_WIDTH = 115;
             var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
-            if ("variable" in m_workflowdata) {
-                if ("wf_size" in m_workflowdata) {
-                    i_BOX_WIDTH = (m_workflowdata["variable"]["wf_size"]);
-                    i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
+            var i_POS_FACTOR = 1;
 
+            if ("variable" in m_workflowdata) {
+                console.log("variable in workflow")
+                if ("wf_size" in m_workflowdata["variable"]) {
+                    console.log("WF SIZE: " + m_workflowdata["variable"]["wf_size"])
+                    //i_BOX_WIDTH = (m_workflowdata["variable"]["wf_size"]);
+                    //i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
+                    i_POS_FACTOR = (m_workflowdata["variable"]["wf_size"] / i_BOX_WIDTH ) ;
                 }
             }
+
 
             // Checks if the browser is supported
             if (!mxClient.isBrowserSupported()) {
@@ -273,7 +357,9 @@
                 graph.setHtmlLabels(true);
                 graph.panningHandler.ignoreCell = true;
                 graph.setPanning(true);
-
+                //graph.setCellsSelectable(false)
+                trackColor = new mxCellTracker(graph, "#666");
+                
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
                     if (this.getModel().isVertex(cell)) {
                         //calculate the text to display on canvas
@@ -290,7 +376,7 @@
                                 'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                 '<tr class="tr_ffastrans_processor_top" >' +
                                 '<th><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
-                                '<tr style="height:70%;font-size:8px"><th> ' + FF_NODE_DESC + '</th></tr>' +
+                                '<tr style="height:70%;font-size:8px" ><th> ' + FF_NODE_DESC + '</th></tr>' +
                                 '</table>';
                             return tbl;
                         }
@@ -306,13 +392,24 @@
                         SelectGraphCell(cell);
                         graph.setSelectionCell(cell);
                     }
+                    console.log("Doubleclick evt")
                     evt.consume();
                 });
 
+
                 graph.addListener(mxEvent.CLICK, function (sender, evt) {
+                    /*
+                    if (evt.properties.event.button == 2) {
+                        evt.consume(evt, true, true);//suppress right click default
+                        evt.cancelBubble = true;
+                        console.log("Rightclick surpressed")
+                        return false;
+                    } */ 
                     //disable doubleclick evt
+                    
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell != null) {
+                        console.log(cell    )
                         var search = cell["ffastransobj"]["id"].toUpperCase();
                         var tree = $("#treetable_log").fancytree('getTree');
                         tree.filterNodes(function (node) {
@@ -324,7 +421,7 @@
                             mode: "hide"
                         });
                     }
-                    evt.consume();
+                    
                 });
 
                 //BUILD THE GRAPH
@@ -344,9 +441,14 @@
                     var connections = []; //build an object used to create the connections between the nodes
                     //parse ffastrans workflow json
                     var nodes = m_workflowdata["nodes"];
+                    var wf_size = m_workflowdata["variable"]["wf_size"];
+                    
                     for (var key in nodes) {
-                        var x = nodes[key]["pos_x"];
-                        var y = nodes[key]["pos_y"];
+                        var x = nodes[key]["pos_x"] / i_POS_FACTOR;
+                        var y = nodes[key]["pos_y"] / i_POS_FACTOR;
+                        //i_BOX_WIDTH
+
+
                         /*width and heigth are defined in ffastrans as 115 and 1.6 aspect ratio. Fontsize as $i_BOX_WIDTH / 15 */
                         var v1 = graph.insertVertex(parent, nodes[key]["id"].toUpperCase(), '', x, y, i_BOX_WIDTH, i_BOX_HEIGHT, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
                         nodes[key].originalname = key; //expand ffastrans properties by name of processor
@@ -393,6 +495,47 @@
                     graph.getModel().endUpdate();
                     graph.fit(0, false, 35);
                     m_graph = graph;
+                    m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
+                     
+                    });
+                    $(window).bind('mousewheel DOMMouseScroll', function(event) 
+                    {
+                        if(event.ctrlKey == true)
+                        {
+                            if (!$('#graphContainer:hover').length > 0) {
+                                console.log("no hover")
+                                return;//mouse is not over container
+                            }
+                            //event.preventDefault();
+                            //event.cancelBubble = true;
+                            console.log(event.originalEvent.detail )
+                            if(event.originalEvent.detail > 0) {
+                                console.log('Down');
+                                //graph.zoomOut();
+                             }else {
+                                console.log('Up');
+                                //m_graph.zoomIn();
+                             }
+                        }
+                    });
+                    //mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
+                    //{
+                    //    if (!$('#graphContainer:hover').length > 0) {
+                    //        return;//mouse is not over container
+                    //    }
+                    //    var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
+                    //    m_graph.centerZoom = true;
+                    //    if (up) {
+                    //        //m_graph.center(true,true,0.5,0.5);//TODO: get out how to center correctly to current mouse pos
+                    //        m_graph.view.setTranslate(mousepointer_coordinates.y,mousepointer_coordinates.x)
+                    //        console.log(m_graph.zoomFactor + 0.2)
+                    //        graph.zoom(m_graph.zoomFactor + 0.2,true)
+                    //    } else {
+                    //        console.log(m_graph.zoomFactor - 0.4,0.2)
+                    //        // graph.zoom(m_graph.zoomFactor - 0.4,true)
+                    //    }
+                    //    mxEvent.consume(evt);
+                    //}))
                 }
             }
 
@@ -418,29 +561,34 @@
 
                     //show processor as enabled on ui
                     a_log_per_node[_proc_id] = [];
-                    document.getElementById(_proc_id).className = "table_ffastrans_processor_enabled";
-                    //store pid if possible for enhanced threading support
+                    $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
+                    $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
 
-                    //red border for errored nodes
-                    if (line["event"] == "_write_job_end") { //when this exists, we have an error
-                        document.getElementById(_proc_id).style.border = "2px solid red";
-                    }
+                    //store pid if possible for enhanced threading support
 
                     //check processor error state and count
                     if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
                         m_unique_nodes[new_key] = (line);
+                        m_unique_nodes[new_key]["state"] = "running";
                         //raise proc count on gui
                         var _o_counter = $("#" + _proc_id).parent().find("span");
                         _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
-                    } else {
-                        //check for processor end and state
-                        if (line["event"] == "_OnEnding()") {
-                            m_unique_nodes[new_key]["date_end"] = line["created"];
-                        }
+                        //progress-circle
+                        $("#" + _proc_id).addClass("blinking-progress");
+
                     }
 
+                    //check for processor end and state
+                    if (line["event"] == "node end") {
+                        m_unique_nodes[new_key]["date_end"] = line["created"];
+                        m_unique_nodes[new_key]["state"] = "success";
+                        $("#" + _proc_id).removeClass("blinking-progress");
 
-
+                        //red border for errored nodes
+                        if (line["data"] != null) { //when this exists, we have a node in error
+                            $("#" + _proc_id).addClass("blinking-error");
+                        } 
+                    }
 
                 } catch (ex) { }
                 //sort the current line as accurate as possible
@@ -452,14 +600,23 @@
                     a_log_per_node[_proc_id].push(line);
                 }
             }
-
         }
 
         function buildLogGridGrid() {
 
-            //var sourceUrl = "testdata.xml";
             $("#treetable_log").fancytree({
-                extensions: ["table", "filter", "gridnav", "multi"],
+                extensions: [ "table", "filter", "gridnav", "multi"],
+                quicksearch: true,
+                filter: {
+                    autoExpand: true, // Expand all branches that contain matches while filtered
+                    fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
+                    hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+                    hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
+                    highlight: true,   // Highlight matches by wrapping inside <mark> tags
+                    leavesOnly: false, // Match end nodes only
+                    nodata: true,      // Display a 'no data' status node if result is empty
+                    mode: "dimm"       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+                },
                 icon: false,
                 checkbox: false,
                 titlesTabbable: true, // Add all node titles to TAB chain
@@ -473,6 +630,18 @@
                     mode: "",
                 },
                 init: function (event, data) {
+                    $("input[name=log_filter]").keyup(function (e) {
+                        var n, tree = $("#treetable_log").fancytree('getTree');
+                        var match = $(this).val();
+                        n = tree.filterNodes(match, { mode: "hide" });
+                        opts = {}, filterFunc = tree.filterNodes;
+                        if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === "") {
+                            tree.clearFilter();
+                            return;
+                        }
+                        // Pass a string to perform case insensitive matching
+                        n = filterFunc.call(tree, match, opts);
+                    })
                     //ENABLE RESIZE COLUMNS
                     /*
                     $("#treetable_log").colResizable({
@@ -515,7 +684,7 @@
                     var nodeid = node.data["node"]["id"];
                     var nodename = getNodeNameById(nodeid);
                     var created = node.data["created"];
-                    created = moment.parseZone(created.replace(/.00$/,":00"))
+                    created = moment.parseZone(created.replace(/.00$/, ":00"))
                     created = created.format("YYYY-MM-DD HH:mm:ss");
 
                     $tdList = $(node.tr).find(">td");
@@ -569,8 +738,10 @@
                 checkbox: false,
                 titlesTabbable: true, // Add all node titles to TAB chain
                 focusOnSelect: false,
+                autoScroll: false,
                 autoActivate: false,
                 unselectable: false,
+                activeVisible: false,
                 init: function (event, data) {
                     //ENABLE RESIZE COLUMNS
                     /*                    $("#treetable_nodes").colResizable({
@@ -584,6 +755,10 @@
                                         })*/
                 },
                 select: function (event, data) {
+                    //center cell in view
+                    var node = m_graph.model.getCell(data.node.data.node.id,true)
+                    m_graph.scrollCellToVisible(node);
+                    //set row style
                     if (data.node.isSelected()) {
                         data.node.addClass("rowselected");
                     } else {
@@ -615,7 +790,7 @@
                         node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
                     //check if this proc already exists
-                    var new_key = node.data["node"]["id"] + node.data["split_id"]
+                    var new_key = node.data["node"]["id"] + node.data["pid"]
                     node.key = new_key;
                     $tdList = $(node.tr).find(">td");
                     var nodeid = node.data["node"]["id"];
@@ -672,7 +847,7 @@
         }
 
         function get_job_log(job_id) {
-            //get all workflows from server and start main with the workflow of interest
+            //get all workflows from server  start main with the workflow of interest
             var _url = "/getjoblog?jobid=" + job_id;
             $.ajax({
                 url: build_new_api_url(_url),
@@ -682,17 +857,19 @@
                 success: function (response) {
                     //PARSE JOB LOG
                     parseJobLog(response);
-                    buildLogGridGrid(response);
-                    buildNodeGridGrid(response)
 
                     //initial data into log grid
                     var rootNode = $("#treetable_log").fancytree("getRootNode");
                     //!!tree would delete data property so we need to rename it before adding to tree
+
+
                     for (var a in response) {
                         response[a]["_data"] = response[a]["data"];
                     }
+
                     rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
                     $("#log_div").css("visibility", "visible");
+
                     //load data into node grid
                     rootNode = $("#treetable_nodes").fancytree("getRootNode");
                     //turn m_unique_nodes to array
@@ -721,6 +898,7 @@
                     if (response['wf_object'].length == 0) {
                         alert("Did not get any workflows from FFASTRANS API");
                     } else {
+                        m_jobobject = response;
                         m_workflowdata = response['wf_object'];
                         //populate top left data
                         var copy = JSON.stringify(response);
@@ -809,12 +987,12 @@
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">
-                    <th><input placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Host" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Event" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Data" style="width:70px;height:18px;margin-left:5px;float:left" type="search" name="search" incremental autocomplete="off"></th>
+                    <th style="font-weight:normal">Node</th>
+                    <th style="font-weight:normal">Time</th>
+                    <th style="font-weight:normal">Host</th>
+                    <th style="font-weight:normal">Branch</th>
+                    <th style="font-weight:normal">Event</th>
+                    <th style="font-weight:normal">Data</th>
                 </tr>
             </thead>
         </table>
@@ -833,7 +1011,7 @@
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">
                     <th></th>
-                    <th><input placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th><input  placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Dur" style="width:40px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     <th><input placeholder="Host" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>

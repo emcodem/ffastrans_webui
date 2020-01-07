@@ -23,12 +23,13 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 filterobj["deleted"] =  { $exists: false } ; //always only show non deleted jobs
                 console.log("added filter deleted")
                 var filtercol = req.query.filtercol;
-                if (filtercol == 'undefined'){
-                    fitler = 'job_end'
+                console.log(filtercol)
+                if (typeof filtercol == 'undefined' || filtercol == null){
+                    filtercol = 'job_end'
                 }
                 var direction = req.query.direction;
-                if (direction == "des"){
-                    direction = -1;
+                if (direction == "asc"){
+                    direction = 1;
                 }else{
                     direction = -1;
                 }
@@ -40,9 +41,10 @@ var configServer = require(global.approot  + '/node_components/server_config');
                                 throw err
                             }       
                             console.log("Found " +  total_count + " Jobs in Db, filter: " , filterobj)
-                            var query = {};
-                            query[filtercol] = direction;
-                                global.db.jobs.find(filterobj).sort(query).skip(start).limit(count).exec( function(err, cursor) {
+                            var sorting = {};
+                            sorting[filtercol] = direction;
+                            console.log(sorting)
+                            global.db.jobs.find(filterobj).sort(sorting).skip(start).limit(count).exec( function(err, cursor) {
                                     if (err){            
                                         console.error("Error serving history jobs..." + err)
                                         throw err;
@@ -54,6 +56,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                                         for (i=0;i<cursor.length;i++){
                                             cursor[i].id = hashCode(JSON.stringify(cursor[i]))
                                             jobArray.push(cursor[i])
+                                            console.log(cursor[i]["job_end"])
                                         }
                                        
                                         res.writeHead(200,{"Content-Type" : "application/JSON"});

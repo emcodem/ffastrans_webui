@@ -29,31 +29,34 @@ function start_server(_port,_approot,_ffas_root){
 
 
 	//API WEBSERVER
-	const SwaggerExpress = require('swagger-express-mw');
-	const app = require('express')();
-	module.exports = app; // for testing
-
-	var swag_config = {
-	  appRoot: _approot // required config
+    const app = require('express')();
+    let { initialize } = require('express-openapi');
+    
+    console.log("Approt: ", _approot);
+    var swag_config = {
+        app,
+        apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
+        //paths: path.resolve(__dirname, 'api/controllers'),
+        operations: {
+            hello: require(_approot + "/api/controllers/hello_world").get,
+            get_job_log: require(_approot + "/api/controllers/get_job_log").get,
+            get_job_details: require(_approot + "/api/controllers/get_job_details").get,
+        }
 	};
 
-	SwaggerExpress.create(swag_config, function(err, swaggerExpress) {
-	  if (err) { throw err; }
+    initialize(swag_config);
 
-	  // install middleware
-	  swaggerExpress.register(app);
 
-	  var port = _port || 65446;
-	  app.listen(port);
-        console.log('Web API Server started, check out http://127.0.0.1:' + port + '/docs');
+	var port = _port || 65446;
+	app.listen(port);
+    console.log('Web API Server started, check out http://127.0.0.1:' + port + '/docs');
 
-	});
 
 	//API DOCS and testing page
 	const swaggerUi = require('swagger-ui-express');
     const YAML = require('yamljs');
     var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
 	const swaggerDocument = YAML.load(_yaml_location);
-	app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+	app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 	
 }
