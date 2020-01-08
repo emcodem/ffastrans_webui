@@ -498,44 +498,69 @@
                     m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
                      
                     });
-                    $(window).bind('mousewheel DOMMouseScroll', function(event) 
-                    {
-                        if(event.ctrlKey == true)
-                        {
-                            if (!$('#graphContainer:hover').length > 0) {
-                                console.log("no hover")
-                                return;//mouse is not over container
-                            }
-                            //event.preventDefault();
-                            //event.cancelBubble = true;
-                            console.log(event.originalEvent.detail )
-                            if(event.originalEvent.detail > 0) {
-                                console.log('Down');
-                                //graph.zoomOut();
-                             }else {
-                                console.log('Up');
-                                //m_graph.zoomIn();
-                             }
-                        }
-                    });
-                    //mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
+                    //$(window).bind('mousewheel DOMMouseScroll', function(event) 
                     //{
-                    //    if (!$('#graphContainer:hover').length > 0) {
-                    //        return;//mouse is not over container
+                    //    if(event.ctrlKey == true)
+                    //    {
+                    //        if (!$('#graphContainer:hover').length > 0) {
+                    //            console.log("no hover")
+                    //            return;//mouse is not over container
+                    //        }
+                    //        //event.preventDefault();
+                    //        //event.cancelBubble = true;
+                    //        console.log(event.originalEvent.detail )
+                    //        if(event.originalEvent.detail > 0) {
+                    //            console.log('Down');
+                    //            //graph.zoomOut();
+                    //         }else {
+                    //            console.log('Up');
+                    //            //m_graph.zoomIn();
+                    //         }
                     //    }
-                    //    var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
-                    //    m_graph.centerZoom = true;
-                    //    if (up) {
-                    //        //m_graph.center(true,true,0.5,0.5);//TODO: get out how to center correctly to current mouse pos
-                    //        m_graph.view.setTranslate(mousepointer_coordinates.y,mousepointer_coordinates.x)
-                    //        console.log(m_graph.zoomFactor + 0.2)
-                    //        graph.zoom(m_graph.zoomFactor + 0.2,true)
-                    //    } else {
-                    //        console.log(m_graph.zoomFactor - 0.4,0.2)
-                    //        // graph.zoom(m_graph.zoomFactor - 0.4,true)
-                    //    }
-                    //    mxEvent.consume(evt);
-                    //}))
+                    //});
+
+
+                    mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
+                    {
+                        if (!$('#graphContainer:hover').length > 0) {
+                            return;//mouse is not over container
+                        }
+
+                        var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
+                        m_graph.centerZoom = false;
+                        var container_rect = document.getElementById("graphContainer").getBoundingClientRect();
+                        var mouse_x = evt.clientX - container_rect.left; //x position within the element.
+                        var mouse_y = evt.clientY - container_rect.top;  //y position within the element.
+
+                        var to_right = (container_rect.width/ 2) > (container_rect.width  - mouse_x);
+                        var x_direction = -1;
+                        var to_up = (container_rect.height/ 2) > (container_rect.height  - mouse_y);
+                        var y_direction = -1;
+
+                       
+                        if (!to_right) {
+                            move_x = container_rect.width;
+                        } 
+                        if (!to_up) {
+                            move_y = container_rect.height;
+                        }
+
+                        if (up) {
+                            
+                            //m_graph.center(true,true,0.5,0.5);//TODO: get out how to center correctly to current mouse pos
+                            var all = m_graph.getChildVertices(graph.getDefaultParent());
+                            document.getElementById("graphContainer");
+                            m_graph.zoomIn();
+                            console.log("moving graph x pixels ", mouse_x)
+                            m_graph.moveCells(all, (mouse_x) / -1.2  , (mouse_y) * 1.2 , false);
+
+                        } else {
+                            document.getElementById("graphContainer");
+                            m_graph.zoomOut();
+                            m_graph.moveCells(all, (mouse_x), (mouse_y )* 1.2  , false);
+                        }
+                        mxEvent.consume(evt);
+                    }))
                 }
             }
 
