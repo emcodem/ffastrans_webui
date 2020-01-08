@@ -362,6 +362,9 @@
                 
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
                     if (this.getModel().isVertex(cell)) {
+                        if (cell.value == "zoom"){
+                            return "";
+                        }
                         //calculate the text to display on canvas
                         var FF_NODE_TITLE = cell.ffastransobj["name"] || cell.ffastransobj["type"];
                         var FF_NODE_DESC = cell.ffastransobj["description"] || "";
@@ -525,21 +528,37 @@
                         if (!$('#graphContainer:hover').length > 0) {
                             return;//mouse is not over container
                         }
-
+                        var scale =  m_graph.getView().getScale();
+    
                         var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
                         m_graph.centerZoom = false;
+                        
                         var container_rect = document.getElementById("graphContainer").getBoundingClientRect();
                         var mouse_x = evt.clientX - container_rect.left; //x position within the element.
                         var mouse_y = evt.clientY - container_rect.top;  //y position within the element.
+                        //insert positioning item
+                        console.log("inserting node at " , evt)
+                        //TODO: get out how to insert at mouse position
+                        var v1 = m_graph.insertVertex(m_graph.getDefaultParent(), "zoom", 'zoom', evt.offsetX, evt.offsetY, 100, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                        v1.data = new CustomData('v1'); //TODO: fill with useful data?
+                        var old_x = m_graph.view.getState(v1).x;
+                        m_graph.zoomIn();
+                        var new_x = m_graph.view.getState(v1).x;
+                        //m_graph.removeCells([v1]);
+                        var delta = old_x - new_x;
+                        
+                        var allcells = m_graph.getChildVertices(graph.getDefaultParent());
+                        m_graph.moveCells(allcells, (delta * -1), 0, false);
+                        console.log(delta)
+                        mxEvent.consume(evt);
+                        
+                        return
 
                         var to_right = (container_rect.width/ 2) > (container_rect.width  - mouse_x);
-                        var x_direction = -1;
                         var to_up = (container_rect.height/ 2) > (container_rect.height  - mouse_y);
-                        var y_direction = -1;
-
-                       
-                        if (!to_right) {
-                            move_x = container_rect.width;
+                        
+                        if (to_right) {
+                            
                         } 
                         if (!to_up) {
                             move_y = container_rect.height;
@@ -549,15 +568,18 @@
                             
                             //m_graph.center(true,true,0.5,0.5);//TODO: get out how to center correctly to current mouse pos
                             var all = m_graph.getChildVertices(graph.getDefaultParent());
-                            document.getElementById("graphContainer");
+                            
                             m_graph.zoomIn();
-                            console.log("moving graph x pixels ", mouse_x)
-                            m_graph.moveCells(all, (mouse_x) / -1.2  , (mouse_y) * 1.2 , false);
-
+                            //console.log("moving graph x pixels ", container_rect.width , "MINUS", mouse_x , "scale ", scale)
+                            //m_graph.moveCells(all, 0, -20, false);
+                            
+                            m_graph.moveCells(all, (mouse_x), -10, false);
+                            
                         } else {
-                            document.getElementById("graphContainer");
+                           
                             m_graph.zoomOut();
-                            m_graph.moveCells(all, (mouse_x), (mouse_y )* 1.2  , false);
+                            //m_graph.moveCells(all, 0, -100, false);
+                            //m_graph.moveCells(all, (mouse_x), (mouse_y )* 1.2  , false);
                         }
                         mxEvent.consume(evt);
                     }))
