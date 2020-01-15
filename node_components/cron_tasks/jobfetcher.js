@@ -122,9 +122,9 @@ module.exports = {
                 jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
                 jobArray[i].file = jobArray[i]["source"]
                 jobArray[i].outcome = jobArray[i]["result"]
-                jobArray[i].job_start = getDate(jobArray[i]["job_start"]);
-                jobArray[i].job_end = getDate(jobArray[i]["job_end"]);
-                jobArray[i].duration = (getDurationStringFromDates(jobArray[i]["job_start"],jobArray[i]["job_end"])+"");
+                jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
+                jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
+                jobArray[i].duration = (getDurationStringFromDates(jobArray[i]["start_time"], jobArray[i]["end_time"])+"");
                 jobArray[i].wf_name = jobArray[i]["workflow"];
                 //internal data for sorting
                 //jobArray[i]["id"] = 1;
@@ -137,7 +137,6 @@ module.exports = {
                 jobArray[i]["sort_generation"] = 1;
                 //workaround splitid does not allow us to parse family tree
             if (jobArray[i]["split_id"].startsWith("1-")) { //this is the grandfather
-                console.log("Grandpa id ",jobArray[i]["split_id"])
                     jobArray[i]["sort_generation"] = 0;
                 } 
         }
@@ -191,6 +190,7 @@ module.exports = {
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
     var re = new RegExp("-.....");
+    
     var parsed = moment.parseZone(str.replace(/.00$/,":00"))
     return parsed.format("YYYY-MM-DD HH:mm:ss");
     //var newdatestr = (str.replace("T"," ").replace("-01.00",""))
@@ -205,8 +205,7 @@ function getDate(str){
 }
 
 function getDurationStringFromDates(start_date,end_date){
-        //start_date = getDate(start_date)
-        //end_date = getDate(end_date)
+        //sconsole.log(start_date,end_date)
         var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
         var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
         delta -= days * 86400;// calculate (and subtract) whole hours
@@ -215,6 +214,9 @@ function getDurationStringFromDates(start_date,end_date){
         var minutes = Math.floor(delta / 60) % 60;
         delta -= minutes * 60;// what's left is seconds
         var seconds = delta % 60;  // in theory the modulus is not required
+    if (!hours) {
+            console.log("----------------------  hours is null")
+    }
         return pad(hours) + ":" + pad (minutes) + ":" + pad ((seconds+"").replace(/\.\d+/,"")); //TODO: seconds now contain ms... split this off
 }
 
@@ -257,8 +259,7 @@ function getFancyTreeArray(jobArray){
                 return el["sort_family_name"] === family_name;
              });
              godfather["sort_family_member_count"] = family.length;
-             console.log("Family size: ", family.length)
-             //array of families now contains all family members but flat only
+              //array of families now contains all family members but flat only
              
              //build family tree             
              var generation_count = 1;

@@ -390,6 +390,7 @@
 
                 graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
                     //disable doubleclick evt
+
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell != null) {
                         SelectGraphCell(cell);
@@ -401,30 +402,21 @@
 
 
                 graph.addListener(mxEvent.CLICK, function (sender, evt) {
-                    /*
-                    if (evt.properties.event.button == 2) {
-                        evt.consume(evt, true, true);//suppress right click default
-                        evt.cancelBubble = true;
-                        console.log("Rightclick surpressed")
-                        return false;
-                    } */ 
-                    //disable doubleclick evt
-                    
+                    //load log for seelcted cell
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell != null) {
-                        console.log(cell    )
                         var search = cell["ffastransobj"]["id"].toUpperCase();
                         var tree = $("#treetable_log").fancytree('getTree');
                         tree.filterNodes(function (node) {
                             if (node["data"]["node"]["id"].toUpperCase().match(search)) {
-                                node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                                //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
                                 return true;
                             }
                         }, {
                             mode: "hide"
                         });
                     }
-                    
+                    evt.consume();
                 });
 
                 //BUILD THE GRAPH
@@ -501,86 +493,29 @@
                     m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
                      
                     });
-                    //$(window).bind('mousewheel DOMMouseScroll', function(event) 
-                    //{
-                    //    if(event.ctrlKey == true)
-                    //    {
-                    //        if (!$('#graphContainer:hover').length > 0) {
-                    //            console.log("no hover")
-                    //            return;//mouse is not over container
-                    //        }
-                    //        //event.preventDefault();
-                    //        //event.cancelBubble = true;
-                    //        console.log(event.originalEvent.detail )
-                    //        if(event.originalEvent.detail > 0) {
-                    //            console.log('Down');
-                    //            //graph.zoomOut();
-                    //         }else {
-                    //            console.log('Up');
-                    //            //m_graph.zoomIn();
-                    //         }
-                    //    }
-                    //});
-
 
                     mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
-                    {
+                    {   //zoom on mousewheel event
                         if (!$('#graphContainer:hover').length > 0) {
                             return;//mouse is not over container
                         }
-                        var scale =  m_graph.getView().getScale();
-    
-                        var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
-                        m_graph.centerZoom = false;
-                        
-                        var container_rect = document.getElementById("graphContainer").getBoundingClientRect();
-                        var mouse_x = evt.clientX - container_rect.left; //x position within the element.
-                        var mouse_y = evt.clientY - container_rect.top;  //y position within the element.
-                        //insert positioning item
-                        console.log("inserting node at " , evt)
-                        //TODO: get out how to insert at mouse position
-                        var v1 = m_graph.insertVertex(m_graph.getDefaultParent(), "zoom", 'zoom', evt.offsetX, evt.offsetY, 100, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
-                        v1.data = new CustomData('v1'); //TODO: fill with useful data?
-                        var old_x = m_graph.view.getState(v1).x;
-                        m_graph.zoomIn();
-                        var new_x = m_graph.view.getState(v1).x;
-                        //m_graph.removeCells([v1]);
-                        var delta = old_x - new_x;
-                        
                         var allcells = m_graph.getChildVertices(graph.getDefaultParent());
-                        m_graph.moveCells(allcells, (delta * -1), 0, false);
-                        console.log(delta)
-                        mxEvent.consume(evt);
-                        
-                        return
-
-                        var to_right = (container_rect.width/ 2) > (container_rect.width  - mouse_x);
-                        var to_up = (container_rect.height/ 2) > (container_rect.height  - mouse_y);
-                        
-                        if (to_right) {
-                            
-                        } 
-                        if (!to_up) {
-                            move_y = container_rect.height;
-                        }
-
+                        var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
+                        m_graph.centerZoom = true;
+                        //insert invisible "fake node" to get out delta for moving graph after zoom, used to kind of zoom to cursor position
+                        var v1 = m_graph.insertVertex(m_graph.getDefaultParent(), "zoom", 'zoom', mousepointer_coordinates.x, mousepointer_coordinates.y, 100, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                        var old_x = m_graph.view.getState(v1).x;
+                        var old_y = m_graph.view.getState(v1).y;
                         if (up) {
-                            
-                            //m_graph.center(true,true,0.5,0.5);//TODO: get out how to center correctly to current mouse pos
-                            var all = m_graph.getChildVertices(graph.getDefaultParent());
-                            
-                            m_graph.zoomIn();
-                            //console.log("moving graph x pixels ", container_rect.width , "MINUS", mouse_x , "scale ", scale)
-                            //m_graph.moveCells(all, 0, -20, false);
-                            
-                            m_graph.moveCells(all, (mouse_x), -10, false);
-                            
+                            m_graph.zoomIn();                        
                         } else {
-                           
                             m_graph.zoomOut();
-                            //m_graph.moveCells(all, 0, -100, false);
-                            //m_graph.moveCells(all, (mouse_x), (mouse_y )* 1.2  , false);
                         }
+                        var new_x = m_graph.view.getState(v1).x;
+                        var new_y = m_graph.view.getState(v1).y;
+                        console.log("deltax",old_x-new_x )
+                        m_graph.moveCells(allcells, (old_x-new_x), (old_y-new_y), false);
+                        m_graph.removeCells([v1]);//remove fake zoom node
                         mxEvent.consume(evt);
                     }))
                 }
@@ -1002,7 +937,9 @@
 
         }
         function restoreLayoutSizes(dhxLayout, name, ignore_width) {
+            
             if (localStorage.getItem(name + "_aw")) {
+                console.log("restoring",localStorage)
                 var aw = localStorage.getItem(name + "_aw");
                 var ah = localStorage.getItem(name + "_ah");
                 var bw = localStorage.getItem(name + "_bw");
