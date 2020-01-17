@@ -124,7 +124,7 @@ module.exports = {
                 jobArray[i].outcome = jobArray[i]["result"]
                 jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
                 jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
-                jobArray[i].duration = (getDurationStringFromDates(jobArray[i]["start_time"], jobArray[i]["end_time"])+"");
+                jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
                 jobArray[i].wf_name = jobArray[i]["workflow"];
                 //internal data for sorting
                 //jobArray[i]["id"] = 1;
@@ -214,9 +214,11 @@ function getDurationStringFromDates(start_date,end_date){
         var minutes = Math.floor(delta / 60) % 60;
         delta -= minutes * 60;// what's left is seconds
         var seconds = delta % 60;  // in theory the modulus is not required
-    if (!hours) {
-            console.log("----------------------  hours is null")
-    }
+        //if (!hours) {
+        //    console.log("----------------------  hours is null");
+        //    console.log(Math.floor(delta / 3600) % 24)
+        //}
+
         return pad(hours) + ":" + pad (minutes) + ":" + pad ((seconds+"").replace(/\.\d+/,"")); //TODO: seconds now contain ms... split this off
 }
 
