@@ -632,11 +632,12 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     //var selected_wf = m_workflowSelectorGrid.getUserData(wf_name,"workflow_object");
     
     m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
-    
+    console.log(wf_object)
     wf_object.variable["start_procs"] = []
     for (i=0;i<wf_object["nodes"].length;i++){
         if (wf_object["nodes"][i]["start_proc"])
             wf_object.variable["start_procs"].push(wf_object["nodes"][i]);
+            console.log(wf_object["nodes"][i])
     }
     var proc_root = wf_object.variable["start_procs"] || wf_object.variable["start_proc"];
     if (!proc_root){
