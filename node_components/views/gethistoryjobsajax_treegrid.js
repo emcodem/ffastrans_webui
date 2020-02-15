@@ -56,7 +56,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                                         for (i=0;i<cursor.length;i++){
                                             cursor[i].id = hashCode(JSON.stringify(cursor[i]))
                                             jobArray.push(cursor[i])
-                                            console.log(cursor[i]["job_end"])
+                                            //console.log(cursor[i]["job_end"])
                                         }
                                        
                                         res.writeHead(200,{"Content-Type" : "application/JSON"});

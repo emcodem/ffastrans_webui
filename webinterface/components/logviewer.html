@@ -258,23 +258,27 @@
 
             mainMenu = mainLayout.attachMenu();
             mainMenu.addNewSibling(null, "reload_youngest", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Load latest Job</button>');
-            mainMenu.attachEvent("onClick", function () {
-                var url = "/gethistoryjobsajax_treegrid?count=1"
-                $.ajax({
-                    url: url,
-                    type: "GET",
-                    crossDomain: true,
-                    dataType: "json",
-                    success: function (response) {
-                        if (response["data"]) {
-                            var jid = response["data"][0]["sort_family_name"];
-                            window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+            //mainMenu.addNewSibling(null, "reload", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Reload</button>');
+            
+            mainMenu.attachEvent("onClick", function (id) {
+                    if (id == "reload_youngest") {
+                    var url = "/gethistoryjobsajax_treegrid?count=1"
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        crossDomain: true,
+                        dataType: "json",
+                        success: function (response) {
+                            if (response["data"]) {
+                                var jid = response["data"][0]["sort_family_name"];
+                                window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+                            }
+                        },
+                        error: function (xhr, status) {
+                            alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
                         }
-                    },
-                    error: function (xhr, status) {
-                        alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
-                    }
-                });
+                    });
+                }
 
 
             });
@@ -333,9 +337,7 @@
             var i_POS_FACTOR = 1;
 
             if ("variable" in m_workflowdata) {
-                console.log("variable in workflow")
                 if ("wf_size" in m_workflowdata["variable"]) {
-                    console.log("WF SIZE: " + m_workflowdata["variable"]["wf_size"])
                     //i_BOX_WIDTH = (m_workflowdata["variable"]["wf_size"]);
                     //i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
                     i_POS_FACTOR = (m_workflowdata["variable"]["wf_size"] / i_BOX_WIDTH ) ;
@@ -513,7 +515,7 @@
                         }
                         var new_x = m_graph.view.getState(v1).x;
                         var new_y = m_graph.view.getState(v1).y;
-                        console.log("deltax",old_x-new_x )
+                        
                         m_graph.moveCells(allcells, (old_x-new_x), (old_y-new_y), false);
                         m_graph.removeCells([v1]);//remove fake zoom node
                         mxEvent.consume(evt);
@@ -546,15 +548,13 @@
                     $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
                     $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
 
-                    //store pid if possible for enhanced threading support
-
                     //check processor error state and count
                     if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
                         m_unique_nodes[new_key] = (line);
                         m_unique_nodes[new_key]["state"] = "running";
                         //raise proc count on gui
                         var _o_counter = $("#" + _proc_id).parent().find("span");
-                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
+                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1);
                         //progress-circle
                         $("#" + _proc_id).addClass("blinking-progress");
 
@@ -762,8 +762,9 @@
                     }
                 },
                 renderColumns: function (event, data) {
+                    
                     var node = data.node;
-
+                    
                     if (data.node.getIndex() % 2 == 0) {
                         node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
                         node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
@@ -772,8 +773,9 @@
                         node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
                     //check if this proc already exists
-                    var new_key = node.data["node"]["id"] + node.data["pid"]
-                    node.key = new_key;
+                    
+                    //var new_key = node.data["node"]["id"] + node.data["pid"]
+                    //node.key = new_key;
                     $tdList = $(node.tr).find(">td");
                     var nodeid = node.data["node"]["id"];
                     var nodename = getNodeNameById(nodeid);
@@ -789,7 +791,8 @@
                     } catch (ex) { }
 
                     //fill row columns
-                    $tdList.eq(0).html("<div class='celltext'>Error</div>"); //.addClass("alignRight");
+                    
+                    $tdList.eq(0).html("<div class='celltext'>"+node.data["state"]+"</div>"); //.addClass("alignRight");
                     $tdList.eq(1).html("<div class='celltext'>" + nodename + "</div>"); //.addClass("alignRight");
                     $tdList.eq(2).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + duration + "</div>");
                     $tdList.eq(3).html("<div class='celltext' style='text-align:left;'>" + created.format("YYYY-MM-DD HH:mm:ss") + "</div>");
@@ -828,36 +831,63 @@
 
         }
 
-        function get_job_log(job_id) {
+        function get_job_log(job_id, start) {
+            start = typeof start !== 'undefined' ? start : 0;
+            console.log("START: " + start )
             //get all workflows from server  start main with the workflow of interest
-            var _url = "/getjoblog?jobid=" + job_id;
+            var _url = "/getjoblog?jobid=" + job_id+ "&start="+ start ;
             $.ajax({
                 url: build_new_api_url(_url),
                 type: "GET",
                 crossDomain: true,
                 dataType: "json",
-                success: function (response) {
+                success: function (response,status,request) {
                     //PARSE JOB LOG
-                    parseJobLog(response);
 
-                    //initial data into log grid
-                    var rootNode = $("#treetable_log").fancytree("getRootNode");
+
+
                     //!!tree would delete data property so we need to rename it before adding to tree
-
-
+                    
                     for (var a in response) {
                         response[a]["_data"] = response[a]["data"];
                     }
 
-                    rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
-                    $("#log_div").css("visibility", "visible");
+                    var type = request.getResponseHeader('ffastrans_log_type');
+                    if (type == "partial") {
+                        //if partial, set up another get_job_log call
+                        var _start = request.getResponseHeader('ffastrans_log_last_endpos');
+                        
+                        console.log("Job still running, getting next log lines from start: " + _start);
+                        window.setTimeout(function () { get_job_log(job_id, _start) }, 3000);
+                        var rootNode = $("#treetable_log").fancytree("getRootNode");
+                        rootNode.addChildren(response);
+                        $("#log_div").css("visibility", "visible");
+                    } else {
+                        //full log received
+                        var rootNode = $("#treetable_log").fancytree("getRootNode");
+                        rootNode.removeChildren();
+                        rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
+                        $("#log_div").css("visibility", "visible");
+                    }
+
+
+                    parseJobLog(response);
 
                     //load data into node grid
-                    rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    //var nodetree = $("#treetable_nodes").fancytree("getTree");
+                    rootNode.removeChildren();
                     //turn m_unique_nodes to array
                     var result = Object.keys(m_unique_nodes).map(function (key) {
+                       
+                        m_unique_nodes[key]["key"] = key;
+                        
                         return m_unique_nodes[key];
                     });
+                    /*result = result.filter(function (el) {
+                        return el != null;//filters empty entries from map function
+                    });*/
+                    
                     //add nodegrid rows
                     rootNode.addChildren(result);
                     $("#node_div").css("visibility", "visible");
@@ -867,6 +897,7 @@
                 }
             });
         }
+
 
         function get_all_job_details(job_id) {
             //get all workflows from server and start main with the workflow of interest
@@ -886,7 +917,10 @@
                         var copy = JSON.stringify(response);
                         copy = JSON.parse(copy); //copy the whole object to be able to delete wf_object for display in general_div
                         delete copy["wf_object"];
+                        //sort
+                        
                         var table = (JsonHuman.format(copy));
+                        //render
                         document.getElementById("general_div").appendChild(table);
                         $("#general_text").text("General [" + response["workflow"]["name"] + "]");
                         //populate workflow canvas
@@ -994,12 +1028,12 @@
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">
-                    <th></th>
-                    <th><input  placeholder="Node" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Dur" style="width:40px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Time" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Host" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                    <th><input placeholder="Branch" style="width:30px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                    <th style="font-weight:normal">State</th>
+                    <th style="font-weight:normal">Node</th>
+                    <th style="font-weight:normal">Duration</th>
+                    <th style="font-weight:normal">Start</th>
+                    <th style="font-weight:normal">Host</th>
+                    <th style="font-weight:normal">Branch</th>
                 </tr>
             </thead>
         </table>

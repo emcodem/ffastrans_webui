@@ -235,10 +235,12 @@
             }
 
             firstnode = rootNode.findFirst("")
-            if (firstnode.extraClasses == "odd_dhx_skyblue") {
-                msg.extraClasses = "ev_dhx_skyblue";
-            } else {
-                msg.extraClasses = "odd_dhx_skyblue";
+            if (firstnode) {
+                if (firstnode.extraClasses == "odd_dhx_skyblue") {
+                    msg.extraClasses = "ev_dhx_skyblue";
+                } else {
+                    msg.extraClasses = "odd_dhx_skyblue";
+                }
             }
             //add new node
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
@@ -291,13 +293,13 @@
             window.open(url, '_blank');
         }
         if (id == "a_abort") {
-
+            jobCommand(selected,"abort");
         }
         if (id == "a_pause") {
-
+            jobCommand(selected,"pause");
         }
         if (id == "a_resume") {
-
+            jobCommand(selected,"resume");
         }
     }
     function click_b_header(id) {
@@ -340,7 +342,9 @@
                 callback: function (yesno) {
                     if (yesno) {
                         socket.emit("deletealljobs");//note, custom structure for socket.emit messages
-                        finishedJobGrid.clearAll();
+                        
+                        var rootNode = $("#treetable_history").fancytree("getRootNode");
+                        rootNode.removeChildren();
                     }
                 }//callback
             });//confirm
@@ -505,7 +509,7 @@
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
                 var outcome = node.data.outcome.substring(0, 1000);
-                if (outcome.length == 1000) {
+                if (outcome.length == 10000) {
                     dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: "+node.data.file+" \nDate Start: " +node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
@@ -549,7 +553,7 @@
                 selector: "hist_row",
                 menu: {
                     "details": { "name": "Job Details" },
-                    "retry": { "name": "Retry from Start" },
+                    //"retry": { "name": "Retry from Start" },
                     "delete": { "name": "Delete this job" },
                     "delsel": { "name": "Delete all selected" },
                 },
@@ -742,30 +746,25 @@
         })
     }
 
-    function abortJobWithSplit() {
+    function jobCommand(fancy_node_array,action) {
         //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
-        if (!runningJobGrid.getSelectedRowId()) {
-            dhtmlx.alert("Please select a Job to abort");
-            return;
-        }
-        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function (rId) {
-            var jobObj = runningJobGrid.getUserData(rId, "jobobject");
-            var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue())
-            var postBody = { "action": "abort", "split": splitid };
+        console.log("aborting", fancy_node_array)
+        fancy_node_array.forEach(function (node) {
+            var postBody = { "action": action, "split_id": node.data.split_id };
             $.ajax({
-                url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
-                type: "POST",
+                url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
+                type: "PUT",
                 context: this,
                 data: JSON.stringify(postBody),
                 success: function (response) {
-                    dhtmlx.message("Aborted " + jobObj.job_id);
+                    dhtmlx.message("Success " + action + node.data.job_id);
                 },
                 error: function (xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
-        })//foreachjob
+        })
+
     }
 
     function abortJob() {

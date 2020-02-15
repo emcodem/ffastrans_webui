@@ -6,7 +6,24 @@ const moment = require('moment');
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 
 module.exports = {
-  fetchjobs: function () {
+    fetchjobs: function () {
+
+    //inform clients about current job count
+    var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
+    //inform the client about current count in DB
+    global.db.jobs.count({ "state": "Success", "deleted": { $exists: false } }, function (err, success_count) {
+        console.log("successcount", success_count)
+        countObj.successjobcount = success_count;
+        global.db.jobs.count({ "state": "Error", "deleted": { $exists: false } }, function (err, error_count) {
+            countObj.errorjobcount = error_count;
+            global.db.jobs.count({ "state": "Cancelled", "deleted": { $exists: false } }, function (err, cancelled_count) {
+                countObj.cancelledjobcount = cancelled_count;
+                //push data to client
+                global.socketio.emit("historyjobcount", countObj);
+            })
+        })
+    })//end of counting
+
     //fetch running jobs from api
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
@@ -165,20 +182,6 @@ module.exports = {
             continue;            
         }
 
-        //inform clients about current job count
-        var countObj = {errorjobcount:0,successjobcount:0,cancelledjobcount :0};
-        //inform the client about current count in DB
-        global.db.jobs.count({"state":"Success","deleted":{ $exists: false }},function(err,success_count){
-            countObj.successjobcount=success_count;
-            global.db.jobs.count({"state":"Error","deleted":{ $exists: false }},function(err,error_count){
-                countObj.errorjobcount=error_count;
-                global.db.jobs.count({"state":"Cancelled","deleted":{ $exists: false }},function(err,cancelled_count){
-                    countObj.cancelledjobcount=cancelled_count;
-                    //push data to client
-                    global.socketio.emit("historyjobcount", countObj);
-                })
-            })
-        })
         
     });   
   }
@@ -245,7 +248,7 @@ function buildApiUrl(what){
 }
 
 function getFancyTreeArray(jobArray){
-    
+    console.log(jobArray)
         //find out all parents
         var godfathers = jobArray.filter(function (el) {
                 //return el["sort_generation"] === 0; 

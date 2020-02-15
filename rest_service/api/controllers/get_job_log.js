@@ -8,16 +8,21 @@ module.exports = {
   get: start
 };
 
-
 /*
   Functions in a127 controllers used for operations should take two parameters:
 
   Param 1: a handle to the request object
   Param 2: a handle to the response object
  */
+var START = 0;
+
+
 function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var jobid = req.query.jobid;
+    START = req.query.start | 0;
+    
+
 	console.debug("get_job_log called for: " + jobid);
 	
 	//check if full log exists, if yes, serve contents
@@ -26,9 +31,8 @@ function start(req, res) {
 	try {
 	  if (fs.existsSync(path)) {
 		console.debug("Full Log file exists, returning contents");
-          
           res.set('Content-Type', 'application/json')
-          //res.send("{}")
+          res.set('ffastrans_log_type', 'full')
           res.sendFile(path);
 	  }else{
 		//serve log for running job
@@ -42,6 +46,8 @@ function start(req, res) {
 }
 
 function serveRunningLog(jobdir, start, end, response) {
+    var COUNT = 0;
+    console.log("Serving running job log from " + start)
     //a running job has multiple logs, find all files on filesystem by date
     var files = fs.readdirSync(jobdir)
               .map(function(v) { 
@@ -54,18 +60,38 @@ function serveRunningLog(jobdir, start, end, response) {
               .map(function (v) { return v.name; });    
     //concat and serve all logs
     response.set('Content-Type', 'application/json')
-    response.write("[");
+
+    
     require("async").concat(files, readFile, function (err, buffers) {
         if (err) {
             console.log(err);
+            //todo: error to client
         }
+        
         console.log("Num found log files: " + buffers.length);
-        for (i = 0; i < buffers.length; i++) {
+        if (START > buffers.length) {
+            console.error("Requested more log lines than i have, start was: " + START + " but i only have: " + buffers.length);
+            response.set('ffastrans_log_last_endpos', START)
+            response.write("[]");
+            response.end();
+            return;
+        }
+        
+        COUNT = buffers.length;
+        response.set('ffastrans_log_type', 'partial')
+        response.set('ffastrans_log_last_endpos', COUNT)
+        response.write("[");
+        console.log("Log lines count: " + buffers.length)
+        console.log("Log lines wanted: " + COUNT)
+        for (i = START; i < COUNT; i++) {
+            console.log(buffers[i].toString());
             response.write(strip_bom(buffers[i].toString()));
-            if (i < buffers.length - 1) {
+            if (i < COUNT - 1) {
                 response.write(",");
             }
+            
         }
+
         response.write("]");
         response.end();
     })   
