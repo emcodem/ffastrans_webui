@@ -142,7 +142,9 @@ function executeJob(current_job,socketioClientId,informCallback){
                 }
             }catch(ex){
                 console.error("Error starting workflow: "+ ex);
-                console.error(msg);
+                console.error("Input was: ",msg);
+                console.error("Stacktrace: " + ex.stack);
+                console.error("Current Job: ", current_job)
             }
             
         });

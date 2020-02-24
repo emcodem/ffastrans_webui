@@ -22,7 +22,7 @@ module.exports = function(app, express){
             var job = {};
             try{
                 job = JSON.parse(req.body['job']);
-                console.log(job['id'])
+                console.log("Saving Scheduled Job",job)
             }catch(ex){
                 console.error("Error parsing POST request for scheduledjobs: ",ex);
             }
