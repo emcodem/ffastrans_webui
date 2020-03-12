@@ -135,17 +135,6 @@ FFAstrans Server, use localhost if this webserver runs on the same server as you
 <b>STATIC_API_PORT</b>
 FFAStrans API port, typically 65445
 
-<b>STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT</b>
-Here you configure how the active job grid on the main webinterface looks like on page load. 
-The values are percent, 0 percent is for hiding, * is for "the rest" (only use one * in the list).
-Columns are: State,Workflow,Node,Processor,File,Job Start,Job End,Duration,Status,Splitindex,Progress
-Example: 5,10,10,10,30,10,0,0,*,0,5
-
-<b>STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT</b>
-Same as above but for the History job grid. 0 percent is for hiding, * is for "the rest" (only use one * in the list)
-Columns are: State,Workflow,Job Start,Duration,Job End,File,Outcome
-Example: 5,15,10,5,0,30,*
-
 <b>Important Informations: </b>
 Database:
 All values of this configuration and users are stored in this file %installpath%\database\config
