@@ -10,6 +10,9 @@
   "dependencies": {
     "express": "^4.12.3",
     "express-openapi": "^6.0.0",
+    "jsdom": "^16.2.0",
+    "json.human": "0.0.1",
+    "node-mediainfo": "^1.0.3",
     "strip-bom": "^4.0.0",
     "swagger-ui-express": "^4.1.2",
     "winston": "^3.2.1",

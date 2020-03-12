@@ -78,16 +78,28 @@ function mediainfo_init(){/*needs to be called onload of body, at least before u
 }
       
 function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
-       var processResult = function() {
-            MI.Option('Inform','HTML');
-            var infoHtml = (MI.Inform())
-            _callback(_file,infoHtml)
-            MI.Close();
-            //MI.delete();   
-      }
-    MI.Open(_file, processResult);            
+
+     $.ajax({
+                url: build_new_api_url("/getmediainfo?filepath=" + _file.name),
+                type: "GET",
+                success: function (response) {
+                    _callback(_file,response);
+                },
+                error: function (xhr, status) {
+                    alert("ERROR getting mediainfo for " + _file.name);
+                }
+            });
+    
 }
-      
+
+function build_new_api_url(what) {
+    if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+        return "/new_proxy" + what;
+    } else {
+        var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+        return _url;
+    }
+}
       
 /* build basic page layout and init periodic job loading*/
 function init(){

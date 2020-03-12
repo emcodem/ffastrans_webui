@@ -248,7 +248,7 @@ function buildApiUrl(what){
 }
 
 function getFancyTreeArray(jobArray){
-    console.log(jobArray)
+    
         //find out all parents
         var godfathers = jobArray.filter(function (el) {
                 //return el["sort_generation"] === 0; 
