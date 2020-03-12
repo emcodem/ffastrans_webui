@@ -76,6 +76,23 @@ paths:
           description: Success
         default:
           description: Error
+  /getmediainfo:
+    x-swagger-router-controller: get_mediainfo
+    get:
+      description: Get mediainfo about a file 
+      operationId: get_mediainfo
+      parameters:
+        - name: filepath
+          in: query
+          description: The path to a file from perspective of the API server
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /swagger:
     x-swagger-pipe: swagger_raw
 servers:
