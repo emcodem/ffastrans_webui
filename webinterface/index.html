@@ -105,8 +105,14 @@
         margin-top: 16px;
     }
     .harry{
-    
+        height: 50;
+        margin-top: 11px;
     }
+    .benjamin{
+        height: 38;
+        margin-top: 16px;
+    }
+
     .ffastransheadertext{
        display: inline-block;
        font-size:30px;
@@ -205,7 +211,7 @@ function init(permissions){
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
     '<img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div>'+
     '<img src="images/austria_helmet_white.png" class="harry itemrowtopright">' + 
-    '<img src="images/ben_helmet.png" style="width:4.0%;height:auto;margin-top:16px" class="harry itemrowtopright">'+ 
+    '<img src="images/ben_helmet.png" class="benjamin itemrowtopright">'+ 
     '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class=" " alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];

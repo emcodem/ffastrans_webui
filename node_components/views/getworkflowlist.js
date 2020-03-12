@@ -12,6 +12,7 @@ module.exports = function(app, passport){
                 console.log("Calling " + buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL))
                //download workflowlist from ffastrans server
                 Request.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000},(error, workflowResponse, body) => {
+                    
                     if(error) {
                         console.error("Error calling workflowlist, " + error)
                         res.status(500);//Send error response here
@@ -72,10 +73,10 @@ module.exports = function(app, passport){
                                    var filter = allpermissions[x]["value"]["filter"];
                                    for (var i in workflowlist["workflows"]){
                                         var wf = workflowlist["workflows"][i];
-                                        if (wf["general"]["wf_folder"].toLowerCase().match(filter.toLowerCase())){
-                                           if (!alreadyAdded[wf["general"]["wf_name"]]){
-                                               console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " matches filter "+ filter);
-                                               alreadyAdded[wf["general"]["wf_name"]] = 1;
+                                        if (wf["wf_folder"].toLowerCase().match(filter.toLowerCase())){
+                                           if (!alreadyAdded[wf["wf_name"]]){
+                                               console.log("Worfkflow folder  " + wf["wf_folder"] + " matches filter "+ filter);
+                                               alreadyAdded[wf["wf_name"]] = 1;
                                                filteredWorkflowList.push(wf);//allow workflow
                                            }
                                        }else{
@@ -87,10 +88,10 @@ module.exports = function(app, passport){
                                    var filter = allpermissions[x]["value"]["filter"];
                                    for (var i in workflowlist["workflows"]){
                                        var wf = workflowlist["workflows"][i];
-                                       if (wf["general"]["wf_name"].toLowerCase().match(filter.toLowerCase())){
+                                       if (wf["wf_name"].toLowerCase().match(filter.toLowerCase())){
                                            //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
-                                           if (!alreadyAdded[wf["general"]["wf_name"]]){
-                                               alreadyAdded[wf["general"]["wf_name"]] = 1;
+                                           if (!alreadyAdded[wf["wf_name"]]){
+                                               alreadyAdded[wf["wf_name"]] = 1;
                                                filteredWorkflowList.push(wf);//allow workflow
                                            }
                                        }

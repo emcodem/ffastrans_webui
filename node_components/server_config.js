@@ -27,8 +27,8 @@ defaultConfig.STATIC_API_NEW_PORT = "3003";
 //default user config
 //you can change these variables
 
-defaultConfig.STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "5,10,10,10,30,10,0,0,*,0,5"; 
-defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
+//defaultConfig.STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "5,10,10,10,30,10,0,0,*,0,5"; 
+//defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
 
 
 //Please do not change these values

@@ -139,11 +139,13 @@ function init(conf){
     });
     //we need to get install directory when running as part of webinterface, before we can start new api
     _request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
+        console.log(body);
         if (error) {
             console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
             return;
         };
         console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
+        
         var api_root = path.join(__dirname, 'rest_service');
         ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"], api_root, JSON.parse(body)["about"]["general"]["install_dir"]+"\\");
     })
