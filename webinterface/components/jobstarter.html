@@ -852,7 +852,7 @@ function startJobs(){
          postBody.variables = [];
          m_subForm.forEachItem(function(name){
             if (m_subForm.getItemValue(name)){
-                postBody.variables.push({"name":name,"content":m_subForm.getItemValue(name)});
+                postBody.variables.push({"name":name,"data":m_subForm.getItemValue(name)});
             }
         });
          m_selectedFileGrid.cells(id,2).setValue("Submitted")

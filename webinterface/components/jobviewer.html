@@ -164,7 +164,7 @@
     /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
     function forcejobloading() {
         $.ajax({
-            url: ("/getactivejobsajax_treegrid.js"),
+            url: ("/getactivejobsajax_treegrid"),
             type: "GET",
             success: function (response) {
 
@@ -204,6 +204,7 @@
 
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
         <button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
+        <button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit</button> \
         <button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button> \
         <button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> \
         ');
@@ -306,7 +307,13 @@
 
         var tree = $('#treetable_history').fancytree('getTree');
         var selected = tree.getSelectedNodes();
-
+        if (id == "b_resubmit") {
+            var tree = $('#treetable_history').fancytree('getTree');
+            var selected = tree.getSelectedNodes();
+            selected.forEach(function (node) {
+                resubmit_job(node["data"]["guid"]);
+            })
+        }
         if (id == "b_details") {
             if (selected.length == 0) {
                 dhtmlx.alert("Please select row to show details");
@@ -553,7 +560,7 @@
                 selector: "hist_row",
                 menu: {
                     "details": { "name": "Job Details" },
-                    //"retry": { "name": "Retry from Start" },
+                    "retry": { "name": "Retry from Start" },
                     "delete": { "name": "Delete this job" },
                     "delsel": { "name": "Delete all selected" },
                 },
@@ -715,12 +722,28 @@
             url: build_new_api_url(_url),
             type: "GET",
             crossDomain: true,
-            dataType: "json",
             success: function (response) {
+
                 if (response['wf_object'].length == 0) {
                     alert("Did not get any workflow in job from FFASTRANS API");
                 } else {
-                    dhtmlx.message("resubmit not yet implemented")
+                    var postBody = {};
+                    postBody.start_proc = response["nodes"]["start"]["id"];
+                    postBody.wf_id = response["workflow"]["id"];
+                    postBody.inputfile = response["sources"]["localized_file"];
+                    postBody.variables = response["variables"];
+                    $.ajax({
+                        url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                        type: "POST",
+                        crossDomain: true,
+                        data: JSON.stringify(postBody),
+                        success: function (response) {
+                            dhtmlx.message(postBody.inputfile  + " was submitted")
+                        },
+                        error: function (xhr, status) {
+                            dhtmlx.alert("Error submitting workflow: " + xhr.responseText);
+                        }
+                    });
                 }
             },
             error: function (xhr, status) {
