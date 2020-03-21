@@ -137,6 +137,7 @@ function init(conf){
     var _request = require('retry-request', {
         request: require('request')
     });
+	
     //we need to get install directory when running as part of webinterface, before we can start new api
     _request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
         if (error) {
