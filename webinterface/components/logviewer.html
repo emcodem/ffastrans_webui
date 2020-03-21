@@ -287,7 +287,8 @@
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
                                 <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
                                 <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                                <button class="btn" name="b_zoomout" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn" name="b_fit" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn" style="display:none" name="b_image" onclick="export_image()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
                                 ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
@@ -360,7 +361,7 @@
                 graph.panningHandler.ignoreCell = true;
                 graph.setPanning(true);
                 //graph.setCellsSelectable(false)
-                trackColor = new mxCellTracker(graph, "#666");
+                //trackColor = new mxCellTracker(graph, "#666");
                 
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
                     if (this.getModel().isVertex(cell)) {
@@ -431,6 +432,8 @@
                     var style = graph.getStylesheet().getDefaultVertexStyle()
                     style[mxConstants.STYLE_FONTSIZE] = '10';
                     style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_TOP;
+                    mxConstants["CURSOR_MOVABLE_VERTEX"] =  "pointer";
+                    mxConstants["CURSOR_MOVABLE_EDGE"] =  "auto";
 
                     //var estyle = graph.getStylesheet().getDefaultEdgeStyle();
                     //estyle[mxConstants.STYLE_EDGE] = mxEdgeStyle.SegmentConnector; //OrthConnector,SegmentConnector
@@ -525,6 +528,48 @@
 
         };
 
+
+        function triggerDownload (imgURI) {
+          var evt = new MouseEvent('click', {
+            view: window,
+            bubbles: false,
+            cancelable: true
+          });
+          var a = document.createElement('a');
+          a.setAttribute('download', 'workflow.png');
+          a.setAttribute('href', imgURI);
+          a.setAttribute('target', '_blank');
+          a.dispatchEvent(evt);
+        }
+
+        function buildSvgImageUrl(svg) {
+            b64 = (svg);
+            return 
+        }
+
+        function export_image(){
+            var svg = document.getElementById("graphContainer").firstChild;
+            var canvas = document.getElementById("invisible_export_helper");
+            var ctx = canvas.getContext('2d');
+            var data = (new XMLSerializer()).serializeToString(svg);
+            console.log(data)
+            var DOMURL = window.URL || window.webkitURL || window;
+            
+            var img =  new Image();
+            img.crossOrigin = "Anonymous";
+            var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
+            img.onload = function () {
+                console.log("onload")
+                ctx.drawImage(img, 0, 0);
+                var imgURI = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+                console.log("trigger download")
+                triggerDownload(imgURI);
+            };
+           
+            img.src = "data:image/svg+xml;base64," + window.btoa(data);   
+        }
+        
+        
         function CustomData(value) {
             this.value = value;
         }
@@ -1038,6 +1083,6 @@
             </thead>
         </table>
     </div>
-
+<canvas id="invisible_export_helper"></canvas>
 </body>
 </html>
