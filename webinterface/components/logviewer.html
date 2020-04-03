@@ -288,7 +288,7 @@
                                 <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
                                 <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
                                 <button class="btn" name="b_fit" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
-                                <button class="btn" style="display:none" name="b_image" onclick="export_image()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn"  name="b_image" onclick="export_image()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
                                 ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
@@ -547,7 +547,57 @@
             return 
         }
 
-        function export_image(){
+//export svg test
+var ContainerElements = ["svg","g"];
+var RelevantStyles = {"tr":["background-color","height","color"],"rect":["fill","stroke","stroke-width"],"path":["fill","stroke","stroke-width"],"circle":["fill","stroke","stroke-width"],"line":["stroke","stroke-width"],"text":["fill","font-size","text-anchor"],"polygon":["stroke","fill"]};
+
+
+function read_Element(ParentNode, OrigData){
+    var Children = ParentNode.childNodes;
+    var OrigChildDat = OrigData.childNodes;     
+
+    for (var cd = 0; cd < Children.length; cd++){
+        var Child = Children[cd];
+
+        var TagName = Child.tagName;
+        if (ContainerElements.indexOf(TagName) != -1){
+            read_Element(Child, OrigChildDat[cd])
+        } else if (TagName){
+            var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
+            var StyleString = "";
+            for (var st = 0; st < StyleDef.length; st++){
+                StyleString += StyleDef[st] + ":" + StyleDef.getPropertyValue(StyleDef[st]) + "; ";
+            }
+
+            Child.setAttribute("style",StyleString);
+        }
+    }
+
+}
+
+function export_StyledSVG(SVGElem){
+
+
+    var oDOM = SVGElem.cloneNode(true)
+    read_Element(oDOM, SVGElem)
+
+    var data = new XMLSerializer().serializeToString(oDOM);
+    var svg = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
+    var url = URL.createObjectURL(svg);
+
+    var link = document.createElement("a");
+    link.setAttribute("target","_blank");
+    var Text = document.createTextNode("Export");
+    link.appendChild(Text);
+    link.href=url;
+
+    document.body.appendChild(link);
+    link.click();
+        }
+//end of export svg test
+        function export_image() {
+            export_StyledSVG(document.getElementById("graphContainer").firstChild);
+            return;
             var svg = document.getElementById("graphContainer").firstChild;
             var canvas = document.getElementById("invisible_export_helper");
             var ctx = canvas.getContext('2d');
