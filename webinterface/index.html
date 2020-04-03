@@ -101,10 +101,19 @@
       margin-top: 3px;
       }
     .steinar {
-        height: 38;
+        height: 38px;
         margin-top: 16px;
     }
     .harry{
+<<<<<<< HEAD
+		height:50px;
+		margin-top: 10px;
+    }
+	.benjamin{
+		height:38px;
+		margin-top: 16px;
+	}
+=======
         height: 50;
         margin-top: 11px;
     }
@@ -113,6 +122,7 @@
         margin-top: 16px;
     }
 
+>>>>>>> 602f16139b2d5eda850d12350f0ac7d5cef5cd4d
     .ffastransheadertext{
        display: inline-block;
        font-size:30px;
@@ -295,8 +305,11 @@ function restoreUserState(){
 
 var selectedid = (localStorage.getItem("selected_start_menu_item"));
     if (localStorage.getItem("selected_start_menu_item")){
-        m_mainSidebar.items(localStorage.getItem("selected_start_menu_item")).setActive();
-        mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
+		
+		try{
+			m_mainSidebar.items(localStorage.getItem("selected_start_menu_item")).setActive();
+			mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
+		}catch(e){}
     }else{
         m_mainSidebar.items("GROUPRIGHT_MENU_VIEW_JOB_STATUS").setActive(); 
         mainLayout.cells("b").attachURL(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 

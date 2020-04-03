@@ -315,10 +315,13 @@ function init(){
                     var dhxwins = new dhtmlXWindows();
                     //dhxwins.attachViewportTo(window.parent.document.body);
                     win_offset = 0;
-                    var win = dhxwins.createWindow("File [" + file.name + "]",  50 + win_offset, 150 + win_offset, 1200, 800);
+                    var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/2);
                     win_offset+=30;
                     win.setText("File [" + file.name + "]");
                     win.attachHTMLString(minfo_html);
+                    win.showInnerScroll(true);
+                    
+                
             });
             return;
         }
@@ -852,7 +855,7 @@ function startJobs(){
          postBody.variables = [];
          m_subForm.forEachItem(function(name){
             if (m_subForm.getItemValue(name)){
-                postBody.variables.push({"name":name,"content":m_subForm.getItemValue(name)});
+                postBody.variables.push({"name":name,"data":m_subForm.getItemValue(name)});
             }
         });
          m_selectedFileGrid.cells(id,2).setValue("Submitted")
