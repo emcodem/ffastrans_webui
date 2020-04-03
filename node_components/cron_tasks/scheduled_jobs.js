@@ -89,7 +89,7 @@ function executeJob(current_job,socketioClientId,informCallback){
                 };
         });
         //execute tmp file
-        const forked = fork(path,[],{ silent: true });
+        const forked = fork(path, [], { silent: true });
         
         console.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
         if (informCallback){

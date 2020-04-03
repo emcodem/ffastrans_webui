@@ -38,8 +38,18 @@ process.on('uncaughtException', function(err) {
   console.trace('Global unexpected error: ' + err);
   if (err.stack){
       console.error(err.stack);
-  }
+    }
+    if (err.name === 'AssertionError') {
+        // handle the assertion here or just ignore it..
+        console.log("HERE WE GO, MEDIAINFO FOOLED US");
+    }
 });
+process.on('unhandledRejection', (reason, promise) => {
+    console.trace('Global unexpected error: ' + err);
+    if (err.stack) {
+        console.error(err.stack);
+    }
+})
 
 //needed for running as nexe - access to local files (database) is different 
 global.approot  = path.dirname(process.execPath);
@@ -140,7 +150,7 @@ function init(conf){
 	
     //we need to get install directory when running as part of webinterface, before we can start new api
     _request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
-        console.log(body);
+        
         if (error) {
             console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
             return;
