@@ -7,11 +7,14 @@ var configServer = require(global.approot  + '/node_components/server_config');
 			if (req.method === 'GET' || req.method === 'POST') {
                 var jobfetcher = require("./../cron_tasks/jobfetcher");
                 jobfetcher.fetchjobs();
+                res.status(200);//Send error response here
+                res.end();
             }
             
         }catch (ex){
             console.error("getactivejobsajax_treegrid error calling fetcher "+ ex)
-            
+            res.status(500);//Send error response here
+            res.end();
         }
 	});
 }

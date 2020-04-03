@@ -2,6 +2,7 @@ const assert = require('assert');
 const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
+
 //todo: implement queued jobs
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 
@@ -12,7 +13,7 @@ module.exports = {
     var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
     //inform the client about current count in DB
     global.db.jobs.count({ "state": "Success", "deleted": { $exists: false } }, function (err, success_count) {
-        console.log("successcount", success_count)
+        //console.log("successcount", success_count)
         countObj.successjobcount = success_count;
         global.db.jobs.count({ "state": "Error", "deleted": { $exists: false } }, function (err, error_count) {
             countObj.errorjobcount = error_count;
@@ -254,7 +255,7 @@ function getFancyTreeArray(jobArray){
                 //return el["sort_generation"] === 0; 
             return el["sort_generation"] === 0;
         });
-        console.log("Num godfathers ", godfathers.length) 
+        //console.log("Num godfathers ", godfathers.length) 
         //find out all subjobs of same id
         for (var i in godfathers){
             
