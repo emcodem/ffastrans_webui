@@ -28,12 +28,16 @@ module.exports = function(app, express){
             }
             //find current job to update in order to preserve existing fields that are not overwritten by sae action
             global.db.config.find({ "scheduled_jobs.id": job['id'] }, function (err, existingjob) {//get all groups from user
-                   existingjob = existingjob[0]["scheduled_jobs"];
-                   for (var property in job) {
-                      if (job.hasOwnProperty(property)) {
-                         existingjob[property] = job[property];
-                      }
-                    }
+                   if (existingjob.length != 0){
+                       existingjob = existingjob[0]["scheduled_jobs"];
+                       for (var property in job) {
+                          if (job.hasOwnProperty(property)) {
+                             existingjob[property] = job[property];
+                          }
+                        }
+                   }else{
+                       existingjob = job;   
+                   }
                     
                     //save enriched job
                     global.db.config.update({ "scheduled_jobs.id": existingjob['id'] },{$set:  {"scheduled_jobs": existingjob}},{upsert:true,multi:false} ,function (err, count) {

@@ -51,8 +51,8 @@ function start_server(_port,_approot,_ffas_root){
 	var port = _port || 65446;
 	app.listen(port);
     console.log('Web API Server started, check out http://127.0.0.1:' + port + '/docs');
-
-    //UNHANDLED EXCEPTIONS KEEP THE SERVER RUNNING
+    /*
+    //UNHANDLED EXCEPTIONS KEEP THE SERVER RUNNING - todo: reactivate when running as standalone module
     process.on('uncaughtException', function (err) {
         console.trace('Global unexpected error: ' + err);
         if (err.stack) {
@@ -69,7 +69,7 @@ function start_server(_port,_approot,_ffas_root){
             console.error(err.stack);
         }
     })
-
+ */
 	//API DOCS and testing page
 	const swaggerUi = require('swagger-ui-express');
     const YAML = require('yamljs');
