@@ -1,0 +1,1 @@
+{"scheduled_jobs":{"id":"0.9296671158372565","enabled":"0","job_name":"New Job","job_description":"","cron":"*/5 * * * *","last_start":"","date_created":"2020-04-03 23:51:13","workflow":"","script":"process.send(['testvalue']);//starts one job","last_pid":0,"last_end":"2020-04-03 23:51:17"},"_id":"PRLjGRuhMl4JEUVH"}
