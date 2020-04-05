@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs')
-const mediainfo = require('node-mediainfo');
+const mediainfo = require('mediainfo-wrapper');
 
 var json2human = require('json.human');
 module.exports = {
@@ -35,14 +35,22 @@ function start(req, res) {
     
 }
 
-
 async function main(res, filepath) {
     try {
         console.log("Trying mediainfo");
-        const result = await mediainfo(filepath);
-        return res.status(200).send((result));
+        require('mediainfo-wrapper')({  }, filepath).then(
+            function (data) {
+                return res.status(200).send(data);
+            }
+        ).catch(
+            function (error) {
+                console.log(error)
+                return res.status(500).send("Error getting mediainfo")
+            }
+        )
+        
     } catch (ex) {
-        return res.status(500).send("Error analyzing file");
+        return res.status(500).send("Error getting mediainfo");
     }
 }
 
