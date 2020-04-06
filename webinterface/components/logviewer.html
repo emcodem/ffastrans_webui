@@ -42,7 +42,7 @@
     <!-- FONTAWESOME -->
     <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" />
 
-    <style type="text/css">
+    <style type="text/css" id="customstyle">
         /* it's important to set width/height to 100% for full-screen init
 
         */
@@ -287,8 +287,8 @@
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
                                 <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
                                 <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                                <button class="btn" name="b_fit" onclick="m_graph.fit()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
-                                <button class="btn"  name="b_image" onclick="export_image()"><i style = "margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> \
                                 ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
@@ -529,100 +529,57 @@
         };
 
 
-        function triggerDownload (imgURI) {
-          var evt = new MouseEvent('click', {
-            view: window,
-            bubbles: false,
-            cancelable: true
-          });
-          var a = document.createElement('a');
-          a.setAttribute('download', 'workflow.png');
-          a.setAttribute('href', imgURI);
-          a.setAttribute('target', '_blank');
-          a.dispatchEvent(evt);
+
+        
+        function CustomData(value) {
+            this.value = value;
         }
 
-        function buildSvgImageUrl(svg) {
-            b64 = (svg);
-            return 
-        }
 
 //export svg test
-var ContainerElements = ["svg","g"];
-var RelevantStyles = {"tr":["background-color","height","color"],"rect":["fill","stroke","stroke-width"],"path":["fill","stroke","stroke-width"],"circle":["fill","stroke","stroke-width"],"line":["stroke","stroke-width"],"text":["fill","font-size","text-anchor"],"polygon":["stroke","fill"]};
 
 
-function read_Element(ParentNode, OrigData){
+function copy_style_for_svg(ParentNode, OrigData){
     var Children = ParentNode.childNodes;
     var OrigChildDat = OrigData.childNodes;     
-
+    var ContainerElements = ["svg","g"];
+    
     for (var cd = 0; cd < Children.length; cd++){
         var Child = Children[cd];
 
         var TagName = Child.tagName;
         if (ContainerElements.indexOf(TagName) != -1){
-            read_Element(Child, OrigChildDat[cd])
+            copy_style_for_svg(Child, OrigChildDat[cd])
         } else if (TagName){
             var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
             var StyleString = "";
             for (var st = 0; st < StyleDef.length; st++){
                 StyleString += StyleDef[st] + ":" + StyleDef.getPropertyValue(StyleDef[st]) + "; ";
             }
-
             Child.setAttribute("style",StyleString);
+            copy_style_for_svg(Child, OrigChildDat[cd])
         }
     }
-
 }
 
-function export_StyledSVG(SVGElem){
-
-
+function export_StyledSVG(){
+    var SVGElem = document.getElementsByTagName("svg")[0];
+    var exportname = (m_workflowdata["wf_name"] + "_" + m_jobobject["id"]);
     var oDOM = SVGElem.cloneNode(true)
-    read_Element(oDOM, SVGElem)
-
+    copy_style_for_svg(oDOM, SVGElem);
     var data = new XMLSerializer().serializeToString(oDOM);
-    var svg = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
+    var svg = new Blob([data], { type: "data:application/octet-stream;charset=utf-8" });
     var url = URL.createObjectURL(svg);
-
     var link = document.createElement("a");
-    link.setAttribute("target","_blank");
+    link.setAttribute('download', exportname);
     var Text = document.createTextNode("Export");
     link.appendChild(Text);
     link.href=url;
-
     document.body.appendChild(link);
     link.click();
-        }
-//end of export svg test
-        function export_image() {
-            export_StyledSVG(document.getElementById("graphContainer").firstChild);
-            return;
-            var svg = document.getElementById("graphContainer").firstChild;
-            var canvas = document.getElementById("invisible_export_helper");
-            var ctx = canvas.getContext('2d');
-            var data = (new XMLSerializer()).serializeToString(svg);
-            console.log(data)
-            var DOMURL = window.URL || window.webkitURL || window;
-            
-            var img =  new Image();
-            img.crossOrigin = "Anonymous";
-            var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
-            img.onload = function () {
-                console.log("onload")
-                ctx.drawImage(img, 0, 0);
-                var imgURI = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
-                console.log("trigger download")
-                triggerDownload(imgURI);
-            };
-           
-            img.src = "data:image/svg+xml;base64," + window.btoa(data);   
-        }
+}
+
         
-        
-        function CustomData(value) {
-            this.value = value;
-        }
 
         //parse Job log
         function parseJobLog(lines) {
@@ -1074,12 +1031,18 @@ function export_StyledSVG(SVGElem){
                 var bw = localStorage.getItem(name + "_bw");
                 var bh = localStorage.getItem(name + "_bh");
                 if (!ignore_width) {
-                    dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
-                    dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
-                    
+                    if (aw > 0.01){
+                        dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
+                        console.log("width restored cell a:", aw);
+                    }
+                    if (bw < 0.8){
+                        dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
+                        console.log("width restored cell b:", bw);
+                    }
                 }
                 dhxLayout.cells("a").setHeight(ah * document.body.scrollHeight);
                 dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
+                console.log("height restored")
             }
         }
 
@@ -1134,6 +1097,6 @@ function export_StyledSVG(SVGElem){
             </thead>
         </table>
     </div>
-<canvas id="invisible_export_helper"></canvas>
+<canvas id="invisible_export_helper"  style="display:none;width:1920px;height:1080px"></canvas>
 </body>
 </html>
