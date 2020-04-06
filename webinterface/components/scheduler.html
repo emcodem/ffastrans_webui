@@ -175,14 +175,20 @@ function init(){
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
     m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");    
-    m_mainGrid.setInitWidthsP("0,5,25,20,20,15,15,0,0,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,ro");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str");         
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");   
+   // m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow,Type");
+   // m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow,type");    
+    m_mainGrid.setInitWidthsP("0,5,25,20,15,15,15,0,15,0");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");       
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,combo");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");  
+    /*typecombo = m_mainGrid.getCombo(8);
+    typecombo.put("custom","Custom");
+    typecombo.put("watch_fsnotify","Watch using Filsystem Events");
+    */ 
     m_mainGrid.init();    
     m_mainGrid.setColValidators(",NotEmpty,NotEmpty,NotEmpty,NotEmpty"); 
-    
+
 	loadJobs(m_mainGrid);
     
 	m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
@@ -237,7 +243,6 @@ function init(){
             var dhxCombo = m_workflowForm.getCombo("start_proc");
             var _proc = dhxCombo.getActualValue();
             var _procname = dhxCombo.getComboText();
-            alert(_procname)
             var workflowconfig = {"wf_id":_wf_id,"start_proc":_proc,"start_proc_name":_procname,"inputfile":"","variables":[]};
             var cellindex = m_mainGrid.getColIndexById('workflow');
             m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).setValue(JSON.stringify(workflowconfig));
@@ -300,8 +305,7 @@ function showScriptEditor(selectedRowId){
                 icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
                 items:[
                     {id:"save", text:'<i class="fas fa-save"></i>Save'},
-                    {id:"start", text:'<i class="fas fa-play"></i>Test Run'},
-                    //{id:"examplebrowser", text:'<i class="fas fa-info"></i>Examples'},
+                    {id:"start", text:'<i class="fas fa-play"></i>Test Run'}
                 ]
             });
         scriptMenu.setUserData("save", "jobid", selectedRowId);//stores scheduled jobid for this window so later on we find out which job we are connected to

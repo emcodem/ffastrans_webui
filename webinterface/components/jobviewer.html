@@ -103,6 +103,9 @@
         overflow: hidden;
         font-weight: unset;
     }
+    th{
+        border-right: 1px solid grey;
+    }
     /* text in tree title column */
     span.fancytree-title {
         padding: 0 0 0;
@@ -747,7 +750,7 @@
                 }
             },
             error: function (xhr, status) {
-                alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+                alert("ERROR getting workflow of job " + job_id + ", possibly FFASTRANS API is offline. ");
             }
         });
     }
