@@ -141,6 +141,14 @@
       .body.dhxlayout_base_material{
           //background-color: #AAA;
       }*/
+      
+      .menuitem{
+        max-width:70%;
+        margin-left: 0.5em;
+        margin-top: 0.5em;
+        cursor:pointer;
+      }
+      
 </style>
 
 <script>
@@ -253,28 +261,31 @@ function init(permissions){
     mainLayout.cells("a").fixSize(true, true);
     mainLayout.cells("a").hideHeader()
     mainLayout.cells("b").hideHeader()
-                                        
-    m_mainSidebar = mainLayout.cells("a").attachSidebar({
-      template: "icons",
-      width: 54,
-      }
-    );
+         
+         
     
-    //create sidebar data structure from userpermissions object
-
-    m_mainSidebar.setTemplate("icons", "/webinterface/images/");
-    m_mainSidebar.loadStruct(permissions);
+//create nav menue            
+    m_mainSidebar = mainLayout.cells("a").attachHTMLString("<div id='navmenue'></div>");
+    var menu = document.getElementById("navmenue");
+   
     
-    m_mainSidebar.attachEvent("onXLS", function(){//data has finished loading
-        restoreUserState()
-    });
-    console.log(permissions)
-    m_mainSidebar.attachEvent("onSelect", function(id, lastId){
-        //load selected iframe url into right window
-        localStorage.setItem("selected_start_menu_item", id);
-        mainLayout.cells("b").attachURL(m_permissionUrls[id]); 
-    });
+    var _perm = JSON.parse(permissions);
+    console.log(_perm)
+    for (i=0;i<_perm["items"].length;i++){
+        
+        var title = _perm["items"][i]["text"].replace("GROUPRIGHT_MENU_VIEW_","");
+        title = title.replace("_", " ");
+         menu.innerHTML += "<img class='menuitem' title='"+title+"' src='images/"+_perm["items"][i].icon+"' id='"+_perm["items"][i].id+"'/>";
 
+    }
+    
+    //onclick menu item
+    $( ".menuitem" ).click(function() {
+         mainLayout.cells("b").attachURL(m_permissionUrls[this.id]);
+         //store user state
+         localStorage.setItem("selected_start_menu_item",this.id)
+    })
+      
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 
         document.getElementById("cancelledjobcount").innerHTML = msg.cancelledjobcount;
@@ -301,13 +312,14 @@ function init(permissions){
 
 
 function restoreUserState(){
+    console.log("restoring user state , " +localStorage.getItem("selected_start_menu_item"))
 //stores some layout properties in html5 local store
 
-var selectedid = (localStorage.getItem("selected_start_menu_item"));
+    var selectedid = (localStorage.getItem("selected_start_menu_item"));
     if (localStorage.getItem("selected_start_menu_item")){
-		
 		try{
-			m_mainSidebar.items(localStorage.getItem("selected_start_menu_item")).setActive();
+            console.log($( "#" + localStorage.getItem("selected_start_menu_item")));
+            $( "#" + localStorage.getItem("selected_start_menu_item") ).click(function() {});
 			mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
 		}catch(e){}
     }else{

@@ -1,0 +1,8 @@
+for portable usage, the ini files have to be rewritten after move of the install dir:
+/bin/erl.ini
+/erts-10.5/bin
+
+before startup, set environment variable:
+set ERLANG_HOME=F:\dev\ffa\ffastrans_webui\rest_service\rabbit\erl10.5 
+
+set ERLANG_HOME=../../../../bin 
