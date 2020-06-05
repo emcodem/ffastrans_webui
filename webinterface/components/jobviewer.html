@@ -252,8 +252,17 @@
         });
 
         socket.on('queuedjobs', function (msg) {
+            console.log("queued")
+
+            
             if (JSON.parse(msg)) {
-                addQueuedJobsToGrid(runningJobGrid, JSON.parse(msg), "queued");
+                var q_obj = (JSON.parse(msg))
+                for (i=0; i<q_obj.length;i++){
+                    q_obj[i]["key"] = "1";
+                    q_obj[i]["steps"] = "";
+                    q_obj[i]["progress"] = "0";
+                }
+                addActiveJobsToGrid(runningJobGrid, q_obj, "queued");
             }
             mainLayout.cells("a").progressOff();
         });
@@ -834,7 +843,7 @@
         });
     }
 
-    function addActiveJobsToGrid(targetGridObj, jobArray) {
+    function addActiveJobsToGrid(targetGridObj, jobArray,qstate) {
         var rootNode = $("#treetable_active").fancytree("getRootNode");
         var tree = $("#treetable_active").fancytree("getTree");
         //add or update new jobs
@@ -863,7 +872,7 @@
 
 
     function addQueuedJobsToGrid(targetGridObj, jobArray, state) {//state added as of ffastrans 9.5, queued or active
-        return;
+        
         var newjobIds = [];
         var queuedjobcount = 0;
         //add new jobs if any//TODO: at top
@@ -871,8 +880,9 @@
         //parse jobarray of all history jobs and add new/delete missed rows
         for (i = 0; i < jobArray.length; i++) {
             queuedjobcount++;
-            var rowid = state + "_" + jobArray[i].id;//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
+            var rowid = state + "_" + jobArray[i]["job_id"];//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
             newjobIds.push(rowid);
+            console.log(rowid)
             var status = "Queued"
             var duration = "";
             var _state = m_jobStates[jobArray[i].state];
@@ -898,6 +908,7 @@
                 if (_status == "active") {
                     //active jobs are not deleted
                 } else {
+                    console.log("deleting queued")
                     targetGridObj.deleteRow(id);
                 }
             }
