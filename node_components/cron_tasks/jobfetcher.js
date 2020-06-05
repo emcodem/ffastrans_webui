@@ -85,9 +85,9 @@ module.exports = {
         
         //send the new jobs to connected clients, todo: only notify clients about new stuff
 		try{
-            if (JSON.parse(body)["tickets"]["queue"]){
-                global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body)["tickets"]["queue"]));
-                global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["queue"].length);                
+            if (JSON.parse(body)["tickets"]["pending"]){
+                global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body)["tickets"]["pending"]));
+                global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["pending"].length);                
             }else{
                 global.socketio.emit("queuedjobs", "[]");
                 global.socketio.emit("queuedjobcount", 0);               
