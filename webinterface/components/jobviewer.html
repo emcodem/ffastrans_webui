@@ -144,8 +144,6 @@
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
 
-    /* STRUCTS */
-    var m_jobStates = ["Error", "Success", "Cancelled", "Unknown"];
 
 
     /*load config from server*/
@@ -252,22 +250,16 @@
         });
 
         socket.on('queuedjobs', function (msg) {
-            console.log("queued")
-
-            
-            if (JSON.parse(msg)) {
+			if (JSON.parse(msg)) {
                 var q_obj = (JSON.parse(msg))
-                for (i=0; i<q_obj.length;i++){
-                    q_obj[i]["key"] = "1";
-                    q_obj[i]["steps"] = "";
-                    q_obj[i]["progress"] = "0";
-                }
-                addActiveJobsToGrid(runningJobGrid, q_obj, "queued");
+          
+                addActiveJobsToGrid(runningJobGrid, q_obj, "Queued");
             }
             mainLayout.cells("a").progressOff();
         });
         socket.on('activejobs', function (msg) {
-            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg));
+		
+            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg),"Active");
             mainLayout.cells("a").progressOff();
         });
         socket.on('error', function (msg) {
@@ -437,9 +429,7 @@
                 }
 
                 $tdList = $(node.tr).find(">td");
-                // (index #0 is rendered by fancytree (title node))
-                //$tdList.eq(0).text(node.data.state);
-
+                
                 $tdList.eq(1).html("<div class='celltext'>" +node.data.workflow+ "</div>");  //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" +node.data.job_start+ "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" +node.data.file+ "</div>");
@@ -849,71 +839,32 @@
         //add or update new jobs
         var activeJobIds = [];
         for (y = 0; y < jobArray.length; y++) {
-            var key = jobArray[y]["key"];
+            var key = jobArray[y]["key"].toString();
             activeJobIds.push(key);
             var existing = tree.getNodeByKey(key);
             if (existing) {
-                existing.data = jobArray[y];
+				existing.data = jobArray[y];
                 existing.renderTitle();//forces reload of node
             } else {
-                rootNode.addChildren(jobArray[y]);
+				rootNode.addChildren(jobArray[y]);
             }
         }
         //remove orphand
         var oldnodes = rootNode.children;
         if (oldnodes) {
             for (a = 0; a < oldnodes.length; a++) {
-                if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
-                    oldnodes[a].remove();
-                }
+				//console.log(oldnodes[a]["data"]["state"], qstate)
+				if (oldnodes[a]["data"]["state"] == qstate){
+					 if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
+						oldnodes[a].remove();
+					}
+				}
+               
             }
         }
     }
 
 
-    function addQueuedJobsToGrid(targetGridObj, jobArray, state) {//state added as of ffastrans 9.5, queued or active
-        
-        var newjobIds = [];
-        var queuedjobcount = 0;
-        //add new jobs if any//TODO: at top
-
-        //parse jobarray of all history jobs and add new/delete missed rows
-        for (i = 0; i < jobArray.length; i++) {
-            queuedjobcount++;
-            var rowid = state + "_" + jobArray[i]["job_id"];//i is the split id, together with job_start we have a unique id (ffastrans does not yet deliver a unique id per split or job
-            newjobIds.push(rowid);
-            console.log(rowid)
-            var status = "Queued"
-            var duration = "";
-            var _state = m_jobStates[jobArray[i].state];
-            var _state = "Queued";
-            if (targetGridObj.doesRowExist(rowid)) {
-                //no update needed for queued tasks
-            } else {
-                //add new job to grid
-                targetGridObj.addRow(rowid, [_state, "", jobArray[i].submit.client, "", jobArray[i].sources.pretty_name, "", "", jobArray[i].submit.system, "Queued"], 0);
-            }
-            var jobObj = jobArray[i];
-            jobObj.job_id = jobArray[i].id;//store job_id to allow abortjobs
-            targetGridObj.setRowColor(rowid, "#ffffcc");
-            targetGridObj.setUserData(rowid, "jobobject", jobArray[i]);           //stores original job object with row for later access
-
-        }
-        //targetGridObj.sortRows(5,"str","des");
-        //update job count display
-        //delete jobs that are in the grid but not in the list of jobs from server
-        targetGridObj.forEachRow(function (id) {
-            if (newjobIds.indexOf(id) == -1) {
-                var _status = targetGridObj.cells(id, 0).getValue()
-                if (_status == "active") {
-                    //active jobs are not deleted
-                } else {
-                    console.log("deleting queued")
-                    targetGridObj.deleteRow(id);
-                }
-            }
-        });
-    }
 
     /* HELPERS */
     function hashCode(string) {

@@ -57,7 +57,17 @@ paths:
           description: Success
         default:
           description: Error
-
+  /tickets:
+    x-swagger-router-controller: tickets
+    get:
+      description: Gets active and pending jobs
+      operationId: tickets
+      responses:
+        "200":
+          description: List of Jobs
+        default:
+          description: Error
+          
   /getjobdetails:
     x-swagger-router-controller: get_job_details
     get:
