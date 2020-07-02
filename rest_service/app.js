@@ -42,6 +42,7 @@ function start_server(_port,_approot,_ffas_root){
             get_job_log: require(_approot + "/api/controllers/get_job_log").get,
             get_job_details: require(_approot + "/api/controllers/get_job_details").get,
             get_mediainfo: require(_approot + "/api/controllers/get_mediainfo").get,
+			tickets: require(_approot + "/api/controllers/tickets").get,
         }
 	};
 

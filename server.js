@@ -15,6 +15,7 @@ const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
+//const longjohn = require('longjohn'); //long stacktraces
 
 //register special mime types
 //express.mime.type['locallink'] = 'application/internet-shortcut';
@@ -35,8 +36,9 @@ require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every conso
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
-  console.trace('Global unexpected error: ' + err);
+  console.trace('Global unexpected error: ' , err);
   if (err.stack){
+      err.stackTraceLimit = Infinity;
       console.error(err.stack);
     }
     if (err.name === 'AssertionError') {
@@ -45,9 +47,9 @@ process.on('uncaughtException', function(err) {
     }
 });
 process.on('unhandledRejection', (reason, promise) => {
-    console.trace('Global unexpected error: ' + err);
-    if (err.stack) {
-        console.error(err.stack);
+    console.trace('Global unexpected error: ' , reason);
+    if (reason.stack) {
+        console.error(reason.stack);
     }
 })
 

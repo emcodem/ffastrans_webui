@@ -36,6 +36,7 @@
     "firstline": "^2.0.2",
     "is-running": "^2.1.0",
     "log4js": "^6.1.0",
+    "longjohn": "^0.2.12",
     "moment": "^2.24.0",
     "mongoose": "^5.7.9",
     "nedb": "^1.8.0",

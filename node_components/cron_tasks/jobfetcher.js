@@ -2,7 +2,7 @@ const assert = require('assert');
 const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
-
+const path = require("path")
 //todo: implement queued jobs
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 
@@ -73,7 +73,7 @@ module.exports = {
     
     //fetch queued jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {        
-        
+        //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
         }
@@ -81,19 +81,40 @@ module.exports = {
             global.socketio.emit("error", 'Error getting Queued Jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
         }
-        
-        
-        //send the new jobs to connected clients, todo: only notify clients about new stuff
-		try{
-            if (JSON.parse(body)["tickets"]["pending"]){
-                global.socketio.emit("queuedjobs", JSON.stringify(JSON.parse(body)["tickets"]["pending"]));
-                global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["pending"].length);                
-            }else{
-                global.socketio.emit("queuedjobs", "[]");
-                global.socketio.emit("queuedjobcount", 0);               
-            }
+        try{
+		//transform to match activejobs structure
+			
+			var q_obj = JSON.parse(body)["tickets"]["pending"];
+			if (q_obj !== undefined) {
+				for (i=0; i<q_obj.length;i++){
+							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
+							q_obj[i]["split_id"] = ""
+							q_obj[i]["state"] = "Queued";
+							q_obj[i]["title"] = "Queued";
+							q_obj[i]["steps"] = "";
+							q_obj[i]["progress"] = "0";
+							q_obj[i]["workflow"] = ""; //todo: implement workflow in ffastrans tickets api for pending jobs
+							q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
+							q_obj[i]["host"] = "";
+							q_obj[i]["status"] = "";
+							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
+							q_obj[i]["proc"] = q_obj[i]["nodes"]["next"]["type"]
+							
+				}
+			}
+			
+			//send the new jobs to connected clients, todo: only notify clients about new stuff
+			
+				if (JSON.parse(body)["tickets"]["pending"]){
+					global.socketio.emit("queuedjobs", JSON.stringify(q_obj));
+					global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["pending"].length);                
+				}else{
+					global.socketio.emit("queuedjobs", "[]");
+					global.socketio.emit("queuedjobcount", 0);               
+				}
 		}catch(exc){
-			console.error("Error occured while sending queuedjobs to clients: " + exc + body)
+			console.error("Error occured while sending queuedjobs to clients: " + exc )
+			console.error(exc.stack)
 		}
 		return;
         //store in database
@@ -300,3 +321,16 @@ function getFancyTreeArray(jobArray){
 
     
 }
+
+/* STRUCTS */
+Object.defineProperty(String.prototype, 'hashCode', {
+  value: function() {
+	var hash = 0, i, chr;
+	for (i = 0; i < this.length; i++) {
+	  chr   = this.charCodeAt(i);
+	  hash  = ((hash << 5) - hash) + chr;
+	  hash |= 0; // Convert to 32bit integer
+	}
+	return hash;
+  }
+});
