@@ -80,11 +80,10 @@ module.exports = function(app, passport){
                                            var filter = allpermissions[x]["value"]["filter"];
                                            console.log("VARIABLE FILTER ACTIVE: " + filter)
                                            
-                                           for (var i in workflowlist["workflows"]){
+                                           //for (var i in workflowlist["workflows"]){
                                                
-                                               console.log(workflowlist["workflows"][i]);
-                                               for (var user_var_index in (workflowlist["workflows"][i]["variables"])){
-                                                   var user_var = (workflowlist["workflows"][i]["variables"][user_var_index])
+                                               for (var user_var_index in (workflowlist["user_variables"])){
+                                                   var user_var = (workflowlist["user_variables"][user_var_index])
                                                         if (user_var["name"].toLowerCase().match(filter.toLowerCase())){
                                                              //allow
                                                              console.log("Matched allowed User variable: " + user_var["name"])
@@ -98,7 +97,7 @@ module.exports = function(app, passport){
                                                         }
                                                    }
                                                
-                                           }//for all workflows
+                                           //}//for all workflows
                                                
                                             
                                        }
@@ -110,7 +109,7 @@ module.exports = function(app, passport){
                            }//for allpermissions
                            
                            //finally update workflowlist with new allowed variable array 
-                           workflowlist["workflows"][i]["variables"] = allowed_variable_array;
+                           workflowlist["user_variables"] = allowed_variable_array;
                            
                        }catch(ex){
                             console.log("ERROR: error in getworkflow variables: " + ex);

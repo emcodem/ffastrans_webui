@@ -34,12 +34,7 @@ var socket = io();
 var m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 
-//mediainfo
 
-var MediaInfoModule,MI;
-
-var mediainfo_url_ff = "../dependencies/MediaInfo_DLL_JavaScript/MediaInfoWasm.js";//todo: get out how to load the wasm file from relative path
-var mediainfo_url_ie = "../dependencies/MediaInfo_DLL_JavaScript/MediaInfo.js";
 /*load config from server*/
 function loadserverconfig(){
    $.ajax({
@@ -56,27 +51,6 @@ function loadserverconfig(){
     });
 }
 
-/* register mediainfo functions */
-function mediainfo_init(){/*needs to be called onload of body, at least before using mediainfo*/
-
-    /*IE or FF or Chrome, loads different asm scripts?*/
-    var MediaInfoJs = document.createElement('script');
-    if ('WebAssembly' in window) {
-      MediaInfoJs.src = mediainfo_url_ff;
-    } else {
-      MediaInfoJs.src = mediainfo_url_ie;
-    }
-    document.body.appendChild(MediaInfoJs);
-
-    // after script is loaded, initalize Mediainfo
-    MediaInfoJs.onload = function () {
-      MediaInfoModule = MediaInfoLib({'postRun': function() {
-            console.log('MediaInfo ready');
-            MI = new MediaInfoModule.MediaInfo();
-        }});
-    }
-}
-      
 function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
 
      $.ajax({
@@ -375,7 +349,7 @@ function init(){
     }
 
     //init mediainfo
-    mediainfo_init();
+    //mediainfo_init();
    
 }
 

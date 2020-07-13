@@ -72,9 +72,10 @@ module.exports = {
     });
     
     //fetch queued jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL), {timeout: 7000},(error, response, body) => {        
+    Request.get(buildNewApiUrl(), {timeout: 7000},(error, response, body) => {        
         //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
+            console.error("Fatal, lobal.config.STATIC_USE_PROXY_URL is true but should be false! ")
             return;
         }
         if(error) {
@@ -93,7 +94,7 @@ module.exports = {
 							q_obj[i]["title"] = "Queued";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = ""; //todo: implement workflow in ffastrans tickets api for pending jobs
+							//q_obj[i]["workflow"] = ""; //todo: implement workflow in ffastrans tickets api for pending jobs
 							q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
 							q_obj[i]["host"] = "";
 							q_obj[i]["status"] = "";
@@ -115,6 +116,7 @@ module.exports = {
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
 			console.error(exc.stack)
+            console.error(q_obj[i])
 		}
 		return;
         //store in database
@@ -267,6 +269,10 @@ function hashCode (string) {
 
 function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
+}
+
+function buildNewApiUrl(){
+    return "http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + "/tickets"
 }
 
 function getFancyTreeArray(jobArray){

@@ -20,6 +20,29 @@ module.exports = function(app, passport){
            })
         }//else
 	});
+
+	app.get('/getuserpermissions', function(req, res) { 
+       passport.authenticate('local-login');//fills req.user with infos from cookie
+       if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+            res.write("[]")
+            res.status(200);//Send error response here
+            res.end(); 
+       }else{
+                userpermissions.getpermissionlist (req.user.local.username,function(data){
+                //as we now have all userpermissions, finish web request, 
+                try{
+                    res.write(JSON.stringify(data))
+                    res.status(200);//Send error response here
+                    res.end();   
+                }catch (ex){
+                        console.log("ERROR: unxepected error in index.js: " + ex);
+                        res.status(500);//Send error response here
+                        res.end();
+                }            
+           })
+        }//else
+	});
+
 }
 
 function renderUserMenue(req,res,permArray){
