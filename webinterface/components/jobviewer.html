@@ -321,6 +321,10 @@
         }
 
         if (id == "a_details") {
+			if (selected[0].data["state"] == "Queued"){
+				dhtmlx.message("Sorry, no details to show for queued jobs available");
+				return;
+			}
             var jobid = (selected[0].data["job_id"]); //active_jobs dont have a sort_family_name
             var url = "logviewer.html?job_id=" + jobid;
             window.open(url, '_blank');

@@ -16,7 +16,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 if (Object.keys(filterobj).length  != 0){
                     newfilter = {};
                     for (key in filterobj){
-                        newfilter[key] = {$regex: new RegExp(escapeRegExp(filterobj[key],"i"))}
+                        newfilter[key] = {$regex: new RegExp(escapeRegExp(filterobj[key]),"i")}
                     }
                     filterobj = newfilter;
                 }
