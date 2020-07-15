@@ -140,59 +140,52 @@
     var socket = io();
 
     /* GLOBALS */
-    var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions;
+    var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
 
-
-
     /*load config from server*/
     function loadserverconfig() {
-                $.ajax({
+        $.ajax({
             url: ("/getuserpermissions"),
             type: "GET",
-            success: function (response) {
+            success: function(response) {
                 m_userpermissions = JSON.parse(response);
-                console.log("Permissions:",m_userpermissions)
+                console.log("Permissions:", m_userpermissions)
                 //load serverconfig and initialize page
                 $.ajax({
                     url: ("/getserverconfig"),
                     type: "GET",
-                    success: function (response) {
+                    success: function(response) {
                         m_serverconfig = JSON.parse(response);
                         console.log(m_serverconfig)
                         init();
                     },
-                    error: function (xhr, status) {
+                    error: function(xhr, status) {
                         dhtmlx.message("Fatal error, could not load serverconfig. ");
                         document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
                     }
                 });
             },
-            error: function (xhr, status) {
+            error: function(xhr, status) {
                 dhtmlx.message("Fatal error, could not load serverconfig. ");
                 document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
             }
-            
-            });
+
+        });
 
     }
 
     /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
     function forcejobloading() {
-    
+
         $.ajax({
             url: ("/getactivejobsajax_treegrid"),
             type: "GET",
-            success: function (response) {
-
-            },
-            error: function (xhr, status) {
-
-            }
+            success: function(response) {},
+            error: function(xhr, status) {}
         });
     }
-
 
     /* build basic page layout and init periodic job loading*/
     function init() {
@@ -201,11 +194,9 @@
         $.get("/deleteoldrecords");
 
         //check if html5 features supported
-        if (typeof (Storage) !== "undefined") {
-        } else {
+        if (typeof(Storage) !== "undefined") {} else {
             dhtmlx.message("ERROR, no html5 store support, cannot save view state")
         }
-
 
         mainLayout = new dhtmlXLayoutObject({
             // mainLayout = headerLayout.cells("b").attachLayout({
@@ -214,18 +205,18 @@
         });
 
         mainLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Running</span> \
-	    <button class="btn" name="a_details" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
-	    <button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-stop" ></i>Abort</button> \
-	    <button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause" ></i>Pause</button> \
-	    <button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play" ></i>Resume</button> \
-	    ');
+    		<button class="btn" name="a_details" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
+    		<button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-stop" ></i>Abort</button> \
+    		<button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause" ></i>Pause</button> \
+    		<button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play" ></i>Resume</button> \
+    		');
 
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
-        <button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
-        <button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit</button> \
-        <button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button> \
-        <button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> \
-        ');
+    		<button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
+    		<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit</button> \
+    		<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button> \
+    		<button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> \
+    		');
         mainLayout.cells("b").setWidth($(document).width() / 3);
         //mainLayout.cells("c").setText("Finished");
         mainLayout.cells("a").setHeight($(document).height() / 3.5);
@@ -237,20 +228,20 @@
         mainLayout.cells("a").attachObject("active_div");
         mainLayout.cells("a").showInnerScroll();
 
-        mainLayout.attachEvent("onPanelResizeFinish", function () {
+        mainLayout.attachEvent("onPanelResizeFinish", function() {
             saveLayoutSizes(mainLayout, "mainLayout");
         });
 
         //    mainLayout.cells("a").progressOn();
 
-        socket.on('newhistoryjob', function (msg) {
-            
-            if (applyWorkflowFilter(msg) == false){
+        socket.on('newhistoryjob', function(msg) {
+
+            if (applyWorkflowFilter(msg) == false) {
                 return;
             }
             //server informs us about new history jobs in db, if there are new, we fetch them
             var rootNode = $("#treetable_history").fancytree("getRootNode");
-            
+
             var existing_node = rootNode.tree.getNodeByKey(msg.key)
             if (existing_node) {
                 existing_node.remove();
@@ -265,44 +256,62 @@
                 }
             }
             //add new node
-            
+
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
 
         });
 
-        socket.on('queuedjobs', function (msg) {
-			if (JSON.parse(msg)) {
+        socket.on('queuedjobs', function(msg) {
+            if (JSON.parse(msg)) {
                 var q_obj = (JSON.parse(msg))
                 addActiveJobsToGrid(runningJobGrid, q_obj, "Queued");
             }
             mainLayout.cells("a").progressOff();
         });
-        socket.on('activejobs', function (msg) {
-            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg),"Active");
+        socket.on('activejobs', function(msg) {
+            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg), "Active");
             mainLayout.cells("a").progressOff();
         });
-        socket.on('error', function (msg) {
+        socket.on('error', function(msg) {
             dhtmlx.message(msg);
         });
-        socket.on('msg', function (msg) {
+        socket.on('msg', function(msg) {
             dhtmlx.message(msg);
         });
 
         //deprecated!!!
         if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             alert("running in pull mode, this should not happen")
-            window.setInterval(function () { getQueuedJobs(runningJobGrid) }, parseInt(3000));
-            window.setInterval(function () { getActiveJobs(runningJobGrid) }, parseInt(3000));
-            window.setInterval(function () { getFinishedJobs(finishedJobGrid) }, parseInt(3000));
+            window.setInterval(function() {
+                getQueuedJobs(runningJobGrid)
+            }, parseInt(3000));
+            window.setInterval(function() {
+                getActiveJobs(runningJobGrid)
+            }, parseInt(3000));
+            window.setInterval(function() {
+                getFinishedJobs(finishedJobGrid)
+            }, parseInt(3000));
             getQueuedJobs(runningJobGrid);
             getActiveJobs(runningJobGrid);
             getFinishedJobs(finishedJobGrid);
         }
-        
+
+        //restore last sort order for active jobs
+        m_lastsortelementid = localStorage.getItem("m_lastsortelementid");
+        m_lastsortdir = localStorage.getItem("m_lastsortdir");
+        if (!m_lastsortelementid || !m_lastsortdir) {
+            m_lastsortelementid = "active-state";
+            m_lastsortdir = "asc";
+            console.log("Applying default sorting for active grid")
+        } else {
+            console.log("Applying stored sorting for active grid", m_lastsortelementid, m_lastsortdir)
+        }
+
         buildHistoryGrid();
         buildActiveGrid();
         forcejobloading();
     }
+
     function click_a_header(id) {
         var tree = $('#treetable_active').fancytree('getTree');
         var selected = tree.getSelectedNodes();
@@ -312,20 +321,21 @@
         }
 
         if (id == "a_details") {
-            var jobid = (selected[0].data["job_id"]);//active_jobs dont have a sort_family_name
+            var jobid = (selected[0].data["job_id"]); //active_jobs dont have a sort_family_name
             var url = "logviewer.html?job_id=" + jobid;
             window.open(url, '_blank');
         }
         if (id == "a_abort") {
-            jobCommand(selected,"abort");
+            jobCommand(selected, "abort");
         }
         if (id == "a_pause") {
-            jobCommand(selected,"pause");
+            jobCommand(selected, "pause");
         }
         if (id == "a_resume") {
-            jobCommand(selected,"resume");
+            jobCommand(selected, "resume");
         }
     }
+
     function click_b_header(id) {
 
         var tree = $('#treetable_history').fancytree('getTree');
@@ -333,7 +343,7 @@
         if (id == "b_resubmit") {
             var tree = $('#treetable_history').fancytree('getTree');
             var selected = tree.getSelectedNodes();
-            selected.forEach(function (node) {
+            selected.forEach(function(node) {
                 resubmit_job(node["data"]["guid"]);
             })
         }
@@ -342,7 +352,7 @@
                 dhtmlx.alert("Please select row to show details");
                 return;
             }
-            var jobid = (selected[0].data["job_id"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+            var jobid = (selected[0].data["job_id"]); //jobid contains splitid, sort_family_name is the id of mother job without splitd
             var url = "logviewer.html?job_id=" + jobid;
             window.open(url, '_blank');
         }
@@ -353,14 +363,13 @@
                 return;
             }
             var array_to_delete = [];
-            for (i = 0; i < selected.length; i++) {
-            }
-            selected.forEach(function (node) {
+            for (i = 0; i < selected.length; i++) {}
+            selected.forEach(function(node) {
                 array_to_delete.push(node.data["guid"]);
                 node.remove();
             });
-            socket.emit("deletejob", JSON.stringify(array_to_delete));//note, custom structure for socket.emit messages
-                
+            socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
+
 
         }
         if (id == "b_delall") {
@@ -369,18 +378,17 @@
                 title: "Delete ALL Jobs",
                 type: "confirm-error",
                 text: "Really delete ALL Jobs?",
-                callback: function (yesno) {
+                callback: function(yesno) {
                     if (yesno) {
-                        socket.emit("deletealljobs");//note, custom structure for socket.emit messages
-                        
+                        socket.emit("deletealljobs"); //note, custom structure for socket.emit messages
+
                         var rootNode = $("#treetable_history").fancytree("getRootNode");
                         rootNode.removeChildren();
                     }
-                }//callback
-            });//confirm
-        }//delall
+                } //callback
+            }); //confirm
+        } //delall
     }
-
 
     function buildActiveGrid() {
 
@@ -390,12 +398,12 @@
             extensions: ["table", "gridnav", "multi"],
             icon: false,
             checkbox: false,
-            titlesTabbable: true,     // Add all node titles to TAB chain
+            titlesTabbable: true, // Add all node titles to TAB chain
             table: {
                 indentation: 15,
                 nodeColumnIdx: 0,
             },
-            select: function (event, data) {
+            select: function(event, data) {
                 if (data.node.isSelected()) {
                     data.node.addClass("rowselected");
                 } else {
@@ -406,10 +414,10 @@
                 autofocusInput: false,
                 handleCursorKeys: true
             },
-            multi: {//multiselct
+            multi: { //multiselct
                 mode: "",
             },
-            init: function (event, data) {
+            init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
                 console.log("TREE INIT")
                 $("#treetable_active").colResizable({
@@ -420,9 +428,10 @@
                     useLocalStorage: true,
                     minWidth: 10,
                     liveDrag: true,
-                })
+                });
+
             },
-            modifyChild: function (event, data) {
+            modifyChild: function(event, data) {
                 //reset all odd even row colors
                 var rootNode = $("#treetable_active").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
@@ -436,36 +445,40 @@
                     }
                 }
             },
-            renderColumns: function (event, data) {
+            renderColumns: function(event, data) {
                 var node = data.node;
 
                 if (data.node.getIndex() % 2 == 0) {
-                    node.removeClass("odd_dhx_skyblue");//apply dthmlx style to node
-                    node.addClass("ev_dhx_skyblue");//apply dthmlx style to node
+                    node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                    node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
                 } else {
-                    node.removeClass("ev_dhx_skyblue");//apply dthmlx style to node
-                    node.addClass("odd_dhx_skyblue");//apply dthmlx style to node
+                    node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                    node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
                 }
 
                 $tdList = $(node.tr).find(">td");
-                
-                $tdList.eq(1).html("<div class='celltext'>" +node.data.workflow+ "</div>");  //.addClass("alignRight");
-                $tdList.eq(2).html("<div class='celltext'>" +node.data.job_start+ "</div>");
-                $tdList.eq(3).html("<div class='celltext'>" +node.data.file+ "</div>");
-                $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host+ "</div>");
-                $tdList.eq(5).html("<div class='celltext'>" +node.data.status+ "</div>");
+
+                $tdList.eq(1).html("<div class='celltext'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
+                $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
+                $tdList.eq(3).html("<div class='celltext'>" + node.data.file + "</div>");
+                $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host + "</div>");
+                $tdList.eq(5).html("<div class='celltext'>" + node.data.status + "</div>");
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');
+
+                data.tree.getRootNode().sortChildren(function(a, b) {
+                    return (a.data.state.localeCompare(b.data.state))
+                }, true);
+
             },
-            postProcess: function (event, data) {
+            postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
                 console.log("POSTPROC")
                 data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
             },
-            dblclick: function (event, data) {
-                
-            },
-            select: function (event, data) {
+            dblclick: function(event, data) {},
+            select: function(event, data) {
+
                 if (data.node.isSelected()) {
                     data.node.addClass("rowselected");
                 } else {
@@ -473,26 +486,21 @@
                 }
             },
 
-
         })
-
-
-
 
     }
 
-
-    function filterHistoryList(the_list){
+    function filterHistoryList(the_list) {
         var filtered = the_list;
-        for (i=0;i<m_userpermissions.length;i++){
-            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME"){
-                if (filtered == the_list){
+        for (i = 0; i < m_userpermissions.length; i++) {
+            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
+                if (filtered == the_list) {
                     filtered = [];
                 }
-                for (idx=0;idx<the_list.length;idx++){                   
+                for (idx = 0; idx < the_list.length; idx++) {
                     var name = the_list[idx]["workflow"];
-                    var regex = new RegExp( m_userpermissions[i]["value"]["filter"], 'gi' );
-                    if (name.match(regex)){
+                    var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
+                    if (name.match(regex)) {
                         filtered.push(the_list[idx]);
                     }
                 }
@@ -501,8 +509,7 @@
         return filtered;
 
     }
-    
-    
+
     function buildHistoryGrid() {
 
         var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
@@ -510,16 +517,16 @@
         $("#treetable_history").fancytree({
             extensions: ["contextMenu", "table", "gridnav", "multi"],
             checkbox: false,
-            titlesTabbable: false,     // Add all node titles to TAB chain
+            titlesTabbable: false, // Add all node titles to TAB chain
             source: {
                 url: sourceUrl,
                 cache: true,
             },
             icon: false,
-            multi: {//multiselct
+            multi: { //multiselct
                 mode: ""
             },
-            modifyChild: function (event, data) {
+            modifyChild: function(event, data) {
                 //reset all odd even row colors
                 var rootNode = $("#treetable_history").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
@@ -534,35 +541,35 @@
                     }
                 }
             },
-            renderColumns: function (event, data) {
+            renderColumns: function(event, data) {
                 var node = data.node;
                 if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
                     if (data.node.getIndex() % 2 == 0) {
                         //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
-                        node.toggleClass("ev_dhx_skyblue");//apply dthmlx style to node
+                        node.toggleClass("ev_dhx_skyblue"); //apply dthmlx style to node
                     } else {
                         //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
-                        node.toggleClass("odd_dhx_skyblue");//apply dthmlx style to node
+                        node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
                 }
-                node.addClass("hist_row");//for context menu
+                node.addClass("hist_row"); //for context menu
 
                 $tdList = $(node.tr).find(">td");
                 // (index #0 is rendered by fancytree (title node))
                 //$tdList.eq(0).text(node.data.state);
-                $tdList.eq(1).html("<div class='celltext'>" + node.data.workflow + "</div>");  //.addClass("alignRight");
+                $tdList.eq(1).html("<div class='celltext'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
                 var outcome = node.data.outcome.substring(0, 1000);
                 if (outcome.length == 10000) {
-                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: "+node.data.file+" \nDate Start: " +node.data.job_start);
+                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: " + node.data.file + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
                 $tdList.eq(6).html("<div class='celltext'>" + node.data.outcome.substring(0, 1000) + "</div>"); //outcome can be lengthy
             },
-            init: function (event, data) {
+            init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
                 $("#treetable_history").colResizable({
                     resizeMode: 'fit',
@@ -574,7 +581,7 @@
                     liveDrag: true,
                 });
             },
-            postProcess: function (event, data) {
+            postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
                 console.log("POSTPROCESS")
@@ -589,7 +596,7 @@
                 autofocusInput: false,
                 handleCursorKeys: true
             },
-            select: function (event, data) {
+            select: function(event, data) {
                 if (data.node.isSelected()) {
                     data.node.addClass("rowselected");
                 } else {
@@ -599,20 +606,28 @@
             contextMenu: {
                 selector: "hist_row",
                 menu: {
-                    "details": { "name": "Job Details" },
-                    "retry": { "name": "Retry from Start" },
-                    "delete": { "name": "Delete this job" },
-                    "delsel": { "name": "Delete all selected" },
+                    "details": {
+                        "name": "Job Details"
+                    },
+                    "retry": {
+                        "name": "Retry from Start"
+                    },
+                    "delete": {
+                        "name": "Delete this job"
+                    },
+                    "delsel": {
+                        "name": "Delete all selected"
+                    },
                 },
-                actions: function (node, action, options) {
+                actions: function(node, action, options) {
                     if (action == "details") {
-                        var jobid = (node.data["job_id"]);//jobid contains splitid, sort_family_name is the id of mother job without splitd
+                        var jobid = (node.data["job_id"]); //jobid contains splitid, sort_family_name is the id of mother job without splitd
                         var url = "logviewer.html?job_id=" + jobid;
                         window.open(url, '_blank');
                     }
                     if (action == "delete") {
                         $("#treetable_history").fancytree("getTree").selectAll(false); //unselect all nodes
-                        node.setSelected();//select the one that was right clickeds
+                        node.setSelected(); //select the one that was right clickeds
                         click_b_header("b_delsel");
                     }
                     if (action == "delsel") {
@@ -621,18 +636,18 @@
                     if (action == "retry") {
                         var tree = $('#treetable_history').fancytree('getTree');
                         var selected = tree.getSelectedNodes();
-                        selected.forEach(function (node) {
+                        selected.forEach(function(node) {
                             resubmit_job(node["data"]["guid"]);
                         })
-                        
+
                     }
 
                 }
-            }//contextmenu
+            } //contextmenu
         })
 
         //search btn
-        $('input[name=search]').bind("enterKey", function (e) {
+        $('input[name=search]').bind("enterKey", function(e) {
             //iterate all search fields
             var search_obj = {};
             for (i = 0; i < $("input[name=search]").length; i++) {
@@ -641,7 +656,7 @@
                 var keyname = input.placeholder.toLowerCase();
                 if (match) {
                     search_obj[keyname] = (match)
-                    
+
                 }
             }
 
@@ -649,28 +664,32 @@
             tree.reload({
                 url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj=" + JSON.stringify(search_obj),
                 cache: false
-            }
-            );
+            });
 
         });
 
-        $("input[name=search]").keyup(function (e) {
+        $("input[name=search]").keyup(function(e) {
             if (e.keyCode == 13) {
                 $(this).trigger("enterKey");
             }
         });
 
-
-    }//buildhistorygrid
+    } //buildhistorygrid
 
     function delete_jobs(array_of_rows) {
 
         var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function (rId) {
+        selectedRowIds.forEach(function(rId) {
             var jobObj = runningJobGrid.getUserData(rId, "jobobject");
             var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue());
-            var postBody = { "action": pause, "split": splitid };
-            socket.emit("pausejob", JSON.stringify({ "id": jobObj.job_id, "body": postBody }));//note, custom structure for socket.emit messages
+            var postBody = {
+                "action": pause,
+                "split": splitid
+            };
+            socket.emit("pausejob", JSON.stringify({
+                "id": jobObj.job_id,
+                "body": postBody
+            })); //note, custom structure for socket.emit messages
             dhtmlx.message("Command " + pause + " emitted:" + JSON.stringify(postBody))
         })
     }
@@ -715,7 +734,7 @@
         }
 
         var win_offset = 0;
-        selected.forEach(function (treeNode) {
+        selected.forEach(function(treeNode) {
             var jobObj = treeNode.data;
 
             var dhxwins = new dhtmlXWindows();
@@ -726,14 +745,14 @@
 
             var logGrid = win.attachGrid();
             logGrid.setImagesPath("../dependencies/dhtmlx/imgs/");
-            logGrid.setHeader("Time,Processor,Host,PID,Message");//the headers of columns
+            logGrid.setHeader("Time,Processor,Host,PID,Message"); //the headers of columns
             logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-            logGrid.setInitWidthsP("10,10,10,5,*");          //the widths of columns
-            logGrid.setColAlign("left,left,left,left.left");       //the alignment of columns
-            logGrid.setColTypes("ed,ed,ed,ed,ed");                //the types of columns
-            logGrid.setColSorting("str,str,str,int,str");          //the sorting types
+            logGrid.setInitWidthsP("10,10,10,5,*"); //the widths of columns
+            logGrid.setColAlign("left,left,left,left.left"); //the alignment of columns
+            logGrid.setColTypes("ed,ed,ed,ed,ed"); //the types of columns
+            logGrid.setColSorting("str,str,str,int,str"); //the sorting types
             logGrid.enableMultiline(true);
-            logGrid.init();      //finishes initialization and renders the grid on the page
+            logGrid.init(); //finishes initialization and renders the grid on the page
 
             if (jobObj["job_id"]) {
                 //we have a job_id that eases the life of finding jobs
@@ -762,7 +781,7 @@
             url: build_new_api_url(_url),
             type: "GET",
             crossDomain: true,
-            success: function (response) {
+            success: function(response) {
 
                 if (response['wf_object'].length == 0) {
                     alert("Did not get any workflow in job from FFASTRANS API");
@@ -773,25 +792,24 @@
                     postBody.inputfile = response["sources"]["localized_file"];
                     postBody.variables = response["variables"];
                     $.ajax({
-                        url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                        url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
                         type: "POST",
                         crossDomain: true,
                         data: JSON.stringify(postBody),
-                        success: function (response) {
-                            dhtmlx.message(postBody.inputfile  + " was submitted")
+                        success: function(response) {
+                            dhtmlx.message(postBody.inputfile + " was submitted")
                         },
-                        error: function (xhr, status) {
+                        error: function(xhr, status) {
                             dhtmlx.alert("Error submitting workflow: " + xhr.responseText);
                         }
                     });
                 }
             },
-            error: function (xhr, status) {
+            error: function(xhr, status) {
                 alert("ERROR getting workflow of job " + job_id + ", possibly FFASTRANS API is offline. ");
             }
         });
     }
-
 
     function pauseResumeJob(pause, httpMethod) {
         //Emits socket.io comman to webserver (the api request is made on the webserver not the client) pause is set to either pause or resume.
@@ -800,33 +818,42 @@
             return;
         }
         var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function (rId) {
+        selectedRowIds.forEach(function(rId) {
             var jobObj = runningJobGrid.getUserData(rId, "jobobject");
             var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue());
-            var postBody = { "action": pause, "split": splitid };
-            socket.emit("pausejob", JSON.stringify({ "id": jobObj.job_id, "body": postBody }));//note, custom structure for socket.emit messages
+            var postBody = {
+                "action": pause,
+                "split": splitid
+            };
+            socket.emit("pausejob", JSON.stringify({
+                "id": jobObj.job_id,
+                "body": postBody
+            })); //note, custom structure for socket.emit messages
             dhtmlx.message("Command " + pause + " emitted:" + JSON.stringify(postBody))
         })
     }
 
-    function jobCommand(fancy_node_array,action) {
+    function jobCommand(fancy_node_array, action) {
         //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
         console.log("aborting", fancy_node_array)
-        fancy_node_array.forEach(function (node) {
-            if (node["data"]["state"] == "Queued"){
+        fancy_node_array.forEach(function(node) {
+            if (node["data"]["state"] == "Queued") {
                 dhtmlx.message("Sorry, Queued Jobs cannot be aborted yet");
                 return;
             }
-            var postBody = { "action": action, "split_id": node.data.split_id };
+            var postBody = {
+                "action": action,
+                "split_id": node.data.split_id
+            };
             $.ajax({
                 url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
                 type: "PUT",
                 context: this,
                 data: JSON.stringify(postBody),
-                success: function (response) {
+                success: function(response) {
                     dhtmlx.message("Success " + action + node.data.job_id);
                 },
-                error: function (xhr, status) {
+                error: function(xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
@@ -840,23 +867,22 @@
             return;
         }
         var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function (rId) {
+        selectedRowIds.forEach(function(rId) {
             var rowId = rId;
             var jobObj = runningJobGrid.getUserData(rowId, "jobobject");
             $.ajax({
                 url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
                 type: "DELETE",
                 context: this,
-                success: function (response) {
+                success: function(response) {
                     dhtmlx.message("Aborted " + jobObj.job_id);
                 },
-                error: function (xhr, status) {
+                error: function(xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
-        })//foreachjob
+        }) //foreachjob
     }
-
 
     function getQueuedJobs(targetGridObj) {
 
@@ -866,75 +892,79 @@
             crossDomain: true,
             dataType: "json",
             context: this,
-            success: function (response) {
+            success: function(response) {
                 mainLayout.cells("a").progressOff();
             },
-            error: function (xhr, status) {
+            error: function(xhr, status) {
                 dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
             }
         });
     }
 
-    function applyWorkflowFilter(o_job){
+    function applyWorkflowFilter(o_job) {
         //returns true or false based on userpermission job filter
-        for (i=0;i<m_userpermissions.length;i++){//iterate all permissions
-            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME"){
-                    
-                    var regex = new RegExp( m_userpermissions[i]["value"]["filter"], 'gi' );
-                    if (o_job["workflow"].match(regex)){
-                        
-                        return true;
-                    }else{
-                        return false;
-                    }
+        for (i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
+            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
+
+                var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
+                if (o_job["workflow"].match(regex)) {
+
+                    return true;
+                } else {
+                    return false;
+                }
             }
         }
-        return true;//if there is no filter, render all jobs
+        return true; //if there is no filter, render all jobs
     }
 
-    function addActiveJobsToGrid(targetGridObj, jobArray,qstate) {
-        console.log(jobArray)
+    function addActiveJobsToGrid(targetGridObj, jobArray, qstate) {
+
         var rootNode = $("#treetable_active").fancytree("getRootNode");
         var tree = $("#treetable_active").fancytree("getTree");
         //add or update new jobs
         var activeJobIds = [];
         for (y = 0; y < jobArray.length; y++) {
-            if (applyWorkflowFilter(jobArray[y]) == false){
+            if (applyWorkflowFilter(jobArray[y]) == false) {
                 continue;
             }
-            
+
             var key = jobArray[y]["key"].toString();
             activeJobIds.push(key);
             var existing = tree.getNodeByKey(key);
             if (existing) {
-				existing.data = jobArray[y];
-                existing.renderTitle();//forces reload of node
+                existing.data = jobArray[y];
+                existing.renderTitle(); //forces reload of node
             } else {
-				rootNode.addChildren(jobArray[y]);
+                rootNode.addChildren(jobArray[y]);
             }
         }
         //remove orphand
         var oldnodes = rootNode.children;
         if (oldnodes) {
             for (a = 0; a < oldnodes.length; a++) {
-				//console.log(oldnodes[a]["data"]["state"], qstate)
-				if (oldnodes[a]["data"]["state"] == qstate){
-					 if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
-						oldnodes[a].remove();
-					}
-				}
-               
+                //console.log(oldnodes[a]["data"]["state"], qstate)
+                if (oldnodes[a]["data"]["state"] == qstate) {
+                    if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
+                        oldnodes[a].remove();
+                    }
+                }
+
             }
         }
+        //take care about grid sorting
+        sortGrid("treetable_active", m_lastsortelementid, m_lastsortdir);
+
     }
-
-
 
     /* HELPERS */
     function hashCode(string) {
         //this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
-        var hash = 0, i, chr;
-        if (string.length === 0) return hash;
+        var hash = 0,
+            i,
+            chr;
+        if (string.length === 0)
+            return hash;
         for (i = 0; i < string.length; i++) {
             chr = string.charCodeAt(i);
             hash = ((hash << 5) - hash) + chr;
@@ -944,14 +974,14 @@
     };
 
     function getDurationStringFromDates(start_date, end_date) {
-        var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000;// get total seconds between the times
-        var days = Math.floor(delta / 86400);// calculate (and subtract) whole days
-        delta -= days * 86400;// calculate (and subtract) whole hours
+        var delta = Math.abs(new Date(end_date) - new Date(start_date)) / 1000; // get total seconds between the times
+        var days = Math.floor(delta / 86400); // calculate (and subtract) whole days
+        delta -= days * 86400; // calculate (and subtract) whole hours
         var hours = Math.floor(delta / 3600) % 24;
-        delta -= hours * 3600;// calculate (and subtract) whole minutes
+        delta -= hours * 3600; // calculate (and subtract) whole minutes
         var minutes = Math.floor(delta / 60) % 60;
-        delta -= minutes * 60;// what's left is seconds
-        var seconds = delta % 60;  // in theory the modulus is not required
+        delta -= minutes * 60; // what's left is seconds
+        var seconds = delta % 60; // in theory the modulus is not required
         return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
     }
 
@@ -965,11 +995,11 @@
         //todo: this is only for activejobgrid
         dhtmlxGridObj.setImagePath("../dependencies/dhtmlx/imgs");
         //dhtmlxGridObj.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       //the alignment of columns
-        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed,ed,ed,ed");                //the types of columns
-        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");          //the sorting types
+        dhtmlxGridObj.setColAlign("left,left,left,left,left,left,left,left,left,left,left"); //the alignment of columns
+        dhtmlxGridObj.setColTypes("ro,ed,ed,ed,ed,ro,ed,ed,ed,ed,ed,ed,ed"); //the types of columns
+        dhtmlxGridObj.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str"); //the sorting types
         dhtmlxGridObj.enableMultiselect(true);
-        dhtmlxGridObj.init();      //finishes initialization and renders the grid on the page
+        dhtmlxGridObj.init(); //finishes initialization and renders the grid on the page
     }
 
     function buildUrl(what) {
@@ -990,15 +1020,16 @@
             crossDomain: true,
             dataType: "json",
             context: this,
-            success: function (response) {
+            success: function(response) {
                 addQueuedJobsToGrid(targetGridObj, response.queue);
                 mainLayout.cells("a").progressOff();
             },
-            error: function (xhr, status) {
+            error: function(xhr, status) {
                 dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
             }
         });
     }
+
     function getActiveJobs(targetGridObj) {
         $.ajax({
             url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
@@ -1006,15 +1037,16 @@
             crossDomain: true,
             dataType: "json",
             context: this,
-            success: function (response) {
+            success: function(response) {
                 addActiveJobsToGrid(targetGridObj, response.jobs);
                 mainLayout.cells("a").progressOff();
             },
-            error: function (xhr, status) {
+            error: function(xhr, status) {
                 dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
             }
         });
     }
+
     function getFinishedJobs(targetGridObj) {
 
         $.ajax({
@@ -1023,12 +1055,12 @@
             crossDomain: true,
             dataType: "json",
             context: this,
-            success: function (response) {
-                
+            success: function(response) {
+
                 addHistoryJobsToGrid(targetGridObj, response.history);
                 mainLayout.cells("b").progressOff();
             },
-            error: function (xhr, status) {
+            error: function(xhr, status) {
                 dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
 
             }
@@ -1044,6 +1076,44 @@
         }
     }
 
+    function sortGrid(whichGrid, src_element_id, force_order) {
+        src_element = document.getElementById(src_element_id);
+        if (!src_element) {
+            console.error("Error in sorting, finding element with id: " + src_element)
+            return;
+        }
+        var whichColumn = src_element.getAttribute("name");
+        var tree = $('#treetable_active').fancytree('getTree');
+        if (whichGrid != "treetable_active") {
+            tree = $('#treetable_history').fancytree('getTree');
+        }
+
+        if (!force_order) {
+
+            if (src_element.dataset["sort_dir"] == "asc") {
+                src_element.dataset["sort_dir"] = "des";
+            } else {
+                src_element.dataset["sort_dir"] = "asc";
+            }
+        } else {
+            src_element.dataset["sort_dir"] = force_order
+        }
+        //remember the sorting
+        m_lastsortelementid = src_element_id;
+        m_lastsortdir = src_element.dataset["sort_dir"];
+        //apply the sorting
+        tree.getRootNode().sortChildren(function(a, b) {
+            if (src_element.dataset["sort_dir"] == "asc") {
+                return (a.data[whichColumn] + "").localeCompare(b.data[whichColumn])
+            } else {
+                return (b.data[whichColumn] + "").localeCompare(a.data[whichColumn])
+            }
+
+        }, true);
+
+        localStorage.setItem("m_lastsortelementid", m_lastsortelementid);
+        localStorage.setItem("m_lastsortdir", m_lastsortdir);
+    }
 </script>
 
 <body onload="loadserverconfig()">
@@ -1064,13 +1134,13 @@
                 </colgroup>
                 <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
                     <tr>
-                        <th>State</th>
-                        <th>Workflow</th>
-                        <th>Start</th>
-                        <th>Source</th>
-                        <th>Processor@Host</th>
-                        <th>Status</th>
-                        <th>Progress</th>
+                        <th id="active-state" name="state" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="" >State</th>
+                        <th id="active-workflow" name="workflow" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Workflow</th>
+                        <th id="active-job_start" name="job_start" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Start</th>
+                        <th id="active-file" name="file" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Source</th>
+                        <th id="active-proc" name="proc" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Processor@Host</th>
+                        <th id="active-status" name="status" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Status</th>
+                        <th id="active-progress" name="progress" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Progress</th>
                     </tr>
                 </thead>
             </table>
