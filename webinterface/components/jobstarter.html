@@ -563,9 +563,11 @@ function on_processorSelected(selectedWorkflow){
                     if (current_var.name.indexOf("webui") != -1){
                         //detected a variable that interacts with webui (should have JSON default value)
                         try{
-                            parseWebUiTypeUserVariable(m_subForm,current_var.description,current_var.name);//special support for key value arrays!
+                            parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays!
                         }catch(e){
+                            console.log("webui variable parsing error",e,"Variable: ",current_var)
                             dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
+                            
                         }
                     }else{
                         //standard ffastrans variables
