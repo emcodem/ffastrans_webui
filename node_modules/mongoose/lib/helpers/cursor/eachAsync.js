@@ -4,7 +4,6 @@
  * Module dependencies.
  */
 
-const async = require('async');
 const utils = require('../../utils');
 
 /**
@@ -23,6 +22,7 @@ const utils = require('../../utils');
 
 module.exports = function eachAsync(next, fn, options, callback) {
   const parallel = options.parallel || 1;
+  const enqueue = asyncQueue();
 
   const handleNextResult = function(doc, callback) {
     const promise = fn(doc);
@@ -37,35 +37,75 @@ module.exports = function eachAsync(next, fn, options, callback) {
 
   const iterate = function(callback) {
     let drained = false;
-    const nextQueue = async.queue(function(task, cb) {
-      if (drained) return cb();
-      next(function(err, doc) {
-        if (err) return cb(err);
-        if (!doc) drained = true;
-        cb(null, doc);
-      });
-    }, 1);
 
-    const getAndRun = function(cb) {
-      nextQueue.push({}, function(err, doc) {
-        if (err) return cb(err);
-        if (!doc) return cb();
+    let error = null;
+    for (let i = 0; i < parallel; ++i) {
+      enqueue(fetch);
+    }
+
+    function fetch(done) {
+      if (drained || error) {
+        return done();
+      }
+
+      next(function(err, doc) {
+        if (drained || error) {
+          return done();
+        }
+        if (err != null) {
+          error = err;
+          callback(err);
+          return done();
+        }
+        if (doc == null) {
+          drained = true;
+          callback(null);
+          return done();
+        }
+
+        done();
+
         handleNextResult(doc, function(err) {
-          if (err) return cb(err);
-          // Make sure to clear the stack re: gh-4697
-          setTimeout(function() {
-            getAndRun(cb);
-          }, 0);
+          if (err != null) {
+            error = err;
+            return callback(err);
+          }
+
+          setTimeout(() => enqueue(fetch), 0);
         });
       });
-    };
-
-    async.times(parallel, function(n, cb) {
-      getAndRun(cb);
-    }, callback);
+    }
   };
 
   return utils.promiseOrCallback(callback, cb => {
     iterate(cb);
   });
 };
+
+// `next()` can only execute one at a time, so make sure we always execute
+// `next()` in series, while still allowing multiple `fn()` instances to run
+// in parallel.
+function asyncQueue() {
+  const _queue = [];
+  let inProgress = null;
+  let id = 0;
+
+  return function enqueue(fn) {
+    if (_queue.length === 0 && inProgress == null) {
+      inProgress = id++;
+      return fn(_step);
+    }
+    _queue.push(fn);
+  };
+
+  function _step() {
+    setTimeout(() => {
+      inProgress = null;
+      if (_queue.length > 0) {
+        inProgress = id++;
+        const fn = _queue.shift();
+        fn(_step);
+      }
+    }, 0);
+  }
+}

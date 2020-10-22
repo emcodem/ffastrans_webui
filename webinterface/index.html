@@ -9,6 +9,13 @@
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-151931970-1"></script>
+<script >
+
+</script>
+
+
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -94,12 +101,28 @@
       margin-top: 3px;
       }
     .steinar {
-        height: 38;
+        height: 38px;
         margin-top: 16px;
     }
     .harry{
-    
+<<<<<<< HEAD
+		height:50px;
+		margin-top: 10px;
     }
+	.benjamin{
+		height:38px;
+		margin-top: 16px;
+	}
+=======
+        height: 50;
+        margin-top: 11px;
+    }
+    .benjamin{
+        height: 42;
+        margin-top: 16px;
+    }
+
+>>>>>>> 602f16139b2d5eda850d12350f0ac7d5cef5cd4d
     .ffastransheadertext{
        display: inline-block;
        font-size:30px;
@@ -118,6 +141,14 @@
       .body.dhxlayout_base_material{
           //background-color: #AAA;
       }*/
+      
+      .menuitem{
+        max-width:70%;
+        margin-left: 0.5em;
+        margin-top: 0.5em;
+        cursor:pointer;
+      }
+      
 </style>
 
 <script>
@@ -139,6 +170,12 @@ var m_permissionUrls = {
 }
 /*load config from server*/
 function loadserverconfig(){
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-151931970-1', { 'anonymize_ip': true });
+  gtag('config', 'UA-151931970-1');
+  
    $.ajax({
         url:  ("/getserverconfig") ,
         type: "GET",
@@ -190,9 +227,10 @@ function init(permissions){
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
     '<div class="counter_jobs div_logged_in_users">&nbsp Online Users  <div class="header_counter_number" id="loggedinusercount">0</div></div>'+
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
-    '<a href="https://en.wikipedia.org/wiki/Norway" style="cursor:pointer"><img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div></a>'+
-    '<a href="https://en.wikipedia.org/wiki/Austria" style="cursor:pointer"><img src="images/austria_helmet_white.png" class="harry itemrowtopright"></a>'+ 
-    '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class=" " alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
+    '<img src="images/viking_helmet_white.png" class="steinar itemrowtopright"></div>'+
+    '<img src="images/austria_helmet_white.png" class="harry itemrowtopright">' + 
+    '<img src="images/ben_helmet.png" class="benjamin itemrowtopright">'+ 
+    '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class=" " alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px;float:left"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
     
@@ -223,28 +261,31 @@ function init(permissions){
     mainLayout.cells("a").fixSize(true, true);
     mainLayout.cells("a").hideHeader()
     mainLayout.cells("b").hideHeader()
-                                        
-    m_mainSidebar = mainLayout.cells("a").attachSidebar({
-      template: "icons",
-      width: 54,
-      }
-    );
+         
+         
     
-    //create sidebar data structure from userpermissions object
-
-    m_mainSidebar.setTemplate("icons", "/webinterface/images/");
-    m_mainSidebar.loadStruct(permissions);
+//create nav menue            
+    m_mainSidebar = mainLayout.cells("a").attachHTMLString("<div id='navmenue'></div>");
+    var menu = document.getElementById("navmenue");
+   
     
-    m_mainSidebar.attachEvent("onXLS", function(){//data has finished loading
-        restoreUserState()
-    });
-    console.log(permissions)
-    m_mainSidebar.attachEvent("onSelect", function(id, lastId){
-        //load selected iframe url into right window
-        localStorage.setItem("selected_start_menu_item", id);
-        mainLayout.cells("b").attachURL(m_permissionUrls[id]); 
-    });
+    var _perm = JSON.parse(permissions);
+    console.log(_perm)
+    for (i=0;i<_perm["items"].length;i++){
+        
+        var title = _perm["items"][i]["text"].replace("GROUPRIGHT_MENU_VIEW_","");
+        title = title.replace("_", " ");
+         menu.innerHTML += "<img class='menuitem' title='"+title+"' src='images/"+_perm["items"][i].icon+"' id='"+_perm["items"][i].id+"'/>";
 
+    }
+    
+    //onclick menu item
+    $( ".menuitem" ).click(function() {
+         mainLayout.cells("b").attachURL(m_permissionUrls[this.id]);
+         //store user state
+         localStorage.setItem("selected_start_menu_item",this.id)
+    })
+      
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 
         document.getElementById("cancelledjobcount").innerHTML = msg.cancelledjobcount;
@@ -271,12 +312,16 @@ function init(permissions){
 
 
 function restoreUserState(){
+    console.log("restoring user state , " +localStorage.getItem("selected_start_menu_item"))
 //stores some layout properties in html5 local store
 
-var selectedid = (localStorage.getItem("selected_start_menu_item"));
+    var selectedid = (localStorage.getItem("selected_start_menu_item"));
     if (localStorage.getItem("selected_start_menu_item")){
-        m_mainSidebar.items(localStorage.getItem("selected_start_menu_item")).setActive();
-        mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
+		try{
+            console.log($( "#" + localStorage.getItem("selected_start_menu_item")));
+            $( "#" + localStorage.getItem("selected_start_menu_item") ).click(function() {});
+			mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
+		}catch(e){}
     }else{
         m_mainSidebar.items("GROUPRIGHT_MENU_VIEW_JOB_STATUS").setActive(); 
         mainLayout.cells("b").attachURL(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 

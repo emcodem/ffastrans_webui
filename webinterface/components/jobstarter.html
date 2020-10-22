@@ -34,12 +34,7 @@ var socket = io();
 var m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 
-//mediainfo
 
-var MediaInfoModule,MI;
-
-var mediainfo_url_ff = "../dependencies/MediaInfo_DLL_JavaScript/MediaInfoWasm.js";//todo: get out how to load the wasm file from relative path
-var mediainfo_url_ie = "../dependencies/MediaInfo_DLL_JavaScript/MediaInfo.js";
 /*load config from server*/
 function loadserverconfig(){
    $.ajax({
@@ -56,38 +51,29 @@ function loadserverconfig(){
     });
 }
 
-/* register mediainfo functions */
-function mediainfo_init(){/*needs to be called onload of body, at least before using mediainfo*/
-
-    /*IE or FF or Chrome, loads different asm scripts?*/
-    var MediaInfoJs = document.createElement('script');
-    if ('WebAssembly' in window) {
-      MediaInfoJs.src = mediainfo_url_ff;
-    } else {
-      MediaInfoJs.src = mediainfo_url_ie;
-    }
-    document.body.appendChild(MediaInfoJs);
-
-    // after script is loaded, initalize Mediainfo
-    MediaInfoJs.onload = function () {
-      MediaInfoModule = MediaInfoLib({'postRun': function() {
-            console.log('MediaInfo ready');
-            MI = new MediaInfoModule.MediaInfo();
-        }});
-    }
-}
-      
 function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
-       var processResult = function() {
-            MI.Option('Inform','HTML');
-            var infoHtml = (MI.Inform())
-            _callback(_file,infoHtml)
-            MI.Close();
-            //MI.delete();   
-      }
-    MI.Open(_file, processResult);            
+
+     $.ajax({
+                url: build_new_api_url("/getmediainfo?filepath=" + _file.name),
+                type: "GET",
+                success: function (response) {
+                    _callback(_file,response);
+                },
+                error: function (xhr, status) {
+                    alert("ERROR getting mediainfo for " + _file.name);
+                }
+            });
+    
 }
-      
+
+function build_new_api_url(what) {
+    if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+        return "/new_proxy" + what;
+    } else {
+        var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+        return _url;
+    }
+}
       
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -303,10 +289,13 @@ function init(){
                     var dhxwins = new dhtmlXWindows();
                     //dhxwins.attachViewportTo(window.parent.document.body);
                     win_offset = 0;
-                    var win = dhxwins.createWindow("File [" + file.name + "]",  50 + win_offset, 150 + win_offset, 1200, 800);
+                    var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/2);
                     win_offset+=30;
                     win.setText("File [" + file.name + "]");
                     win.attachHTMLString(minfo_html);
+                    win.showInnerScroll(true);
+                    
+                
             });
             return;
         }
@@ -360,7 +349,7 @@ function init(){
     }
 
     //init mediainfo
-    mediainfo_init();
+    //mediainfo_init();
    
 }
 
@@ -414,7 +403,7 @@ function saveLocation(){
                             _loc.path           = _path;
                             var storedArray = localStorage.getItem("savedbrowselocations") || "[]";
                             storedArray = JSON.parse(storedArray);
-                            console.log(storedArray)
+                            
                             storedArray.push(_loc);
                             localStorage.setItem("savedbrowselocations",JSON.stringify(storedArray))
                             m_fileBrowseGridMenu.addNewChild("location", _loc.path,  _loc.path, _loc.displayname, false,"","");
@@ -540,29 +529,26 @@ function on_processorSelected(selectedWorkflow){
         dataType: "json",
         context: this,
         success: function (response) {
+            console.log(response)
             //rebuild subform for variable selection
             if (m_subForm){
                 m_subForm.unload();//clear existing form items
                 m_subForm = null;
             }
             m_subForm  = new dhtmlXForm("subform");
-            // m_subForm.addItem("data", {type: "label", label: "User Variables"},1);
-            
             m_subForm.attachEvent("onButtonClick", function(name){
                 if(name == "submit"){
                     startJobs();
                 }
             });             
              
-            if (response['workflows'].length == 0){
+            if (! response['user_variables'] || response['user_variables'] == "undefined"){
                 alert("ERROR Did not get Information for workflow " + selectedWorkflow.wf_id + "\nThis can happen when the workflow was never used or you deleted the cache directory. \n It will go away when you play with workflow variables, read more about it here:\n http://www.ffastrans.com/frm/forum/viewtopic.php?f=4&t=796");
                 return;
                 
             }else{
                 //ok, we have the workflow info, populate user variables and start btn
-                if (!("variables" in response.workflows[0])){
-                    
-                    //m_subForm.addItem("data", {type: "label", label:"This Workflow does not provide any userinput" ,offsetLeft:10 }, 2);
+                if (!("user_variables" in response)){
 					m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);
                                                    
                     return;
@@ -570,16 +556,18 @@ function on_processorSelected(selectedWorkflow){
                 //show user variables
                 m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 0, offsetLeft : 10,list:[]},1);
            
-                for (i=0;i<response.workflows[0].variables.length;i++){
+                for (i=0;i<response["user_variables"].length;i++){
                     //add uservariables inputs
-                    var current_var = response.workflows[0].variables[i];
+                    var current_var = response["user_variables"][i];
                     var desc = current_var.description  == "" ? current_var.name : current_var.description;
                     if (current_var.name.indexOf("webui") != -1){
                         //detected a variable that interacts with webui (should have JSON default value)
                         try{
-                            parseWebUiTypeUserVariable(m_subForm,current_var.description,current_var.name);//special support for key value arrays!
+                            parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays!
                         }catch(e){
+                            console.log("webui variable parsing error",e,"Variable: ",current_var)
                             dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
+                            
                         }
                     }else{
                         //standard ffastrans variables
@@ -592,10 +580,7 @@ function on_processorSelected(selectedWorkflow){
                     }
                 }
                 //finally add start job button
-                //m_subForm.addItem(null, {type: "button", name:"submit",value: "Start Job",width:200},10000);
                 m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"});
-                
-                
             }
         },
         error: function (xhr, status) {
@@ -630,34 +615,37 @@ function on_gridWorkflowSelected(wf_name,wf_object){
 
     //called from select event of grid select
     //populates start processor drowdown
-    localStorage.setItem("lastselectedworkflow",wf_name);
+    localStorage.setItem("lastselectedworkflow",wf_object["wf_id"]);
     m_workflowTabBar.cells("variabletab").setActive();
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
     var options = [];
     m_mainForm.removeItem("start_proc");
     //var selected_wf = m_workflowSelectorGrid.getUserData(wf_name,"workflow_object");
     
-    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["general"]["wf_name"]+"]");
+    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
+    console.log(wf_object)
+    wf_object.variable["start_procs"] = []
+    for (i=0;i<wf_object["nodes"].length;i++){
+        if (wf_object["nodes"][i]["start_proc"])
+            wf_object.variable["start_procs"].push(wf_object["nodes"][i]);
+            console.log(wf_object["nodes"][i])
+    }
     var proc_root = wf_object.variable["start_procs"] || wf_object.variable["start_proc"];
     if (!proc_root){
         dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
+        console.log(wf_object)
     }
     for (i=0;i<proc_root.length;i++){
         var proc = proc_root[i];
-        var proc_name_default= proc.split(/ /)[0]; //this splits of the node id from proc_name, assumed a structure like op_populate 20151220-09......
-        var proc_name = "First Processor";
-        if (wf_object[proc]["properties"]){
-            proc_name = wf_object[proc].properties.custom_node_name ||proc_name_default; 
-        }
-        
-        options.push({text:proc_name,value:proc});
+        var proc_name_default=  proc["name"] || proc["type"]; //on non renamed nodes, name is not defined
+        var proc_name = proc_name_default;
+        options.push({text:proc_name,value:proc_root[i]["id"]});
     }
     var itemData = {type: "select",name: "start_proc", label: "Start Processor:", width:200,options: options,  offsetLeft:10};   
     m_mainForm.addItem("data", itemData, 2);
     m_mainForm.setUserData("start_proc", "workflow_object", wf_object);       //store selected workflow along with start_proc
     //switch to variables tab
     on_processorSelected(wf_object);                                           //auto select first processor    
-    //switch to variables Tab
     
 }
 
@@ -685,11 +673,18 @@ function parseWorkflows(wfArray){
                 //a workflow was selected!
                 if (localStorage.getItem("lastselectedworkflow")){
                     var tree = $("#workflowtree").fancytree("getTree");
-                    var n = localStorage.getItem("lastselectedworkflow")
-                    var node = tree.findAll(n)[0]
-                    node.setSelected(false);//de-select 
+                    var n = localStorage.getItem("lastselectedworkflow");
+                    
+                    if (n && n != "undefined"){
+                        //var node = tree.findAll(n)[0];
+                        var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"));
+                        if (node && node != "undefined" ){
+                            node.setSelected(false);//de-select 
+                        }
+                    }
+                    
                 }
-                on_gridWorkflowSelected(data.node.title,data.node.data.wf_object);
+                on_gridWorkflowSelected(data.node.title,data.node.data["wf_object"]);
            }
         }
     };
@@ -701,26 +696,23 @@ function parseWorkflows(wfArray){
     var treeObj = {};
     //collect data for fancytree obj
     for (i=0;i<wfArray.length;i++){
-        var folder;
-        if (wfArray[i].general.folder){
-            folder = wfArray[i].general.folder;//support < ffastrans 0.9.4
-        }else{
-            folder = wfArray[i].general.wf_folder;
-        }
+        var folder = wfArray[i]["wf_folder"];
         if (folder == ""){
             //workflow in root of tree
-            treeObj[wfArray[i].general.wf_name] = {};
-            treeObj[wfArray[i].general.wf_name].title = wfArray[i].general.wf_name;
-            treeObj[wfArray[i].general.wf_name].wf_object = wfArray[i];
+            treeObj[wfArray[i]["wf_id"]] = {};
+            treeObj[wfArray[i]["wf_id"]].title = wfArray[i]["wf_name"];
+            treeObj[wfArray[i]["wf_id"]].key = wfArray[i]["wf_id"]; 
+            treeObj[wfArray[i]["wf_id"]]["wf_object"] = wfArray[i];
+            
         }else{
            
             if (treeObj[folder]){   //a workflow in a folder that already exists
-                treeObj[folder].children.push({title:wfArray[i].general.wf_name,wf_object:wfArray[i]});
-            }else{  //a workflow in a new folder
+                treeObj[folder].children.push({title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}});
+            }else{  //a workflow in a new folder 
                 treeObj[folder] = {};
                 treeObj[folder].title = folder;
                 treeObj[folder].folder = true;
-                treeObj[folder].children = [{title:wfArray[i].general.wf_name,wf_object:wfArray[i]}];//
+                treeObj[folder].children = [{title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}}];//
             }
         }
     }
@@ -729,6 +721,7 @@ function parseWorkflows(wfArray){
     for (itm in treeObj){
         finalTreeObj.source.push(treeObj[itm]);
     }
+    
     $("#workflowtree").fancytree(finalTreeObj); //finally render tree on page
     var cmp= function(a, b) {//sort by folder name but folders first
         var x = (a.folder ? "0" : "1") + a.title.toLowerCase(),                    
@@ -742,9 +735,14 @@ function parseWorkflows(wfArray){
     if (localStorage.getItem("lastselectedworkflow")){
         var tree = $("#workflowtree").fancytree("getTree");
         var n = localStorage.getItem("lastselectedworkflow")
-        var node = tree.findAll(n)[0]
-        node.setSelected(true);
-        node.parent.setExpanded(true);
+        if (n && n!= "undefined"){
+            //var node = tree.findAll(n)[0]
+            var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"))
+            if (node && node!= "undefined"){
+                node.setSelected(true);
+                node.parent.setExpanded(true);            
+            }
+        }
     }
     
     //search button 
@@ -772,10 +770,10 @@ function getWorkflows(){
         crossDomain: true,
         dataType: "json",
         success: function (response) {
-            if (response['workflows/details'].length == 0){
+            if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{
-                m_workflowArray = response['workflows/details'];
+                m_workflowArray = response['workflows'];
                 parseWorkflows(m_workflowArray);
             }
         },
@@ -824,14 +822,16 @@ function startJobs(){
         
          var postBody = {}; //the JSON STructure for start job api
          var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
+         
          postBody.wf_id = selectedWorkflow.wf_id;
          var selectedStartProc = m_mainForm.getSelect("start_proc").selectedOptions[0].value;
+
          postBody.start_proc = selectedStartProc;
          postBody.inputfile = _filepath.replace(/&amp;/g, '&'); 
          postBody.variables = [];
          m_subForm.forEachItem(function(name){
             if (m_subForm.getItemValue(name)){
-                postBody.variables.push({"name":name,"content":m_subForm.getItemValue(name)});
+                postBody.variables.push({"name":name,"data":m_subForm.getItemValue(name)});
             }
         });
          m_selectedFileGrid.cells(id,2).setValue("Submitted")
@@ -873,7 +873,7 @@ function getQueryVariable(variable) {
   for (var i=0;i<vars.length;i++) {
     var pair = vars[i].split("=");
     if (pair[0] == variable) {
-      return pair[1];
+      return decodeURIComponent(pair[1]);
     }
   } 
 }

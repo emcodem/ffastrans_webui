@@ -3705,7 +3705,7 @@ div.gridbox_dhx_skyblue.gridbox table.obj.row20px tr td {
 div.gridbox_dhx_skyblue.gridbox table.obj tr td {
   padding-top: 1px;
   padding-bottom: 1px;
-  border-right: 1px solid #ffffff;
+  border-right: 1px solid #000000;
   border-top: 1px solid #ffffff;
   border-bottom: 1px solid #ffffff;
 }
@@ -3746,7 +3746,7 @@ div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue {
   border-bottom: 1px solid #e5e5e5;
 }
 div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue {
-  background: #e5e5e5;
+  /* background: #e5e5e5; */
 }
 .dhx_combo_select,
 .gridbox_dhx_skyblue.gridbox .dhx_combo_edit,

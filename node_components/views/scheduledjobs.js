@@ -22,25 +22,40 @@ module.exports = function(app, express){
             var job = {};
             try{
                 job = JSON.parse(req.body['job']);
-                console.log(job['id'])
+                console.log("Saving Scheduled Job",job)
             }catch(ex){
                 console.error("Error parsing POST request for scheduledjobs: ",ex);
             }
-            console.log("Saving scheduled job:");
-            console.log(job);
-           global.db.config.update({ "scheduled_jobs.id": job['id'] },{$set:  {"scheduled_jobs": job}},{upsert:true,multi:false} ,function (err, count) {
-                if (err) {
-                    console.error("FATAL ERROR; could not save job to database, " + err);
-                    console.log(job);   				
-                    res.status(500);//Send error response here
-                    res.end();
-                    return;
-                }
-                global.db.config.persistence.compactDatafile(); //deletes unused stuff from DB file
-                res.writeHead(200,{"Content-Type" : "application/JSON"});
-                res.write(JSON.stringify("{'success':'true'}"));//output json array to client
-                res.end();
-            })
+            //find current job to update in order to preserve existing fields that are not overwritten by sae action
+            global.db.config.find({ "scheduled_jobs.id": job['id'] }, function (err, existingjob) {//get all groups from user
+                   if (existingjob.length != 0){
+                       existingjob = existingjob[0]["scheduled_jobs"];
+                       for (var property in job) {
+                          if (job.hasOwnProperty(property)) {
+                             existingjob[property] = job[property];
+                          }
+                        }
+                   }else{
+                       existingjob = job;   
+                   }
+                    
+                    //save enriched job
+                    global.db.config.update({ "scheduled_jobs.id": existingjob['id'] },{$set:  {"scheduled_jobs": existingjob}},{upsert:true,multi:false} ,function (err, count) {
+                        if (err) {
+                            console.error("FATAL ERROR; could not save job to database, " + err);
+                            console.log(existingjob);   				
+                            res.status(500);//Send error response here
+                            res.end();
+                            return;
+                        }
+                       
+                        global.db.config.persistence.compactDatafile(); //deletes unused stuff from DB file
+                        res.writeHead(200,{"Content-Type" : "application/JSON"});
+                        res.write(JSON.stringify("{'success':'true'}"));//output json array to client
+                        res.end();
+                    })
+            }) 
+           
     })
     
     //start job NOW

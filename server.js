@@ -14,15 +14,44 @@ const http = require('http').Server(app);
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
+const ffastrans_new_rest_api = require("./rest_service");
+//const longjohn = require('longjohn'); //long stacktraces
+
+//register special mime types
+//express.mime.type['locallink'] = 'application/internet-shortcut';
+console.log(express.mime)
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
-require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log 
+//LOGGING
+require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
+//LOGGING SETUP WINSTON
+//redirect console.log functions
+//console.log = function () {return logger.info.apply(logger, arguments)};
+//console.error = function () {return logger.error.apply(logger, arguments)};
+//console.warn = function () { return logger.warn.apply(logger, arguments) };
+//console.info = function () { return logger.warn.apply(logger, arguments) };
+//END OF LOGGING SETUP
+
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
-  console.trace('Caught exception: ' + err);
+  console.trace('Global unexpected error: ' , err);
+  if (err.stack){
+      err.stackTraceLimit = Infinity;
+      console.error(err.stack);
+    }
+    if (err.name === 'AssertionError') {
+        // handle the assertion here or just ignore it..
+        console.log("HERE WE GO, MEDIAINFO FOOLED US");
+    }
 });
+process.on('unhandledRejection', (reason, promise) => {
+    console.trace('Global unexpected error: ' , reason);
+    if (reason.stack) {
+        console.error(reason.stack);
+    }
+})
 
 //needed for running as nexe - access to local files (database) is different 
 global.approot  = path.dirname(process.execPath);
@@ -101,7 +130,7 @@ function init(conf){
     //callback for global config get method, initializes rest of server
     
     global.config = conf;
-    
+        
     // required for passport
     app.use(session({ 
                         secret: 'you_will_never_guess_the_secret' ,    
@@ -113,11 +142,33 @@ function init(conf){
     app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
     
     //redirect views - for passport
-    app.set('views', path.join(__dirname, './node_components/passport/views/'));
+    app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
 
-    //proxy, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
+    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
+    var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about")
+    var _request = require('retry-request', {
+        request: require('request')
+    });
+	
+    //we need to get install directory when running as part of webinterface, before we can start new api
+    _request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
+        
+        if (error) {
+            console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
+            return;
+        };
+        console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
+        
+        var api_root = path.join(__dirname, 'rest_service');
+        ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"], api_root, JSON.parse(body)["about"]["general"]["install_dir"]+"\\");
+    })
+    //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
+    //DEPRECATED, USE NEW API AND PROXY
     app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
-      parseReqBody: false,
+        onProxyReq: function (proxyReq, req, res) {
+            console.log(proxyReq)
+        },
+        parseReqBody: false,
       reqBodyEncoding: null,
       reqAsBuffer: true,
         proxyReqBodyDecorator: function(bodyContent, srcReq) {
@@ -126,6 +177,25 @@ function init(conf){
         bodyContent=(""+srcReq.body) 
         return bodyContent;
       }
+    }));
+
+    //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
+    app.use('/new_proxy', proxy("http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
+        logLevel: "info",
+        proxyTimeout: 1000,
+        onProxyReq: function (proxyReq, req, res) {
+                                    console.log(proxyReq) 
+                                },
+        parseReqBody: false,
+        reqBodyEncoding: null,
+        reqAsBuffer: true,
+        proxyReqBodyDecorator: function (bodyContent, srcReq) {
+            //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
+            //we actually want the body to be forwarded unmodified
+            console.debug("Proxying API call, request url: " , srcReq.url)
+            bodyContent = ("" + srcReq.body)
+            return bodyContent;
+        }
     }));
 
     // get information from POST like messages
@@ -166,7 +236,7 @@ function init(conf){
 
     //log all requests
     app.use(function(req, res, next) {
-        //console.log(req.originalUrl);
+        //console.log("REQUEST: " + req.originalUrl);
         next();
     });
 
@@ -181,7 +251,8 @@ function init(conf){
     require("./node_components/getserverconfig")(app, express);
     require("./node_components/logparser")(app, express);
     require("./node_components/views/adminconfig")(app, express);
-    require("./node_components/views/gethistoryjobsajax")(app, express);
+    require("./node_components/views/gethistoryjobsajax_treegrid")(app, express);
+    require("./node_components/views/getactivejobsajax_treegrid")(app, express);
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/userlist")(app, express);
     require("./node_components/views/usergrouplist")(app, express);
@@ -197,9 +268,9 @@ function init(conf){
 
 
     //startup server
-    console.log('Hello and welcome, thank you for using FFAStrans') 
+    console.log('\x1b[32mHello and welcome, thank you for using FFAStrans') 
 
-    http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', function(err) { 
+    http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', function(err) { 
         console.log(err)//prevents the program keeps running when port is in use
         if (err.code == "EADDRINUSE"){
             const { exec } = require('child_process');

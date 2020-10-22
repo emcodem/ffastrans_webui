@@ -4,13 +4,13 @@
  * Remove or highlight tree nodes, based on a filter.
  * (Extension module for jquery.fancytree.js: https://github.com/mar10/fancytree/)
  *
- * Copyright (c) 2008-2019, Martin Wendt (http://wwWendt.de)
+ * Copyright (c) 2008-2019, Martin Wendt (https://wwWendt.de)
  *
  * Released under the MIT license
  * https://github.com/mar10/fancytree/wiki/LicenseInfo
  *
- * @version 2.30.2
- * @date 2019-01-13T08:17:01Z
+ * @version 2.32.0
+ * @date 2019-09-10T07:42:12Z
  */
 
 (function(factory) {
@@ -36,8 +36,7 @@
 		escapeHtml = $.ui.fancytree.escapeHtml;
 
 	function _escapeRegex(str) {
-		/*jshint regexdash:true */
-		return (str + "").replace(/([.?*+\^\$\[\]\\(){}|-])/g, "\\$1");
+		return (str + "").replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1");
 	}
 
 	function extractHtmlText(s) {
@@ -59,6 +58,7 @@
 			re,
 			reHighlight,
 			temp,
+			prevEnableUpdate,
 			count = 0,
 			treeOpts = this.options,
 			escapeTitles = treeOpts.escapeTitles,
@@ -89,8 +89,35 @@
 			re = new RegExp(".*" + match + ".*", "i");
 			reHighlight = new RegExp(_escapeRegex(filter), "gi");
 			filter = function(node) {
-				if (!node.title) {
-					return false;
+                if (!node.title) {
+                    //custom filter on cells instead of title
+                    var res = false;
+                    var $tdList = $(node.tr).find(">td");
+                    $tdList.each(function (idx) {
+                        var $childs = $(this).children();
+                        $childs = $(this).//filter text nodes only
+                            find('*').contents().filter(function () {
+                                return this.nodeType === 3;
+                            });
+                        $childs.each(
+                            function (idx) {
+                                if (res == false) {
+                                    res = !!re.test($(this).text());
+                                }
+                                temp = $(this).parent().text().replace(reHighlight, function (s) {
+                                    return "\uFFF7" + s + "\uFFF8";
+                                });                                
+                                $(this).parent().html((temp)
+                                    // ... and finally insert the desired `<mark>` tags
+                                    .replace(/\uFFF7/g, "<mark>")
+                                    .replace(/\uFFF8/g, "</mark>"));
+                            }
+                        )
+
+
+                    });
+                    return res;
+                    //END OF CUSTOM CODE
 				}
 				var text = escapeTitles
 						? node.title
@@ -126,6 +153,8 @@
 		this.enableFilter = true;
 		this.lastFilterArgs = arguments;
 
+		prevEnableUpdate = this.enableUpdate(false);
+
 		this.$div.addClass("fancytree-ext-filter");
 		if (hideMode) {
 			this.$div.addClass("fancytree-ext-filter-hide");
@@ -137,6 +166,7 @@
 			!!opts.hideExpanders
 		);
 		// Reset current filter
+		this.rootNode.subMatchCount = 0;
 		this.visit(function(node) {
 			delete node.match;
 			delete node.titleWithHighlight;
@@ -181,7 +211,7 @@
 						});
 						p._filterAutoExpanded = true;
 					}
-				});
+				}, true);
 			}
 		});
 		treeOpts.autoCollapse = prevAutoCollapse;
@@ -208,7 +238,9 @@
 			this.getRootNode().addNode(statusNode).match = true;
 		}
 		// Redraw whole tree
-		this.render();
+		this._callHook("treeStructureChanged", this, "applyFilter");
+		// this.render();
+		this.enableUpdate(prevEnableUpdate);
 		return count;
 	};
 
@@ -232,16 +264,6 @@
 			);
 		}
 		return this._applyFilterImpl(filter, false, opts);
-	};
-
-	/**
-	 * @deprecated
-	 */
-	$.ui.fancytree._FancytreeClass.prototype.applyFilter = function(filter) {
-		this.warn(
-			"Fancytree.applyFilter() is deprecated since 2.1.0 / 2014-05-29. Use .filterNodes() instead."
-		);
-		return this.filterNodes.apply(this, arguments);
 	};
 
 	/**
@@ -270,11 +292,26 @@
 		var $title,
 			statusNode = this.getRootNode()._findDirectChild(KeyNoData),
 			escapeTitles = this.options.escapeTitles,
-			enhanceTitle = this.options.enhanceTitle;
+			enhanceTitle = this.options.enhanceTitle,
+			prevEnableUpdate = this.enableUpdate(false);
+
+
+        //CUSTOM REMOVE MARKS
+//        var $tdList = $(this).find(">td");
+        $('mark').parent().each(function (id) {
+            $(this).html($(this).html().replace(/<\/mark>/g, ""));
+            $(this).html($(this).html().replace(/<mark>/g, ""));
+        })
+        //END OF CUSTOM
+
 
 		if (statusNode) {
 			statusNode.remove();
 		}
+		// we also counted root node's subMatchCount
+		delete this.rootNode.match;
+		delete this.rootNode.subMatchCount;
+
 		this.visit(function(node) {
 			if (node.match && node.span) {
 				// #491, #601
@@ -312,7 +349,10 @@
 		this.$div.removeClass(
 			"fancytree-ext-filter fancytree-ext-filter-dimm fancytree-ext-filter-hide"
 		);
-		this.render();
+		this._callHook("treeStructureChanged", this, "clearFilter");
+		// this.render();
+        this.enableUpdate(prevEnableUpdate);
+
 	};
 
 	/**
@@ -344,7 +384,7 @@
 	 */
 	$.ui.fancytree.registerExtension({
 		name: "filter",
-		version: "2.30.2",
+		version: "2.32.0",
 		// Default options for this extension.
 		options: {
 			autoApply: true, // Re-apply last filter if lazy data is loaded
@@ -359,28 +399,29 @@
 			mode: "dimm", // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
 		},
 		nodeLoadChildren: function(ctx, source) {
+			var tree = ctx.tree;
+
 			return this._superApply(arguments).done(function() {
 				if (
-					ctx.tree.enableFilter &&
-					ctx.tree.lastFilterArgs &&
+					tree.enableFilter &&
+					tree.lastFilterArgs &&
 					ctx.options.filter.autoApply
 				) {
-					ctx.tree._applyFilterImpl.apply(
-						ctx.tree,
-						ctx.tree.lastFilterArgs
-					);
+					tree._applyFilterImpl.apply(tree, tree.lastFilterArgs);
 				}
 			});
 		},
 		nodeSetExpanded: function(ctx, flag, callOpts) {
-			delete ctx.node._filterAutoExpanded;
+			var node = ctx.node;
+
+			delete node._filterAutoExpanded;
 			// Make sure counter badge is displayed again, when node is beeing collapsed
 			if (
 				!flag &&
 				ctx.options.filter.hideExpandedCounter &&
-				ctx.node.$subMatchBadge
+				node.$subMatchBadge
 			) {
-				ctx.node.$subMatchBadge.show();
+				node.$subMatchBadge.show();
 			}
 			return this._superApply(arguments);
 		},
@@ -427,7 +468,7 @@
 				node.$subMatchBadge.hide();
 			}
 			// node.debug("nodeRenderStatus", node.titleWithHighlight, node.title)
-			// #601: also chek for $title.length, because we don't need to render
+			// #601: also check for $title.length, because we don't need to render
 			// if node.span is null (i.e. not rendered)
 			if (node.span && (!node.isEditing || !node.isEditing.call(node))) {
 				if (node.titleWithHighlight) {
