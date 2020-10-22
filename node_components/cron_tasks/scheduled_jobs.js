@@ -47,7 +47,7 @@ module.exports = {
 
             } else {
                 //no scheduled jobs in DB, create a default job!
-                console.log("No Scheduled jobs stored in DB");
+                //console.log("No Scheduled jobs stored in DB");
             }
         });
   },
@@ -60,14 +60,16 @@ module.exports = {
         }
         if (data){
             console.log("Executing immediate: " + id);
-            executeJob(data["scheduled_jobs"],socketioClientId,informCallback);
+            var job = data["scheduled_jobs"];
+            if (!needsExecution(job)){
+                 killRunningJob(job);
+            }
+            executeJob(job,socketioClientId,informCallback);
+                    
         }else{
             console.error("Could not find job in database for executeimmediate, jobid: " + id)
-        }
-        
-    })
-      
-      
+        } 
+    })    
   }
 };
 
@@ -89,7 +91,7 @@ function executeJob(current_job,socketioClientId,informCallback){
                 };
         });
         //execute tmp file
-        const forked = fork(path,[],{ silent: true });
+        const forked = fork(path, [], { silent: true });
         
         console.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
         if (informCallback){
@@ -142,7 +144,9 @@ function executeJob(current_job,socketioClientId,informCallback){
                 }
             }catch(ex){
                 console.error("Error starting workflow: "+ ex);
-                console.error(msg);
+                console.error("Input was: ",msg);
+                console.error("Stacktrace: " + ex.stack);
+                console.error("Current Job: ", current_job)
             }
             
         });
@@ -178,8 +182,21 @@ function executeJob(current_job,socketioClientId,informCallback){
     
 }
 
+function killRunningJob(current_job){
+        console.log("Kill cmd: " + current_job['last_pid'])
+        if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
+            console.log("Killing Job " + current_job["job_name"] + " with PID " + current_job['last_pid']);
+            try{
+                process.kill(current_job['last_pid']);
+            }catch(ex){
+                console.error("Could not kill PID: " , current_job['last_pid'],"Message:",ex)
+            }
+        }
+    
+}
+
 function needsExecution(current_job){    
-         
+    console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
     //check if job is still running
     if (current_job['enabled'] != 1){
         
@@ -192,6 +209,7 @@ function needsExecution(current_job){
             return false;
         }
     }
+    console.log("job is not running")
     //job is not running. Check if we need to start it
     var dateOfInterest = current_job["last_start"]||current_job["date_created"];
     var options = {

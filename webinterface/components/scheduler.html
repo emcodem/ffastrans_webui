@@ -175,22 +175,29 @@ function init(){
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
     m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");    
-    m_mainGrid.setInitWidthsP("0,5,25,20,20,15,15,0,0,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,ro");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str");         
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");   
+   // m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow,Type");
+   // m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow,type");    
+    m_mainGrid.setInitWidthsP("0,5,25,20,15,15,15,0,15,0");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");       
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,combo");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");  
+    /*typecombo = m_mainGrid.getCombo(8);
+    typecombo.put("custom","Custom");
+    typecombo.put("watch_fsnotify","Watch using Filsystem Events");
+    */ 
     m_mainGrid.init();    
     m_mainGrid.setColValidators(",NotEmpty,NotEmpty,NotEmpty,NotEmpty"); 
-    
+
 	loadJobs(m_mainGrid);
     
 	m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
 		items:[
-            {id:"save", text:"<i class='fas fa-save'></i>Save"},
-            {id:"edit_condition", text:"<i class='fas fa-edit'></i>Edit Condition"},
+            
             {id:"new", text:"<i class='fas fa-plus-square'></i>New"},
 			{id:"delete", text:"<i class='fas fa-minus-square'></i>Delete"},
+            {id:"edit_condition", text:"<i class='fas fa-edit'></i>Edit Condition"},
+            {id:"save", text:"<i class='fas fa-save'></i>Save"},
             
 		]
 	});
@@ -200,7 +207,7 @@ function init(){
         if (id=="new"){
             var newId = Math.random();
             m_mainGrid.addRow(newId,[newId,"false", "New Job", "", "*/5 * * * *",  "", new Date().toMysqlFormat()]);
-            m_mainGrid.setUserData(newId,"script","process.send(['']);//starts one job");
+            m_mainGrid.setUserData(newId,"script","process.send(['testvalue']);//starts one job");
             saveJobGrid();
         }
         if (id=="delete"){
@@ -233,8 +240,10 @@ function init(){
         //save selected workflow (set corresponding grid column value)
         if (id=="save"){
             var _wf_id = m_workflowForm.getItemValue("wf_id");
-            var _proc = m_workflowForm.getItemValue("start_proc");
-            var workflowconfig = {"wf_id":_wf_id,"start_proc":_proc,"inputfile":"","variables":[]};
+            var dhxCombo = m_workflowForm.getCombo("start_proc");
+            var _proc = dhxCombo.getActualValue();
+            var _procname = dhxCombo.getComboText();
+            var workflowconfig = {"wf_id":_wf_id,"start_proc":_proc,"start_proc_name":_procname,"inputfile":"","variables":[]};
             var cellindex = m_mainGrid.getColIndexById('workflow');
             m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).setValue(JSON.stringify(workflowconfig));
             saveJobGrid();
@@ -255,15 +264,23 @@ function init(){
         m_workflowForm.addItem(null, {type : "fieldset", name : "data", label : "Workflow", inputWidth : 220, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
         m_workflowForm.addItem("data", {type: "combo", label: "Workflow Name", name: "wf_id", width:200, options:[]},1);
         m_workflowForm.addItem("data", {type: "combo", label: "Start Proc", name: "start_proc", width:200   , options:[]},2);
-        //loads workflows from server and adds options to the combo
-        loadWorkflows(m_workflowForm.getCombo("wf_id"),m_workflowForm.getCombo("start_proc"));
-        m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(wf_id){
+        
+        //loads workflows into combo
+        loadWorkflows(m_workflowForm.getCombo("wf_id"),m_workflowForm.getCombo("start_proc"));+
+        //load start_procs into combo
+        m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(selected_wf_id){
             //workflow was selected, show start_procs
             m_workflowForm.getCombo("start_proc").clearAll();
-            var startProcs = m_allWorfklows[wf_id]['variable']['start_proc'];
-            for ( i in startProcs){
-                m_workflowForm.getCombo("start_proc").addOption(  [{value:startProcs[i],text:startProcs[i],selected:true}] );
+
+           
+            //collect start procs from wf
+            for (y=0;y<m_allWorfklows[selected_wf_id]["nodes"].length;y++){
+                var nodes = m_allWorfklows[selected_wf_id]["nodes"];
+                if (nodes[y]["start_proc"]){
+                    m_workflowForm.getCombo("start_proc").addOption(  [{value:nodes[y]["id"],text:nodes[y]["type"],selected:true}] ); //todo; get display name
+                }
             }
+                 
         });
     });
         
@@ -288,8 +305,7 @@ function showScriptEditor(selectedRowId){
                 icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
                 items:[
                     {id:"save", text:'<i class="fas fa-save"></i>Save'},
-                    {id:"start", text:'<i class="fas fa-play"></i>Test Run'},
-                    //{id:"examplebrowser", text:'<i class="fas fa-info"></i>Examples'},
+                    {id:"start", text:'<i class="fas fa-play"></i>Test Run'}
                 ]
             });
         scriptMenu.setUserData("save", "jobid", selectedRowId);//stores scheduled jobid for this window so later on we find out which job we are connected to
@@ -361,7 +377,7 @@ function loadWorkflows(wf_combo,procCombo){
         dataType: "json",
         context: this,
         success: function (response) {
-            if (response['workflows/details'].length == 0){
+            if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{            
                 //get currently selected workflow:
@@ -369,10 +385,10 @@ function loadWorkflows(wf_combo,procCombo){
                 var currentWf = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
                 if (currentWf){
                     currentWf = JSON.parse(currentWf);
-                    procCombo.addOption(  [{value:currentWf["start_proc"],text:currentWf["start_proc"],selected:true}] );
+                    procCombo.addOption(  [{value:currentWf["start_proc"],text:currentWf["start_proc_name"],selected:true}] );
                 }
                 //add options to dropdown
-                m_workflowArray = response['workflows/details'];
+                m_workflowArray = response['workflows'];
                 for (i in m_workflowArray){
                     //create a combo option for each workflow
                     var _selected = false;
@@ -380,7 +396,7 @@ function loadWorkflows(wf_combo,procCombo){
                         _selected = true;
                     }
                     m_allWorfklows[m_workflowArray[i]['wf_id']] = m_workflowArray[i];//store all workflows for later proc selection
-                    _combo.addOption(  [{selected:_selected,value:m_workflowArray[i]['wf_id'],text:m_workflowArray[i]["general"]["wf_name"]}] );  
+                    _combo.addOption(  [{selected:_selected,value:m_workflowArray[i]['wf_id'],text:m_workflowArray[i]["wf_name"]}] );  
                 };
             }
         },
@@ -528,7 +544,11 @@ Scheduled jobs are used to start workflows in a specific frequency.
 A simple usecase is for example to start a Job that executes some Batch for file deletion every night. 
 In more complex usecases, you can use the "Condition" script and check if the workflow really needs to be executed.
 
-<b>Overwiew:</b>
+<b>BEGINNERS: NO SCRIPTING NEEDED</b>
+Just Hit the "New Button", doubleclick and set the "Frequency" and also, on the right side choose a workflow that will be started at the selected interval
+The job will be started with "input file(%s_source%)" being empty, so make sure your job can live without specified %s_source%
+
+<b>Developer Overwiew:</b>
 In first place, Scheduled Jobs (Left pane) are NOT ffastrans jobs. Instead they run internally on the webserver.
 A scheduled job is executed at a certain interval (or multiple intervals). How it works is:
 1) Execute the "Custom script"
@@ -536,8 +556,6 @@ A scheduled job is executed at a certain interval (or multiple intervals). How i
 3) start one ffastrans job (using the selected workflow) for each file in the sent Array
 
 <b>Scripting:</b>
-BEGINNERS: All you have to do in order to start a job is to write this line for example:
-process.send(["EXAMPLE"]);
 
 ADVANCED USERS:
 The scripting language is node.js. It is best if you develop your script outside of this editor and when the script works as intended, you paste it into this edtior.
@@ -545,7 +563,7 @@ To use custom modules/dependencies, it is best if you just specify the full path
 var dircompare = require('C:\\ffastrans_webui\\node_modules\\dir-compare');
 
 Your script logic should determine if a new ffastrans jobs needs to be started. 
-One workflow will be started for each item you send using "process.send([])" command.
+One workflow will be started for each item you send using "process.send(['filepath'])" command.
 
 Example Script, start one workflow for each file found in c:\temp\input. 
 Variant 1 uses just one "process.send" command to submit multiple jobs

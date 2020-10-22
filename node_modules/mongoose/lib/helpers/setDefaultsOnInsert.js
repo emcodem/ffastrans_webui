@@ -29,7 +29,7 @@ module.exports = function(filter, schema, castedDoc, options) {
   }
 
   for (let i = 0; i < numKeys; ++i) {
-    if (keys[i].charAt(0) === '$') {
+    if (keys[i].startsWith('$')) {
       modifiedPaths(castedDoc[keys[i]], '', modified);
       hasDollarUpdate = true;
     }
@@ -49,7 +49,7 @@ module.exports = function(filter, schema, castedDoc, options) {
       const numConditionKeys = conditionKeys.length;
       let hasDollarKey = false;
       for (let j = 0; j < numConditionKeys; ++j) {
-        if (conditionKeys[j].charAt(0) === '$') {
+        if (conditionKeys[j].startsWith('$')) {
           hasDollarKey = true;
           break;
         }
@@ -69,7 +69,10 @@ module.exports = function(filter, schema, castedDoc, options) {
   }
 
   schema.eachPath(function(path, schemaType) {
-    if (schemaType.$isSingleNested) {
+    // Skip single nested paths if underneath a map
+    const isUnderneathMap = schemaType.path.endsWith('.$*') ||
+      schemaType.path.indexOf('.$*.') !== -1;
+    if (schemaType.$isSingleNested && !isUnderneathMap) {
       // Only handle nested schemas 1-level deep to avoid infinite
       // recursion re: https://github.com/mongodb-js/mongoose-autopopulate/issues/11
       schemaType.schema.eachPath(function(_path, _schemaType) {

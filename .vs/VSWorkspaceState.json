@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\node_components",
+    "\\node_components\\cron_tasks",
+    "\\webinterface",
+    "\\webinterface\\components"
+  ],
+  "SelectedNode": "\\node_components\\cron_tasks\\jobfetcher.js",
+  "PreviewInSolutionExplorer": false
+}

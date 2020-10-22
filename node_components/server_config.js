@@ -22,15 +22,17 @@ defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D
 //FFAStrans server
 defaultConfig.STATIC_API_HOST = "localhost";
 defaultConfig.STATIC_API_PORT = "65445";
-
+defaultConfig.STATIC_API_NEW_PORT = "3003";
+//config port for new node api
 //default user config
 //you can change these variables
 
-defaultConfig.STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "5,10,10,10,30,10,0,0,*,0,5"; 
-defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
+//defaultConfig.STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "5,10,10,10,30,10,0,0,*,0,5"; 
+//defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
 
 
 //Please do not change these values
+/*
 defaultConfig.STATIC_START_JOB_URL = "/api/json/v1/jobs/";
 defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v1/workflows";
 defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v1/workflows/details";
@@ -38,10 +40,26 @@ defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v1/jobs";
 defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v1/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v1/queue/";
 defaultConfig.STATIC_USE_PROXY_URL =  true;
+*/
+defaultConfig.STATIC_START_JOB_URL = "/api/json/v2/jobs/";
+defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v2/workflows";
+defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v2/workflows";
+defaultConfig.STATIC_GET_WORKFLOW_VARS_URL = "/api/json/v2/workflows/<wf_id>/user_variables";
+defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v2/jobs";
+defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
+defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
+defaultConfig.STATIC_GET_JOB_LOG_URL = "/api/json/v2/joblog/" //+ <job_id>?start=0&count=100
+defaultConfig.STATIC_USE_PROXY_URL = true;
+
+//new methods of node api (WEB_API_PORT )
+//this API must run on STATIC_API_HOST so we need no config for the host
+
+//NEW API Methods are named static_api...
+defaultConfig.STATIC_API_GET_JOB_LOG_URL = "/getjoblog";
 
 //this line is mandatory, do not remove it!
 //module.exports = config;
-require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
+//require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
 module.exports = {
     //set object to config obj
     get: (callback) => {
