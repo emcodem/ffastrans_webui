@@ -261,28 +261,74 @@
             });
 
             mainMenu = mainLayout.attachMenu();
-            mainMenu.addNewSibling(null, "reload_youngest", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Load latest Job</button>');
+            mainMenu.addNewSibling(null, "reload_youngest", '<button title="Load log from latest Finished Job" class="btn"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>');
+            mainMenu.addNewSibling(null, "retry_job", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>');
+            mainMenu.addNewSibling(null, "refresh_page", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>');
             //mainMenu.addNewSibling(null, "reload", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Reload</button>');
             
             mainMenu.attachEvent("onClick", function (id) {
+                    if (id == "refresh_page"){
+                        window.location.href = window.location.href;
+                    }
                     if (id == "reload_youngest") {
                     var url = "/gethistoryjobsajax_treegrid?count=1"
-                    $.ajax({
-                        url: url,
-                        type: "GET",
-                        crossDomain: true,
-                        dataType: "json",
-                        success: function (response) {
-                            if (response["data"]) {
-                                var jid = response["data"][0]["sort_family_name"];
-                                window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+                        $.ajax({
+                            url: url,
+                            type: "GET",
+                            crossDomain: true,
+                            dataType: "json",
+                            success: function (response) {
+                                if (response["data"]) {
+                                    var jid = response["data"][0]["sort_family_name"];
+                                    window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+                                }
+                            },
+                            error: function (xhr, status) {
+                                alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
                             }
-                        },
-                        error: function (xhr, status) {
-                            alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
-                        }
-                    });
-                }
+                        });
+                    }
+                
+                    if (id == "retry_job"){
+                        console.log("resubmitting job", m_jobobject)
+                        
+                        var postBody = {};
+                        postBody.start_proc = "";
+                        postBody.wf_id = m_jobobject["workflow"]["id"];
+                        postBody.inputfile = m_jobobject["sources"]["original_file"];
+                        postBody.variables = m_jobobject["variables"];
+                    
+                         $.ajax({
+                            url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                            type: "POST",
+                            crossDomain: true,
+                            data: JSON.stringify(postBody),
+                            success: function(response) {
+                                console.log("Job Resubmit response:",response);
+                                try{
+                                    if (["job_id"] in response){
+                                        dhtmlx.alert({
+                                              type:"confirm",
+                                              text:"Success, Window will reload to display the resubmitted job in 3 seconds, you cannot prevent this anymore",
+                                              title:"Reload Pending!",
+                                              ok:"OK"
+                                        });
+                                        window.setTimeout(function(){
+                                            window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + response["job_id"];
+                                        },3000);
+                                    }else{
+                                        
+                                    }
+                                }catch(ex){
+                                    console.log(ex)
+                                    alert("Error resubmitting job, contact developer\n\n" + ex)
+                                }
+                            },
+                            error: function(xhr, status) {
+                                dhtmlx.alert("Error submitting job: " + xhr.responseText);
+                            }
+                        });
+                    }
 
 
             });
@@ -291,9 +337,8 @@
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
                                 <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
                                 <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                                <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
-                                <button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> \
-                                ');
+                                <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> ');
+                                //<button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> 
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                                 <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
@@ -474,15 +519,15 @@
                             //for each target, create connection arrow
                             try {
                                 var to_cell = graph.getModel().getCell(to_array[t]["id"].toUpperCase());
-
+                                console.log(to_cell.ffastransobj["execute_on"])
                                 if (to_cell.ffastransobj["execute_on"] == "success") {
                                     var color = "rgb(0,200,0)"; //execute_on success color
                                 }
                                 if (to_cell.ffastransobj["execute_on"] == "error") {
                                     color = "rgb(200,0,0)"; //execute_on error color
                                 }
-                                if (to_cell.ffastransobj["execute_on"] == "always") {
-                                    color = "rgb(0,0,0)"; //execute_on always color
+                                if (to_cell.ffastransobj["execute_on"] == "any") {
+                                    color = "rgb(255,200,0)"; //execute_on always color
                                 }
                             } catch (ex) {
                                 dhtmlx.message("Could not create connection for node " + to_array[t]["id"]);
@@ -505,27 +550,48 @@
 
                     mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
                     {   //zoom on mousewheel event
-                        if (!$('#graphContainer:hover').length > 0) {
+                      if (mxEvent.isConsumed(evt)) {
+                        return;
+                      }
+                      if (!$('#graphContainer:hover').length > 0) {
                             return;//mouse is not over container
-                        }
-                        var allcells = m_graph.getChildVertices(graph.getDefaultParent());
-                        var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false))
-                        m_graph.centerZoom = true;
-                        //insert invisible "fake node" to get out delta for moving graph after zoom, used to kind of zoom to cursor position
-                        var v1 = m_graph.insertVertex(m_graph.getDefaultParent(), "zoom", 'zoom', mousepointer_coordinates.x, mousepointer_coordinates.y, 100, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
-                        var old_x = m_graph.view.getState(v1).x;
-                        var old_y = m_graph.view.getState(v1).y;
-                        if (up) {
-                            m_graph.zoomIn();                        
-                        } else {
-                            m_graph.zoomOut();
-                        }
-                        var new_x = m_graph.view.getState(v1).x;
-                        var new_y = m_graph.view.getState(v1).y;
+                      }
+                      var gridEnabled = graph.gridEnabled;
+                      // disable snapping
+                      graph.gridEnabled = false;
+                      var p1 = graph.getPointForEvent(evt, false);
+                      if (up) {
+                         graph.zoomIn();
+                      } else {
+                         graph.zoomOut();
+                      }
+                      var p2 = graph.getPointForEvent(evt, false);
+                      var deltaX = p2.x - p1.x;
+                      var deltaY = p2.y - p1.y;
+                      var view = graph.view;
+                      view.setTranslate(view.translate.x + deltaX, view.translate.y + deltaY);
+                      graph.gridEnabled = gridEnabled;
+                      mxEvent.consume(evt);
+                      return;
                         
-                        m_graph.moveCells(allcells, (old_x-new_x), (old_y-new_y), false);
-                        m_graph.removeCells([v1]);//remove fake zoom node
-                        mxEvent.consume(evt);
+                        <!-- var allcells = m_graph.getChildVertices(graph.getDefaultParent()); -->
+                        <!-- var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false)) -->
+                        <!-- m_graph.centerZoom = true; -->
+                        <!-- //insert invisible "fake node" to get out delta for moving graph after zoom, used to kind of zoom to cursor position -->
+                        <!-- var v1 = m_graph.insertVertex(m_graph.getDefaultParent(), "zoom", 'zoom', mousepointer_coordinates.x, mousepointer_coordinates.y, 100, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)'); -->
+                        <!-- var old_x = m_graph.view.getState(v1).x; -->
+                        <!-- var old_y = m_graph.view.getState(v1).y; -->
+                        <!-- if (up) { -->
+                            <!-- m_graph.zoomIn();                         -->
+                        <!-- } else { -->
+                            <!-- m_graph.zoomOut(); -->
+                        <!-- } -->
+                        <!-- var new_x = m_graph.view.getState(v1).x; -->
+                        <!-- var new_y = m_graph.view.getState(v1).y; -->
+                        
+                        <!-- m_graph.moveCells(allcells, (old_x-new_x), (old_y-new_y), false); -->
+                        <!-- m_graph.removeCells([v1]);//remove fake zoom node -->
+                        <!-- mxEvent.consume(evt); -->
                     }))
                 }
             }
@@ -632,7 +698,11 @@ function export_StyledSVG(){
                 //sort the current line as accurate as possible
                 if (line["pid"] != "undefined") { //we have a pid, perfect
                     var id_from_pid = id_pid_mapping[line["pid"]];
-                    a_log_per_node[id_from_pid].push(line);
+                    try{
+                        a_log_per_node[id_from_pid].push(line);
+                    }catch(ex){
+                        debug = true;
+                    }
                 } else {
                     //did not get pid, so cannot guarantee that this line belongs to the proc but it is the best we can do...
                     a_log_per_node[_proc_id].push(line);
@@ -707,6 +777,7 @@ function export_StyledSVG(){
                     }
                 },
                 renderColumns: function (event, data) {
+                    
                     var node = data.node;
 
                     //style
@@ -717,7 +788,15 @@ function export_StyledSVG(){
                         node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
                         node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
-
+                    
+                    if ("node" in node["data"] == false){
+                        node["data"]["node"] = {}
+                        node["data"]["node"]["id"] = node["data"]["context"];
+                        
+                    }
+                    if (! "id" in node.data["node"]){
+                        return false;
+                    }
 
                     var nodeid = node.data["node"]["id"];
                     var nodename = getNodeNameById(nodeid);
@@ -875,7 +954,7 @@ function export_StyledSVG(){
         function getNodeNameById(id) {
 
             var n = m_workflowdata.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
-            if (n.length != 1) { return "Error, not found" }
+            if (n.length != 1) { return "Not found" }
             nodename = n[0].name || n[0].type;
             return nodename;
         }
@@ -1029,15 +1108,17 @@ function export_StyledSVG(){
         function restoreLayoutSizes(dhxLayout, name, ignore_width) {
             
             if (localStorage.getItem(name + "_aw")) {
-                console.log("restoring",localStorage)
+                console.log("restoring layout sizes, all stored values: ",localStorage)
                 var aw = localStorage.getItem(name + "_aw");
                 var ah = localStorage.getItem(name + "_ah");
                 var bw = localStorage.getItem(name + "_bw");
                 var bh = localStorage.getItem(name + "_bh");
                 if (!ignore_width) {
-                    if (aw > 0.01){
+                    if (aw > 0.01 && aw < 0.9){
                         dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
                         console.log("width restored cell a:", aw);
+                    }else{
+                        console.log("Width not restored, stored value was too low or too high: ", aw)
                     }
                     if (bw < 0.8){
                         dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
@@ -1049,7 +1130,18 @@ function export_StyledSVG(){
                 console.log("height restored")
             }
         }
-
+    
+    
+    function buildUrl(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/proxy" + what;
+        } else {
+            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
+            return _url;
+        }
+        //old, delete at next iteration
+    }
+    
     </script>
 </head>
 
