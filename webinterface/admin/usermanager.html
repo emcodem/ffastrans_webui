@@ -36,7 +36,6 @@
   }
   
 </style>
-
 <script>
 
 /* GLOBALS */
@@ -338,9 +337,21 @@ function showGroupProps(groupObj){
 		]
 	});
     
+    
+    m_groupPropsGrid.attachEvent("onRowSelect", function(id,ind){
+        //usergroupprop selected, show or hide edit btn
+        //check if item has a filter prop
+
+        if (m_permissiongrid.getUserData(id,"object")["value"]["filter"]){
+            _menu.setItemEnabled("edit");
+        }else{
+            _menu.setItemDisabled("edit");
+        }
+        
+    });
     //usergroupprops menu onclick
     _menu.attachEvent("onClick", function (name, value, state){
-        //collect current configuration
+        
         if (name == "edit"){
             editPermissionInGroupPropsGrid();
             return;
@@ -379,13 +390,13 @@ function showGroupProps(groupObj){
 function editPermissionInGroupPropsGrid(){
 //bring up window to allow filter configuration
     if (m_groupPropsGrid.getSelectedRowId().indexOf("FILTER")== -1){
-        dhtmlx.alert("Please select a FILTER item to edit");
-        return;
+        //dhtmlx.alert("Please select a FILTER item to edit");
+        //return;
     }
     var currentFilter = m_groupPropsGrid.getUserData(m_groupPropsGrid.getSelectedRowId(),"object");
     var box = dhtmlx.modalbox({
         title:"Edit Filter",
-        text: "Filter Expression:<br/><br/><input class='inform' type='text' value='"+currentFilter["value"]["filter"]+"'>",
+        text: "This is an 'include' filter.<br/>Use .* to include everything and | to separate multiple<br/><br/>Filter Expression:<br/><input class='inform' type='text' value='"+currentFilter["value"]["filter"]+"'>",
         buttons:["OK",  "Cancel"],
         callback: function(result){
             if (result == 0){
@@ -558,7 +569,6 @@ function deleteuser(){
 
 </head>
 <body onload="init()">
-
 <div id="documentation" style="height:100%;width:100%;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
 <b>General:</b>
@@ -571,8 +581,12 @@ Select a user and drag&drop groups to the user (drag a grid row from left to rig
 Select a group and drag&drop permissions to the group (drag a grid row from left to right)
 
 <b>Filters:</b>
+GROUPRIGHT_MENU_VIEW_JOB_STATUS
+Edit this item to filter Buttons (Resubmit, Job Details etc...) on the Job View Page, use .* to hide all buttons. 
+
 FILTER_WORKFLOW_NAME 
-on "job starter" page, the workflows a user can choose is filtered. On "job status" page, the displayed Jobs are filtered
+On "job starter" page, the workflows a user can choose is filtered. 
+On "job status" page, the displayed Jobs are filtered
 
 FILTER_WORKFLOW_GROUP 
 for "job starter" page only, limits the workflow "folders" a user is able to choose from
