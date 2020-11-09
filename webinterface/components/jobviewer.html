@@ -151,14 +151,12 @@
             type: "GET",
             success: function(response) {
                 m_userpermissions = JSON.parse(response);
-                console.log("Permissions:", m_userpermissions)
                 //load serverconfig and initialize page
                 $.ajax({
                     url: ("/getserverconfig"),
                     type: "GET",
                     success: function(response) {
                         m_serverconfig = JSON.parse(response);
-                        console.log(m_serverconfig)
                         init();
                     },
                     error: function(xhr, status) {
@@ -186,6 +184,59 @@
             error: function(xhr, status) {}
         });
     }
+    
+    /* render menu buttons based on userpermissions*/
+    function addMenuButtons(){
+        
+        //menu buttons html
+        var a_details = '<button class="btn" name="a_details" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> ';
+        var a_abort = '<button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-stop" ></i>Abort</button>';
+        var a_pause = '<button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause" ></i>Pause</button>';
+        var a_resume = '<button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play" ></i>Resume</button>';
+        var arr_all_in_a = [a_details,a_abort,a_pause,a_resume];
+        
+        var b_details = '<button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button>';
+        var b_resubmit = '<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit</button>';
+        var b_delall = '<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button>';
+        var b_delsel = '<button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel];
+        
+        //check user permissions
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        console.log("FILTER",_filter);
+        if (_filter.length > 0){
+            
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            
+            //add filtered btns to Running jobgrid
+            for (_id=0;_id<arr_all_in_a.length;_id++){
+                if (arr_all_in_a[_id].match(regex)){
+                    _appendtext('a',arr_all_in_a[_id])
+                }
+            }
+            //no filter, add filtered btns to History jobgrid
+            for (_id=0;_id<arr_all_in_b.length;_id++){
+                if (arr_all_in_b[_id].match(regex)){
+                    _appendtext('b',arr_all_in_b[_id])
+                }
+            }
+        }else{
+            //just render all btns
+            console.log("Displaying unfiltered list of menu buttons", )
+            _appendtext('a',a_details + a_abort + a_pause + a_resume);
+            _appendtext('b', b_details + b_resubmit + b_delall + b_delsel);
+        }
+        function _appendtext (cellid, to_append){//helper
+            mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
+        }
+        function _getObjectByValue(object, value) {//helper
+          var result = object.filter(obj => {
+              return obj["key"] == value;
+            })
+          return result;
+        }
+    }
 
     /* build basic page layout and init periodic job loading*/
     function init() {
@@ -204,19 +255,7 @@
             pattern: "2E"
         });
 
-        mainLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Running</span> \
-    		<button class="btn" name="a_details" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
-    		<button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-stop" ></i>Abort</button> \
-    		<button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause" ></i>Pause</button> \
-    		<button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play" ></i>Resume</button> \
-    		');
 
-        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span> \
-    		<button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle" ></i>Job Details</button> \
-    		<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit</button> \
-    		<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete All</button> \
-    		<button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt" ></i>Delete Selected</button> \
-    		');
         mainLayout.cells("b").setWidth($(document).width() / 3);
         //mainLayout.cells("c").setText("Finished");
         mainLayout.cells("a").setHeight($(document).height() / 3.5);
@@ -227,7 +266,12 @@
         mainLayout.cells("b").showInnerScroll();
         mainLayout.cells("a").attachObject("active_div");
         mainLayout.cells("a").showInnerScroll();
-
+        
+        //menu text and buttons
+        mainLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
+        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
+        addMenuButtons();
+        
         mainLayout.attachEvent("onPanelResizeFinish", function() {
             saveLayoutSizes(mainLayout, "mainLayout");
         });
