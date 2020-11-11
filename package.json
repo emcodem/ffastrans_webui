@@ -34,6 +34,7 @@
     "express-http-proxy": "^1.6.0",
     "express-session": "^1.17.0",
     "firstline": "^2.0.2",
+    "fs-readdir-recursive": "^1.1.0",
     "is-running": "^2.1.0",
     "log4js": "^6.1.0",
     "longjohn": "^0.2.12",
