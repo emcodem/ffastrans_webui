@@ -30,6 +30,7 @@ module.exports = {
         return;
     }
     Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 4000},(error, response, body) => {
+            
             if(error) {
                 global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                 console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
@@ -72,7 +73,8 @@ module.exports = {
     });
     
     //fetch queued jobs from api
-    Request.get(buildNewApiUrl(), {timeout: 7000},(error, response, body) => {        
+    Request.get("http://localhost:3003/tickets", {timeout: 7000},(error, response, body) => {   
+        
         //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             console.error("Fatal, lobal.config.STATIC_USE_PROXY_URL is true but should be false! ")
@@ -89,18 +91,18 @@ module.exports = {
 			if (q_obj !== undefined) {
 				for (i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
+                            console.log("key", JSON.stringify(q_obj[i]))
 							q_obj[i]["split_id"] = ""
-							q_obj[i]["state"] = "Queued";
-							q_obj[i]["title"] = "Queued";
+							q_obj[i]["state"] = "Pending";
+							q_obj[i]["title"] = "Pending";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							//q_obj[i]["workflow"] = ""; //todo: implement workflow in ffastrans tickets api for pending jobs
+							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; //todo: implement workflow in ffastrans tickets api for pending jobs
 							q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
-							q_obj[i]["host"] = "";
-							q_obj[i]["status"] = "";
+							//q_obj[i]["host"] = "";
+							q_obj[i]["status"] = "Incoming";
 							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
-							q_obj[i]["proc"] = q_obj[i]["nodes"]["next"]["type"]
-							
+							q_obj[i]["proc"] = "Watchfolder";
 				}
 			}
 			
