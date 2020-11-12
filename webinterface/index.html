@@ -105,24 +105,15 @@
         margin-top: 16px;
     }
     .harry{
-<<<<<<< HEAD
+
 		height:50px;
 		margin-top: 10px;
-    }
-	.benjamin{
-		height:38px;
-		margin-top: 16px;
-	}
-=======
-        height: 50;
-        margin-top: 11px;
     }
     .benjamin{
         height: 42;
         margin-top: 16px;
     }
 
->>>>>>> 602f16139b2d5eda850d12350f0ac7d5cef5cd4d
     .ffastransheadertext{
        display: inline-block;
        font-size:30px;
@@ -135,20 +126,33 @@
        display: inline-block;
     }
  
-      /*.dhxlayout_base_material div.dhx_cell_layout {
-          background-color: #333;
-      }
-      .body.dhxlayout_base_material{
-          //background-color: #AAA;
-      }*/
-      
-      .menuitem{
-        max-width:70%;
-        margin-left: 0.5em;
-        margin-top: 0.5em;
-        cursor:pointer;
-      }
-      
+	/*.dhxlayout_base_material div.dhx_cell_layout {
+	  background-color: #333;
+	}
+	.body.dhxlayout_base_material{
+	  //background-color: #AAA;
+	}*/
+
+	.menuitem{
+	max-width:70%;
+	margin-left: 0.5em;
+	margin-top: 0.5em;
+	cursor:pointer;		    
+	background-repeat: no-repeat;
+	background-position: center;
+	transition: background-size 0.2s;
+	transition-timing-function: cubic-bezier(.07,1.41,.82,1.41);
+	display: block;
+	cursor: pointer;
+	overflow: hidden;
+	white-space:nowrap;
+
+	}
+
+	.menuitem:hover {
+	  /*opacity: 0.8;*/
+	  transform: scale(1.1); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+	}
 </style>
 
 <script>
@@ -157,7 +161,7 @@ var socket = io();
 
 //global
 
-var m_mainSidebar,mainLayout;
+var m_mainSidebar,mainLayout,initialMenuItem;
 
 
 var m_permissionUrls = {
@@ -276,16 +280,29 @@ function init(permissions){
         
         var title = _perm["items"][i]["text"].replace("GROUPRIGHT_MENU_VIEW_","");
         title = title.replace("_", " ");
-         menu.innerHTML += "<img class='menuitem' title='"+title+"' src='images/"+_perm["items"][i].icon+"' id='"+_perm["items"][i].id+"'/>";
-
+         menu.innerHTML += "<a href='' class='menuitem' title='"+title+"' style=\"height:35px;width:35px; background-repeat: no-repeat;background-size: cover;background-image: url('images/"+_perm["items"][i].icon+"')\" id='"+_perm["items"][i].id+"'/>";  
     }
     
     //onclick menu item
-    $( ".menuitem" ).click(function() {
+    $( ".menuitem" ).click(function(event) {
+		 event.preventDefault();
          mainLayout.cells("b").attachURL(m_permissionUrls[this.id]);
          //store user state
-         localStorage.setItem("selected_start_menu_item",this.id)
+         localStorage.setItem("selected_start_menu_item",this.id);
+		 initialMenuItem = this.id;
     })
+	//onrightclick menu item store clicked page in localstore so it is autoloaded on new page
+	$('.menuitem').mousedown(function(event) {
+      if(event.metaKey || event.ctrlKey || event.which === 3) { // right click
+          localStorage.setItem("selected_start_menu_item",this.id)
+      }
+	});
+	//on page refresh, store currently loaded menu item in order not to load rightclick opened one
+	window.onbeforeunload = function(e) {
+	  localStorage.setItem("selected_start_menu_item",initialMenuItem);
+    };
+
+	
       
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 
@@ -322,6 +339,7 @@ function restoreUserState(){
             console.log($( "#" + localStorage.getItem("selected_start_menu_item")));
             $( "#" + localStorage.getItem("selected_start_menu_item") ).click(function() {});
 			mainLayout.cells("b").attachURL(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
+			initialMenuItem = localStorage.getItem("selected_start_menu_item");
 		}catch(e){}
     }else{
         m_mainSidebar.items("GROUPRIGHT_MENU_VIEW_JOB_STATUS").setActive(); 

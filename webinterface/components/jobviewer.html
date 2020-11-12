@@ -305,6 +305,14 @@
 
         });
 
+        socket.on('pendingjobs', function(msg) {
+            if (JSON.parse(msg)) {
+                var q_obj = (JSON.parse(msg));
+                addActiveJobsToGrid(runningJobGrid, q_obj, "Pending");
+            }
+            mainLayout.cells("a").progressOff();
+        });
+		
         socket.on('queuedjobs', function(msg) {
             if (JSON.parse(msg)) {
                 var q_obj = (JSON.parse(msg))
@@ -615,7 +623,7 @@
                     dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: " + node.data.file + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
-                $tdList.eq(6).html("<div class='celltext'>" + node.data.outcome.substring(0, 1000) + "</div>"); //outcome can be lengthy
+                $tdList.eq(6).html("<div class='celltext' title='"+node.data.outcome.substring(0, 1000)+"'>" + node.data.outcome.substring(0, 1000) + "</div>"); //outcome can be lengthy
             },
             init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
@@ -991,7 +999,6 @@
         var oldnodes = rootNode.children;
         if (oldnodes) {
             for (a = 0; a < oldnodes.length; a++) {
-                //console.log(oldnodes[a]["data"]["state"], qstate)
                 if (oldnodes[a]["data"]["state"] == qstate) {
                     if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
                         oldnodes[a].remove();

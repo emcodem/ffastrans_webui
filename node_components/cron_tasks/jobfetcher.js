@@ -87,11 +87,11 @@ module.exports = {
         try{
 		//transform to match activejobs structure
 			
-			var q_obj = JSON.parse(body)["tickets"]["pending"];
+			var q_obj = JSON.parse(body)["tickets"]["incoming"];
 			if (q_obj !== undefined) {
 				for (i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
-                            console.log("key", JSON.stringify(q_obj[i]))
+                            
 							q_obj[i]["split_id"] = ""
 							q_obj[i]["state"] = "Pending";
 							q_obj[i]["title"] = "Pending";
@@ -108,12 +108,12 @@ module.exports = {
 			
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
 			
-				if (JSON.parse(body)["tickets"]["pending"]){
-					global.socketio.emit("queuedjobs", JSON.stringify(q_obj));
-					global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["pending"].length);                
+				if (JSON.parse(body)["tickets"]["incoming"]){
+					global.socketio.emit("pendingjobs", JSON.stringify(q_obj));
+					global.socketio.emit("pendingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
 				}else{
-					global.socketio.emit("queuedjobs", "[]");
-					global.socketio.emit("queuedjobcount", 0);               
+					global.socketio.emit("pendingjobs", "[]");
+					global.socketio.emit("pendingjobcount", 0);               
 				}
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
