@@ -66,7 +66,7 @@ function jsonfiles_to_array(dir) {
         fs.readdirSync(dir).forEach(function(fname){
                 var newitem = (JSON.parse(readfile_cached(path.join(dir,fname), 'utf8')))//removes BOM	;
                 var wf_id =  fname.split("~")[3];
-                newitem["fullpath"] = fname;
+                newitem["fullpath"] = path.join(dir,fname);
                 newitem["internal_wf_id"] = wf_id;
 				newitem["internal_file_date"] = fs.statSync(path.join(dir,fname)).birthtime;
                 returnarray.push(newitem)
@@ -128,17 +128,32 @@ async function get_incoming(returnarray){
 async function get_pending(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
     var a_pending = jsonfiles_to_array(path.join(s_tick_path,"pending"));
-	//console.log("a_pending",a_pending)
-	for (var _idx in a_pending){
-		var _cur = a_pending[_idx];
-		console.log(a_pending[_idx])
-		a_pending[_idx]["workflow"] = get_wf_name(a_pending[_idx]["internal_wf_id"]);
-		a_pending[_idx]["submit"] = {};
-		a_pending[_idx]["sources"] = {"current_file": "SOURCEFILE"};
-		a_pending[_idx]["submit"] = {"time":a_pending[_idx]["internal_file_date"]};
-		a_pending[_idx]["nodes"] = {"next":"None","type":"None"};
-	}
-	return a_pending;
+    
+	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
+    //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 
+    //as we dont want to show both at the same time, we ignore the pending tickets from mon_folder to prevent showing the same file twice
+    var keys_to_ignore = []; 
+    for (var key in a_pending){
+        var _cur = a_pending[key];
+		a_pending[key]["workflow"] = get_wf_name(a_pending[key]["internal_wf_id"]);
+		a_pending[key]["submit"] = {};
+        try{
+            a_pending[key]["sources"] = {"current_file": a_pending[key]["sources"]["original_file"]};
+		}catch(ex){
+            //omit this ticket as it does not carray source file info
+            keys_to_ignore.push(key)
+        }
+        a_pending[key]["submit"] = {"time":a_pending[key]["internal_file_date"]};
+		a_pending[key]["nodes"] = {"next":"None","type":"None"};
+    }
+    for (var key in keys_to_ignore){
+        delete a_pending[key];
+    }
+    //after deleting we happen to have a weird empty object
+    var filtered = a_pending.filter(function (el) {
+      return el != null;
+    });
+	return filtered;
 	
 }
 
