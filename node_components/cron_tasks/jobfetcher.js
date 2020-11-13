@@ -84,6 +84,44 @@ module.exports = {
             global.socketio.emit("error", 'Error getting Queued Jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
             return;
         }
+		try{
+		//QUEUED JOBS (in ffastrans pending folder)
+			
+			var q_obj = JSON.parse(body)["tickets"]["queued"];
+			if (q_obj !== undefined) {
+				for (i=0; i<q_obj.length;i++){
+							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
+							q_obj[i]["split_id"] = ""
+							q_obj[i]["state"] = "Queued";
+							q_obj[i]["title"] = "Queued";
+							q_obj[i]["steps"] = "";
+							q_obj[i]["progress"] = "0";
+							q_obj[i]["workflow"] = q_obj[i]["workflow"]; //todo: implement workflow in ffastrans tickets api for pending jobs
+							if ("sources" in q_obj[i]){
+								q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
+							}
+							q_obj[i]["host"] = "Queued";
+							q_obj[i]["status"] = "Queued";
+							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
+							q_obj[i]["proc"] = "Queued";
+				}
+			}
+			
+			//send the new jobs to connected clients, todo: only notify clients about new stuff
+			
+				if (JSON.parse(body)["tickets"]["incoming"]){
+					global.socketio.emit("queuedjobs", JSON.stringify(q_obj));
+					global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
+				}else{
+					global.socketio.emit("queuedjobs", "[]");
+					global.socketio.emit("pendingjobcount", 0);               
+				}
+		}catch(exc){
+			console.error("Error occured while sending queuedjobs to clients: " + exc )
+			console.error(exc.stack)
+            console.error(q_obj[i])
+		}
+		//WATCHFOLDER PENDING
         try{
 		//transform to match activejobs structure
 			

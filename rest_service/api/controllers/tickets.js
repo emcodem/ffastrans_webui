@@ -7,6 +7,74 @@ const recursive = require('fs-readdir-recursive')
 module.exports = {
     get: start
 };
+//HELPERS
+
+
+function get_wf_name(wf_id){
+        try{
+            var workflow_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/workflows/");
+            var wf_path = path.join(workflow_folder,wf_id) + ".json";
+            //console.log("Reading worfklow for pending ticket: ", wf_path)
+            var wf_obj = readfile_cached(wf_path );
+            wf_obj = JSON.parse(wf_obj);
+            return wf_obj["wf_name"];
+           
+        }catch(ex){
+            console.error("Error reading workflow for pending ticket: ",ex);
+            
+        }
+    
+}
+
+function readfile_cached(fullpath){
+	if (! ("filecache" in global)){
+		global.filecache = {};
+	}
+	if (! ("tickets" in global.filecache)){
+		global.filecache.tickets = {};
+	}
+	//delete non existing files in global cache
+	for (const key in global.filecache.tickets) {
+		if (!fs.existsSync(key)){
+				delete global.filecache.tickets[key];
+		}
+	}
+	
+	if (fullpath in global.filecache.tickets){
+		//serve cached file
+		return global.filecache.tickets[fullpath];
+	}else{
+		//read file, store globally and return content
+		try{
+			var newitem = fs.readFileSync(fullpath, 'utf8').replace(/^\uFEFF/, '');//removes BOM	;
+			global.filecache.tickets[fullpath] = newitem;
+			return newitem;
+			
+		}catch(ex){
+			console.error("Unexpected error while reading ticket file",fullpath,ex);
+			throw ex;
+		}
+	}
+	
+}
+
+//all files in all directories to array
+function jsonfiles_to_array(dir) {
+		if (!dir){return}
+		var returnarray=[];
+		//Array.prototype.concat(fs.readdirSync(dir)).forEach(
+        fs.readdirSync(dir).forEach(function(fname){
+                var newitem = (JSON.parse(readfile_cached(path.join(dir,fname), 'utf8')))//removes BOM	;
+                var wf_id =  fname.split("~")[3];
+                newitem["fullpath"] = fname;
+                newitem["internal_wf_id"] = wf_id;
+				newitem["internal_file_date"] = fs.statSync(path.join(dir,fname)).birthtime;
+                returnarray.push(newitem)
+            }
+            
+		);
+		return returnarray;
+}
 
 //workaround the missing ability of ffastrans to tell us about watchfolder status
 async function get_incoming(returnarray){
@@ -57,69 +125,23 @@ async function get_incoming(returnarray){
 	return [];
 }
 
-function get_wf_name(wf_id){
-        try{
-            var workflow_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/workflows/");
-            var wf_path = path.join(workflow_folder,wf_id) + ".json";
-            //console.log("Reading worfklow for pending ticket: ", wf_path)
-            var wf_obj = readfile_cached(wf_path );
-            wf_obj = JSON.parse(wf_obj);
-            return wf_obj["wf_name"];
-           
-        }catch(ex){
-            console.error("Error reading workflow for pending ticket: ",ex);
-            
-        }
-    
+async function get_pending(){
+	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
+    var a_pending = jsonfiles_to_array(path.join(s_tick_path,"pending"));
+	//console.log("a_pending",a_pending)
+	for (var _idx in a_pending){
+		var _cur = a_pending[_idx];
+		console.log(a_pending[_idx])
+		a_pending[_idx]["workflow"] = get_wf_name(a_pending[_idx]["internal_wf_id"]);
+		a_pending[_idx]["submit"] = {};
+		a_pending[_idx]["sources"] = {"current_file": "SOURCEFILE"};
+		a_pending[_idx]["submit"] = {"time":a_pending[_idx]["internal_file_date"]};
+		a_pending[_idx]["nodes"] = {"next":"None","type":"None"};
+	}
+	return a_pending;
+	
 }
 
-function readfile_cached(fullpath){
-	if (! ("filecache" in global)){
-		global.filecache = {};
-	}
-	if (! ("tickets" in global.filecache)){
-		global.filecache.tickets = {};
-	}
-	//delete non existing files in global cache
-	for (const key in global.filecache.tickets) {
-		if (!fs.existsSync(key)){
-				delete global.filecache.tickets[key];
-		}
-	}
-	
-	if (fullpath in global.filecache.tickets){
-		//serve cached file
-		return global.filecache.tickets[fullpath];
-	}else{
-		//read file, store globally and return content
-		try{
-			var newitem = fs.readFileSync(fullpath, 'utf8').replace(/^\uFEFF/, '');//removes BOM	;
-			global.filecache.tickets[fullpath] = newitem;
-			return newitem;
-			
-		}catch(ex){
-			console.error("Unexpected error while reading ticket file",fullpath,ex);
-			throw ex;
-		}
-	}
-	
-}
-//all files in all directories to array
-function jsonfiles_to_array(dir) {
-		if (!dir){return}
-		var returnarray=[];
-		//Array.prototype.concat(fs.readdirSync(dir)).forEach(
-        fs.readdirSync(dir).forEach(function(fname){
-                var newitem = (JSON.parse(readfile_cached(path.join(dir,fname), 'utf8')))//removes BOM	;
-                var wf_id =  fname.split("~")[3];
-                newitem["fullpath"] = fname;
-                newitem["internal_wf_id"] = wf_id;
-                returnarray.push(newitem)
-            }
-            
-		);
-		return returnarray;
-}
 /*
   Functions in a127 controllers used for operations should take two parameters:
 
@@ -129,10 +151,10 @@ function jsonfiles_to_array(dir) {
 async function start(req, res) {
 	try {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-		var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
+		
 	    var o_return = {};
         o_return["tickets"] = {};
-		o_return["tickets"]["queue"] = jsonfiles_to_array(path.join(s_tick_path,"pending"));
+		o_return["tickets"]["queued"] = await get_pending();
 		//o_return["tickets"]["queue"] = jsonfiles_to_array(path.join(s_tick_path,"queue"));
 		o_return["tickets"]["incoming"] = await get_incoming();
 		
@@ -143,3 +165,7 @@ async function start(req, res) {
 		return res.status(500).json({description: err});
 	}
 }
+
+
+
+
