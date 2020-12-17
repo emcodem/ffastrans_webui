@@ -29,8 +29,7 @@ module.exports = {
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
     }
-    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 4000},(error, response, body) => {
-            
+    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 30000},(error, response, body) => {
             if(error) {
                 global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                 console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
@@ -164,7 +163,7 @@ module.exports = {
     });
     
     //fetch history jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 7000},(error, response, body) => {
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 30000},(error, response, body) => {
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
         }
@@ -352,9 +351,14 @@ function getFancyTreeArray(jobArray){
                 for (paridx=0;paridx<_parents.length;paridx++){
                     _parents[paridx]["children"] = family.filter(function (el) {
                         if (el["state"] == "Error"){
-                            godfather["state"] = "Error";
+                            //godfather["state"] = "Error";
                             godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
                         }
+                        console.log("State",el["state"])
+                        if (el["state"] == "Success"){
+                            godfather["state"] = "Success";
+                        }
+                        
                          return (el["sort_generation"] == genidx+1 && el["sort_family_index"] == _parents[paridx]["sort_child_id"]) ;
                     });
                 }                
