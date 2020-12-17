@@ -423,7 +423,7 @@ function saveGroupProps(){
 
 function saveUserGroupToServer(groupObj,doreload){
     $.ajax({
-        url:  ("/usergrouplist") ,
+        url:  ("/usergrouplist" + "?" + Math.random()) ,
         type: "POST",
         context: this,
         dataType: "json",
@@ -442,7 +442,7 @@ function saveUserGroupToServer(groupObj,doreload){
 
 function loaduserlist(){
    $.ajax({
-        url:  ("/userlist") ,
+        url:  ("/userlist" + "?" + Math.random()) ,
         type: "GET",
         success: function (userlist) {
             //render userlist in grid
@@ -483,11 +483,13 @@ function loadusergrouplist(){
 
 function loadpermissionlist(){
    $.ajax({
-        url:  ("/usergrouprightslist") ,
+        url:  ("/usergrouprightslist" + "?" + Math.random()) ,
         type: "GET",
         success: function (permlist) {
+            console.log(permlist)
             //render userlist in grid
             permlist = JSON.parse(permlist);
+            console.log(permlist)
             m_permissiongrid.clearAll();
             for (i in permlist){
                 m_permissiongrid.addRow(permlist[i].key,[permlist[i].key]);
@@ -503,7 +505,7 @@ function loadpermissionlist(){
 
 function createusergroup(name){
    $.ajax({
-        url:  ("/usergrouplist") ,
+        url:  "/usergrouplist" + "?" + Math.random() ,
         type: "POST",
         success: function () {
             //render userlist in grid
@@ -522,7 +524,7 @@ function deleteusergoup(){
         return;
     }
    $.ajax({
-        url:  ("/usergrouplist") ,
+        url:  ("/usergrouplist" + "?" + Math.random()) ,
         type: "DELETE",
         dataType: "json",
         data: {"name":m_groupgrid.getSelectedRowId()},
@@ -547,7 +549,7 @@ function deleteuser(){
     var username = m_usergrid.getUserData(m_usergrid.getSelectedRowId(),"object")["username"];
     
    $.ajax({
-        url: ("/userlist"),
+        url: ("/userlist" + "?" + Math.random()),
         type: "DELETE",
         dataType: "json",
         data: {"name":username},
