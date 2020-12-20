@@ -381,6 +381,7 @@
     }
 
     function click_a_header(id) {
+        clearSelection();
         var tree = $('#treetable_active').fancytree('getTree');
         var selected = tree.getSelectedNodes();
         if (selected.length == 0) {
@@ -554,7 +555,7 @@
             },
             dblclick: function(event, data) {},
             select: function(event, data) {
-
+                
                 if (data.node.isSelected()) {
                     data.node.addClass("rowselected");
                 } else {
@@ -562,27 +563,35 @@
                 }
             },
             contextMenu: {
+            
                 selector: "act_row",
                 menu: getContextMenuHistoryGrid( 
-                    {
+                    {   
                         "details": {
                             "name": "Job Details"
                         },
-                        "abort": {
-                            "name": "Abort"
+                        "prio": {
+                            "name": "Priority",
+                            "items": {
+                                "prio_0": { "name": "0 (Low)" },
+                                "prio_1": { "name": "1" },
+                                "prio_2": { "name": "2" },
+                                "prio_3": { "name": "3" },
+                                "prio_4": { "name": "4 (High)" }
+                            }
                         },
-                        "pause": {
+                        '<i style = "margin-right:3px" class= "fas fa-pause fa-sm" ></i> pause': {
                             "name": "Pause"
                         },
                         "resume": {
                             "name": "Resume"
                         },                        
-                        "priority": {
-                            "name": "Priority"
-                        },
+                        "abort": {
+                            "name": "Abort"
+                        }
                     }) ,
-                actions: function(node, action, options) {
-                        
+                    actions: function(node, action, options) {
+                        clearSelection(); //disable browser internal line selection if user selected multiple rows using shift. TODO: catch shift globally and do this
                         var tree = $('#treetable_active').fancytree('getTree');
                         var selected = tree.getSelectedNodes();
                         $.extend(selected,node);
@@ -598,6 +607,10 @@
                         if (action == "abort") {
                            console.log(selected)
                            jobCommand(selected, "abort");
+                        }
+                        if (action.indexOf("prio") ){
+                           console.log(selected)
+                           
                         }
                         
 
@@ -1007,7 +1020,7 @@
                 context: this,
                 data: JSON.stringify(postBody),
                 success: function(response) {
-                    dhtmlx.message("Success " + action + node.data.job_id);
+                    dhtmlx.message("Success " + action + " " + node.data.job_id);
                 },
                 error: function(xhr, status) {
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
@@ -1268,6 +1281,17 @@
 
         localStorage.setItem("m_lastsortelementid", m_lastsortelementid);
         localStorage.setItem("m_lastsortdir", m_lastsortdir);
+    }
+
+        
+    function clearSelection() {
+    //used for clearing all unwanted browser text selections
+        if(document.selection && document.selection.empty) {
+            document.selection.empty();
+        } else if(window.getSelection) {
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+        }
     }
 </script>
 
