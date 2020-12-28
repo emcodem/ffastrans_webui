@@ -30,6 +30,7 @@
 <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
 
+
 <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
 <link rel="stylesheet"
       href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
@@ -203,8 +204,7 @@
         var a_abort = '<button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm" ></i>Abort</button>';
         var a_pause = '<button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm" ></i>Pause</button>';
         var a_resume = '<button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm" ></i>Resume</button>';
-        var a_priority = '<button class="btn" name="a_priority" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-edit fa-sm" ></i>Priority</button>';
-        var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_priority];
+        var arr_all_in_a = [a_details,a_abort,a_pause,a_resume];
         
         var b_details = '<button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm"></i>Job Details</button>';
         var b_resubmit = '<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm" ></i>Resubmit</button>';
@@ -407,19 +407,23 @@
         if (id == "a_resume") {
             jobCommand(selected, "resume");
         }
-        if (id == "a_priority") {
-          
-            jobCommand(selected, "priority");
-        }
+ 
     }
 
-    function click_b_header(id) {
-
+    function click_b_header(id,node) {
+        //if we have node argument, we are called from context menu
         var tree = $('#treetable_history').fancytree('getTree');
         var selected = tree.getSelectedNodes();
+        //console.log("selectd before",selected)
+        //console.log("clicked node,",node)
+        
+       // if (node){console.log("extending");$.extend(selected,node)}
+        //console.log("selected,",selected.length,selected)
+        if (selected.length == 0 && (id != "b_delall")) {
+            dhtmlx.alert("Please select row");
+            return;
+        }
         if (id == "b_resubmit") {
-            var tree = $('#treetable_history').fancytree('getTree');
-            var selected = tree.getSelectedNodes();
             selected.forEach(function(node) {
                 resubmit_job(node["data"]["guid"]);
             })
@@ -446,8 +450,6 @@
                 node.remove();
             });
             socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
-
-
         }
         if (id == "b_delall") {
             //delete all jobs
@@ -591,6 +593,7 @@
                         }
                     }) ,
                     actions: function(node, action, options) {
+                        console.log("action: ", action)
                         clearSelection(); //disable browser internal line selection if user selected multiple rows using shift. TODO: catch shift globally and do this
                         var tree = $('#treetable_active').fancytree('getTree');
                         var selected = tree.getSelectedNodes();
@@ -604,13 +607,21 @@
                             var url = "logviewer.html?job_id=" + jobid;
                             window.open(url, '_blank');
                         }
-                        if (action == "abort") {
+                        if (action.indexOf("resume") != -1) {
+                           console.log(selected)
+                           jobCommand(selected, "resume");
+                        }
+                        if (action.indexOf("abort") != -1) {
                            console.log(selected)
                            jobCommand(selected, "abort");
                         }
-                        if (action.indexOf("prio") ){
+                        if (action.indexOf("pause") != -1) {
                            console.log(selected)
-                           
+                           jobCommand(selected, "pause");
+                        }
+                        if (action.indexOf("prio") != -1){
+                           var newprio = action.split("_")[1];
+                           jobCommand(selected, "priority", newprio);
                         }
                         
 
@@ -643,13 +654,17 @@
 
     }
 
-
-    function handleContextMenueClick(a,b,c){
-        console.log(a,b,c)
-    }
     function getContextMenuHistoryGrid(allpossible){
-        var contextmenu = {};
+        //opens context menu
         
+        <!-- try{//special code to mark rightlcicked node as selected -->
+            <!-- console.log("trying") -->
+            <!-- var tree = $('#treetable_history').fancytree('getTree'); -->
+            <!-- var selected = tree.getSelectedNodes(); -->
+            <!-- console.log("selected count: ", selected.length) -->
+        <!-- }catch(ex){} -->
+        
+        var contextmenu = {};
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){
             var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
@@ -690,6 +705,7 @@
             multi: { //multiselct
                 mode: ""
             },
+			
             modifyChild: function(event, data) {
                 //reset all odd even row colors
                 var rootNode = $("#treetable_history").fancytree("getRootNode");
@@ -777,34 +793,29 @@
                         "resubmit": {
                             "name": "Resubmit from Start"
                         },
-                        "delete": {
-                            "name": "Delete this job"
-                        },
                         "delsel": {
-                            "name": "Delete all selected"
+                            "name": "Delete selected"
                         },
                     }) ,
                 actions: function(node, action, options) {
-                        if (action == "details") {
+                        
+                        clearSelection(); //disable browser internal line selection if user selected multiple rows using shift. TODO: catch shift globally and do this
+                        var tree = $('#treetable_history').fancytree('getTree');
+                        var selected = tree.getSelectedNodes();
+                         $.extend(selected,node);
+                         console.log(action,selected)
+                        if (action.indexOf( "details") != -1) {
                             var jobid = (node.data["job_id"]); //jobid contains splitid, sort_family_name is the id of mother job without splitd
                             var url = "logviewer.html?job_id=" + jobid;
                             window.open(url, '_blank');
                         }
-                        if (action == "delete") {
-                            $("#treetable_history").fancytree("getTree").selectAll(false); //unselect all nodes
-                            node.setSelected(); //select the one that was right clickeds
-                            click_b_header("b_delsel");
-                        }
                         if (action == "delsel") {
-                            click_b_header("b_delsel");
+                            node.setSelected();
+                            click_b_header("b_delsel",node);
                         }
                         if (action == "resubmit") {
-                            var tree = $('#treetable_history').fancytree('getTree');
-                            var selected = tree.getSelectedNodes();
-                            selected.forEach(function(node) {
-                                resubmit_job(node["data"]["guid"]);
-                            })
-
+                            node.setSelected();
+                            click_b_header("b_resubmit",node)
                         }
 
                     }
@@ -1001,10 +1012,10 @@
 
     function jobCommand(fancy_node_array, action, value) {
         //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
-        console.log("aborting", fancy_node_array)
+        console.log("jobcommand", fancy_node_array,action,value)
         fancy_node_array.forEach(function(node) {
             if (node["data"]["state"] == "Queued") {
-                dhtmlx.message("Sorry, Queued Jobs cannot be aborted yet");
+                dhtmlx.message("Sorry, Queued Jobs cannot be controlled yet");
                 return;
             }
             var postBody = {

@@ -35,7 +35,11 @@
                     },
                     build: function ($trigger, e) {
                         node = $.ui.fancytree.getNode($trigger);
-
+                        if (! node.selected){
+                            //emcodem: when a node is rightclicked, it is not auto selected
+                            tree.selectAll(false);
+                            node.setSelected();
+                        }
                         var menuItems = {};
                         if ($.isFunction(menu)) {
                             menuItems = menu(node);

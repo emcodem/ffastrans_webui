@@ -34,6 +34,10 @@
         <script src="../dependencies/json.human.js-master/lib/require.js"></script>
         <link rel="stylesheet" href="../dependencies/json.human.js-master/lib/codemirror.css" type="text/css">
         -->
+        
+    <!-- google chart timeline - cannot be used offline due to license restrictions -->
+    <script type='text/javascript' src='https://www.google.com/jsapi'></script>
+
     <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css">
 
     <!-- DHTMLX dependencies -->
@@ -227,7 +231,7 @@
         var m_graph = {};
         var m_serverconfig;
         var mainLayout;
-
+        var m_timelineobject =  [];
         /*load config from server*/
         function loadserverconfig() {
             $.ajax({
@@ -342,6 +346,7 @@
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                                 <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
+                                <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()"><i style = "margin-right:3px" class= "fas fa-history " ></i></button>\
                                 <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
                                 ');
             mainLayout.cells("c").showInnerScroll();
@@ -380,6 +385,57 @@
             //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
         }
 
+        google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
+        function open_timeline() {
+            var myWins= new dhtmlXWindows();
+            var win = myWins.createWindow("Timeline", 50, 50,  window.innerWidth - 50, 600);
+            win.setText("Timeline");
+            win.attachHTMLString('<div id="div_timeline"></div>');
+            //google.setOnLoadCallback(open_timeline);
+            //window.onresize = open_timeline;
+            
+                    
+                var container = document.getElementById('div_timeline');
+                var chart = new google.visualization.Timeline(container);
+                var data = new google.visualization.DataTable();
+                
+                data.addColumn({ type: 'string', id: 'RowLabel' });
+                data.addColumn({ type: 'string', id: 'BarLabel' });
+                data.addColumn({ type: 'string', role: 'tooltip', 'p': { 'html': true } });
+                data.addColumn({ type: 'date', id: 'Start' });
+                data.addColumn({ type: 'date', id: 'End' });
+                console.log(m_timelineobject)
+                data.addRows(m_timelineobject);
+     
+                // Hack from Stack Overflow to try and re-size the vertical extents of the chart to
+                // avoid vertical scrolling. See http://stackoverflow.com/questions/18640818/google-charts-timeline-dynamic-height-with-scalebar-position
+                // set a padding value to cover the height of title and axis values
+                var paddingHeight = 40;
+                // set the height to be covered by the rows
+                var rowHeight = data.getNumberOfRows() * 45;
+                // set the total chart height
+                var estimatedHeight = rowHeight + paddingHeight;
+
+                var options = {
+                    timeline: {
+                        showRowLabels: true,
+                        colorByRowLabel: true,
+                        rowLabelStyle: { fontName: 'Arial', color: '#FFFFFF' },
+                        barLabelStyle: { fontName: 'Arial' /* bar label color cannot be set viat the API */ }
+                    },
+                    backgroundColor: '#999999',
+                    avoidOverlappingGridLines: true,
+                    height: estimatedHeight,
+                    hAxis: {
+                        format: 'hh:mm:ss'
+                      },
+                };
+
+                chart.draw(data, options);
+            
+
+        }
+        
         function buildMxGraph(container) {
             //set default box sizes as defined by ffastrans.au3
             var i_BOX_WIDTH = 115;
@@ -659,6 +715,18 @@ function export_StyledSVG(){
                 var _proc_id;
                 var line = lines[i];
                 try {
+                    //m_timelineobject = [];
+                    //['Group1', 'Item1', 'this is a tooltip for Item1.cpp', new Date(1485183398349.28) /* 2017-01-23 14:56:38.349 */, new Date(1485183403210.01) /* 2017-01-23 14:56:43.210 */],
+                    try{
+                        console.log(line)
+                        var timeline_entry = [line["event"],line["node"]["type"],"",new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00"))),new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00")) +1 )];
+                        //var timeline_entry = ['Group1', 'Item1',"",new Date(1485183398349.28),new Date(1485183398359.28)];
+                        
+                        m_timelineobject.push(timeline_entry)
+                    }catch(ex){
+                        console.log("error parsing log line for timeline")
+                    }
+                    
                     //start of new node log
                     //check if node is unique for nodegrid
                     var new_key = line["node"]["id"] + line["split_id"]
