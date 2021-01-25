@@ -196,10 +196,9 @@ function killRunningJob(current_job){
 }
 
 function needsExecution(current_job){    
-    console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
+    //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
     //check if job is still running
     if (current_job['enabled'] != 1){
-        
         return false;
     }
     if (current_job['last_pid']){

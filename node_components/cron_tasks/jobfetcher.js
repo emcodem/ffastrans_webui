@@ -3,8 +3,16 @@ const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
 const path = require("path")
+// const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
 //todo: implement queued jobs
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
+process.env.UV_THREADPOOL_SIZE = 128;
+
+
+
+// blocked((time, stack) => {
+  // console.log(`Blocked for ${time}ms, operation started here:`, stack)
+// })
 
 module.exports = {
     fetchjobs: function () {
@@ -29,7 +37,7 @@ module.exports = {
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
     }
-    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 30000},(error, response, body) => {
+    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 5000,agent: false,maxSockets: Infinity}, function (error, response, body)  {
             if(error) {
                 global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                 console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
@@ -72,7 +80,7 @@ module.exports = {
     });
     
     //fetch queued jobs from api
-    Request.get("http://localhost:3003/tickets", {timeout: 7000},(error, response, body) => {   
+    Request.get("http://localhost:3003/tickets", {timeout: 5000},(error, response, body) => {   
         
         //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -80,11 +88,12 @@ module.exports = {
             return;
         }
         if(error) {
-            global.socketio.emit("error", 'Error getting Queued Jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+            console.log('Internal Error getting Queued Jobs,  ' + "http://localhost:3003/tickets", error)
+            global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + "http://localhost:3003/tickets");
             return;
         }
 		try{
-		//QUEUED JOBS (in ffastrans pending folder)
+		//QUEUED JOBS (in ffastrans queued folder)
 			
 			var q_obj = JSON.parse(body)["tickets"]["queued"];
 			if (q_obj !== undefined) {
@@ -107,13 +116,14 @@ module.exports = {
 			}
 			
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
-			
-				if (JSON.parse(body)["tickets"]["incoming"]){
+				if (JSON.parse(body)["tickets"]["queued"]){
+                    
 					global.socketio.emit("queuedjobs", JSON.stringify(q_obj));
-					global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
+					global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["queued"].length);                
 				}else{
+                    console.log("Error, we should not come here, queued")
 					global.socketio.emit("queuedjobs", "[]");
-					global.socketio.emit("pendingjobcount", 0);               
+					global.socketio.emit("queuedjobcount", 0);               
 				}
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
@@ -146,9 +156,11 @@ module.exports = {
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
 			
 				if (JSON.parse(body)["tickets"]["incoming"]){
+                    
 					global.socketio.emit("pendingjobs", JSON.stringify(q_obj));
 					global.socketio.emit("pendingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
 				}else{
+                    console.log("Error, we should not come here, pending")
 					global.socketio.emit("pendingjobs", "[]");
 					global.socketio.emit("pendingjobcount", 0);               
 				}
@@ -163,12 +175,13 @@ module.exports = {
     });
     
     //fetch history jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 30000},(error, response, body) => {
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 5000},(error, response, body) => {
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
         }
         if(error) {
-            global.socketio.emit("error", 'Error retrieving queued jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
+            console.log("Error retrieving finished jobs",buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL),error)
+            global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
             return;
         }
 
@@ -222,6 +235,7 @@ module.exports = {
         }
         
 //END OF Family sorting
+        
         jobArray = getFancyTreeArray(jobArray);
 
         for (i=0;i<jobArray.length;i++){
@@ -354,9 +368,12 @@ function getFancyTreeArray(jobArray){
                             //godfather["state"] = "Error";
                             godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
                         }
-                        console.log("State",el["state"])
-                        if (el["state"] == "Success"){
+                        
+                        if (el["state"] != "Error"){
+                            //change godfather state to success if any subsequent node succeeded
                             godfather["state"] = "Success";
+                            godfather["title"] = "Success";
+                            
                         }
                         
                          return (el["sort_generation"] == genidx+1 && el["sort_family_index"] == _parents[paridx]["sort_child_id"]) ;
