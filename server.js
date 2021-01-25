@@ -15,7 +15,10 @@ const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
-//const longjohn = require('longjohn'); //long stacktraces
+// const blocked = require('blocked-at')
+// blocked((time, stack) => {
+  // console.log(`Blocked for ${time}ms, operation started here:`, stack)
+// })
 
 //register special mime types
 //express.mime.type['locallink'] = 'application/internet-shortcut';
@@ -205,22 +208,8 @@ function init(conf){
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
     var jobfetcher = require("./node_components/cron_tasks/jobfetcher");
     
-    cron.schedule("*/2 * * * * *", function() {
-    //SCHEDULED JOBS
-        if (!global.jobscheduleractive){
-            global.jobscheduleractive = true;
-                try{
-                    jobScheduler.execute();
-                }catch (ex){
-                    //TODO: what to do when scheduler runs into error?
-                    console.trace("Error, scheduler exception. " + ex)
-                }
-                global.jobscheduleractive = false;
-            }else{
-                console.error("Scheduler still active, that should not happen!");
-            }
-        
-    //GET LATEST JOBS FROM FFASTRANS API      
+    cron.schedule("*/5 * * * * *", function() {
+        //GET LATEST JOBS FROM FFASTRANS API      
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;
             try{
@@ -232,6 +221,22 @@ function init(conf){
         }else{
             console.error("Jobfetcher still active, that should not happen");
         }
+    })
+    cron.schedule("*/2 * * * * *", function() {
+    //SCHEDULED JOBS
+        if (!global.jobscheduleractive){
+            global.jobscheduleractive = true;
+                try{
+                    jobScheduler.execute();
+                }catch (ex){
+                    //TODO: what to do when scheduler runs into error?
+                    console.trace("Error, scheduler exception. " + ex)
+                }
+                global.jobscheduleractive = false;
+        }else{
+            console.error("Scheduler still active, that should not happen!");
+        }
+        
     });
 
     //log all requests

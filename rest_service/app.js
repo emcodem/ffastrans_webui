@@ -1,5 +1,10 @@
 'use strict';
 
+// const blocked = require('blocked-at')
+// blocked((time, stack) => {
+  // if (time > 40){console.log(`Blocked for ${time}ms, operation started here:`, stack)}
+// })
+
 //this app can be required by other apps
 
 /* this module is currently driven by webserver main, but it should be able to run standalone */
@@ -10,6 +15,7 @@ const path = require("path");
 
 //require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
 
+//start_server(3003,"C:\\dev\\ffastrans_webui\\rest_service","C:\\dev\\FFAStrans\\");
 exports.init = function (port, approot, ffas_root) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
 	start_server(port,approot,ffas_root);

@@ -516,9 +516,11 @@
                         var search = cell["ffastransobj"]["id"].toUpperCase();
                         var tree = $("#treetable_log").fancytree('getTree');
                         tree.filterNodes(function (node) {
-                            if (node["data"]["node"]["id"].toUpperCase().match(search)) {
-                                //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
-                                return true;
+                            if (node["data"]["node"]["id"]){
+                                if (node["data"]["node"]["id"].toUpperCase().match(search)) {
+                                    //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                                    return true;
+                                }
                             }
                         }, {
                             mode: "hide"
@@ -867,6 +869,7 @@ function export_StyledSVG(){
                     }
 
                     var nodeid = node.data["node"]["id"];
+                    
                     var nodename = getNodeNameById(nodeid);
                     var created = node.data["created"];
                     created = moment.parseZone(created.replace(/.00$/, ":00"))
@@ -1020,7 +1023,9 @@ function export_StyledSVG(){
         }
 
         function getNodeNameById(id) {
-
+            if (!id){
+                return "System";
+            }
             var n = m_workflowdata.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
             if (n.length != 1) { return "Not found" }
             nodename = n[0].name || n[0].type;
