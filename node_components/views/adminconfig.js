@@ -25,11 +25,14 @@ var configServer = require(global.approot  + '/node_components/server_config');
                      //loop through all config items and display them, this way we support adding/removing items in the config dynamically
 					for (const key in outputConfig) {
                         var disabled = false;
+                        //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
+                        if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
+                        //decide type of userinput
 						if (typeof (outputConfig[key]) == "string"){
                             //bool as string
                             if (outputConfig[key]=="true"||outputConfig[key]=="false"){
-                                fieldset.list.push ({type: "select", "disabled":disabled,name: key,label: "<b>"+key+"</b>",width:600, options:[
+                                fieldset.list.push ({type: "select", "hidden":disabled,name: key,label: "<b>"+key+"</b>",width:600, options:[
                                     {text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
                                     {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
                                 ]})
@@ -37,16 +40,16 @@ var configServer = require(global.approot  + '/node_components/server_config');
                                 continue;
                             }
                             //normal string
-							fieldset.list.push({type:"input", "disabled":disabled,name: key, width:600,label: "<b>"+key+"</b>",value:outputConfig[key]})
+							fieldset.list.push({type:"input", "hidden":disabled,name: key, width:600,label: "<b>"+key+"</b>",value:outputConfig[key]})
 						}
 						if (typeof (outputConfig[key]) == "number"){
-							fieldset.list.push({type:"input", "disabled":disabled,name: key, width:600,label: "<b>"+key+"</b>",value:outputConfig[key]})
+							fieldset.list.push({type:"input", "hidden":disabled,name: key, width:600,label: "<b>"+key+"</b>",value:outputConfig[key]})
 						}                        
 						if (typeof (outputConfig[key]) == "boolean"){
                             console.log(key + "is bool, disabled: " + disabled)
 							fieldset.list.push ({type: "select", name: key,label: "<b>"+key+"</b>",width:600, options:[
-								{text: "Enable", value: "true",	"disabled":disabled, selected:(true==JSON.parse(outputConfig[key]))},
-								{text: "Disable", value: "false", "disabled":disabled, selected:(false==JSON.parse(outputConfig[key]))},
+								{text: "Enable", value: "true",	"hidden":disabled, selected:(true==JSON.parse(outputConfig[key]))},
+								{text: "Disable", value: "false", "hidden":disabled, selected:(false==JSON.parse(outputConfig[key]))},
 							]})
 						}
 						if (typeof (outputConfig[key]) == "object"){
