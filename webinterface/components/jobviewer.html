@@ -295,7 +295,7 @@
         //    mainLayout.cells("a").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
-
+            
             if (applyWorkflowFilter(msg) == false) {
                 return;
             }
@@ -316,14 +316,22 @@
                 }
             }
             //add new node
-
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
 
         });
 
         socket.on('pendingjobs', function(msg) {
+           
             if (JSON.parse(msg)) {
                 var q_obj = (JSON.parse(msg));
+                for (i=0;i<q_obj.length;i++){
+                    //convert file time to time of user perspective
+                     console.log(new Date(q_obj[i]["job_start"]  ))//TODO: Date dont work in FF und IE
+                    q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" );//if do not do this, time will be off from timezone
+                   
+                    q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" ).toISOString().replace("T"," ").replace(/\..*/,""); 
+                    
+                }
                 addActiveJobsToGrid(runningJobGrid, q_obj, "Pending");
             }
             mainLayout.cells("a").progressOff();
@@ -707,6 +715,7 @@
             },
 			
             modifyChild: function(event, data) {
+                
                 //reset all odd even row colors
                 var rootNode = $("#treetable_history").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
@@ -722,6 +731,7 @@
                 }
             },
             renderColumns: function(event, data) {
+                
                 var node = data.node;
                 if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
                     if (data.node.getIndex() % 2 == 0) {
@@ -733,7 +743,7 @@
                     }
                 }
                 node.addClass("hist_row"); //for context menu
-
+                
                 $tdList = $(node.tr).find(">td");
                 // (index #0 is rendered by fancytree (title node))
                 //$tdList.eq(0).text(node.data.state);
@@ -742,12 +752,16 @@
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
+                
                 var outcome = node.data.outcome.substring(0, 1000);
+                
                 if (outcome.length == 10000) {
                     dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: " + node.data.file + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
-                $tdList.eq(6).html("<div class='celltext' title='"+node.data.outcome.substring(0, 1000)+"'>" + node.data.outcome.substring(0, 1000) + "</div>"); //outcome can be lengthy
+                
+                $tdList.eq(6).html("<div class='celltext' title='"+outcome+"'>" +outcome + "</div>"); //outcome can be lengthy
+                
             },
             init: function(event, data) {
                 //ENABLE RESIZE COLUMNS

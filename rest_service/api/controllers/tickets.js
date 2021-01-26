@@ -37,7 +37,6 @@ async function cache_cleaner(){
             await fsPromises.access(key, fs.constants.R_OK | fs.constants.W_OK)
 		}catch(ex){
             //file does not exist, delete from cache
-            console.log("delete from cache",key)
             delete global.filecache.tickets[key];
         }
 	}
@@ -57,11 +56,10 @@ async function readfile_cached(fullpath){
 
 	if (fullpath in global.filecache.tickets){
 		//serve cached file
-        console.log("Serving from cache",fullpath)
+        
 		return global.filecache.tickets[fullpath];
 	}else{
 		//read file, store globally and return content
-        console.log("NOT serving from cache, Reading File",fullpath)
 		try{
             var contents = await fsPromises.readFile(fullpath, 'utf8');
             contents = contents.replace(/^\uFEFF/, '');
@@ -78,10 +76,11 @@ async function readfile_cached(fullpath){
 
 //all files in all directories to array
 async function jsonfiles_to_array(dir) {
-        console.time("jsonfiles_to_array");
+        //console.time("jsonfiles_to_array " + dir);
 		if (!dir){return}
 		var returnarray=[];
         var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+        
         for (var _idx in allfiles){
             try{
                 var newitem = (JSON.parse(readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
@@ -102,7 +101,7 @@ async function jsonfiles_to_array(dir) {
                 console.log("Could not read file:",ex)
             }
         }
-        console.timeEnd("jsonfiles_to_array");
+        //console.timeEnd("jsonfiles_to_array " + dir);
 		return returnarray;
 }
 
@@ -155,7 +154,7 @@ async function get_incoming(returnarray){
                                 var _stat = await fsPromises.stat(fullpath);
                                 newitem["submit"] = {"time":_stat["birthtime"]};
                                 newitem["nodes"] = {"next":"Watchfolder","type":"Watchfolder"};
-                                console.log("WFNAME", await get_wf_name(_matches[1]))
+                                
                                 newitem["internal_wf_name"] = await get_wf_name(_matches[1]);
                                 found_incoming.push(newitem);
                             }catch(ex){
@@ -268,7 +267,6 @@ async function get_pending(){
 async function start(req, res) {
 	try {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-		console.log("tickets method start")
 	    var o_return = {};
         o_return["tickets"] = {};
 		o_return["tickets"]["queued"] = await get_pending();
