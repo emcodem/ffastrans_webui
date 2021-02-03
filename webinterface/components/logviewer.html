@@ -89,6 +89,9 @@
 
         table, th, td {
             border: 1px solid black;
+            table-layout:fixed;
+            white-space:nowrap;
+            overflow:hidden;
         }
 
         .table_ffastrans_processor_enabled {
@@ -486,8 +489,8 @@
                             var tbl = '<table name="gui_node" style="width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                                 'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                 '<tr class="tr_ffastrans_processor_top" >' +
-                                '<th><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
-                                '<tr style="height:70%;font-size:8px" ><th> ' + FF_NODE_DESC + '</th></tr>' +
+                                '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
+                                '<tr style="height:70%;font-size:8px" title="' +FF_NODE_DESC + '"><th> ' + FF_NODE_DESC + '</th></tr>' +
                                 '</table>';
                             return tbl;
                         }
