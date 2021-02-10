@@ -110,7 +110,11 @@ module.exports = {
 							}
 							q_obj[i]["host"] = "Queued";
 							q_obj[i]["status"] = "Queued";
+                            try{
 							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
+                            }catch(ex){
+                                console.log("getdate failed on:" ,q_obj[i])
+                            }
 							q_obj[i]["proc"] = "Queued";
 				}
 			}
@@ -140,8 +144,8 @@ module.exports = {
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
                             
 							q_obj[i]["split_id"] = ""
-							q_obj[i]["state"] = "Pending";
-							q_obj[i]["title"] = "Pending";
+							q_obj[i]["state"] = "Incoming";
+							q_obj[i]["title"] = "Incoming";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
 							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; //todo: implement workflow in ffastrans tickets api for pending jobs
@@ -270,17 +274,8 @@ module.exports = {
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
     var re = new RegExp("-.....");
-    
     var parsed = moment.parseZone(str.replace(/.00$/,":00"))
     return parsed.format("YYYY-MM-DD HH:mm:ss");
-    //var newdatestr = (str.replace("T"," ").replace("-01.00",""))
-    //try {
-    //    var dt = date.parse(str.replace("T", " ").replace("-01.00", ""), "YYYY-MM-DD HH:mm:ss.SSS")
-    //    return date.parse(str.replace("T", " ").replace("-01.00", ""), "YYYY-MM-DD HH:mm:ss.SSS")
-    //}catch(e){
-    //    console.error("Could not parse date string: " + str + " replaced: "+ newdatestr);
-    //    return str;
-    //}
     
 }
 

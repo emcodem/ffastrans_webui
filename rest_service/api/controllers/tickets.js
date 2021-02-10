@@ -56,7 +56,6 @@ async function readfile_cached(fullpath){
 
 	if (fullpath in global.filecache.tickets){
 		//serve cached file
-        
 		return global.filecache.tickets[fullpath];
 	}else{
 		//read file, store globally and return content
@@ -64,7 +63,7 @@ async function readfile_cached(fullpath){
             var contents = await fsPromises.readFile(fullpath, 'utf8');
             contents = contents.replace(/^\uFEFF/, '');
 			global.filecache.tickets[fullpath] = contents;
-			return contents;
+			return global.filecache.tickets[fullpath];
 			
 		}catch(ex){
 			console.error("Unexpected error while reading ticket file",fullpath,ex);
@@ -83,14 +82,14 @@ async function jsonfiles_to_array(dir) {
         
         for (var _idx in allfiles){
             try{
-                var newitem = (JSON.parse(readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
+                var newitem = (JSON.parse(await readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
                 var wf_id =  allfiles[_idx].split("~")[3];
                 newitem["fullpath"] = path.join(dir,allfiles[_idx]);
                 newitem["internal_wf_id"] = wf_id;
-                if (!"internal_wf_name" in newitem){
-                    newitem["internal_wf_name"] = get_wf_name(wf_id);
+                if (! ("internal_wf_name" in newitem)){
+                    newitem["internal_wf_name"] = await get_wf_name(wf_id);
                 }
-                newitem["internal_wf_name"] = wf_id;
+                //newitem["internal_wf_name"] = wf_id;
                 if (! "internal_file_date" in newitem){ //stat only if needed
                     var _stat = await fsPromises.stat(path.join(dir,allfiles[_idx]));
                     newitem["internal_file_date"] = _stat["birthtime"];
@@ -98,7 +97,7 @@ async function jsonfiles_to_array(dir) {
                 global.filecache.tickets[path.join(dir,allfiles[_idx])] = JSON.stringify(newitem);
                 returnarray.push(newitem)
             }catch(ex){
-                console.log("Could not read file:",ex)
+                console.log("Could parse Json from file:",path.join(dir,allfiles[_idx]),ex)
             }
         }
         //console.timeEnd("jsonfiles_to_array " + dir);
@@ -126,16 +125,10 @@ async function get_incoming(returnarray){
                 var _proc_guids = await fsPromises.readdir(_mons, { withFileTypes: true });
                 try {
                     for (var _proc in _proc_guids){
-                        
-                        // var _exists = (await fs.promises.stat(_mons+ "\\" +_proc_guids[_proc].name + "\\i").catch(e => false));;
-                        // if (!_exists){
-                            // continue;
-                        // }
                         var _incoming_files = await fsPromises.readdir( _mons+ "\\" +_proc_guids[_proc].name + "\\i", { withFileTypes: false });
                         
                         //in every proc guid folder, find all files in the /i folder (incoming)
                         for (var _incoming in _incoming_files){
-                            
                             try{
                                 //FOUND SOME INCOMING FILE, PUSH TO output array
                                 var fullpath = _mons + "\\" +_proc_guids[_proc].name + "\\i\\" + _incoming_files[_incoming]; 
@@ -171,52 +164,10 @@ async function get_incoming(returnarray){
                     }
                 }catch(ex){
                     console.warn("Not very critical " + ex);
-                }
-                
+                } 
             }
-            
         }
-       
-        //TODO: speed up and make async. speedup by just listing /i folders
-        // var all_files = await recursive_async.list(s_monitor_path);
-        
-        // ASYNC.each( all_files , function(what){console.log(what)},function(err){/*callback*/
-        // // if any of the saves produced an error, err would equal that error
-        // });
-		 // await recursive(s_monitor_path).forEach(function(fname){
-            // console.log("recursive foreach...")
-            // try{
-                // if (fname.indexOf("\\i\\") != -1){
-                    // var newitem = {};
-                    // var fullpath = path.join (s_monitor_path,fname);
-                    // //read the monitor incoming record to get the filename of interest
-                    // var _readout = (JSON.parse(readfile_cached(fullpath)))//removes BOM	;
-                    // newitem["host"] = _readout["host"]
-                    // var _realfile = _readout["source"];
-                    // var myRegexp = /(........-....-....-....-............).*?mons/gi;
-                    // var _matches =  myRegexp.exec(fullpath);
-                    // console.log("stat")
-                    // var ctime = fsPromises.stat(fullpath).birthtime;
-                    
-                    // //console.log("parsed wfid: ",_matches[1])
-                    // newitem["fullpath"] = _realfile;
-                    // newitem["sources"] = {"current_file": _realfile};
-                    // newitem["submit"] = {"time":ctime};
-                    // newitem["nodes"] = {"next":"Watchfolder","type":"Watchfolder"};
-                    // newitem["internal_wf_name"] = get_wf_name(_matches[1]);
-// //                    newitem["internal_wf_id"] = 
-                    // //console.log("pending:",newitem)
-                    // found_incoming.push(newitem);
-                // }else{
-                    
-                // }
-                
-            // }catch(ex){
-                // console.log(ex)
-                
-            // }
-			
-		 // });
+      
          return found_incoming;
 
 }
@@ -224,28 +175,31 @@ async function get_incoming(returnarray){
 async function get_pending(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
     var a_pending = await jsonfiles_to_array(path.join(s_tick_path,"pending"));
-
+   
 	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
     //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 
     //as we dont want to show both at the same time, we ignore the pending tickets from mon_folder to prevent showing the same file twice
     var keys_to_ignore = []; 
     for (var key in a_pending){
-        var _cur = a_pending[key];
-        if (! "internal_wf_name" in a_pending[key]){
-            a_pending[key]["workflow"] = get_wf_name(a_pending[key]["internal_wf_name"]);
-        }else{
-            a_pending[key]["workflow"] = a_pending[key]["internal_wf_name"];
-        }
-        console.warn(a_pending[key]["internal_wf_name"])
-		a_pending[key]["submit"] = {};
         try{
-            a_pending[key]["sources"] = {"current_file": a_pending[key]["sources"]["original_file"]};
-		}catch(ex){
-            //omit this ticket as it does not carray source file info
-            keys_to_ignore.push(key)
+            var _cur = a_pending[key];
+            if (! "internal_wf_name" in a_pending[key]){//todo: the IF does not work, internal_wf_name is a guid in this case
+                a_pending[key]["workflow"] = get_wf_name(a_pending[key]["internal_wf_id"]);
+                
+            }else{
+                a_pending[key]["workflow"] = a_pending[key]["internal_wf_name"];
+            }
+            try{
+                a_pending[key]["sources"] = {"current_file": a_pending[key]["sources"]["original_file"]};
+            }catch(ex){
+                //omit this ticket as it does not carry source file info
+                keys_to_ignore.push(key)
+            }
+            a_pending[key]["submit"] = a_pending[key]["submit"];
+            a_pending[key]["nodes"] = {"next":"None","type":"None"};
+        }catch(ex){
+            console.error("Problem parsing pending entry: ", a_pending[key]);
         }
-        a_pending[key]["submit"] = {"time":a_pending[key]["internal_file_date"]};
-		a_pending[key]["nodes"] = {"next":"None","type":"None"};
     }
     for (var key in keys_to_ignore){
         delete a_pending[key];
@@ -269,7 +223,9 @@ async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
 	    var o_return = {};
         o_return["tickets"] = {};
-		o_return["tickets"]["queued"] = await get_pending();
+        //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
+        //the real queued folder is more like a temp folder for tickets between pending and running
+		o_return["tickets"]["queued"] = await get_pending(); 
 		//o_return["tickets"]["queue"] = jsonfiles_to_array(path.join(s_tick_path,"queue"));
 		o_return["tickets"]["incoming"] = await get_incoming();
 		res.json(o_return);

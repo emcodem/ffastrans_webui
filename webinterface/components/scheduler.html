@@ -174,14 +174,12 @@ function init(){
     m_mainLayout.cells("a").setText("Schedule");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
-    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow");   
-   // m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Created on,workflow,Type");
-   // m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,date_created,workflow,type");    
-    m_mainGrid.setInitWidthsP("0,5,25,20,15,15,15,0,15,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,combo");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");  
+    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Next Start, Created on,workflow");
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,next_start,date_created,workflow");     
+    m_mainGrid.setInitWidthsP("0,5,25,20,15,15,15,15,15,0");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left.left");       
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,txttxt,combo");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str");  
     /*typecombo = m_mainGrid.getCombo(8);
     typecombo.put("custom","Custom");
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
@@ -190,8 +188,8 @@ function init(){
     m_mainGrid.setColValidators(",NotEmpty,NotEmpty,NotEmpty,NotEmpty"); 
 
 	loadJobs(m_mainGrid);
-    
-	m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
+    window.setInterval(updateJobs, 3000);
+    m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
 		items:[
             
             {id:"new", text:"<i class='fas fa-plus-square'></i>New"},
@@ -218,7 +216,11 @@ function init(){
             saveJobGrid();
         }
         if (id=="edit_condition"){
-            showScriptEditor(m_mainGrid.getSelectedRowId());
+            if (m_mainGrid.getSelectedRowId()){
+                showScriptEditor(m_mainGrid.getSelectedRowId());
+            }else{
+                dhtmlx.message("No Row selected!")
+            }
         }
     })
     
@@ -446,6 +448,38 @@ function saveUserScript(rId,callback){
     saveJobGrid(rId,callback)
 }
 
+function updateJobs(){
+//update last_start
+   $.ajax({
+        url:  ("/scheduledjobs") ,
+        type: "GET",
+        success: function (response) {
+            response = JSON.parse(response) 
+            for (i in response){
+                var _job = response[i]['scheduled_jobs'];
+                console.log("updateing",  response);
+                var colNameLastStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_start"));
+                var colNameNextStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("next_start"));
+                for (colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                    var colName = m_mainGrid.getColumnId(colidx);
+                    if (colName == "last_start"){
+                        m_mainGrid.cells(_job["id"],colidx).setValue(_job["last_start"]);//last start
+                    }           
+                    if (colName == "next_start"){
+                        m_mainGrid.cells(_job["id"],colidx).setValue(_job["next_start"]);//last start
+                    }      
+                }
+                continue;
+            }
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. " );
+            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+        }
+    });
+    
+}
+
 function loadJobs(dhxGrid){
    $.ajax({
         url:  ("/scheduledjobs") ,
@@ -483,8 +517,6 @@ function saveJobGrid(rIdToSave,callback){
         
         var jobobj = m_mainGrid.getRowData(rId);
         jobobj.script = m_mainGrid.getUserData(rId,"script");
-        console.log("script at saving:" +jobobj.script)
-        
         $.ajax({
             url:  ("/scheduledjobs"),
             type: "POST",

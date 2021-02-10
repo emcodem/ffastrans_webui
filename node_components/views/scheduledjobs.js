@@ -31,6 +31,9 @@ module.exports = function(app, express){
                    if (existingjob.length != 0){
                        existingjob = existingjob[0]["scheduled_jobs"];
                        for (var property in job) {
+                          if (property == "last_start" || property == "next_start"){
+                               continue;
+                           }
                           if (job.hasOwnProperty(property)) {
                              existingjob[property] = job[property];
                           }

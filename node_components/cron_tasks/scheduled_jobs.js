@@ -8,6 +8,7 @@ const fs = require('fs');
 const isRunning = require('is-running')
 tmp.setGracefulCleanup();
 const ffastransapi = require("../ffastransapi");
+const moment = require("moment");
 
 function twoDigits(d) {
     if(0 <= d && d < 10) return "0" + d.toString();
@@ -118,8 +119,15 @@ function executeJob(current_job,socketioClientId,informCallback){
             }
         })
 
+        /* we basically only receive a message from child through process.send
+         * when this is happening, the child submits a json array and wants to start a job*/
+         /* JOB START */
         forked.on('message', (msg) => {
             console.log("MESSAGE FROM FORK: " + msg);
+            if (current_job["workflow"] == ""){
+                console.warn("No Workflow selected!", "number of non started jobs:", msg.length);
+                return;
+            }
             //if we have an array of values, execute the ffastrans job
             try{
                 if (msg){
@@ -198,7 +206,11 @@ function killRunningJob(current_job){
 function needsExecution(current_job){    
     //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
     //check if job is still running
-    if (current_job['enabled'] != 1){
+    if (current_job['enabled'] != 1 || current_job["cron"] == ""){
+        if (current_job["next_start"] != ""){
+               updateScheduledJob(current_job["id"],"next_start","");
+        }
+     
         return false;
     }
     if (current_job['last_pid']){
@@ -208,7 +220,6 @@ function needsExecution(current_job){
             return false;
         }
     }
-    console.log("job is not running")
     //job is not running. Check if we need to start it
     var dateOfInterest = current_job["last_start"]||current_job["date_created"];
     var options = {
@@ -218,19 +229,31 @@ function needsExecution(current_job){
     };
     
     crons = current_job["cron"].split(",");
+    var closestDate = "";
+    var returnvalue = false; 
     for (cron in crons){
         cron = crons[cron]
         var interval = parser.parseExpression(cron,options);
         var nextExecutionDate = interval.next();
-        if ((new Date(nextExecutionDate) < new Date())){
+        var _nextdate = new Date(nextExecutionDate);
+        if ((_nextdate < closestDate) || (closestDate == "")) {
+            closestDate = _nextdate;
+        }
+        if (_nextdate < new Date()){
             console.log("Created or last run: "  + dateOfInterest);
             console.log("DATE INTERVAL: "  + nextExecutionDate);
             console.log("CURRENT DATE: "  + new Date());
-            return true;
+            returnvalue = true;
         }else{
-            return false;
+            returnvalue = false;
         }
     }
+    //update "next run" time
+
+    if (current_job["next_start"] != moment(_nextdate).format("YYYY-MM-DD HH:mm:ss")){
+        updateScheduledJob(current_job["id"],"next_start",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
+    }
+    return returnvalue;
 }
 
 function updateScheduledJob(id,field,value){
@@ -246,6 +269,7 @@ function updateScheduledJob(id,field,value){
             console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
             throw err;
         }
+        console.log("updated scheduled job ",id, field, value)
         global.db.config.persistence.compactDatafile(); //deletes unused stuff from DB file
         
     })
