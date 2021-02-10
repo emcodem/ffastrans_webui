@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta charset="UTF-8">
 <script src="/socket.io/socket.io.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
@@ -853,6 +854,7 @@ function startJobs(){
             url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
             type: "POST",
             crossDomain: true,
+            contentType: "application/json; charset=UTF-8",
             data: JSON.stringify(postBody),
             success: function (response) {
                 dhtmlx.message(_filepath + " was submitted")
