@@ -23,27 +23,29 @@
         return toString.call(obj) === '[object Array]';
     }
 
-    function sn(tagName, className, data) {
+    function sn(tagName, className, data, extraClasses = "") {
         var result = document.createElement(tagName);
         if (className == "jh-type-string") {
             //in this case, add a div contenteditable
             var div = document.createElement("div");
             div.contentEditable = "true";
+
             var pre = document.createElement("pre");
             div.appendChild(pre);
             pre.appendChild(document.createTextNode("" + data))
             result.appendChild(div);
-            result.className = className;
+            result.className = className + " " + extraClasses;
             return result;
         }
         //just create the stuff
         result.className = className;
         result.appendChild(document.createTextNode("" + data));
-
+       
         return result;
     }
 
     function scn(tagName, className, child) {
+        
         var result = document.createElement(tagName),
             i, len;
 
@@ -132,7 +134,7 @@
     }
 
     function _format(data, options, parentKey) {
-
+    
         var result, container, key, keyNode, valNode, len, childs, tr, value,
             isEmpty = true,
             isSpecial = false,
@@ -166,11 +168,16 @@
 
         } else if (type === STRING) {
             if (data === "") {
-                result = sn("span", STRING_EMPTY_CLASS_NAME, "(Empty Text)");
+                result = sn("span", STRING_EMPTY_CLASS_NAME, "");//(Empty Text)
             } else {
                 try {
                     //translate file paths to clickable links
-                    if (data.match(/^.:\\|^.:\//)) {
+                    if (parentKey == "ffmpeg_stdout"){
+                        console.log("FFFMPEG DETECTED",data)
+                        data = data.replace(/\\\\/g, '\\')
+                        
+                    }
+                    if (data.match(/^.:\\|^.:\//) && parentKey.match(/path|_file|work_dir/)) {
                         var p = data.substr(0, data.lastIndexOf('\\'));
                         var span = document.createElement("span");
                         var a = document.createElement("a");
@@ -181,15 +188,16 @@
                         //create downloadable url file
                         var _bdata = btoa("[InternetShortcut]\nURL=file:///" + p);
                         var _href = "<a  download='link.URL' href='data:application/internet-shortcut;charset=UTF8;base64," + _bdata + "'>" + p + "</a><span>\\" + filename_text + "</span>"
-
+                        
                         span.innerHTML = _href;
                         result = span;
 
                     } else {
-                        result = sn("span", STRING_CLASS_NAME, data);
+                        
+                        result = sn("span", STRING_CLASS_NAME , data);
                     }
                 } catch (ex) {
-                    console.log(ex)
+                    
                     result = sn("span", STRING_CLASS_NAME, data);
                 }
             }
@@ -198,6 +206,7 @@
         } else if (type === FLOAT) {
             result = sn("span", FLOAT_CLASS_NAME, data);
         } else if (type & OBJECT) {
+
             if (type & SPECIAL_OBJECT) {
                 isSpecial = true;
             }
@@ -214,12 +223,12 @@
 
             for (key in data) {
                 isEmpty = false;
-
                 value = data[key];
 
                 valNode = _format(value, options, key);
                 keyNode = sn("th", OBJ_KEY_CLASS_NAME, key);
-
+                
+                
                 if (hyperlinksEnabled &&
                     typeof (value) === 'string' &&
                     indexOf.call(hyperlinkKeys, key) >= 0) {
@@ -239,7 +248,7 @@
             if (isSpecial) {
                 result = sn('span', STRING_CLASS_NAME, data.toString())
             } else if (isEmpty) {
-                result = sn("span", OBJ_EMPTY_CLASS_NAME, "(Empty Object)");
+                result = sn("span", OBJ_EMPTY_CLASS_NAME, "");//(Empty Object)
             } else {
                 result = scn("table", OBJECT_CLASS_NAME, scn("tbody", '', childs));
             }
@@ -285,7 +294,7 @@
 
                 result = scn("table", ARRAY_CLASS_NAME, scn("tbody", '', childs));
             } else {
-                result = sn("span", ARRAY_EMPTY_CLASS_NAME, "(Empty List)");
+                result = sn("span", ARRAY_EMPTY_CLASS_NAME, "");//(Empty List)
             }
         } else {
             result = sn("span", UNKNOWN_CLASS_NAME, data);

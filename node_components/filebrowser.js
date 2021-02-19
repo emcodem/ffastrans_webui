@@ -52,7 +52,7 @@ module.exports = function(app, express){
 				  files.forEach(filename => {
 					  try{//ignore non accessible files and folders
 						const stats = fs.statSync(baseFolder + filename);
-                        rows.rows.push({id:Math.random(),data:[filename,baseFolder + filename, stats.isDirectory(), getReadableFileSizeString(stats.size), stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size]});//name,fullpath,is_folder,size
+                        rows.rows.push({id:Math.random(),userdata:{"fullpath":baseFolder + filename} ,data:[filename,baseFolder + filename, stats.isDirectory(), getReadableFileSizeString(stats.size), stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size]});//name,fullpath,is_folder,size
 					  }catch(exce){
 						  console.log("WARNING: cannot stat file: " + baseFolder + filename +" , Exception: " + exce);
 					  }

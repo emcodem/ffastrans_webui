@@ -148,7 +148,7 @@ function init(conf){
     app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
 
     //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
-    var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about")
+    var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
     var _request = require('retry-request', {
         request: require('request')
     });
@@ -163,7 +163,8 @@ function init(conf){
         console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
         
         var api_root = path.join(__dirname, 'rest_service');
-        ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"], api_root, JSON.parse(body)["about"]["general"]["install_dir"]+"\\");
+        ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
+        
     })
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY

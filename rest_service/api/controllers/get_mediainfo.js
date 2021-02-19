@@ -45,12 +45,12 @@ async function main(res, filepath) {
         ).catch(
             function (error) {
                 console.log(error)
-                return res.status(500).send("Error getting mediainfo")
+                return res.status(500).send("Error getting mediainfo" + error)
             }
         )
         
     } catch (ex) {
-        return res.status(500).send("Error getting mediainfo");
+        return res.status(500).send("Error getting mediainfo" + ex);
     }
 }
 
