@@ -67,9 +67,9 @@ function loadserverconfig(){
 }
 
 function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
-
+     console.log("Filename ", encodeURI(_file.name))
      $.ajax({
-                url: build_new_api_url("/getmediainfo?filepath=" + _file.name),
+                url: build_new_api_url("/getmediainfo?filepath=" + encodeURIComponent(_file.name)),
                 type: "GET",
                 success: function (response) {
                     _callback(_file,response);
@@ -135,19 +135,35 @@ function init(){
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
     m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int");          //the sorting types  
     m_fileBrowserGrid.enableMultiselect(true);
+    m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
 	
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
 		items:[
-            {id:"location", text:"Locations"},
-			{id:"savelocation", text:"Save Location"},
-            {id:"select", text:"Add Selected"},
-            {id:"selectall", text:"Add All"},
-            {id:"mediainfo", text:"Info"},
+            {id:"location", text:"Locations <i class='fas fa-list'></i>"},
+			{id:"savelocation", text:"Save Location <i class='fas fa-save'></i>"},
+            {id:"select", text:"Add Selected <i class='fas fa-angle-right'></i>"},
+            {id:"selectall", text:"Add All <i class='fas fa-angle-double-right'></i>"},
+            {id:"mediainfo", text:"Info <i class='fas fa-info'></i>"},
 		]
 	});
-	
     
+    m_fileBrowserGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+            //disallow drag&drop rows to self   
+            //tObj.deleteRow(dId);//row was already pasted, delete it!
+    })
+    
+    
+    m_fileBrowserGrid.attachEvent("onDrag",function(sid,tid){
+        //if target id is undefinded, we got something from a different grid. if defined we are in own grid
+        if (tid){
+             m_fileBrowserGrid.dragContext.mode="move"; 
+        }else{
+             m_fileBrowserGrid.dragContext.mode="copy"; 
+        }
+        return true;
+    });
+
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
@@ -209,8 +225,26 @@ function init(){
     m_selectedFileGrid.setColTypes("ed,ed,ed");
     m_selectedFileGrid.setColSorting("str,str,str");   
     m_selectedFileGrid.enableMultiselect(true);
+    m_selectedFileGrid.enableDragAndDrop(true);
     m_selectedFileGrid.init();
   
+    m_selectedFileGrid.attachEvent("onDrag",function(sid,tid){
+    // copies an item instead of moving it
+        //if target id is undefinded, we got something from a different grid. if defined we are in own grid
+        if (tid){
+            m_selectedFileGrid.dragContext.mode="move"; 
+        }else{
+             m_selectedFileGrid.dragContext.mode="copy"; 
+        }
+        return true;
+    });
+    m_selectedFileGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+            //disallow drag&drop rows to self   
+            if (sObj == tObj){
+                //tObj.deleteRow(dId);//row was already pasted, delete it!
+            }
+    })
+    
     m_fileBrowserGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
         //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
         if (colindex == 3){//sorted by file size
@@ -286,7 +320,11 @@ function init(){
         if (id == "selectall") {
             m_fileBrowserGrid.forEachRow(function(id){
                 if ( m_fileBrowserGrid.getRowIndex(id) != -1){
-                    m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
+                    if (! m_fileBrowserGrid.cells(id,2).getValue()){
+                        m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
+                    }else{
+                        console.log("AddAll Excluded ", m_fileBrowserGrid.cells(id,1).getValue(), "because it is a folder")
+                    }
                 }
             })
             return;
@@ -299,7 +337,9 @@ function init(){
         
         if (id == "mediainfo"){
            var rId = m_fileBrowserGrid.getSelectedRowId()
-           var file = new File([""],m_fileBrowserGrid.cells(rId,1).getValue());
+           var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
+           
+           
             get_mediainfo_analysis_html(file,function(_fileobj,minfo_html){
                     var dhxwins = new dhtmlXWindows();
                     //dhxwins.attachViewportTo(window.parent.document.body);
@@ -707,7 +747,7 @@ function parseWorkflows(wfArray){
 //build fancytree showing all workflows
     m_mainLayout.cells("b").progressOff();
     m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
-    m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><span style='margin-left:10px' >Filter:</span><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' /></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+    m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
     var treeObj = {};
     //collect data for fancytree obj
     for (i=0;i<wfArray.length;i++){

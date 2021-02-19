@@ -1,9 +1,7 @@
 <html>
 <head>
     <title>FFAStrans Workflow</title>
-
     <script src="/socket.io/socket.io.js"></script>
-
     <!-- Sets the basepath for the library if not in same directory -->
     <script type="text/javascript">
         mxBasePath = '../dependencies/mxgraph/406/javascript/src';
@@ -92,6 +90,7 @@
             table-layout:fixed;
             white-space:nowrap;
             overflow:hidden;
+            vertical-align: top;
         }
 
         .table_ffastrans_processor_enabled {
@@ -350,6 +349,7 @@
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                                 <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
                                 <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()"><i style = "margin-right:3px" class= "fas fa-history " ></i></button>\
+                                <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
                                 <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
                                 ');
             mainLayout.cells("c").showInnerScroll();
@@ -439,6 +439,15 @@
 
         }
         
+        function toggle_hide_all(chkbox){
+        //show/hide content of log entry
+            if (chkbox.checked){
+                $( ".togglecontentvisible" ).prop("checked", true).trigger("change");
+            }else{
+                $( ".togglecontentvisible" ).prop("checked", false).trigger("change");
+            }
+        }
+
         function buildMxGraph(container) {
             //set default box sizes as defined by ffastrans.au3
             var i_BOX_WIDTH = 115;
@@ -723,7 +732,6 @@ function export_StyledSVG(){
                     //m_timelineobject = [];
                     //['Group1', 'Item1', 'this is a tooltip for Item1.cpp', new Date(1485183398349.28) /* 2017-01-23 14:56:38.349 */, new Date(1485183403210.01) /* 2017-01-23 14:56:43.210 */],
                     try{
-                        console.log(line)
                         var timeline_entry = [line["event"],line["node"]["type"],"",new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00"))),new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00")) +1 )];
                         //var timeline_entry = ['Group1', 'Item1',"",new Date(1485183398349.28),new Date(1485183398359.28)];
                         
@@ -883,9 +891,35 @@ function export_StyledSVG(){
                     $tdList.eq(1).html("<div class='celltext'>" + created + "</div>");
                     $tdList.eq(2).html("<div class='celltext'>" + node.data["host"] + "</div>");
                     $tdList.eq(3).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
-                    $tdList.eq(4).html("<div class='celltext'>" + node.data["event"] + "</div>");
+                    var evt_id = Math.random(1000000000);
+                    if (node.data["event"] == "_IPS_SRV_FFMon"){
+                        $tdList.eq(4).html("<div class='celltext' id='"+evt_id+"'><b>" + node.data["event"] + "</b></div>");
+                    }else{
+                        $tdList.eq(4).html("<div class='celltext' id='"+evt_id+"'>" + node.data["event"] + "</div>");
+                    }
+                    
                     var table = (JsonHuman.format(data.node.data["_data"]));
+                    table.name = "bla"
                     $tdList.eq(5).html(table);
+                    
+                    //create show/hide checkbox
+                    var xid = Math.random(100000000);
+                    var x = document.createElement("INPUT");
+                    x.setAttribute("type", "checkbox");
+                    x.setAttribute("checked", "true");
+                    x.setAttribute("class", "togglecontentvisible");
+                    x.style.float = "left";
+                    x.id = xid;
+                    x.name = node.data["event"];
+                    document.getElementById(evt_id).parentElement.insertBefore(x,document.getElementById(evt_id));
+                    x.onchange = function () { 
+                                    if (this.checked){
+                                        this.parentElement.nextElementSibling.style.display = ""
+                                    }else{
+                                        this.parentElement.nextElementSibling.style.display = "none"
+                                    }
+                                
+                                };
                 },
                 gridnav: {
                     autofocusInput: false,
@@ -1030,7 +1064,7 @@ function export_StyledSVG(){
                 return "System";
             }
             var n = m_workflowdata.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
-            if (n.length != 1) { return "Not found" }
+            if (n.length != 1) { return "System" }
             nodename = n[0].name || n[0].type;
             return nodename;
         }
@@ -1227,11 +1261,11 @@ function export_StyledSVG(){
     <div id="log_div" style="visibility:hidden;overflow:visible" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_log" style="width:100%" class="obj">
             <colgroup>
-                <col width="2%"></col>
+                <col width="7%"></col>
                 <col width="10%"></col>
                 <col width="10%"></col>
                 <col width="10%"></col>
-                <col width="10%"></col>
+                <col width="15%"></col>
                 <col width="50%"></col>
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
@@ -1250,12 +1284,12 @@ function export_StyledSVG(){
     <div id="node_div" style="visibility:hidden" style="" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_nodes" style="width:100%" class="obj">
             <colgroup>
-                <col width="15px"></col>
+                <col width="7%"></col>
                 <col width="10%"></col>
                 <col width="5%"></col>
                 <col width="30%"></col>
                 <col width="40%"></col>
-                <col width="25px"></col>
+                <col width="5%"></col>
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">

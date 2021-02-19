@@ -28,14 +28,16 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
+                        if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){console.log("BORN TO BE KINGS");disabled=true;}
                         //decide type of userinput
 						if (typeof (outputConfig[key]) == "string"){
                             //bool as string
-                            if (outputConfig[key]=="true"||outputConfig[key]=="false"){
+                            if (outputConfig[key]=="true"||outputConfig[key]=="false"){ 
                                 fieldset.list.push ({type: "select", "hidden":disabled,name: key,label: "<b>"+key+"</b>",width:600, options:[
                                     {text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
                                     {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
                                 ]})
+
                                 fieldset.list.push( {type: "label", label: ""});//add spacer
                                 continue;
                             }
@@ -47,7 +49,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
 						}                        
 						if (typeof (outputConfig[key]) == "boolean"){
                             console.log(key + "is bool, disabled: " + disabled)
-							fieldset.list.push ({type: "select", name: key,label: "<b>"+key+"</b>",width:600, options:[
+							fieldset.list.push ({type: "select", name: key,"hidden":disabled,label: "<b>"+key+"</b>",width:600, options:[
 								{text: "Enable", value: "true",	"hidden":disabled, selected:(true==JSON.parse(outputConfig[key]))},
 								{text: "Disable", value: "false", "hidden":disabled, selected:(false==JSON.parse(outputConfig[key]))},
 							]})
