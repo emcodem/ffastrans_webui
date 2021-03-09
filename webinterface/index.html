@@ -73,7 +73,7 @@
     .div_active_jobs {
         margin-left:350px;
     }
-    .div_pending_jobs {
+    .div_incoming_jobs {
         margin-left:450px;
     }
     .div_queued_jobs {
@@ -236,7 +236,7 @@ function init(permissions){
     });
     headerLayout.cells("a").attachHTMLString('<header id="ffastrans_header"   >'+
     '<div class="counter_jobs div_active_jobs">&nbsp Running                    <div class="header_counter_number" id="activejobcount">0</div></div>'+
-    '<div class="counter_jobs div_pending_jobs">&nbsp Pending     <div class="header_counter_number" id="pendingjobcount">0</div></div>'+
+    '<div class="counter_jobs div_incoming_jobs">&nbsp Incoming     <div class="header_counter_number" id="incomingjobcount">0</div></div>'+
     '<div class="counter_jobs div_queued_jobs">&nbsp Queued     <div class="header_counter_number" id="queuedjobcount">0</div></div>'+
     '<div class="counter_jobs div_success_jobs">&nbsp Success   <div class="header_counter_number" id="successjobcount">0</div></div>'+
     '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
@@ -330,9 +330,9 @@ function init(permissions){
         //server should inform us periodically by cron job 
         document.getElementById("queuedjobcount").innerHTML = msg;
     });
-    socket.on('pendingjobcount', function(msg){
+    socket.on('incomingjobcount', function(msg){
         //server should inform us periodically by cron job 
-        document.getElementById("pendingjobcount").innerHTML = msg;
+        document.getElementById("incomingjobcount").innerHTML = msg;
     });
     socket.on('logged_in_users_count', function(msg){
         //server should inform us periodically by cron job 

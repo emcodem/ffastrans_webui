@@ -51,7 +51,6 @@ async function renewInstallInfo(about_url){
         await sleep(15000);
         var install_info;
         try{
-            console.log("Renew install info, calling:",about_url);
             install_info = await doRequest(about_url);
             install_info = JSON.parse(install_info);
         }catch(ex){

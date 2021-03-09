@@ -104,7 +104,7 @@ module.exports = {
 							q_obj[i]["title"] = "Queued";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["workflow"]; //todo: implement workflow in ffastrans tickets api for pending jobs
+							q_obj[i]["workflow"] = q_obj[i]["workflow"]; 
 							if ("sources" in q_obj[i]){
 								q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
 							}
@@ -134,7 +134,7 @@ module.exports = {
 			console.error(exc.stack)
             console.error(q_obj[i])
 		}
-		//WATCHFOLDER PENDING
+		//WATCHFOLDER Incoming
         try{
 		//transform to match activejobs structure
 			
@@ -148,7 +148,7 @@ module.exports = {
 							q_obj[i]["title"] = "Incoming";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; //todo: implement workflow in ffastrans tickets api for pending jobs
+							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; //todo: implement workflow in ffastrans tickets api for incoming jobs
 							q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
 							//q_obj[i]["host"] = "";
 							q_obj[i]["status"] = "Incoming";
@@ -160,18 +160,17 @@ module.exports = {
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
 			
 				if (JSON.parse(body)["tickets"]["incoming"]){
-                    
-					global.socketio.emit("pendingjobs", JSON.stringify(q_obj));
-					global.socketio.emit("pendingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
+					global.socketio.emit("incomingjobs", JSON.stringify(q_obj));
+					global.socketio.emit("incomingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
 				}else{
-                    console.log("Error, we should not come here, pending")
-					global.socketio.emit("pendingjobs", "[]");
-					global.socketio.emit("pendingjobcount", 0);               
+                    console.log("Error, contact developer, we should not come here, incoming!!")
+					global.socketio.emit("incomingjobs", "[]");
+					global.socketio.emit("incomingjobcount", 0);               
 				}
 		}catch(exc){
-			console.error("Error occured while sending queuedjobs to clients: " + exc )
-			console.error(exc.stack)
-            console.error(q_obj[i])
+			console.error("Error occured while sending incoming jobs to clients: " + exc );
+			console.error(exc.stack);
+            console.error(q_obj[i]);
 		}
 		return;
         //store in database
