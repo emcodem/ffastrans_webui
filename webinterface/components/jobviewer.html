@@ -1028,8 +1028,8 @@
         //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
         console.log("jobcommand", fancy_node_array,action,value)
         fancy_node_array.forEach(function(node) {
-            if (node["data"]["state"] == "Queued") {
-                dhtmlx.message("Sorry, Queued Jobs cannot be controlled yet");
+            if (node["data"]["state"] == "Queued" || node["data"]["state"] == "Incoming") {
+                dhtmlx.message("Sorry, "+node["data"]["state"]+" Jobs cannot be controlled yet");
                 return;
             }
             var postBody = {
