@@ -8,8 +8,6 @@ const path = require("path")
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 process.env.UV_THREADPOOL_SIZE = 128;
 
-
-
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
@@ -104,7 +102,7 @@ module.exports = {
 							q_obj[i]["title"] = "Queued";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["workflow"]; 
+							q_obj[i]["workflow"] = q_obj[i]["workflow"]; //todo: implement workflow in ffastrans tickets api for pending jobs
 							if ("sources" in q_obj[i]){
 								q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
 							}
@@ -148,9 +146,8 @@ module.exports = {
 							q_obj[i]["title"] = "Incoming";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; //todo: implement workflow in ffastrans tickets api for incoming jobs
+							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; 
 							q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
-							//q_obj[i]["host"] = "";
 							q_obj[i]["status"] = "Incoming";
 							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
 							q_obj[i]["proc"] = "Watchfolder";
@@ -160,25 +157,26 @@ module.exports = {
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
 			
 				if (JSON.parse(body)["tickets"]["incoming"]){
+                    
 					global.socketio.emit("incomingjobs", JSON.stringify(q_obj));
 					global.socketio.emit("incomingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
 				}else{
-                    console.log("Error, contact developer, we should not come here, incoming!!")
+                    console.log("Error, we should not come here, keyword: incoming")
 					global.socketio.emit("incomingjobs", "[]");
 					global.socketio.emit("incomingjobcount", 0);               
 				}
 		}catch(exc){
-			console.error("Error occured while sending incoming jobs to clients: " + exc );
-			console.error(exc.stack);
-            console.error(q_obj[i]);
+			console.error("Error occured while sending incoming to clients: " + exc )
+			console.error(exc.stack)
+            console.error(q_obj[i])
 		}
 		return;
         //store in database
 
     });
     
-    //fetch history jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 5000},(error, response, body) => {
+//fetch HISTORY jobs from api
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 5000},async function(error, response, body) {
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
         }
@@ -188,7 +186,7 @@ module.exports = {
             return;
         }
 
-        if (global.lasthistory == body){
+        if (global.lasthistory == body){          
             return;
         }
         global.lasthistory = body;
@@ -206,10 +204,9 @@ module.exports = {
         //restructure array from ffastrans,build famliy tree
         
         for (i = 0; i < jobArray.length; i++){
-
                 //only jobguid plus split makes each job entry unique
                 jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
-            
+                
                 //data for client display
                 jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
                 jobArray[i].guid = jobArray[i]["guid"]
@@ -222,25 +219,35 @@ module.exports = {
                 jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
                 jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
                 jobArray[i].wf_name = jobArray[i]["workflow"];
+                
                 //internal data for sorting
-                //jobArray[i]["id"] = 1;
                 jobArray[i]["sort_family_name"] = jobArray[i]["job_id"];
-                //jobArray[i]["sort_child_id"] = jobArray[i]["split_id"];                
-                if (jobArray[i]["sort_family_index"] === "undefined"){
-                    jobArray[i]["sort_family_index"] = 1;//first anchestor in family
-                }
-                //jobArray[i]["sort_parent_id"] = 0; //finds out parent id, e.g. split id 132 is second child of parent_id 3.
-                jobArray[i]["sort_generation"] = 1;
+                                        
                 //workaround splitid does not allow us to parse family tree
-            if (jobArray[i]["split_id"].startsWith("1-")) { //this is the grandfather
-                    jobArray[i]["sort_generation"] = 0;
-                } 
+                //get out if the lowest splitid of all jobs in array with this jobids
+                var a_family = jobArray.filter(function (el) {
+                    return el["job_id"] === jobArray[i]["job_id"];
+                });
+
+                var oldest_job = jobArray[i];
+                
+                for (x=0;x<a_family.length;x++){
+                    if (getDate(a_family[x]["end_time"]) < getDate(oldest_job["end_time"]) ){
+                        oldest_job = a_family[x];
+                    }
+                }
+                //mark oldest job a grandfather job
+                if (jobArray[i] == oldest_job){
+                    jobArray[i]["sort_family_index"] = 0;//its a grandfather
+                    jobArray[i]["sort_generation"] = 0;//
+                }else{
+                    jobArray[i]["sort_family_index"] = 1;//
+                    jobArray[i]["sort_generation"] = 1;//its a childjob
+                }
         }
         
 //END OF Family sorting
-        
-        jobArray = getFancyTreeArray(jobArray);
-
+        jobArray = await getFancyTreeArray(jobArray);
         for (i=0;i<jobArray.length;i++){
 
             //Unique ID is now jobid~splitid + time_end!!!
@@ -248,27 +255,86 @@ module.exports = {
             (function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
                 //upsert history record (if family_member_count changed)
                 global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
-                if(docs > 0 ){
-                        console.log("inserted " + job_to_insert["source"])
-                        console.log("emitting newhistjob");
-                        global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
-
-                }else{
-                //        console.log("Job already exists");
-                }
-                    
+                    if(docs > 0 ){
+                            console.log("inserted " + job_to_insert["source"])
+                            global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
+                    }else{
+                    }
                 })//job update
             })(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
             continue;            
-        }
+        }//for
 
         
     });   
   }
 };
 
-
 /* HELPERS */
+
+async function getFancyTreeArray(jobArray){
+    
+        //find out all parents
+        var godfathers = jobArray.filter(function (el) {
+            return el["sort_generation"] === 0;
+        });
+        console.log("New History data, Number of Jobs ", godfathers.length, "Number of splits", jobArray.length);
+        //find out all subjobs of same id
+        for (var i in godfathers){
+            var godfather = godfathers[i]; 
+            var current_family_name = godfather["sort_family_name"]; //family_name is actually jobguid
+            var family = jobArray.filter(function (el) {
+                return el["sort_family_name"] === current_family_name;
+             });
+            
+             godfather["sort_family_member_count"] = family.length;
+              //array of families now contains all family members but flat only
+             
+             //build family tree             
+             var generation_count = 1;
+             if (family.length > 1){
+                //it is family with childs, get out how many generations we have
+                generation_count = Math.max.apply(Math, family.map(function(o) { return o["sort_generation"]; }))  
+             }
+
+            //foreach generation
+            var generations = []
+            //for (genidx=0;genidx<generation_count;genidx++){
+                //foreach parent in this generation
+                _parents = family.filter(function (el) {return el["sort_generation"] == 1})
+                
+                //find children of current parent in current generation
+                godfather["children"] = family.filter(function (el) {
+                    if (el["state"] == "Error"){
+                        godfather["state"] = "Error";
+                        godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
+                        //todo: change error state also in DB
+                    }
+                    if (el["state"] != "Error"){
+                        //change godfather state to success if any subsequent node succeeded
+                        godfather["state"] = "Success";
+                        godfather["title"] = "Success";
+                    }
+                    return (el["sort_generation"] == 1) ;
+                });
+                //}                
+            }
+            //godfather now contains full family tree
+
+        return godfathers;
+
+    
+}
+
+async function countJobsAsync(countobj) {
+    let count = await new Promise((resolve, reject) => {
+        global.db.jobs.count(countobj, (err, count) => {
+            if (err) reject(err);
+            resolve(count);
+        });
+    });
+    return count ;
+}
 
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
@@ -320,67 +386,6 @@ function buildApiUrl(what){
 
 function buildNewApiUrl(){
     return "http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + "/tickets"
-}
-
-function getFancyTreeArray(jobArray){
-    
-        //find out all parents
-        var godfathers = jobArray.filter(function (el) {
-                //return el["sort_generation"] === 0; 
-            return el["sort_generation"] === 0;
-        });
-        //console.log("Num godfathers ", godfathers.length) 
-        //find out all subjobs of same id
-        for (var i in godfathers){
-            
-            var godfather = godfathers[i]; 
-            var family_name = godfather["sort_family_name"]; //family_name is actually jobguid
-            var family = jobArray.filter(function (el) {
-                return el["sort_family_name"] === family_name;
-             });
-             godfather["sort_family_member_count"] = family.length;
-              //array of families now contains all family members but flat only
-             
-             //build family tree             
-             var generation_count = 1;
-             if (family.length > 1){
-                //it is family with childs, get out how many generations we have
-                generation_count = Math.max.apply(Math, family.map(function(o) { return o["sort_generation"]; }))  
-             }
-             
-            //foreach generation
-            var generations = []
-           
-            for (genidx=0;genidx<generation_count;genidx++){
-                //foreach parent in this generation
-                _parents = family.filter(function (el) {return el["sort_generation"] == genidx})
-                //console.log(_parents)
-                //find children of current parent in current generation
-                for (paridx=0;paridx<_parents.length;paridx++){
-                    _parents[paridx]["children"] = family.filter(function (el) {
-                        if (el["state"] == "Error"){
-                            //godfather["state"] = "Error";
-                            godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
-                        }
-                        
-                        if (el["state"] != "Error"){
-                            //change godfather state to success if any subsequent node succeeded
-                            godfather["state"] = "Success";
-                            godfather["title"] = "Success";
-                            
-                        }
-                        
-                         return (el["sort_generation"] == genidx+1 && el["sort_family_index"] == _parents[paridx]["sort_child_id"]) ;
-                    });
-                }                
-            }
-            //godfather now contains full family tree
-                
-            }
-        
-        return godfathers;
-
-    
 }
 
 /* STRUCTS */

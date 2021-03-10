@@ -145,6 +145,7 @@ function init(){
             {id:"select", text:"Add Selected <i class='fas fa-angle-right'></i>"},
             {id:"selectall", text:"Add All <i class='fas fa-angle-double-right'></i>"},
             {id:"mediainfo", text:"Info <i class='fas fa-info'></i>"},
+            {id:"delete_browsercache", text:"Reset Page <i class='fas fa-eraser'></i>"},
 		]
 	});
     
@@ -308,6 +309,11 @@ function init(){
 	});
     
 	m_fileBrowseGridMenu.attachEvent("onClick", function(id, zoneId, cas){
+        if (id == "delete_browsercache") { 
+            localStorage.clear();
+            location.reload();
+        }
+    
 		if (id == "select") {
 			if (!m_fileBrowserGrid.getSelectedRowId()){
 				dhtmlx.message("Please select a File in the file browser");
