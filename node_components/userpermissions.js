@@ -78,6 +78,7 @@ module.exports = {
                 {key:"GROUPRIGHT_MENU_VIEW_ADMIN_USERS",value:{'description':'Usermanagement'}},
                 {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu'}},
                 {key:"GROUPRIGHT_MENU_VIEW_SCHEDULER",value:{'description':'Scheduler menu item'}},
+                {key:"GROUPRIGHT_MENU_VIEW_FARM_ADMIN",value:{'description':'Farm administration'}},
             ];
             return rights;
     }

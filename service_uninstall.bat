@@ -33,6 +33,6 @@ if '%errorlevel%' NEQ '0' (
 set InstallFolder="%~dp0"
 
 net stop "FFAStrans Webinterface"
-"%~dp0"tools\nssm remove "FFAStrans Webinterface" 
+"%~dp0tools\nssm" remove "FFAStrans Webinterface" 
 
 pause

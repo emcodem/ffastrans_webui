@@ -1,0 +1,1 @@
+"%~dp0windows_exporter-0.16.0-amd64.exe" --collector.textfile.directory c:\temp --collectors.enabled	cpu,net,os,cs,cpu,cpu_info,logical_disk,system,textfile
