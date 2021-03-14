@@ -67,7 +67,26 @@ paths:
           description: List of Jobs
         default:
           description: Error
-          
+  /machines:
+    x-swagger-router-controller: machines
+    get:
+      description: Gets List of Farm Machines
+      operationId: machines
+      responses:
+        "200":
+          description: List of Machines and config
+        default:
+          description: Error   
+  /metrics:
+    x-swagger-router-controller: metrics
+    get:
+      description: Gets Prometheus compatible Farm metrics
+      operationId: metrics
+      responses:
+        "200":
+          description: List of metrics
+        default:
+          description: Error 
   /getjobdetails:
     x-swagger-router-controller: get_job_details
     get:

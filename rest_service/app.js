@@ -110,6 +110,8 @@ async function start_server(_host, _hostport, _listenport){
             get_job_details: require(_approot + "/api/controllers/get_job_details").get,
             get_mediainfo: require(_approot + "/api/controllers/get_mediainfo").get,
 			tickets: require(_approot + "/api/controllers/tickets").get,
+            machines: require(_approot + "/api/controllers/machines").get,
+            metrics: require(_approot + "/api/controllers/metrics").get,
         }
 	};
 

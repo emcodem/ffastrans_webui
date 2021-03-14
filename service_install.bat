@@ -33,7 +33,7 @@ if '%errorlevel%' NEQ '0' (
 echo "%~dp0"tools\nssm
 
 "%~dp0tools\nssm" install "FFAStrans Webinterface" "%~dp0server.exe"
-"%~dp0"tools\nssm" set "FFAStrans Webinterface" AppDirectory "%~dp0"
+"%~dp0tools\nssm" set "FFAStrans Webinterface" AppDirectory "%~dp0"
 
 "%~dp0tools\nssm" set "FFAStrans Webinterface" Description "FFAStrans Webinterface"
 "%~dp0tools\nssm" set "FFAStrans Webinterface" Start SERVICE_AUTO_START

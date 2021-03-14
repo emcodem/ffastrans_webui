@@ -181,7 +181,8 @@ var m_permissionUrls = {
     "GROUPRIGHT_MENU_VIEW_ADMIN_USERS": "admin/usermanager.html",
     "GROUPRIGHT_MENU_VIEW_ADMIN": "admin/index.html",
     "GROUPRIGHT_MENU_VIEW_SCHEDULER": "components/scheduler.html",
-    "GROUPRIGHT_MENU_VIEW_JOB_PRIORITY": "components/jobprioritymanager.html"
+    "GROUPRIGHT_MENU_VIEW_FARM_ADMIN": "components/farmadmin.html",
+    //"GROUPRIGHT_MENU_VIEW_JOB_PRIORITY": "components/jobprioritymanager.html"
 }
 /*load config from server*/
 function loadserverconfig(){
@@ -298,6 +299,7 @@ function init(permissions){
     //onclick menu item
     $( ".menuitem" ).click(function(event) {
 		 event.preventDefault();
+         console.log(m_permissionUrls[this.id])
          mainLayout.cells("b").attachURL(m_permissionUrls[this.id]);
          //store user state
          localStorage.setItem("selected_start_menu_item",this.id);
@@ -342,7 +344,6 @@ function init(permissions){
     //load last selected menu item
     restoreUserState();
 }
-
 
 function restoreUserState(){
     console.log("restoring user state , " +localStorage.getItem("selected_start_menu_item"))
