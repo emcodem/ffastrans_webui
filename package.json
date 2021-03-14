@@ -12,7 +12,7 @@
     "connect-multiparty": "^2.2.0",
     "console-stamp": "^0.2.9",
     "cron-parser": "^2.13.0",
-    "date-and-time": "^0.10.0",
+    "date-and-time": "^0.14.2",
     "dir-compare": "^1.8.0",
     "encoding": "^0.1.12",
     "escape-string-regexp": "^1.0.5",
