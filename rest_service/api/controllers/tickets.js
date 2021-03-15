@@ -1,10 +1,11 @@
 'use strict';
 //var util = require('util');
-const fs = require('fs')
+const fs = require('fs');
 const fsPromises = require('fs/promises');
-const path = require("path")
-const recursive = require('fs-readdir-recursive')
-const recursive_async = require('recursive-readdir-async')
+const path = require("path");
+const recursive = require('fs-readdir-recursive');
+const recursive_async = require('recursive-readdir-async');
+const common = require("./common/ticket_helpers.js");
 // const DEBUG_MODE_ON = true;
 // if (!DEBUG_MODE_ON) {
     // console = console || {};
@@ -15,21 +16,6 @@ module.exports = {
     get: start
 };
 //HELPERS
-
-
-async function get_wf_name(wf_id){
-        try{
-            var workflow_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/workflows/");
-            var wf_path = path.join(workflow_folder,wf_id) + ".json";
-            //console.log("Reading worfklow for pending ticket: ", wf_path)
-            var wf_obj = await readfile_cached(wf_path);
-            wf_obj = JSON.parse(wf_obj);
-            return wf_obj["wf_name"];
-        }catch(ex){
-            console.error("Error reading workflow for pending ticket: ", await readfile_cached(wf_path ),ex);
-            
-        }
-}
 
 async function cache_cleaner(){
 	for (const key in global.filecache.tickets) {
@@ -42,36 +28,6 @@ async function cache_cleaner(){
 	}
 }
 
-async function readfile_cached(fullpath){
-	if (! ("filecache" in global)){
-		global.filecache = {};
-	}
-	if (! ("tickets" in global.filecache)){
-		global.filecache.tickets = {};
-	}
-    if (Object.keys(global.filecache.tickets).length > 500){
-        cache_cleaner();
-    }
-	//delete non existing files in global cache
-
-	if (fullpath in global.filecache.tickets){
-		//serve cached file
-		return global.filecache.tickets[fullpath];
-	}else{
-		//read file, store globally and return content
-		try{
-            var contents = await fsPromises.readFile(fullpath, 'utf8');
-            contents = contents.replace(/^\uFEFF/, '');
-			global.filecache.tickets[fullpath] = contents;
-			return global.filecache.tickets[fullpath];
-			
-		}catch(ex){
-			console.error("Unexpected error while reading ticket file",fullpath,ex);
-			throw ex;
-		}
-	}
-	
-}
 
 //all files in all directories to array
 async function jsonfiles_to_array(dir) {
@@ -82,12 +38,12 @@ async function jsonfiles_to_array(dir) {
         
         for (var _idx in allfiles){
             try{
-                var newitem = (JSON.parse(await readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
+                var newitem = (JSON.parse(await common.readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
                 var wf_id =  allfiles[_idx].split("~")[3];
                 newitem["fullpath"] = path.join(dir,allfiles[_idx]);
                 newitem["internal_wf_id"] = wf_id;
                 if (! ("internal_wf_name" in newitem)){
-                    newitem["internal_wf_name"] = await get_wf_name(wf_id);
+                    newitem["internal_wf_name"] = await common.get_wf_name(wf_id);
                 }
                 //newitem["internal_wf_name"] = wf_id;
                 if (! "internal_file_date" in newitem){ //stat only if needed
@@ -135,7 +91,7 @@ async function get_incoming(returnarray){
                                 
                                 var newitem = {};
                                 //read the incoming json to get details about watched file
-                                var f_contents = await readfile_cached(fullpath);
+                                var f_contents = await common.readfile_cached(fullpath);
                                 var _readout = (JSON.parse(f_contents))//removes BOM	;
                                 newitem["host"] = _readout["host"]
                                 var _realfile = _readout["source"];
@@ -148,11 +104,11 @@ async function get_incoming(returnarray){
                                 newitem["submit"] = {"time":_stat["birthtime"]};
                                 newitem["nodes"] = {"next":"Watchfolder","type":"Watchfolder"};
                                 
-                                newitem["internal_wf_name"] = await get_wf_name(_matches[1]);
+                                newitem["internal_wf_name"] = await common.get_wf_name(_matches[1]);
                                 found_incoming.push(newitem);
                             }catch(ex){
                                 console.log("If this error occurs only once, its OK but just for info: could not parse" + _mons + "\\" +_proc_guids[_proc].name + "\\i\\" + _incoming_files[_incoming]  , ex);
-                                console.log("contents",readfile_cached(fullpath))
+                                console.log("contents",common.readfile_cached(fullpath))
                             }
                             if (_incoming > 100){
                                 console.warn("Incoming files is more than 100, your watchfolder is huge..." + _mons + "\\" +_proc_guids[_proc].name);
@@ -184,7 +140,7 @@ async function get_pending(){
         try{
             var _cur = a_pending[key];
             if (! "internal_wf_name" in a_pending[key]){//todo: the IF does not work, internal_wf_name is a guid in this case
-                a_pending[key]["workflow"] = get_wf_name(a_pending[key]["internal_wf_id"]);
+                a_pending[key]["workflow"] = common.get_wf_name(a_pending[key]["internal_wf_id"]);
                 
             }else{
                 a_pending[key]["workflow"] = a_pending[key]["internal_wf_name"];
