@@ -15,6 +15,7 @@
     "jsdom": "^16.2.2",
     "json.human": "0.0.1",
     "mediainfo-wrapper": "^1.2.0",
+    "read-last-lines": "^1.8.0",
     "strip-bom": "^4.0.0",
     "swagger-ui-express": "^4.1.4",
     "winston": "^3.2.1",
