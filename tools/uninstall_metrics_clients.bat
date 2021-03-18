@@ -33,7 +33,7 @@ if '%errorlevel%' NEQ '0' (
 set InstallFolder="%~dp0"
 
 net stop "FFAStrans Metrics Client"
-"%~dp0\nssm" remove "FFAStrans Metrics Client" 
+"%~dp0\nssm" remove "FFAStrans Metrics Client" confirm
 
 
 pause
