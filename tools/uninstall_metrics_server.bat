@@ -33,10 +33,10 @@ if '%errorlevel%' NEQ '0' (
 set InstallFolder="%~dp0"
 
 net stop "FFAStrans Metrics Collector"
-"%~dp0\nssm" remove "FFAStrans Metrics Collector" 
+"%~dp0\nssm" remove "FFAStrans Metrics Collector" confirm
 
 net stop "FFAStrans Metrics UI"
-"%~dp0\nssm" remove "FFAStrans Metrics UI" 
+"%~dp0\nssm" remove "FFAStrans Metrics UI" confirm
 
 
 pause

@@ -33,8 +33,8 @@ if '%errorlevel%' NEQ '0' (
 echo "%~dp0"tools\nssm
 
 REM install prometheus
-"%~dp0\nssm" install "FFAStrans Metrics Client" "%~dp0prometheus\prometheus_clients\windows_exporter.exe"
-"%~dp0\nssm" set "FFAStrans Metrics Client" AppDirectory "%~dp0prometheus\prometheus_clients"
+"%~dp0\nssm" install "FFAStrans Metrics Client" "%~dp0prometheus_clients\windows_exporter.exe"
+"%~dp0\nssm" set "FFAStrans Metrics Client" AppDirectory "%~dp0prometheus_clients"
 
 "%~dp0\nssm" set "FFAStrans Metrics Client" Description "Prometheus server"
 "%~dp0\nssm" set "FFAStrans Metrics Client" Start SERVICE_AUTO_START

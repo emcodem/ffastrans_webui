@@ -43,9 +43,9 @@ echo "%~dp0prometheus\prometheus.exe"
 net start "FFAStrans Metrics Collector"
 
 REM install grafana
-echo "%~dp0grafana-7.4.3\bin\grafana-server.exe"
-"%~dp0\nssm" install "FFAStrans Metrics UI" "%~dp0grafana-7.4.3\bin\grafana-server.exe"
-"%~dp0\nssm" set "FFAStrans Metrics UI" AppDirectory "%~dp0grafana-7.4.3\bin"
+echo "%~dp0prometheus\grafana-7.4.3\bin\grafana-server.exe"
+"%~dp0\nssm" install "FFAStrans Metrics UI" "%~dp0prometheus\grafana-7.4.3\bin\grafana-server.exe"
+"%~dp0\nssm" set "FFAStrans Metrics UI" AppDirectory "%~dp0prometheus\grafana-7.4.3\bin"
 
 "%~dp0\nssm" set "FFAStrans Metrics UI" Description "Grafana server"
 "%~dp0\nssm" set "FFAStrans Metrics UI" Start SERVICE_AUTO_START
