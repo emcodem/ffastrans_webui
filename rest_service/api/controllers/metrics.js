@@ -73,7 +73,6 @@ async function count_running_tickets() {
             var _stat = await fsPromises.stat(path.join(dir,allfiles[_idx]));
             var delta = Math.abs(_stat["birthtime"] - new Date()) / 1000;   
             _entry+= (_job) + " "+ parseInt(delta);
-            console.log(_entry)
             allentries += _entry +"\n";
         }
 

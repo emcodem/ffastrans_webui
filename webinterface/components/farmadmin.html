@@ -46,100 +46,37 @@
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
     }
-
-    .fas {
-        opacity: 0.9;                /* Opacity (Transparency) */
-        color: rgba(0, 0, 0, 0.9);   /* RGBA Color (Alternative Transparency) */
-        
+    .sidenav {
+      height: 100%;
+      float:left;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      overflow-x: hidden;
+      padding-top: 20px;
+      border-right: 1px solid #AAA;
     }
-
-    button {
-        cursor: pointer;
+    .sidenav a {
+      padding: 6px 8px 6px 16px;
+      text-decoration: none;
+      font-size: 12px;
+      color: #000000;
+      display: block;
     }
-
-    .progressbar {
-        border-radius: 5px;
+    .button {
+        display: block;
         height: 15px;
-        background-color: #4CAF50;
-        margin: 0;
-        padding: 0;
+        width:100%;
+        margin-top:2px;
         text-align: center;
-        vertical-align: middle;
-        white-space: nowrap;
+        cu:pointer;
+        background-color: #DDD;
+        border: 1px solid #AAA;
+        display: block;
     }
-
-
-    /*layout headers (big blue lines)*/
-    .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr {
-        height: 25px;
-        line-height: 23px;
-        font-size: 12px;
-    }
-
-        /*collapse icon in layout header*/
-        .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_ha {
-            background-position: -32px -5px;
-            z-index: 1;
-            margin-top: -3;
-        }
-    /*collapse icon in layout header*/
-    div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_vb {
-        margin-top: -8px;
-        z-index: 1;
-    }
-
-    /*fancytree line break*/
-    table.fancytree-ext-table tbody tr td {
-        text-overflow: ellipsis;
-        /*white-space: nowrap;*/
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
-    /* tree column resize issues*/
-    table {
-        border: 1px;
-        table-layout: fixed;
-        width: 100%;
-        outline: none;
-    }
-    /* tree column resize issues*/
-    th,
-    td {
-        border: 1px;
-        overflow: hidden;
-        font-weight: unset;
-    }
-    th{
-        border-right: 1px solid grey;
-    }
-    /* text in tree title column */
-    span.fancytree-title {
-        padding: 0 0 0;
-    }
-    /*three dots on text overflow*/
-    .celltext {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        user-select: text;
-        margin-left: 6px;
-    }
-
-    .celltext_clicked {
-        text-overflow: clip;
-        white-space: normal;
-        word-break: break-all;
-        user-select: text;
-    }
-   
-    /*context menu stuff*/
-    td:hover {
-        opacity:0.5;
-    }
-    .context-menu-active {
-        opacity:0.5;
+    .farm_iframe{
+        height:100%;
+        width:100%;
     }
 </style>
 
@@ -158,7 +95,7 @@
             url: ("/getuserpermissions" + "?" + Math.random()),
             type: "GET",
             success: function(response) {
-
+                
                 m_userpermissions = JSON.parse(response);
                 //load serverconfig and initialize page
                 $.ajax({
@@ -186,32 +123,36 @@
         
     /* build basic page layout and init periodic job loading*/
     function init() {
+        var contentiframe = document.getElementById("farm_iframe");
+        //restore last session
+        contentiframe.src = document.getElementById(localStorage.getItem("selected_farm_menu_item")).dataset["url"];
+       //button click
+        $('.button').click(function(e){
+           localStorage.setItem("selected_farm_menu_item",this.id);
+           if (this.id=="machines"){
+                console.log(contentiframe)
+                contentiframe.src = document.getElementById(this.id).dataset["url"];
+           }
+           if (this.id=="metrics"){
+           
+           }
+        });
 
-
-        //check if html5 features supported
-        if (typeof(Storage) !== "undefined") {} else {
-            dhtmlx.message("ERROR, no html5 store support, cannot save view state")
-        }
-
-        var main_layout = new dhtmlXLayoutObject(document.body, '1C');
-
-        var a = main_layout.cells('a');
-        main_layout.cells('a').hideHeader()
-        var sidebar_1 = a.attachSidebar({template: 'details', width: '200', icons_path: '../images/', autohide: '', header: ''});
-        //machines
-        sidebar_1.addItem({id: 'machines', text: 'Farm Machines', icon: ''});
-        var machines = sidebar_1.cells('machines');
-        machines.setActive();
-        machines.attachURL("farmadmin/farm_machines.html", false);
-        //server monitoring
-        sidebar_1.addItem({id: 'prometheus', text: 'Metrics', icon: ''});
-        var prometheus = sidebar_1.cells('prometheus');
-        prometheus.attachURL("farmadmin/farm_machines.html", false);
+        //prometheus.attachURL("farmadmin/farm_machines.html", false);
 
     }
+    
+
 
 </script>
-
 <body onload="loadserverconfig()">
+<div class="sidenav ">
+  <div id="machines" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="farmadmin/farm_machines.html">Farm Machines</div><br/>
+  <div id="metrics" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="">Metrics</div>
+</div>
 
+
+<div class="main" >
+<iframe class="farm_iframe" style="width:90%" id="farm_iframe"/>
+</div>
 </body>
