@@ -349,6 +349,12 @@ function restoreUserState(){
     console.log("restoring user state , " +localStorage.getItem("selected_start_menu_item"))
 //stores some layout properties in html5 local store
 
+    if (localStorage.getItem("selected_start_menu_item")){
+        //first load, choose job status
+        
+        mainLayout.cells("b").attachURL(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 
+
+    }
     var selectedid = (localStorage.getItem("selected_start_menu_item"));
     if (localStorage.getItem("selected_start_menu_item")){
 		try{
@@ -358,7 +364,7 @@ function restoreUserState(){
 			initialMenuItem = localStorage.getItem("selected_start_menu_item");
 		}catch(e){}
     }else{
-        m_mainSidebar.items("GROUPRIGHT_MENU_VIEW_JOB_STATUS").setActive(); 
+        
         mainLayout.cells("b").attachURL(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 
     }
 }

@@ -103,7 +103,7 @@ async function get_incoming(returnarray){
                                 var _stat = await fsPromises.stat(fullpath);
                                 newitem["submit"] = {"time":_stat["birthtime"]};
                                 newitem["nodes"] = {"next":"Watchfolder","type":"Watchfolder"};
-                                
+                                console.log("INCOMING")
                                 newitem["internal_wf_name"] = await common.get_wf_name(_matches[1]);
                                 found_incoming.push(newitem);
                             }catch(ex){

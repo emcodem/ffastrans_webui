@@ -248,17 +248,17 @@ module.exports = {
         
 //END OF Family sorting
         jobArray = await getFancyTreeArray(jobArray);
-        for (i=0;i<jobArray.length;i++){
 
-            //Unique ID is now jobid~splitid + time_end!!!
-            
+        for (i=0;i<jobArray.length;i++){
             (function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
-                //upsert history record (if family_member_count changed)
+                //upsert history record (update if family_member_count changed, insert new if not exists)
                 global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
                     if(docs > 0 ){
+                            //TODO: either change to another db or find out why docs sometimes contains a non changed document ^^
                             console.log("inserted " + job_to_insert["source"])
                             global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
                     }else{
+                        
                     }
                 })//job update
             })(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function

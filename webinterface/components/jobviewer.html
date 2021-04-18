@@ -47,6 +47,7 @@
         color: #333;
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
+        
     }
 
     .fas {
@@ -57,6 +58,7 @@
 
     button {
         cursor: pointer;
+        font-size: 12px;
     }
 
     .progressbar {
@@ -112,6 +114,7 @@
         border: 1px;
         overflow: hidden;
         font-weight: unset;
+        
     }
     th{
         border-right: 1px solid grey;
@@ -201,14 +204,14 @@
         
         //menu buttons html
         var a_details = '<button class="btn" name="a_details" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm" ></i>Job Details</button> ';
-        var a_abort = '<button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm" ></i>Abort</button>';
-        var a_pause = '<button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm" ></i>Pause</button>';
-        var a_resume = '<button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm" ></i>Resume</button>';
+        var a_abort = '<button class="btn" name="a_abort" onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm" ></i>Abort</button> ';
+        var a_pause = '<button class="btn" name="a_pause" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm" ></i>Pause</button> ';
+        var a_resume = '<button class="btn" name="a_resume" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm" ></i>Resume</button>   ';
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume];
         
-        var b_details = '<button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm"></i>Job Details</button>';
-        var b_resubmit = '<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm" ></i>Resubmit</button>';
-        var b_delall = '<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete All</button>';
+        var b_details = '<button class="btn" name="b_details" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm"></i>Job Details</button> ';
+        var b_resubmit = '<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm" ></i>Resubmit</button> ';
+        var b_delall = '<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete All</button> ';
         var b_delsel = '<button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete Selected</button> ';
         var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel];
         
@@ -292,6 +295,24 @@
             saveLayoutSizes(mainLayout, "mainLayout");
         });
 
+        //restore last sort order for active jobs
+        try{
+            m_lastsortelementid = JSON.parse(localStorage.getItem("m_lastsortelementid"));
+            m_lastsortdir = JSON.parse(localStorage.getItem("m_lastsortdir"));
+        }catch(ex){
+            console.log("No Sorting stored in client cache, will apply default sort order.")
+        }
+        if (!m_lastsortelementid || !m_lastsortdir || typeof(m_lastsortelementid) != "object" || typeof(m_lastsortdir) != "object") {
+            m_lastsortelementid = {}
+            m_lastsortdir = {}
+            m_lastsortelementid["treetable_active"] = "active-state";
+            m_lastsortdir["treetable_active"] = "asc";
+            console.log("Applying default sorting for active grid")
+        } else {
+            console.log("Applying stored sorting for active grid", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"])
+        }
+       
+       
         //    mainLayout.cells("a").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
@@ -303,10 +324,12 @@
             var rootNode = $("#treetable_history").fancytree("getRootNode");
 
             var existing_node = rootNode.tree.getNodeByKey(msg.key)
+            //store the position of existing nodes (for update)
             if (existing_node) {
-                existing_node.remove();
+                existing_node.fromDict(msg);
+                return;
             }
-
+            
             firstnode = rootNode.findFirst("")
             if (firstnode) {
                 if (firstnode.extraClasses == "odd_dhx_skyblue") {
@@ -317,7 +340,8 @@
             }
             //add new node
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
-
+            //take care about grid sorting
+            sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
         });
 
         socket.on('incomingjobs', function(msg) {
@@ -372,20 +396,19 @@
             getFinishedJobs(finishedJobGrid);
         }
 
-        //restore last sort order for active jobs
-        m_lastsortelementid = localStorage.getItem("m_lastsortelementid");
-        m_lastsortdir = localStorage.getItem("m_lastsortdir");
-        if (!m_lastsortelementid || !m_lastsortdir) {
-            m_lastsortelementid = "active-state";
-            m_lastsortdir = "asc";
-            console.log("Applying default sorting for active grid")
-        } else {
-            console.log("Applying stored sorting for active grid", m_lastsortelementid, m_lastsortdir)
-        }
+
+        $('input[type="search"]').click(function(event){
+        /*need to canclebubble on type search to prevent sorting*/
+        
+            event.stopPropagation();
+        });
 
         buildHistoryGrid();
         buildActiveGrid();
         forcejobloading();
+        //sort grids
+        sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
+        sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
     }
 
     function click_a_header(id) {
@@ -845,15 +868,17 @@
                 var input = $("input[name=search]")[i];
                 match = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
+                if(keyname.match(/start|end/)){
+                    keyname = "job_" + keyname;
+                }
                 if (match) {
                     search_obj[keyname] = (match)
-
                 }
             }
 
             var tree = $('#treetable_history').fancytree('getTree');
             tree.reload({
-                url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj=" + JSON.stringify(search_obj),
+                url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=1000&filterobj=" + JSON.stringify(search_obj),
                 cache: false
             });
 
@@ -1146,7 +1171,8 @@
             }
         }
         //take care about grid sorting
-        sortGrid("treetable_active", m_lastsortelementid, m_lastsortdir);
+        sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
+        
 
     }
 
@@ -1270,9 +1296,15 @@
     }
 
     function sortGrid(whichGrid, src_element_id, force_order) {
+        
         src_element = document.getElementById(src_element_id);
+        src_element_sorticon = document.getElementById(src_element_id + "-sorticon");
+        //remove sort icons from all
+        $('i[name="'+whichGrid+"-sorticon"+'"]').removeClass("fas fa-sort-up");
+        $('i[name="'+whichGrid+"-sorticon"+'"]').removeClass("fas fa-sort-down");
+        
         if (!src_element) {
-            console.error("Error in sorting, finding element with id: " + src_element)
+            console.error("Error in sorting, finding element with id: " + src_element, src_element_id)
             return;
         }
         var whichColumn = src_element.getAttribute("name");
@@ -1282,18 +1314,29 @@
         }
 
         if (!force_order) {
-
+            //manual interaction, reverse current sort order
             if (src_element.dataset["sort_dir"] == "asc") {
                 src_element.dataset["sort_dir"] = "des";
+                $('i[id="'+src_element_id+"-sorticon"+'"]').addClass("fas fa-sort-down");
             } else {
                 src_element.dataset["sort_dir"] = "asc";
+                $('i[id="'+src_element_id+"-sorticon"+'"]').addClass("fas fa-sort-up");
             }
         } else {
+            //force_order is only set when the order is automatically restored at page load, no need to reverse the sorting dir
             src_element.dataset["sort_dir"] = force_order
+            if (force_order == "asc"){
+                src_element.dataset["sort_dir"] = "asc";
+                $('i[id="'+src_element_id+"-sorticon"+'"]').addClass("fas fa-sort-up");
+            }else{
+                src_element.dataset["sort_dir"] = "des";
+                $('i[id="'+src_element_id+"-sorticon"+'"]').addClass("fas fa-sort-down");
+            }
         }
         //remember the sorting
-        m_lastsortelementid = src_element_id;
-        m_lastsortdir = src_element.dataset["sort_dir"];
+        m_lastsortelementid[whichGrid] = src_element_id;
+        m_lastsortdir[whichGrid] = src_element.dataset["sort_dir"];
+        
         //apply the sorting
         tree.getRootNode().sortChildren(function(a, b) {
             if (src_element.dataset["sort_dir"] == "asc") {
@@ -1301,11 +1344,11 @@
             } else {
                 return (b.data[whichColumn] + "").localeCompare(a.data[whichColumn])
             }
-
         }, true);
-
-        localStorage.setItem("m_lastsortelementid", m_lastsortelementid);
-        localStorage.setItem("m_lastsortdir", m_lastsortdir);
+        
+        console.log("storing localstorage",JSON.stringify(m_lastsortelementid))
+        localStorage.setItem("m_lastsortelementid", JSON.stringify(m_lastsortelementid));
+        localStorage.setItem("m_lastsortdir", JSON.stringify(m_lastsortdir));
     }
 
         
@@ -1338,13 +1381,13 @@
                 </colgroup>
                 <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
                     <tr>
-                        <th id="active-state" name="state" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="" >State</th>
-                        <th id="active-workflow" name="workflow" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Workflow</th>
-                        <th id="active-job_start" name="job_start" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Start</th>
-                        <th id="active-file" name="file" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Source</th>
-                        <th id="active-proc" name="proc" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Processor@Host</th>
-                        <th id="active-status" name="status" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Status</th>
-                        <th id="active-progress" name="progress" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">Progress</th>
+                        <th id="active-state" name="state" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="" >        <i id="active-state-sorticon" name="treetable_active-sorticon" ></i>State</th>
+                        <th id="active-workflow" name="workflow" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">   <i id="active-workflow-sorticon" name="treetable_active-sorticon" ></i>Workflow</th>
+                        <th id="active-job_start" name="job_start" onclick="sortGrid('treetable_active',this.id)" data-sort_dir=""> <i id="active-job_start-sorticon" name="treetable_active-sorticon" ></i>Start</th>
+                        <th id="active-file" name="file" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">           <i id="active-file-sorticon" name="treetable_active-sorticon" ></i>Source</th>
+                        <th id="active-proc" name="proc" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">           <i id="active-proc-sorticon" name="treetable_active-sorticon" ></i>Processor@Host</th>
+                        <th id="active-status" name="status" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">       <i id="active-status-sorticon" name="treetable_active-sorticon" ></i>Status</th>
+                        <th id="active-progress" name="progress" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">   <i id="active-progress-sorticon" name="treetable_active-sorticon" ></i>Progress</th>
                     </tr>
                 </thead>
             </table>
@@ -1361,18 +1404,18 @@
                     <col width="10%"></col>
                     <col width="10%"></col>
                     <col width="10%"></col>
-                    <col width="10%"></col>
-                    <col width="10%"></col>
+                    <col width="30%"></col>
+                    <col width="30%"></col>
                 </colgroup>
                 <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                     <tr class="">
-                        <th><input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th><input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th><input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th>Duration</th>
-                        <th><input placeholder="End" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th><input placeholder="File" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th><input placeholder="Outcome" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">           <i id="history-state-sorticon" name="treetable_history-sorticon" class=""></i> <input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search"  incremental autocomplete="off"></th>
+                        <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">   <i id="history-job_start-sorticon" name="treetable_history-sorticon"/></i>      <input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     </tr>
                 </thead>
             </table>

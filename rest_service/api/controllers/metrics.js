@@ -64,11 +64,11 @@ async function count_running_tickets() {
         for (var _idx in allfiles){
             var _entry = "ffas_running_job";
             var _job= "";
-            var wfname = await common.get_wf_name(allfiles[_idx].split("~")[3]);
+            var wfname = await common.get_wf_name(allfiles[_idx].split("~")[4]);
             _job+= "{"
             _job+= "job_id=\"" + allfiles[_idx].split("~")[1] +"\",";
             _job+= "wf_name=\"" + wfname + "\",";
-            _job+= "hostname=\"" + allfiles[_idx].split("~")[4] + "\"";
+            _job+= "hostname=\"" + allfiles[_idx].split("~")[5] + "\"";
             _job+= "}"
             var _stat = await fsPromises.stat(path.join(dir,allfiles[_idx]));
             var delta = Math.abs(_stat["birthtime"] - new Date()) / 1000;   
@@ -155,7 +155,7 @@ async function parse_monitor_log(){
                 returnvalue+= "file=\"" + split[3] + "\",";
                 returnvalue+= "status=\"" + split[4] + "\"";
                 returnvalue+= "} 1\n"
-                console.log("Metrics report new error job",returnvalue)
+                console.log("Metrics report new error job. State was:",state,"Message:",returnvalue)
             }
         }
     }
