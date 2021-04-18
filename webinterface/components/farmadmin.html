@@ -1,7 +1,6 @@
 <html>
 <head>
-<script src="/socket.io/socket.io.js"></script>
- <script src="../dependencies/dhtmlx/dhtmlx.js"></script> 
+
  <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
 
 
@@ -55,6 +54,7 @@
       overflow-x: hidden;
       padding-top: 20px;
       border-right: 1px solid #AAA;
+      width:100px;
     }
     .sidenav a {
       padding: 6px 8px 6px 16px;
@@ -69,25 +69,25 @@
         width:100%;
         margin-top:2px;
         text-align: center;
-        cu:pointer;
+        cursor:pointer;
         background-color: #DDD;
-        border: 1px solid #AAA;
+        border: 1px solid #CCC;
         display: block;
+        box-shadow: 1px 1px #AAA;
+        
     }
     .farm_iframe{
         height:100%;
         width:100%;
     }
+    
+
 </style>
 
 <script>
-    /* init SOCKET.IO */
-    var socket = io();
 
     /* GLOBALS */
-    var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
-    var m_rowColorError = "#f28d80"
-    var m_rowColorCancelled = "#ffcc80"
+    var m_serverconfig, m_userpermissions;
 
     /*load config from server*/
     function loadserverconfig() {
@@ -125,8 +125,19 @@
     function init() {
         var contentiframe = document.getElementById("farm_iframe");
         //restore last session
-        contentiframe.src = document.getElementById(localStorage.getItem("selected_farm_menu_item")).dataset["url"];
-       //button click
+        
+    
+        $(document).ready(function () {//button background on hover
+            $('.button').hover(function () {
+                $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
+                $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
+            }, function () {
+                $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
+                $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
+            });
+        });
+        
+        //button click
         $('.button').click(function(e){
            localStorage.setItem("selected_farm_menu_item",this.id);
            if (this.id=="machines"){
@@ -134,10 +145,16 @@
                 contentiframe.src = document.getElementById(this.id).dataset["url"];
            }
            if (this.id=="metrics"){
-           
+                contentiframe.src = document.getElementById(this.id).dataset["url"];
            }
         });
-
+        
+        if (localStorage.getItem("selected_farm_menu_item")){
+            contentiframe.src = document.getElementById(localStorage.getItem("selected_farm_menu_item")).dataset["url"];
+        }else{
+           contentiframe.src = "farmadmin/farm_machines.html";
+        }
+       
         //prometheus.attachURL("farmadmin/farm_machines.html", false);
 
     }
@@ -146,9 +163,9 @@
 
 </script>
 <body onload="loadserverconfig()">
-<div class="sidenav ">
-  <div id="machines" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="farmadmin/farm_machines.html">Farm Machines</div><br/>
-  <div id="metrics" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="">Metrics</div>
+<div class="sidenav  dhtmlxMenu_dhx_skyblue_Middle" style="padding-left:2px">
+  <div id="machines" style="width:90%" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="farmadmin/farm_machines.html">Farm Machines</div><br/>
+  <div id="metrics" style="width:90%" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="farmadmin/metrics_admin.html">Metrics Admin</div>
 </div>
 
 
