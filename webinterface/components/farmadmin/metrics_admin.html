@@ -1,0 +1,111 @@
+<html>
+<head>
+
+<script src="../../dependencies/jquery/jquery.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+<link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
+<link href="../../dependencies/bootstrap/5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet" >
+<script src="../../dependencies/bootstrap/5.0.0-beta3/js/bootstrap.bundle.min.js" ></script>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        /* width: 100%; */
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+        color: #333;
+        font: 14px Helvetica, Arial, sans-serif;
+        line-height: 18px;
+    }
+
+    .fas {
+        opacity: 0.9;                /* Opacity (Transparency) */
+        color: rgba(0, 0, 0, 0.9);   /* RGBA Color (Alternative Transparency) */
+        
+    }
+
+</style>
+
+<script>
+    /* GLOBALS */
+    var m_serverconfig, m_userpermissions;
+
+    /*load config from server*/
+    function loadserverconfig() {
+        $.ajax({
+            url: ("/getuserpermissions" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+
+                m_userpermissions = JSON.parse(response);
+                //load serverconfig and initialize page
+                $.ajax({
+                    url: ("/getserverconfig" + "?" + Math.random()),
+                    type: "GET",
+                    success: function(response) {
+                        console.log("got server conf")
+                        m_serverconfig = JSON.parse(response);
+                        init();
+                    },
+                    error: function(xhr, status) {
+                        dhtmlx.message("Fatal error, could not load serverconfig. ");
+                        document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+                    }
+                });
+            },
+            error: function(xhr, status) {
+                dhtmlx.message("Fatal error, could not load serverconfig. ");
+                document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+            }
+
+        });
+
+    }
+
+        
+    /* build basic page layout and init periodic job loading*/
+    function init() {
+
+        //check if html5 features supported
+        if (typeof(Storage) !== "undefined") {} else {
+            dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+        }
+
+
+
+    }
+    
+    function build_new_api_url(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/new_proxy" + what;
+        } else {
+            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            return _url;
+        }
+    }
+
+
+</script>
+
+<body onload="loadserverconfig()" style="margin:20px">
+<form>
+
+<div class="row mb-3">
+  <label for="colFormLabelSm" class="col-sm-0 col-form-label col-form-label-sm">Username</label>
+  <div class="col-sm-2">
+    <input type="email" class="form-control form-control-sm" id="colFormLabelSm" placeholder="Admin username for service installation">
+  </div>
+</div>
+  <div class="row mb-3">
+    <label for="inputPassword4" class="col-sm-0 col-form-label col-form-label-sm">Password</label>
+      <div class="col-sm-2">
+        <input type="password" class="form-control form-control-sm"  id="inputPassword4">
+      </div>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Install Metrics Server</button>
+  </div>
+</form>
+
+</body>

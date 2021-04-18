@@ -1,19 +1,12 @@
 <html>
 <head>
-<script src="/socket.io/socket.io.js"></script>
- <script src="../../dependencies/dhtmlx/dhtmlx.js"></script> 
- <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
-<!-- http://localhost:3002/webinterface/components/farmadmin/farm_machines.html -->
 
-<!-- <script src="../../dependencies/dhtmlx/vault/vault.js"></script> -->
-<!-- <link rel="stylesheet" href="../../dependencies/dhtmlx/vault/vault.css" type="text/css"> -->
+
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+
 <script src="../../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
-
-
-<!-- <link href="../../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
-<!-- <script src="../../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
 
 <script src="../../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
 <link href="../../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
@@ -140,14 +133,11 @@
 </style>
 
 <script>
-    /* init SOCKET.IO */
-    var socket = io();
+
 
     /* GLOBALS */
-    var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
-    var m_rowColorError = "#f28d80"
-    var m_rowColorCancelled = "#ffcc80"
-
+    var m_serverconfig, m_userpermissions;
+    
     /*load config from server*/
     function loadserverconfig() {
         $.ajax({
@@ -184,13 +174,21 @@
     /* build basic page layout and init periodic job loading*/
     function init() {
 
-
         //check if html5 features supported
         if (typeof(Storage) !== "undefined") {} else {
             dhtmlx.message("ERROR, no html5 store support, cannot save view state")
         }
-        console.log("Init")
-        buildHistoryGrid()
+        
+        $(document).ready(function () {//button background on hover
+            $('.button').hover(function () {
+                $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
+                $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
+            }, function () {
+                $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
+                $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
+            });
+        });
+        buildMachinesGrid()
 
 
     }
@@ -205,15 +203,16 @@
     }
 
     function formattime(_dt){
-        return moment(_dt.replace(/-.....$/,"")).format("YYYY-MM-DD HH:mm:ss")
+        console.log("formatt",_dt)
+        return moment(_dt.replace(/......$/,"")).format("YYYY-MM-DD HH:mm:ss")
     }
             
-    function buildHistoryGrid() {
+    function buildMachinesGrid() {
         
         var sourceUrl = build_new_api_url("/machines");
         console.log(sourceUrl)
         //var sourceUrl = "testdata.xml";
-        $("#treetable_history").fancytree({
+        $("#treetable_machines").fancytree({
             extensions: ["contextMenu", "table", "gridnav", "multi"],
             checkbox: false,
             titlesTabbable: false, // Add all node titles to TAB chain
@@ -229,7 +228,7 @@
             modifyChild: function(event, data) {
                 
                 //reset all odd even row colors
-                var rootNode = $("#treetable_history").fancytree("getRootNode");
+                var rootNode = $("#treetable_machines").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
 
                 for (i = 0; i < oldnodes.length; i++) {
@@ -265,7 +264,8 @@
                 $tdList.eq(2).html("<div class='celltext'>" + 0 + "</div>");//TODO:active JOBS!
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.core_usage + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.cpu_roof + "</div>");
-                $tdList.eq(5).html("<div class='celltext'>" + " Cores: " + node.data.cpu["cores"] + " " +node.data.cpu["architecture"] + " " +"" +node.data.cpu["identifier"] +"</div>");
+                var coretext = " Cores: " + node.data.cpu["cores"] + " " +node.data.cpu["architecture"] + " " +"" +node.data.cpu["identifier"] ;
+                $tdList.eq(5).html("<div class='celltext' title='"+coretext+"'>" + coretext +"</div>");
                 $tdList.eq(6).html("<div class='celltext'>" + formattime(node.data.last_heartbeat) + "</div>");
                 $tdList.eq(7).html("<div class='celltext'>" + formattime(node.data.ffas_start_time) + "</div>");
                 $tdList.eq(8).html("<div class='celltext'>" + formattime(node.data.ffas_end_time) + "</div>");
@@ -275,7 +275,7 @@
             },
             init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
-                $("#treetable_history").colResizable({
+                $("#treetable_machines").colResizable({
                     resizeMode: 'fit',
                     hoverCursor: "col-resize",
                     dragCursor: "col-resize",
@@ -308,7 +308,7 @@
                     data.node.removeClass("rowselected");
                 }
             },
-            contextMenu: {
+            contextMenu: {/*
                 selector: "hist_row",
                 menu: getContextMenuHistoryGrid( 
                     {
@@ -325,7 +325,7 @@
                 actions: function(node, action, options) {
                         
                         clearSelection(); //disable browser internal line selection if user selected multiple rows using shift. TODO: catch shift globally and do this
-                        var tree = $('#treetable_history').fancytree('getTree');
+                        var tree = $('#treetable_machines').fancytree('getTree');
                         var selected = tree.getSelectedNodes();
                          $.extend(selected,node);
                          console.log(action,selected)
@@ -343,76 +343,13 @@
                             click_b_header("b_resubmit",node)
                         }
 
-                    }
+                    }*/
                 }//contextmenu
             
         })
 
-        //search btn
-        $('input[name=search]').bind("enterKey", function(e) {
-            //iterate all search fields
-            var search_obj = {};
-            for (i = 0; i < $("input[name=search]").length; i++) {
-                var input = $("input[name=search]")[i];
-                match = $.trim(input.value);
-                var keyname = input.placeholder.toLowerCase();
-                if (match) {
-                    search_obj[keyname] = (match)
+    } //buildMachinesGrid
 
-                }
-            }
-
-            var tree = $('#treetable_history').fancytree('getTree');
-            tree.reload({
-                url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj=" + JSON.stringify(search_obj),
-                cache: false
-            });
-
-        });
-
-        $("input[name=search]").keyup(function(e) {
-            if (e.keyCode == 13) {
-                $(this).trigger("enterKey");
-            }
-        });
-
-    } //buildhistorygrid
-
-    
-    function getContextMenuHistoryGrid(allpossible){
-        //opens context menu
-        
-        <!-- try{//special code to mark rightlcicked node as selected -->
-            <!-- console.log("trying") -->
-            <!-- var tree = $('#treetable_history').fancytree('getTree'); -->
-            <!-- var selected = tree.getSelectedNodes(); -->
-            <!-- console.log("selected count: ", selected.length) -->
-        <!-- }catch(ex){} -->
-        
-        var contextmenu = {};
-        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
-        if (_filter.length > 0){
-            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
-            console.log("Displaying filtered list of buttons, regex: ", regex);
-            for (var _idx in allpossible){
-               if (allpossible[_idx]){
-                    if (allpossible[_idx].name.match(regex)){
-                        console.log(allpossible[_idx]);
-                        var newitem = {};
-                        newitem[_idx] = allpossible[_idx];
-                        $.extend(contextmenu, newitem);
-                        console.log(contextmenu);
-                    }
-               } 
-            }
-            return contextmenu;
-        }else{
-            //just render all btns
-            console.log("Displaying unfiltered list of menu buttons" );
-            contextmenu = allpossible;
-            return contextmenu;
-        }
-    }
     
     function _getObjectByValue(object, value) {//helper
         var to_return = [];
@@ -432,47 +369,35 @@
         var filtered = [];
         for (i = 0; i < the_list.length; i++){
             var _itm = {}
-            the_list[i]["title"] = the_list[i]["computername"]
-           
+            the_list[i]["title"] = the_list[i]["computername"] 
         }
         return the_list;
 
     }
-    
-    $(document).ready(function () {//button background on hover
-        $('.button').hover(function () {
-            $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
-            $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
-        }, function () {
-            $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
-            $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
-        });
-    });
+
 
 </script>
 
 <body onload="loadserverconfig()">
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
-        <div id="header_background" class="dhtmlxMenu_dhx_skyblue_Middle dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" style="margin-top:0;position:relative;width:100%">
-           
-           <div class="button top_level_text" style="width:90px"><i class="fas fa-edit"></i>Edit Selected</div>
-            
+        <div id="header_background" class="dhtmlxMenu_dhx_skyblue_Middle " style="margin-top:0;position:relative;width:100%">
+           <div class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" style="width:90px"><i class="fas fa-edit"></i>Edit Selected</div>
         </div>
         
-        <div id="history_div" style="" class="gridbox_dhx_skyblue gridbox">
-            <table id="treetable_history" class="obj">
-                <!-- <colgroup> -->
-                    <!-- <col width="10%"></col> -->
-                    <!-- <col width="10%"></col> -->
-                    <!-- <col width="4%"></col> -->
-                    <!-- <col width="4%"></col> -->
-                    <!-- <col width="4%"></col> -->
-                    <!-- <col width="10%"></col> -->
-                    <!-- <col width="10%"></col> -->
-                    <!-- <col width="10%"></col> -->
-                    <!-- <col width="10%"></col> -->
-                    <!-- <col width="4%"></col> -->
-                <!-- </colgroup> -->
+        <div id="machines_div" style="" class="gridbox_dhx_skyblue gridbox">
+            <table id="treetable_machines" class="obj">
+                    <colgroup>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="4%"></col>
+                        <col width="4%"></col>
+                        <col width="4%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="4%"></col>
+                    </colgroup>
                 <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                     <tr class="">
                         <th>Name</th>
