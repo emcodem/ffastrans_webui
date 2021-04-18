@@ -40,4 +40,3 @@ REM install prometheus
 "%~dp0\nssm" set "FFAStrans Metrics Client" Start SERVICE_AUTO_START
 
 net start "FFAStrans Metrics Client"
-pause
