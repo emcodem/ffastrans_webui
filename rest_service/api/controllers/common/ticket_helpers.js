@@ -7,6 +7,7 @@ module.exports = {
 };
 
 
+
 async function get_wf_name(wf_id){
         try{
             var workflow_folder =  path.join(global.api_config["s_SYS_CACHE_DIR"], "../configs/workflows/");
@@ -15,7 +16,7 @@ async function get_wf_name(wf_id){
             wf_obj = JSON.parse(wf_obj);
             return wf_obj["wf_name"];
         }catch(ex){
-            console.error("Error reading workflow for incoming ticket: ", (wf_path ),ex);
+            console.trace("Error reading workflow ticket: ", (wf_path ),ex);
             
         }
 }
