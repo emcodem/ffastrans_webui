@@ -3,8 +3,6 @@
 const fs = require('fs')
 const fsPromises = require('fs/promises');
 const path = require("path")
-const recursive = require('fs-readdir-recursive')
-const recursive_async = require('recursive-readdir-async')
 // const DEBUG_MODE_ON = true;
 // if (!DEBUG_MODE_ON) {
     // console = console || {};

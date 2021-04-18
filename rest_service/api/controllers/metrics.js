@@ -5,8 +5,6 @@ Metrics collection can be called every second and therefore MUST avoid long-runn
 const fs = require('fs')
 const fsPromises = require('fs/promises');
 const path = require("path")
-const recursive = require('fs-readdir-recursive')
-const recursive_async = require('recursive-readdir-async')
 const common = require("./common/ticket_helpers.js")
 const readLastLines = require('read-last-lines')
 
