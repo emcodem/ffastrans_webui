@@ -269,6 +269,7 @@ function init(conf){
     require("./node_components/get_userpermissions")(app, passport);
     require("./node_components/resumeable_backend.js")(app, passport);
     require("./node_components/mediainfo.js")(app, passport);
+	require("./node_components/activedirectory_tester.js")(app, passport);
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 

@@ -1,0 +1,87 @@
+<html>
+<head>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<script src="../dependencies/jquery/jquery.js"></script>
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+<link href="../dependencies/bootstrap/5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet" >
+<script src="../dependencies/bootstrap/5.0.0-beta3/js/bootstrap.bundle.min.js" ></script>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+    }
+	#btn_save,
+	#btn_test{
+		display: inline-block;
+		vertical-align: top;
+	}
+
+</style>
+
+<script>
+
+/* GLOBALS */
+var m_mainLayout,m_mainForm;
+var socket = io();
+/* build basic page layout and init periodic job loading*/
+function init(){
+    socket.on('activedirectory_tester', function(msg){
+		alert(msg);
+    });
+    
+}
+
+function loadserverconfig() {
+	$.ajax({
+		url: ("/getserverconfig" + "?" + Math.random()),
+		type: "GET",
+		success: function(response) {
+			console.log("got server conf")
+			m_serverconfig = JSON.parse(response);
+			init();
+		},
+		error: function(xhr, status) {
+			dhtmlx.message("Fatal error, could not load serverconfig. ");
+			document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+		}
+	});
+}
+
+</script>
+
+</head>
+<body onload="init()" style="margin-left:20px">
+<form>
+<div class="row mb-3">
+	<label for="ad_fqdn" class="col-sm-0 col-form-label col-form-label-sm" >Activedirectory FQDN</label>
+	<div class="col-sm-2">
+	<input type="email" class="form-control form-control-sm" id="ad_fqdn" placeholder="internal.acme.com">
+	</div>
+
+	<label for="activedirectory_admin_user" class="col-sm-0 col-form-label col-form-label-sm">Admin Username</label>
+	<div class="col-sm-2">
+	<input type="email" class="form-control form-control-sm" id="activedirectory_admin_user" placeholder="SomeServiceUserName">
+	</div>
+
+	<label for="activedirectory_admin_password" class="col-sm-0 col-form-label col-form-label-sm">Admin Password</label>
+	<div class="col-sm-2">
+	<input type="password" class="form-control form-control-sm"  id="activedirectory_admin_password">
+	</div>
+
+	<label for="username_for_lookup" class="col-sm-0 col-form-label col-form-label-sm">Username For Testing</label>
+	<div class="col-sm-2">
+	<input type="password" class="form-control form-control-sm"  id="username_for_lookup">
+	</div>
+	
+</div>
+<div class="col-auto">
+    <button type="submit" class="btn btn-primary" id="btn_save">Save</button>
+	<button type="submit" class="btn btn-primary" id="btn_test">Test</button>
+</div>
+</form>
+</body>
