@@ -3,6 +3,7 @@ var userpermissions = require("../node_components/userpermissions");
 module.exports = function(app, passport){
 //create navigation menu based on user permissions
 	app.get('/getusermenue', function(req, res) { 
+		console.log("Login called from getusermenue")
        passport.authenticate('local-login');//fills req.user with infos from cookie
        if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
            var allperms = userpermissions.getallallpossiblemenupermissions();
@@ -22,6 +23,7 @@ module.exports = function(app, passport){
 	});
 
 	app.get('/getuserpermissions', function(req, res) { 
+		console.log("Login called from getuserpermissions")
        passport.authenticate('local-login');//fills req.user with infos from cookie
        if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
             res.write("[]")

@@ -1,6 +1,6 @@
 const fs = require('fs');
 var path = require('path');
-var regexEscape = require('escape-string-regexp');
+var regexEscape = import('escape-string-regexp');
 
 function twoDigits(d) {//todo: move this to server.js?
     if(0 <= d && d < 10) return "0" + d.toString();

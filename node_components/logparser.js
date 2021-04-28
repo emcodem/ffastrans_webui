@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const regexEscape = require('escape-string-regexp');
+const regexEscape = import('escape-string-regexp');
 const url = require('url');
 const firstline = require('firstline');
 var encoding = require("encoding");
