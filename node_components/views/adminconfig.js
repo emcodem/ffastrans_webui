@@ -28,7 +28,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
-                        if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){console.log("BORN TO BE KINGS");disabled=true;}
+                        if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;}
                         //decide type of userinput
 						if (typeof (outputConfig[key]) == "string"){
                             //bool as string

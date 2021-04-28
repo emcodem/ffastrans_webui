@@ -1,0 +1,7 @@
+.project
+.idea
+
+samples
+node_modules
+npm-debug.log
+tests

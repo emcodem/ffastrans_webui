@@ -23,13 +23,24 @@ module.exports = function(app, passport) {
         // render the page and pass in any flash data if it exists
          res.redirect('/webinterface/components/login.html');
     });
-    //accept form authentification    
-    app.post('/login', passport.authenticate('local-login'),function(req,res){
-        console.log("auth!")
-        res.redirect("/");
-    });
-    
-    //protect all other urls
+		
+	app.post('/login', function(req, res, next) {
+	  passport.authenticate('local-login', function(err, user, info) {
+		if (err) { console.log("auth error",err, user, info);return next(err); }
+		if (!user) { console.log("auth error2",err, user, info);return res.redirect('/login'); }
+		req.logIn(user, function(err) {
+		  if (err) { console.log("auth error3",err, user, info);return next(err); }
+		  return res.redirect('/');
+		});
+	  })(req, res, next);
+	});
+
+    // app.post('/login', passport.authenticate('local-login'),function(req,res){
+        // console.log("Local Authentification OK")
+        // res.redirect("/");
+    // });
+
+	//protect all other urls
     app.use('/*', isLoggedIn);//ensure user is logged in
     
     //redirect request from /
