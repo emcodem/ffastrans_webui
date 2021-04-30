@@ -24,11 +24,31 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 configServer.get(function(outputConfig){
                      //loop through all config items and display them, this way we support adding/removing items in the config dynamically
 					for (const key in outputConfig) {
+						
+						//filter special items
+						if (key == "ad_config"){
+							continue;
+						}
+						
                         var disabled = false;
                         //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;}
+						
+						//add special btn for Activedirectory config
+						if (key.indexOf("STATIC_USE_WEB_AUTHENTIFICATION")!=-1){
+							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "", list: [
+								{type: "select", "hidden":disabled,name: key,width:550, label: "<b>"+key+"</b>", options:[
+                                    {text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
+                                    {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
+                                ]},
+								{type:"button", id:"btn_adconfig", "hidden":disabled,name: "btn_adconfig", width:550,label: "<b>1</b>",value:"Activedirectory Configuration"}
+							]} );//add spacer
+							continue;
+							
+						}
+						
                         //decide type of userinput
 						if (typeof (outputConfig[key]) == "string"){
                             //bool as string

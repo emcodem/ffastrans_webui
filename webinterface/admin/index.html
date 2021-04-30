@@ -53,7 +53,7 @@ function init(){
             },*/
         ]
     });
-
+	
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("serverconfig").attachMenu({                                               
 		items:[
             {id:"save", text:"<i class='fas fa-save'></i>Save"},
@@ -72,7 +72,12 @@ function init(){
                 //waarn page reload without save
             }
     });
-    
+		
+	m_mainForm.attachEvent("onButtonClick", function(name){
+		if (name == "btn_adconfig"){
+			showAdConfigWindows();
+		}
+	});
     m_fileBrowseGridMenu.attachEvent("onClick", function (name, value, state){
             if (name == 'save'){
                 m_mainForm.send("/adminconfig", function(loader, response){
@@ -86,6 +91,13 @@ function init(){
     });   
 }
 
+function showAdConfigWindows(){
+	var myWins = new dhtmlXWindows();
+	w1 = myWins.createWindow("w1",100,100,800,600);
+	w1.setText("Activedirectory Config")
+	w1.attachURL("activedirectory_setup.html"); 
+	
+}
 </script>
 
 </head>

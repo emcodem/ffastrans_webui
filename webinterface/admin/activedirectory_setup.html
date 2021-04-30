@@ -10,10 +10,9 @@
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
-        width: 100%;
-        height: 100%;
-        margin: 0px;
-        overflow: hidden;
+
+        margin: 5px;
+        overflow: scroll;
     }
 	hr {
 	  margin-top: 1rem;
@@ -97,7 +96,7 @@ function restoreAdConfig(){
 	if ("ad_config" in m_serverconfig){
 		document.getElementById("ad_fqdn").value = m_serverconfig["ad_config"]["ad_fqdn"];
 		document.getElementById("activedirectory_admin_user").value  = m_serverconfig["ad_config"]["ad_user"];
-		document.getElementById("activedirectory_admin_password").value  = m_serverconfig["ad_config"]["ad_password"];
+		document.getElementById("activedirectory_admin_password").value  = atob(m_serverconfig["ad_config"]["ad_password"]);
 	}
 
 }
@@ -105,14 +104,19 @@ function saveAdConfig(){
 	var o_ad = {};
 	o_ad["ad_fqdn"] = document.getElementById("ad_fqdn").value;
 	o_ad["ad_user"] = document.getElementById("activedirectory_admin_user").value;
-	o_ad["ad_password"] = document.getElementById("activedirectory_admin_password").value;
+	o_ad["ad_password"] = btoa(document.getElementById("activedirectory_admin_password").value);
 	m_serverconfig["ad_config"] = o_ad;
 	$.ajax({
 		url: ("/activedirectory_config_set"),
 		type: "POST",
 		data: m_serverconfig,
 		success: function(response) {
-			
+			$('#alert').css("display","")
+			setTimeout(function () {
+	  
+				// Closing the alert
+				$('#alert').css("display","none")
+			}, 1000);
 		},
 		error: function(xhr, status) {
 			console.log(status)
@@ -127,6 +131,11 @@ function saveAdConfig(){
 
 </head>
 <body onload="loadserverconfig()" style="margin-left:20px">
+
+<div id="alert" class="alert alert-success" style="opacity:5;position:absolute;display:none;margin-top:20px">
+	Saved
+</div>
+
 <form >
 <div class="row mb-3" >
 	<label for="ad_fqdn" class="col-sm-0 col-form-label col-form-label-sm" >Activedirectory FQDN</label>
@@ -145,27 +154,24 @@ function saveAdConfig(){
 	</div>
 </div>
 	<div class="col-sm-4">
-	<button type="submit" class="btn btn-primary form-control" id="btn_save">Save</button>
+	<button type="submit" class="btn btn-secondary form-control" id="btn_save">Save</button>
 	</div>
 <hr/>
 <div class="row mb-3">
 	<label for="username_for_lookup" class="col-sm-0 col-form-label col-form-label-sm">AD Username For Testing (list memberOf)</label>
 	<div class="col-sm-4">
-	<input type="password" class="form-control form-control-sm"  id="username_for_lookup">
+	<input type="text" class="form-control form-control-sm"  id="username_for_lookup">
 	</div>
 
 </div>
 <div class="row mb-3">
 	<div class="col-sm-4">
-		<button type="submit" class="btn btn-primary form-control" id="btn_test">Test</button>
+		<button type="submit" class="btn btn-secondary form-control" id="btn_test">Test</button>
 	</div>
 </div>
-<div class="row mb-3">
-	<label for="testresult" class="col-sm-0 col-form-label col-form-label-sm">Test Result</label>
-	<div class="col-sm-4">
-		<pre style="position:fixed;height:400px;width:600px" class="form-control form-control-sm"  id="testresult"></pre>
-	</div>
-</div>
+
 
 </form>
+<label for="testresult" class="col-sm-0 col-form-label col-form-label-sm">Test Result</label>
+<pre style="width:90%;height:1000px" class="form-control form-control-sm"  id="testresult"></pre>
 </body>

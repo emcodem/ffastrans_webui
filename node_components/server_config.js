@@ -70,7 +70,7 @@ module.exports = {
                 throw err;
             }
             if ((data)){
-                console.log("Serving Server config from database");
+                console.log("Serving Server config from database",data.global.config);
                 callback(data.global.config);
             }else{
                 console.warn("No config in database, defaulting to default config");

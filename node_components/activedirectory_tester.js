@@ -19,11 +19,18 @@ module.exports = function(app, passport){
 						base_dn += ",";
 					}
 				}
+				
+				//password is base64
+				console.log("decrypted pw",data["ad_config"]["ad_password"])
+				var decrypted = Buffer.from(data["ad_config"]["ad_password"], 'base64').toString();
+				decrypted = ("decrypted pw",decrypted)
+				
+				//prepare AD connection
 				var adopts = {
 				  url: 'ldap://' + data["ad_config"]["ad_fqdn"],
 				  baseDN: base_dn,
 				  username: data["ad_config"]["ad_user"] +'@' + data["ad_config"]["ad_fqdn"],
-				  password: data["ad_config"]["ad_password"]
+				  password: decrypted
 				}
 				console.log("Testing AD with options:",adopts);
 				var ad = new ActiveDirectory(adopts);
