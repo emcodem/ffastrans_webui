@@ -15,10 +15,11 @@
         margin: 0px;
         overflow: hidden;
     }
-	#btn_save,
-	#btn_test{
-		display: inline-block;
-		vertical-align: top;
+	hr {
+	  margin-top: 1rem;
+	  margin-bottom: 1rem;
+	  border: 0;
+	  border-top: 1px solid rgba(0, 0, 0, 0.1);
 	}
 
 </style>
@@ -26,14 +27,16 @@
 <script>
 
 /* GLOBALS */
-var m_mainLayout,m_mainForm;
+var m_mainLayout,m_mainForm, m_serverconfig;
 var socket = io();
 /* build basic page layout and init periodic job loading*/
 function init(){
     socket.on('activedirectory_tester', function(msg){
 		alert(msg);
     });
-    
+	
+	registerButtonClicks();
+    restoreAdConfig();
 }
 
 function loadserverconfig() {
@@ -52,36 +55,117 @@ function loadserverconfig() {
 	});
 }
 
+function registerButtonClicks(){
+	
+	$( "#btn_save" ).click(function(event) {
+	  event.preventDefault();
+	  saveAdConfig();
+	});
+	$( "#btn_test" ).click(function(event) {
+	  event.preventDefault();
+	  testAdConfig();
+	});
+}
+
+function testAdConfig(){
+
+	
+	$.ajax({
+		url: ("/activedirectory_tester" + "?" + Math.random()),
+		type: "POST",
+		data: m_serverconfig,
+		success: function(response) {
+			console.log("AD TEST OK",response);
+			try{
+				response= JSON.parse(response);
+				response = JSON.stringify(response, undefined, 2);
+			}catch(ex){
+			
+			}
+			document.getElementById("testresult").innerHTML = response;
+			
+		},
+		error: function(xhr, status) {
+			console.log("AD TEST FAIL");
+			document.getElementById("testresult").innerHTML = xhr.responseText;
+		}
+	});
+}
+
+function restoreAdConfig(){
+
+	if ("ad_config" in m_serverconfig){
+		document.getElementById("ad_fqdn").value = m_serverconfig["ad_config"]["ad_fqdn"];
+		document.getElementById("activedirectory_admin_user").value  = m_serverconfig["ad_config"]["ad_user"];
+		document.getElementById("activedirectory_admin_password").value  = m_serverconfig["ad_config"]["ad_password"];
+	}
+
+}
+function saveAdConfig(){
+	var o_ad = {};
+	o_ad["ad_fqdn"] = document.getElementById("ad_fqdn").value;
+	o_ad["ad_user"] = document.getElementById("activedirectory_admin_user").value;
+	o_ad["ad_password"] = document.getElementById("activedirectory_admin_password").value;
+	m_serverconfig["ad_config"] = o_ad;
+	$.ajax({
+		url: ("/activedirectory_config_set"),
+		type: "POST",
+		data: m_serverconfig,
+		success: function(response) {
+			
+		},
+		error: function(xhr, status) {
+			console.log(status)
+			alert("Error saving config!")
+		}
+	});
+
+}
+/* */
+
 </script>
 
 </head>
-<body onload="init()" style="margin-left:20px">
-<form>
-<div class="row mb-3">
+<body onload="loadserverconfig()" style="margin-left:20px">
+<form >
+<div class="row mb-3" >
 	<label for="ad_fqdn" class="col-sm-0 col-form-label col-form-label-sm" >Activedirectory FQDN</label>
-	<div class="col-sm-2">
-	<input type="email" class="form-control form-control-sm" id="ad_fqdn" placeholder="internal.acme.com">
+	<div class="col-sm-4">
+	<input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="internal.acme.com">
 	</div>
 
 	<label for="activedirectory_admin_user" class="col-sm-0 col-form-label col-form-label-sm">Admin Username</label>
-	<div class="col-sm-2">
-	<input type="email" class="form-control form-control-sm" id="activedirectory_admin_user" placeholder="SomeServiceUserName">
+	<div class="col-sm-4">
+	<input type="text" class="form-control form-control-sm" id="activedirectory_admin_user" placeholder="SomeServiceUserName">
 	</div>
 
 	<label for="activedirectory_admin_password" class="col-sm-0 col-form-label col-form-label-sm">Admin Password</label>
-	<div class="col-sm-2">
+	<div class="col-sm-4">
 	<input type="password" class="form-control form-control-sm"  id="activedirectory_admin_password">
 	</div>
-
-	<label for="username_for_lookup" class="col-sm-0 col-form-label col-form-label-sm">Username For Testing</label>
-	<div class="col-sm-2">
+</div>
+	<div class="col-sm-4">
+	<button type="submit" class="btn btn-primary form-control" id="btn_save">Save</button>
+	</div>
+<hr/>
+<div class="row mb-3">
+	<label for="username_for_lookup" class="col-sm-0 col-form-label col-form-label-sm">AD Username For Testing (list memberOf)</label>
+	<div class="col-sm-4">
 	<input type="password" class="form-control form-control-sm"  id="username_for_lookup">
 	</div>
-	
+
 </div>
-<div class="col-auto">
-    <button type="submit" class="btn btn-primary" id="btn_save">Save</button>
-	<button type="submit" class="btn btn-primary" id="btn_test">Test</button>
+<div class="row mb-3">
+	<div class="col-sm-4">
+		<button type="submit" class="btn btn-primary form-control" id="btn_test">Test</button>
+	</div>
 </div>
+<div class="row mb-3">
+	<label for="testresult" class="col-sm-0 col-form-label col-form-label-sm">Test Result</label>
+	<div class="col-sm-4">
+		<pre style="position:fixed;height:400px;width:600px" class="form-control form-control-sm"  id="testresult"></pre>
+	</div>
+</div>
+
 </form>
 </body>

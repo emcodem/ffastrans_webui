@@ -96,6 +96,23 @@ module.exports = {
             console.log("Success saving Server Config, config updated")
             callbacksuccess();
         });
+    },
+	
+	save_extra: (configname,configobj,callbacksuccess,callbackerror) => {
+        //updates config in database
+			//TODO: this overwrites the whole global db config?!
+			global.db.config.update({configname:{$exists:true}},configobj,{upsert: true}, function (err, newDoc) {
+				if (err){
+					console.log("Error saving config",configname,configobj)
+					callbackerror(err);
+				}
+				global.config = configobj;
+				console.log("Success saving Server Config, config updated",configname,configobj)
+				callbacksuccess();
+				global.db.config.findOne({"global.config":{$exists:true}}, function(err, data) {
+					console.log("Current global config: ",data)
+				})
+        });
     }
 };
 
