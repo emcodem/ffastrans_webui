@@ -25,7 +25,9 @@ module.exports = function(app, passport) {
     });
 		
 	app.post('/login', function(req, res, next) {
-	  passport.authenticate('local-login', function(err, user, info) {
+      console.log("issue local and ldap login");
+      //Todo: update s
+	  passport.authenticate(['local-login'], function(err, user, info) {
 		if (err) { console.log("auth error",err, user, info);return next(err); }
 		if (!user) { console.log("auth error2",err, user, info);return res.redirect('/login'); }
 		req.logIn(user, function(err) {
@@ -35,10 +37,6 @@ module.exports = function(app, passport) {
 	  })(req, res, next);
 	});
 
-    // app.post('/login', passport.authenticate('local-login'),function(req,res){
-        // console.log("Local Authentification OK")
-        // res.redirect("/");
-    // });
 
 	//protect all other urls
     app.use('/*', isLoggedIn);//ensure user is logged in

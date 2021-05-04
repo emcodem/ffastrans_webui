@@ -19,17 +19,18 @@ module.exports = function(app, passport){
 						base_dn += ",";
 					}
 				}
+                
+                				//password is base64
+				console.log("decrypted pw",data["ad_password"])
+				var decrypted = Buffer.from(data["ad_password"], 'base64').toString();
+				decrypted = ("decrypted ad_pw",decrypted)
 				
-				//password is base64
-				console.log("decrypted pw",data["ad_config"]["ad_password"])
-				var decrypted = Buffer.from(data["ad_config"]["ad_password"], 'base64').toString();
-				decrypted = ("decrypted pw",decrypted)
 				
 				//prepare AD connection
 				var adopts = {
-				  url: 'ldap://' + data["ad_config"]["ad_fqdn"],
+				  url: 'ldap://' + data["ad_config"]["ad_fqdn"] + ":" + data["ad_config"]["ad_port"],
 				  baseDN: base_dn,
-				  username: data["ad_config"]["ad_user"] +'@' + data["ad_config"]["ad_fqdn"],
+				  username: data["ad_user"] +'@' + data["ad_config"]["ad_fqdn"],
 				  password: decrypted
 				}
 				console.log("Testing AD with options:",adopts);
@@ -62,7 +63,8 @@ module.exports = function(app, passport){
     app.post('/activedirectory_config_set', (req, res) => {
        console.log("Saving activedirectory config in database");
        var data = req.body;
-	   console.log("ServerConfig with AD to save: ", data)
+       data["ad_config"]["ad_basedn"] = getBaseDn(data);   
+       console.log("ServerConfig with AD to save: ", data)
        configServer.save(data,function(){
 		   console.log("Saved activedirectory admin config");
 			res.write("{}")
@@ -77,4 +79,16 @@ module.exports = function(app, passport){
        
 	});
 	
+}
+
+function getBaseDn(data){
+    var dcparts = data["ad_config"]["ad_fqdn"].split(".");
+    var base_dn = "";
+    for (i=0;i<dcparts.length;i++) {
+        base_dn += "DC=" + dcparts[i];
+        if (i<(dcparts.length-1)){
+            base_dn += ",";
+        }
+    }
+    return base_dn;
 }

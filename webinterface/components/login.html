@@ -26,7 +26,7 @@ function init(){
                                             if (response.xmlDoc.status == 200){
                                                 window.location.replace("/");
                                             }else{
-                                                dhtmlx.message("Error, invalid username or password")
+                                                dhtmlx.message(response.xmlDoc.responseText)
                                             }
                                         } );
     });
@@ -36,7 +36,8 @@ function init(){
                                             if (response.xmlDoc.status == 200){
                                                 window.location.replace("/");
                                             }else{
-                                                dhtmlx.message("Error, invalid username or password")
+                                                console.log(response.xmlDoc.responseText)
+                                                dhtmlx.message(response.xmlDoc.responseText)
                                             }
                                         } );
     });

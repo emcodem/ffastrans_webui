@@ -9,7 +9,7 @@
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
-    html, body {
+    html  {
 
         margin: 5px;
         overflow: scroll;
@@ -20,6 +20,13 @@
 	  border: 0;
 	  border-top: 1px solid rgba(0, 0, 0, 0.1);
 	}
+    div, label, input{
+        font-size:12px; 
+        width: 300px !important;
+    }
+    form{
+        width:100%
+    }
 
 </style>
 
@@ -64,15 +71,37 @@ function registerButtonClicks(){
 	  event.preventDefault();
 	  testAdConfig();
 	});
+    $('#ad_fqdn').on("keypress", function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            saveAdConfig();
+        }
+    });
+    $('#btn_test').on("keypress", function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            testAdConfig();
+        }
+    });   
+    
+    //button hover style
+    $("div").hover(function(){
+          $(this).parent().addClass("dhxform_btn_over");  //Add the active class to the area is hovered
+      }, function () {
+          $(this).parent().removeClass("dhxform_btn_over");
+      });
 }
 
 function testAdConfig(){
-
-	
+    var o_ad = {};
+    o_ad["ad_config"] = m_serverconfig["ad_config"];
+    o_ad["ad_user"] = document.getElementById("ad_user").value;
+	o_ad["ad_password"] = btoa(document.getElementById("ad_password").value);
+    document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain fqdn\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
 	$.ajax({
 		url: ("/activedirectory_tester" + "?" + Math.random()),
 		type: "POST",
-		data: m_serverconfig,
+		data: o_ad,
 		success: function(response) {
 			console.log("AD TEST OK",response);
 			try{
@@ -95,17 +124,15 @@ function restoreAdConfig(){
 
 	if ("ad_config" in m_serverconfig){
 		document.getElementById("ad_fqdn").value = m_serverconfig["ad_config"]["ad_fqdn"];
-		document.getElementById("activedirectory_admin_user").value  = m_serverconfig["ad_config"]["ad_user"];
-		document.getElementById("activedirectory_admin_password").value  = atob(m_serverconfig["ad_config"]["ad_password"]);
 	}
 
 }
 function saveAdConfig(){
 	var o_ad = {};
 	o_ad["ad_fqdn"] = document.getElementById("ad_fqdn").value;
-	o_ad["ad_user"] = document.getElementById("activedirectory_admin_user").value;
-	o_ad["ad_password"] = btoa(document.getElementById("activedirectory_admin_password").value);
+    o_ad["ad_port"] = document.getElementById("ad_port").value;
 	m_serverconfig["ad_config"] = o_ad;
+    
 	$.ajax({
 		url: ("/activedirectory_config_set"),
 		type: "POST",
@@ -130,48 +157,51 @@ function saveAdConfig(){
 </script>
 
 </head>
-<body onload="loadserverconfig()" style="margin-left:20px">
-
+<body onload="loadserverconfig()" style="overflow:hidden;margin-left:20px">
+<!-- Flash msg -->
 <div id="alert" class="alert alert-success" style="opacity:5;position:absolute;display:none;margin-top:20px">
 	Saved
 </div>
 
-<form >
+<!-- Configuration Form -->
+<form class="dhxform_obj_dhx_skyblue">
 <div class="row mb-3" >
-	<label for="ad_fqdn" class="col-sm-0 col-form-label col-form-label-sm" >Activedirectory FQDN</label>
+	<label for="ad_fqdn" class="col-sm-0 dhxform_label dhxform_label_align_left" >Activedirectory FQDN</label>
+    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
 	<div class="col-sm-4">
-	<input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="internal.acme.com">
+        <input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="local.acme.com">
 	</div>
-
-	<label for="activedirectory_admin_user" class="col-sm-0 col-form-label col-form-label-sm">Admin Username</label>
-	<div class="col-sm-4">
-	<input type="text" class="form-control form-control-sm" id="activedirectory_admin_user" placeholder="SomeServiceUserName">
-	</div>
-
-	<label for="activedirectory_admin_password" class="col-sm-0 col-form-label col-form-label-sm">Admin Password</label>
-	<div class="col-sm-4">
-	<input type="password" class="form-control form-control-sm"  id="activedirectory_admin_password">
+    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+    <label for="ad_port" class="dhxform_label dhxform_label_align_left" >Activedirectory port</label>
+    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+    <div class="col-sm-4">
+        <input type="text"  class="form-control form-control-sm" id="ad_port" placeholder="389">
 	</div>
 </div>
-	<div class="col-sm-4">
-	<button type="submit" class="btn btn-secondary form-control" id="btn_save">Save</button>
-	</div>
-<hr/>
-<div class="row mb-3">
-	<label for="username_for_lookup" class="col-sm-0 col-form-label col-form-label-sm">AD Username For Testing (list memberOf)</label>
-	<div class="col-sm-4">
-	<input type="text" class="form-control form-control-sm"  id="username_for_lookup">
-	</div>
-
+<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
+    <div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
 </div>
-<div class="row mb-3">
-	<div class="col-sm-4">
-		<button type="submit" class="btn btn-secondary form-control" id="btn_test">Test</button>
-	</div>
-</div>
-
-
 </form>
-<label for="testresult" class="col-sm-0 col-form-label col-form-label-sm">Test Result</label>
-<pre style="width:90%;height:1000px" class="form-control form-control-sm"  id="testresult"></pre>
+
+<!-- Test Form -->
+<form class="dhxform_obj_dhx_skyblue">
+<div class="row mb-3">
+	<div class="col-sm-4">
+    <label for="ad_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username for testing</label>
+    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+	<input type="text" class="form-control form-control-sm"  id="ad_user" placeholder="mypersonaldomainuser">
+    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+    <label for="ad_password" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Password for testing</label>
+    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+	<input type="password" class="form-control form-control-sm"  id="ad_password">
+    <div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
+        <div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_test">Test</div>
+    </div>
+	</div>
+    
+</div>
+<!-- Testresult Display -->
+<div  style="width:90%;" class="card-header">Testresult (get AD memberof)</div>
+<pre  style="width:90%;height:1000px" class="form-control form-control-sm"  id="testresult"></pre>
+</form>
 </body>
