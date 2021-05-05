@@ -1,0 +1,14 @@
+This cert is an example certificate, you should not use it in production.
+You can replace the files cert.pem and key.pem by your own ones.
+Enable https and your key password in admin settings on webinterface.
+
+cert.pem: file containing full cert chain
+key.pem: private key 
+myserver.cnf: this is useless to you unless you want to play around and recreate what we did using openssl.
+
+Private Key password: webserver
+Openssl commands used:
+
+openssl genrsa -aes256 -out key.pem 2048
+openssl req -config C:\Temp\myserver.cnf -key key.pem -new -x509 -days 7300 -sha256 -out cert.pem
+

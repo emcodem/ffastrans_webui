@@ -2,7 +2,6 @@
 
 // load all the things we need
 var LocalStrategy   = require('passport-local').Strategy;
-var ActiveDirectoryStrategy = require('passport-activedirectory');
 var ActiveDirectory = require('activedirectory2').promiseWrapper;
 // load up the user model
 var User            = require('./models/user');
@@ -45,9 +44,11 @@ passport.deserializeUser(function(user, done) {
         // find a user whose username is the same as the forms username
         // we are checking to see if the user trying to login already exists
         var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username ,"local.is_ad_user": { $exists: false }});
-        console.log("Local user exists" + existing);
+        console.log("Local user exists", existing);
         if (!existing){
+			console.log("Local user does not exist, trying AD login")
             ActiveDirectoryLogin(req, username, password, done);
+			
         }else{
             //LOCAL LOGIN
             global.db.config.findOne({ 'local.username' :  username }, function(err, doc) {
@@ -84,62 +85,72 @@ passport.deserializeUser(function(user, done) {
 };
 
 async function ActiveDirectoryLogin(req,username,passwd,done){
-    try{
-        if (!("ad_config" in global.config)){
-            return done("Username",username,"is not known")
-        }
-        var adopts = {
-				url: 'ldap://'+global.config["ad_config"]["ad_fqdn"]+':'+global.config["ad_config"]["ad_port"],
-				baseDN: global.config["ad_config"]["ad_basedn"],
-				username: username + "@" + global.config["ad_config"]["ad_fqdn"],
-				password: passwd
-        }
-        
-        //login to ad using the users credentials
-        console.log("Trying AD Login with options:",adopts);
-        var ad = new ActiveDirectory(adopts);
-        var groups = await ad.getGroupMembershipForUser(username);//getGroupMembership
-        console.log(groups)
-        var groups_cn_only = [];
-        groups.forEach(function(_obj){
-            try{
-                console.log(_obj["cn"])
-               groups_cn_only.push(_obj["cn"]);
-               
-            }catch(ex){
-                console.error("Unexpected error parsing groups from ad user ", ex)
-            }
-        });
-        console.log("Parsed AD groups for user",username,groups_cn_only)
-        var group_exists = false;
-        for (_gid in groups_cn_only){
-            _gid = groups_cn_only[_gid]
-            var _exist = await asyncqueryOne(global.db.config,{"local.usergroup.name":_gid});
-            if (_exist){group_exists = true}
-            console.log(_gid,"exists in db?",group_exists)
-        }
-        //check if any of the users groups exists in db
-        if (!group_exists){
-            console.error("AD username and pw is correct\nbut user has no group in AD\nthat exists also locally");
-            return done("AD username and pw is correct\nbut user has no group in AD\nthat exists also locally")
-        }
-        
-        //we always recreate the ad user in order to have updated groups       
-        await asyncDeleteOne(global.db.config,{ 'local.username' :  username});
-        var newUser            = {};
-        newUser["local"]       = {};
-        newUser.local.username    = username;
-        newUser.local.password    = "aduser";
-        newUser.local.is_ad_user        = true;
-        newUser.local.id                = Math.random(1000000000000);
-        newUser.local.groups            = groups_cn_only;
-        console.log("Storing user in db: ",newUser)
-        await asyncInsertOne(global.db.config,newUser);
-        return done(null, newUser);
-    }catch(ex){
-        console.log("Unexpected Exception while ad login ", ex)
-        return done("User does not exist locally,\ntried AD login but failed. Bad username/password?" + ex)
-    }
+    
+		console.log("AD login procedure");
+		var configServer = require(global.approot  + '/node_components/server_config');
+		var currentConfig = configServer.get(async function(config){
+				console.log("Config from DB:",config)
+				try{	
+					if (!("ad_config" in global.config)){
+						console.log("AD is not set up in global config: ",global.config)
+						return done("Username " + username + " is not known")
+					}
+					var adopts = {
+							url: 'ldap://'+global.config["ad_config"]["ad_fqdn"]+':'+global.config["ad_config"]["ad_port"],
+							baseDN: global.config["ad_config"]["ad_basedn"],
+							username: username + "@" + global.config["ad_config"]["ad_fqdn"],
+							password: passwd
+					}
+					
+					//login to ad using the users credentials
+					console.log("Trying AD Login for user:",username);
+					var ad = new ActiveDirectory(adopts);
+					
+					var groups = await ad.getGroupMembershipForUser(username);//getGroupMembership
+					console.log(groups)
+					var groups_cn_only = [];
+					groups.forEach(function(_obj){
+						try{
+							console.log(_obj["cn"])
+						   groups_cn_only.push(_obj["cn"]);
+						   
+						}catch(ex){
+							console.error("Unexpected error parsing groups from ad user ", ex)
+						}
+					});
+					console.log("Parsed AD groups for user",username,groups_cn_only)
+					var group_exists = false;
+					for (_gid in groups_cn_only){
+						_gid = groups_cn_only[_gid]
+						var _exist = await asyncqueryOne(global.db.config,{"local.usergroup.name":_gid});
+						if (_exist){group_exists = true}
+						console.log(_gid,"exists in db?",group_exists)
+					}
+					//check if any of the users groups exists in db
+					if (!group_exists){
+						console.error("AD username and pw is correct\nbut user has no group in AD\nthat exists also locally");
+						return done("AD username and pw is correct\nbut user has no group in AD\nthat exists also locally")
+					}
+					
+					//we always recreate the ad user in order to have updated groups       
+					await asyncDeleteOne(global.db.config,{ 'local.username' :  username});
+					var newUser            = {};
+					newUser["local"]       = {};
+					newUser.local.username    = username;
+					newUser.local.password    = "aduser";
+					newUser.local.is_ad_user        = true;
+					newUser.local.id                = Math.random(1000000000000);
+					newUser.local.groups            = groups_cn_only;
+					console.log("Storing user in db: ",newUser)
+					await asyncInsertOne(global.db.config,newUser);
+					return done(null, newUser);
+				}catch(ex){
+					console.log("Unexpected Exception while ad login ", ex)
+					return done("User does not exist locally,\ntried AD login but failed. Bad username/password?" + ex)
+				}
+			
+		});
+		
 }
 
 /* DB Async Wrappers*/

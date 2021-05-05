@@ -1,5 +1,7 @@
 <html>
 <head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+
 <script src="/socket.io/socket.io.js"></script>
  <script src="../dependencies/dhtmlx/dhtmlx.js"></script> 
  <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
@@ -307,7 +309,9 @@
             m_lastsortdir = {}
             m_lastsortelementid["treetable_active"] = "active-state";
             m_lastsortdir["treetable_active"] = "asc";
-            console.log("Applying default sorting for active grid")
+			m_lastsortelementid["treetable_history"] = "job_start";
+            m_lastsortdir["treetable_history"] = "asc";
+            console.log("Applying default sorting for active and history grid")
         } else {
             console.log("Applying stored sorting for active grid", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"])
         }
@@ -407,7 +411,8 @@
         buildActiveGrid();
         forcejobloading();
         //sort grids
-        sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
+		console.log("Sortying history by ",m_lastsortelementid["treetable_history"],m_lastsortdir["treetable_history"])
+        //history grid is sorted in buildHistoryGrid
         sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
     }
 
@@ -568,7 +573,7 @@
 
                 $tdList = $(node.tr).find(">td");
 
-                $tdList.eq(1).html("<div class='celltext'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
+                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.file + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host + "</div>");
@@ -770,7 +775,7 @@
                 $tdList = $(node.tr).find(">td");
                 // (index #0 is rendered by fancytree (title node))
                 //$tdList.eq(0).text(node.data.state);
-                $tdList.eq(1).html("<div class='celltext'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
+                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
@@ -801,9 +806,8 @@
             postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
-                console.log("POSTPROCESS")
                 data["result"] = filterHistoryList(data["response"]["data"]) //setting data["result"] means override the originally loaded data
-
+				sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
             },
             table: {
                 indentation: 15,
@@ -940,54 +944,54 @@
         window.open("http://www.ffastrans.com");
     }
 
-    function openLogViewer(dhxgrid) {
-        var tree = $('#treetable_history').fancytree('getTree');
-        var selected = tree.getSelectedNodes();
+    <!-- function openLogViewer(dhxgrid) { -->
+        <!-- var tree = $('#treetable_history').fancytree('getTree'); -->
+        <!-- var selected = tree.getSelectedNodes(); -->
 
-        if (selected.length == 0) {
-            dhtmlx.alert("Please select rows to view Log");
-            return;
-        }
+        <!-- if (selected.length == 0) { -->
+            <!-- dhtmlx.alert("Please select rows to view Log"); -->
+            <!-- return; -->
+        <!-- } -->
 
-        var win_offset = 0;
-        selected.forEach(function(treeNode) {
-            var jobObj = treeNode.data;
+        <!-- var win_offset = 0; -->
+        <!-- selected.forEach(function(treeNode) { -->
+            <!-- var jobObj = treeNode.data; -->
 
-            var dhxwins = new dhtmlXWindows();
-            //dhxwins.attachViewportTo(window.parent.document.body);
-            var win = dhxwins.createWindow("Workflow", 50 + win_offset, 150 + win_offset, 1200, 800);
-            win_offset += 30;
-            win.setText("Log ");
+            <!-- var dhxwins = new dhtmlXWindows(); -->
+            <!-- //dhxwins.attachViewportTo(window.parent.document.body); -->
+            <!-- var win = dhxwins.createWindow("Workflow", 50 + win_offset, 150 + win_offset, 1200, 800); -->
+            <!-- win_offset += 30; -->
+            <!-- win.setText("Log "); -->
 
-            var logGrid = win.attachGrid();
-            logGrid.setImagesPath("../dependencies/dhtmlx/imgs/");
-            logGrid.setHeader("Time,Processor,Host,PID,Message"); //the headers of columns
-            logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");
-            logGrid.setInitWidthsP("10,10,10,5,*"); //the widths of columns
-            logGrid.setColAlign("left,left,left,left.left"); //the alignment of columns
-            logGrid.setColTypes("ed,ed,ed,ed,ed"); //the types of columns
-            logGrid.setColSorting("str,str,str,int,str"); //the sorting types
-            logGrid.enableMultiline(true);
-            logGrid.init(); //finishes initialization and renders the grid on the page
+            <!-- var logGrid = win.attachGrid(); -->
+            <!-- logGrid.setImagesPath("../dependencies/dhtmlx/imgs/"); -->
+            <!-- logGrid.setHeader("Time,Processor,Host,PID,Message"); //the headers of columns -->
+            <!-- logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); -->
+            <!-- logGrid.setInitWidthsP("10,10,10,5,*"); //the widths of columns -->
+            <!-- logGrid.setColAlign("left,left,left,left.left"); //the alignment of columns -->
+            <!-- logGrid.setColTypes("ed,ed,ed,ed,ed"); //the types of columns -->
+            <!-- logGrid.setColSorting("str,str,str,int,str"); //the sorting types -->
+            <!-- logGrid.enableMultiline(true); -->
+            <!-- logGrid.init(); //finishes initialization and renders the grid on the page -->
 
-            if (jobObj["job_id"]) {
-                //we have a job_id that eases the life of finding jobs
-                var url = "/logparser?job_id=" + encodeURI(jobObj["job_id"]) + "&wf_name=" + encodeURI(jobObj["wf_name"]);
-                logGrid.load(url, "json")
-            } else {
-                var file = (dhxgrid.cells(rId, dhxgrid.getColIndexById("file")).getValue());
-                var job_end = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_end")).getValue());
-                var job_start = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_start")).getValue());
-                var wf_name = (dhxgrid.cells(rId, dhxgrid.getColIndexById("wf_name")).getValue());
-                //we don'T have a jobid, server will need to find files based on the infos we have. this is currently being changed in ffastrans
-                var url = ("/logparser?file=" + encodeURI(file) + "&job_end=" + encodeURI(job_end) + "&job_start=" + encodeURI(job_start) + "&wf_name=" + encodeURI(wf_name));
-                logGrid.load(url, "json");
-            }
-            win.show();
-            //win.attachURL("worfklowcanvas.html?jobid=element&logfolder=element");
-        });
+            <!-- if (jobObj["job_id"]) { -->
+                <!-- //we have a job_id that eases the life of finding jobs -->
+                <!-- var url = "/logparser?job_id=" + encodeURI(jobObj["job_id"]) + "&wf_name=" + encodeURI(jobObj["wf_name"]); -->
+                <!-- logGrid.load(url, "json") -->
+            <!-- } else { -->
+                <!-- var file = (dhxgrid.cells(rId, dhxgrid.getColIndexById("file")).getValue()); -->
+                <!-- var job_end = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_end")).getValue()); -->
+                <!-- var job_start = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_start")).getValue()); -->
+                <!-- var wf_name = (dhxgrid.cells(rId, dhxgrid.getColIndexById("wf_name")).getValue()); -->
+                <!-- //we don'T have a jobid, server will need to find files based on the infos we have. this is currently being changed in ffastrans -->
+                <!-- var url = ("/logparser?file=" + encodeURI(file) + "&job_end=" + encodeURI(job_end) + "&job_start=" + encodeURI(job_start) + "&wf_name=" + encodeURI(wf_name)); -->
+                <!-- logGrid.load(url, "json"); -->
+            <!-- } -->
+            <!-- win.show(); -->
+            <!-- //win.attachURL("worfklowcanvas.html?jobid=element&logfolder=element"); -->
+        <!-- }); -->
 
-    }
+    <!-- } -->
 
     function resubmit_job(job_id) {
         //get all workflows from server and start main with the workflow of interest

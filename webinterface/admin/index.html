@@ -1,4 +1,5 @@
 <html>
+<!-- CONFIG is done in  node_components\views\adminconfig.js -->
 <head>
 <script src="/socket.io/socket.io.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
@@ -22,6 +23,10 @@
 
 /* GLOBALS */
 var m_mainLayout,m_mainForm;
+var m_needreload = false; //iframe can signal us to reload
+
+
+
 var socket = io();
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -89,6 +94,11 @@ function init(){
                 
             }
     });   
+	
+	
+	window.setInterval(function(){
+		if (m_needreload){m_fileBrowseGridMenu.setItemDisabled("save");}
+	},500)
 }
 
 function showAdConfigWindows(){
@@ -96,7 +106,11 @@ function showAdConfigWindows(){
 	w1 = myWins.createWindow("w1",100,100,800,600);
 	w1.setText("Activedirectory Config")
 	w1.attachURL("activedirectory_setup.html"); 
-	
+	myWins.attachEvent("onClose", function(win){
+		//we reload to get the updated config from ad window
+		window.location.reload();
+		
+	});
 }
 </script>
 
@@ -115,10 +129,23 @@ The Port that the webserver (not ffastrans) will listen on. Typical value: 80
 Note: make sure the port you are entering is free on your server by using netstat on the commandline and check if anything is LISTENING on the port you desire
 Webserver restart required after change
 
+<b>STATIC_WEBSERVER_ENABLE_HTTPS</b>
+Disables HTTP and enables HTTPS. You will need to provide certificate and private key pem files, see /webserver/certs/how-to.txt
+Note, after enabling this, you must enter https://localhost:3002 
+
+<b>STATIC_WEBSERVER_HTTPS_PK_PASSWORD</b>
+When using HTTPS and your own certificate, the Privatekey password goes here.
+
 <b>STATIC_USE_WEB_AUTHENTIFICATION</b>
 <a href="/webinterface/admin/usermanager.html"><b>Create Users here before (and after) enabling this option</b></a>
 Enables password login for users and admins. <b>Make sure you have a created a user before you enable this or you cannot access the webserver anymore at all. </b>
 In case you locked yourself out, open the database using a text editor (%installpath%\database\config) and set the authentification to false.
+
+<b>ACTIVE DIRECTORY CONFIGRUATION</b>
+You can enter the FQDN of your domain, e.g. mydomain.local
+If you do this and enable Web_Authentification, users can log in using their AD username and password.
+Each time a user logs in, it will be deleted and recreated in the internal database (but not storing the password).
+In Usermanager, just create GROUPS with the exact same name as some AD group. If the logged in AD user is MemberOf some group in AD that also exists locally, the corresponding group rights are applied.
 
 <b>STATIC_UPLOADPATH</b>
 Make sure that all paths end with a backslash!

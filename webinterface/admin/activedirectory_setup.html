@@ -1,5 +1,6 @@
 <html>
 <head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <script src="/socket.io/socket.io.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
 <script src="../dependencies/jquery/jquery.js"></script>
@@ -46,6 +47,7 @@ function init(){
 }
 
 function loadserverconfig() {
+	
 	$.ajax({
 		url: ("/getserverconfig" + "?" + Math.random()),
 		type: "GET",
@@ -71,13 +73,13 @@ function registerButtonClicks(){
 	  event.preventDefault();
 	  testAdConfig();
 	});
-    $('#ad_fqdn').on("keypress", function(e) {
+    $('#ad_fqdn,#ad_port').on("keypress", function(e) {
         if (e.keyCode == 13) {
             e.preventDefault();
             saveAdConfig();
         }
     });
-    $('#btn_test').on("keypress", function(e) {
+    $('#ad_password').on("keypress", function(e) {
         if (e.keyCode == 13) {
             e.preventDefault();
             testAdConfig();
@@ -124,6 +126,7 @@ function restoreAdConfig(){
 
 	if ("ad_config" in m_serverconfig){
 		document.getElementById("ad_fqdn").value = m_serverconfig["ad_config"]["ad_fqdn"];
+		document.getElementById("ad_port").value = m_serverconfig["ad_config"]["ad_port"];
 	}
 
 }
@@ -144,6 +147,7 @@ function saveAdConfig(){
 				// Closing the alert
 				$('#alert').css("display","none")
 			}, 1000);
+			parent.window.m_needreload = true;//reload parent window so it updates the new config
 		},
 		error: function(xhr, status) {
 			console.log(status)
@@ -165,41 +169,42 @@ function saveAdConfig(){
 
 <!-- Configuration Form -->
 <form class="dhxform_obj_dhx_skyblue">
-<div class="row mb-3" >
-	<label for="ad_fqdn" class="col-sm-0 dhxform_label dhxform_label_align_left" >Activedirectory FQDN</label>
-    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-	<div class="col-sm-4">
-        <input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="local.acme.com">
+	<div class="row mb-3" >
+		<div class="col-sm-4">
+		<label for="ad_fqdn" class="col-sm-0 dhxform_label dhxform_label_align_left" >Activedirectory FQDN</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>	
+		<input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="local.acme.com">
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<label for="ad_port" class="dhxform_label dhxform_label_align_left" >Activedirectory port</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="text"  class="form-control form-control-sm" id="ad_port" placeholder="389">
+		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
+			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
+		</div>
+		</div>
 	</div>
-    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-    <label for="ad_port" class="dhxform_label dhxform_label_align_left" >Activedirectory port</label>
-    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-    <div class="col-sm-4">
-        <input type="text"  class="form-control form-control-sm" id="ad_port" placeholder="389">
-	</div>
-</div>
-<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
-    <div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
-</div>
+
 </form>
 
 <!-- Test Form -->
 <form class="dhxform_obj_dhx_skyblue">
 <div class="row mb-3">
 	<div class="col-sm-4">
-    <label for="ad_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username for testing</label>
-    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-	<input type="text" class="form-control form-control-sm"  id="ad_user" placeholder="mypersonaldomainuser">
-    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-    <label for="ad_password" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Password for testing</label>
-    <div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-	<input type="password" class="form-control form-control-sm"  id="ad_password">
-    <div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
-        <div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_test">Test</div>
-    </div>
+		<label for="ad_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username for testing</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="text" class="form-control form-control-sm"  id="ad_user" placeholder="mypersonaldomainuser">
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<label for="ad_password" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Password for testing</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="password" class="form-control form-control-sm"  id="ad_password" />
+		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
+			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_test">Test</div>
+		</div>
 	</div>
-    
+
 </div>
+    
+
 <!-- Testresult Display -->
 <div  style="width:90%;" class="card-header">Testresult (get AD memberof)</div>
 <pre  style="width:90%;height:1000px" class="form-control form-control-sm"  id="testresult"></pre>

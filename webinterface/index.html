@@ -8,7 +8,7 @@
 <script src="dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
-
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <!-- Global site tag (gtag.js) - Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-151931970-1"></script>
 <script >
@@ -115,7 +115,7 @@
         height: 38px;
         margin-top: 16px;
     }
-    .harry{
+    .emcodem{
 
 		height:50px;
 		margin-top: 10px;
@@ -244,11 +244,11 @@ function init(permissions){
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
     '<div class="counter_jobs div_logged_in_users">&nbsp Online Users  <div class="header_counter_number" id="loggedinusercount">0</div></div>'+
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
-    '<img src="images/viking_helmet_white.png" class="steinar itemrowtopright" title="steinar"></div>'+
-    '<img src="images/emcodem_helmet_white.png" class="harry itemrowtopright" title="emcodem">' + 
-    '<img src="images/ben_helmet.png" class="benjamin itemrowtopright" title="momocampo">'+ 
-    '<img src="images/francebb_helmet.png" class="steinar itemrowtopright" title="francebb">'+ 
-    '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class=" " alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px;float:left"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
+    '<img src="images/viking_helmet_white.png" class="helmet steinar itemrowtopright" title="steinar"></div>'+
+    '<img src="images/emcodem_helmet_white.png" class="helmet emcodem itemrowtopright" title="emcodem">' + 
+    '<img src="images/ben_helmet.png" class="helmet benjamin itemrowtopright" title="momocampo">'+ 
+    '<img src="images/francebb_helmet.png" class="helmet steinar itemrowtopright" title="francebb">'+ 
+    '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class="brand_image" alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px;float:left"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
     

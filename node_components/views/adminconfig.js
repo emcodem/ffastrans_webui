@@ -35,7 +35,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         if (key.indexOf("_URL")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;}
-						
+						if (key.indexOf("alternate-server")!=-1){disabled=true;}
 						//add special btn for Activedirectory config
 						if (key.indexOf("STATIC_USE_WEB_AUTHENTIFICATION")!=-1){
 							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "", list: [

@@ -10,7 +10,8 @@ const passport = require('passport');
 const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
-const http = require('http').Server(app);
+
+const https = require('https');
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
@@ -71,48 +72,6 @@ if (fs.existsSync(global.approot + "/database/")) {
 //Before DB init, we need socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
  
-//init live connection to clients using socket.io
-global.socketio = socket(http);
-var wildcard = socketwildcard();
-global.socketio.use(wildcard);
-//register supported functions
-global.socketio.on('connection', function(_socket){
-  console.log('New socket io client connected, client: ' + _socket.id);
-  global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
-  console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
-  
-  //send back the socketio id to the client
-    _socket.emit("socketid",_socket.id);
-  
-  //register to all events from client
-    _socket.on('*', function(data){
-        var regex = /cancel/
-        var result = data.data[0].match(regex);
-        var cmd = data.data[0];
-        var obj = data.data[1];
-        if (cmd == "pausejob"){
-            jobcontrol.pausejob(obj);
-            return;
-        }
-        if (cmd == "deletejob"){
-            jobcontrol.deletejob(obj);
-            return;
-        }
-        if (cmd == "deletealljobs"){
-            jobcontrol.deletealljobs();
-            return;
-        }
-    })
-    
-    //client disconnected
-  _socket.on('disconnect', function(){
-    global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
-    console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
-    console.log('client disconnected');
-    
-  });
-});
-
 //init DB
 global.db={};
 global.db.jobs = new Datastore({ filename: global.approot  + "/database/jobs" });
@@ -147,25 +106,42 @@ function init(conf){
     //redirect views - for passport
     app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
 
-    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
-    var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
-    var _request = require('retry-request', {
-        request: require('request')
-    });
+    //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
+	var jobfetcher = "";
+	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))
+	if (fs.existsSync(path.join(global.approot,"alternate-server/jobfetcher.js"))){
+		/* alternate server allows to disable inbuild jobfetcher - so webint can be used with another system than ffastrans*/
+		console.log("detected alternate jobfetcher module");
+		jobfetcher = require(path.join(global.approot,"alternate-server/jobfetcher.js"));
+		global.config["alternate-server"] = true;
+	}
+	else{
+		jobfetcher = require("./node_components/cron_tasks/jobfetcher");
+		global.config["alternate-server"] = false;
+    }
+    
 	
-    //we need to get install directory when running as part of webinterface, before we can start new api
-    _request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
-        
-        if (error) {
-            console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
-            return;
-        };
-        console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
-        
-        var api_root = path.join(__dirname, 'rest_service');
-        ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
-        
-    })
+	if (!global.config["alternate-server"]){
+		console.log("NOT running on alternate-server, getting about")
+		    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
+		var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
+		var _request = require('retry-request', {
+			request: require('request')
+		});
+		//we need to get install directory when running as part of webinterface, before we can start new api
+		_request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
+			
+			if (error) {
+				console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
+				return;
+			};
+			console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
+			
+			var api_root = path.join(__dirname, 'rest_service');
+			ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
+			
+		})
+	}
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY
     app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
@@ -206,9 +182,7 @@ function init(conf){
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
 
-    //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
-    var jobfetcher = require("./node_components/cron_tasks/jobfetcher");
-    
+
     cron.schedule("*/5 * * * * *", function() {
         //GET LATEST JOBS FROM FFASTRANS API      
         if (!global.dbfetcheractive){
@@ -276,29 +250,107 @@ function init(conf){
 
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans') 
-
-    http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', function(err) { 
-        console.log(err)//prevents the program keeps running when port is in use
-        if (err.code == "EADDRINUSE"){
-            const { exec } = require('child_process');
-               exec('netstat -ano |findstr '+global.config.STATIC_WEBSERVER_LISTEN_PORT, (err, stdout, stderr) => {
-                  console.log("\nError starting webserver, please check if Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+" is in use or the server is already running... " ) 
-                  if (err) {
-                    console.log("was not able to start netstat, please enter it manually")
-                    process.exit();
-                  }
-                    console.log(`stdout: ${stdout}`);
-                    
-                    console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+ " and close the process")
-                    process.exit();
-               })
-            
-            
-            
-    }});
-    
+	// Listen both http & https ports if configured
+	var path_to_privkey = global.approot  	+ '/cert/key.pem';
+	var path_to_cert = global.approot  		+ '/cert/cert.pem';
+	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
+	if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+		const httpsServer = https.createServer({
+		  key: fs.readFileSync(path_to_privkey),
+		  cert: fs.readFileSync(path_to_cert),
+		  passphrase: key_password
+		}, app);
+		
+		httpsServer.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
+			console.log('HTTPS Server running on port',global.config.STATIC_WEBSERVER_LISTEN_PORT);
+			initSocketIo(httpsServer);
+		});
+		
+		/*
+		//normal http server with redirect to https
+		var httpapp = express();
+		const http = require('http').Server(httpapp);
+		http.listen(parseInt(global.config.STATIC_WEBSERVER_LISTEN_PORT), () => {
+			console.log('HTTP Server running on port',parseInt(global.config.STATIC_WEBSERVER_LISTEN_PORT)-1);
+		});
+		
+		httpapp.get("*", function (req, res, next) {
+			res.redirect("https://" + req.headers.host + ":" + req.headers.port + "/" + req.path);
+		});
+		*/
+		
+	}else{
+		const http = require('http').Server(app);
+		http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', handleListenError)
+		initSocketIo(http);	
+    }
     
 }
 
+function handleListenError(err){
+	console.log(err)//prevents the program keeps running when port is in use
+			if (err.code == "EADDRINUSE"){
+				const { exec } = require('child_process');
+				   exec('netstat -ano |findstr '+global.config.STATIC_WEBSERVER_LISTEN_PORT, (err, stdout, stderr) => {
+					  console.log("\nError starting webserver, please check if Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+" is in use or the server is already running... " ) 
+					  if (err) {
+						console.log("was not able to start netstat, please enter it manually")
+						process.exit();
+					  }
+						console.log(`stdout: ${stdout}`);
+						
+						console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+ " and close the process")
+						process.exit();
+				   })
+				
+				
+				
+		}
+}
 
+function initSocketIo(created_httpserver){
+		
+	//init live connection to clients using socket.io
+	global.socketio = socket(created_httpserver);
+	var wildcard = socketwildcard();
+	global.socketio.use(wildcard);
+	//register supported functions
+	global.socketio.on('connection', function(_socket){
+	  console.log('New socket io client connected, client: ' + _socket.id);
+	  global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
+	  console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
+	  
+	  //send back the socketio id to the client
+		_socket.emit("socketid",_socket.id);
+	  
+	  //register to all events from client
+		_socket.on('*', function(data){
+			var regex = /cancel/
+			var result = data.data[0].match(regex);
+			var cmd = data.data[0];
+			var obj = data.data[1];
+			if (cmd == "pausejob"){
+				jobcontrol.pausejob(obj);
+				return;
+			}
+			if (cmd == "deletejob"){
+				jobcontrol.deletejob(obj);
+				return;
+			}
+			if (cmd == "deletealljobs"){
+				jobcontrol.deletealljobs();
+				return;
+			}
+		})
+		
+		//client disconnected
+	  _socket.on('disconnect', function(){
+		global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
+		console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
+		console.log('client disconnected');
+		
+	  });
+	});
 
+	
+}

@@ -33,9 +33,9 @@ module.exports = function(app, passport){
 				  username: data["ad_user"] +'@' + data["ad_config"]["ad_fqdn"],
 				  password: decrypted
 				}
-				console.log("Testing AD with options:",adopts);
+				console.log("Testing AD with options:",adopts,data);
 				var ad = new ActiveDirectory(adopts);
-				ad.getGroupMembershipForUser(data["ad_config"]["ad_user"], function(err, groups) {
+				ad.getGroupMembershipForUser(data["ad_user"], function(err, groups) {
 					if (err) {
 						var msg = "Didn't work. \n\nError: "+JSON.stringify(err)+"\n\nADCONFIG:\n\n"+ JSON.stringify(adopts);
 						console.log(msg)
@@ -64,8 +64,9 @@ module.exports = function(app, passport){
        console.log("Saving activedirectory config in database");
        var data = req.body;
        data["ad_config"]["ad_basedn"] = getBaseDn(data);   
-       console.log("ServerConfig with AD to save: ", data)
-       configServer.save(data,function(){
+       console.log("ServerConfig with AD to save: ", data);
+	   global.config["ad_config"] = data["ad_config"];
+       configServer.save(global.config,function(){
 		   console.log("Saved activedirectory admin config");
 			res.write("{}")
             res.status(200);//Send error response here
