@@ -32,7 +32,6 @@
 <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
 
-
 <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
 <link rel="stylesheet"
       href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
@@ -96,7 +95,6 @@
 
     /*fancytree line break*/
     table.fancytree-ext-table tbody tr td {
-        text-overflow: ellipsis;
         /*white-space: nowrap;*/
         text-overflow: ellipsis;
         overflow: hidden;
@@ -132,6 +130,17 @@
         text-overflow: ellipsis;
         user-select: text;
         margin-left: 6px;
+		margin-right: 6px;
+    }
+	.celltext_rtl {
+		direction:rtl;
+		text-align:left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: text;
+        margin-left: 6px;
+		margin-right: 6px;
     }
 
     .celltext_clicked {
@@ -261,8 +270,8 @@
         
     /* build basic page layout and init periodic job loading*/
     function init() {
-
-        //kick off DB maintenance verytime a client opens the UI - fire and forget
+		
+        //kick off DB maintenance verytime a client opens the UI - fire and forget TODO: kick off from server instead of from client
         $.get("/deleteoldrecords");
 
         //check if html5 features supported
@@ -315,8 +324,7 @@
         } else {
             console.log("Applying stored sorting for active grid", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"])
         }
-       
-       
+		
         //    mainLayout.cells("a").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
@@ -409,12 +417,82 @@
 
         buildHistoryGrid();
         buildActiveGrid();
+		setInitialColumnWidths();
+		attachColResizeable("#treetable_active")
+		attachColResizeable("#treetable_history")
+
         forcejobloading();
         //sort grids
 		console.log("Sortying history by ",m_lastsortelementid["treetable_history"],m_lastsortdir["treetable_history"])
         //history grid is sorted in buildHistoryGrid
         sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
+		
+
+		//workaround grips getting lost after resize: as fancytree takes a while to resize on window resize, we delay the resizing of colresizeable plugin
+		window.onresize = function(){
+			window.setTimeout(function(){
+				attachColResizeable("#treetable_active")
+				attachColResizeable("#treetable_history")
+			},1500)
+		};
+		
     }
+
+
+		
+	function setInitialColumnWidths(){
+	
+		/*only set column widths if there ar no stored ones*/
+		var do_restore = true;
+		if ("treetable_active" in localStorage){
+			console.log("Not restoring InitialColumnwidths as it is not the first time user opened the site")
+			do_restore = false;
+		}
+		console.log("Setting initial width percent values")
+		var running_percent = m_serverconfig["STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT"].split(",");
+		console.log(running_percent)
+		var idx = 0;
+		$('#colgroup_active').children('col').each(function () {
+			try{
+			
+				if (!running_percent[idx] && do_restore){
+					$($('#colgroup_active').children('col')[idx]).css("width","4%"); //minimum width
+				}
+				if (running_percent[idx] && (do_restore)){
+					console.log($($('#colgroup_active').children('col')[idx]),running_percent[idx])
+					$($('#colgroup_active').children('col')[idx]).css("width",running_percent[idx])
+				}
+				if (running_percent[idx] == "0%"){
+					//hide if admin config is 0%
+					$($('#tr_treetable_active').children('th')[idx]).css("display","none")
+				}
+						
+			}catch(ex){
+				console.log(ex)
+			}
+			idx++;
+		});
+		
+		var history_percent = m_serverconfig["STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT"].split(",");
+		idx = 0;
+		$('#colgroup_history').children('col').each(function () {
+			try{
+				if (!history_percent[idx] && do_restore){
+					$($('#colgroup_active').children('col')[idx]).css("width","4%"); //minimum width
+				}
+				if (history_percent[idx] && ( do_restore)){
+					$($('#colgroup_history').children('col')[idx]).css("width",history_percent[idx])
+				}
+				if (history_percent[idx] == "0%"){
+					$($('#tr_treetable_history').children('th')[idx]).css("display","none");
+				}
+			}catch(ex){		
+			}
+			idx++;
+		});
+	}
+		
+		
 
     function click_a_header(id) {
         clearSelection();
@@ -505,6 +583,27 @@
         } //delall
     }
 
+	function attachColResizeable(tree_id){
+		/*(re-) attaches colresizeable jquery plugin to given tree id
+		  this must be done on window resize, otherwise the grip point is mislocated
+		*/
+			//destroy existing 
+			$(tree_id).colResizable({
+			   disable:true
+			});
+			//recreate
+			$(tree_id).colResizable({
+				resizeMode: 'fit',
+				hoverCursor: "col-resize",
+				dragCursor: "col-resize",
+				postbackSafe: true,
+				useLocalStorage: true,
+				minWidth: 10,
+				liveDrag: true,
+				removePadding : true
+			});
+	}
+	
     function buildActiveGrid() {
 
         var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
@@ -535,15 +634,7 @@
             init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
                 console.log("TREE INIT")
-                $("#treetable_active").colResizable({
-                    resizeMode: 'fit',
-                    hoverCursor: "col-resize",
-                    dragCursor: "col-resize",
-                    postbackSafe: true,
-                    useLocalStorage: true,
-                    minWidth: 10,
-                    liveDrag: true,
-                });
+				attachColResizeable("#treetable_active")
 
             },
             modifyChild: function(event, data) {
@@ -572,13 +663,22 @@
                 }
 
                 $tdList = $(node.tr).find(">td");
-
+				
                 $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
-                $tdList.eq(3).html("<div class='celltext'>" + node.data.file + "</div>");
+                $tdList.eq(3).html("<div class='celltext_rtl'><bdi>" + node.data.file + "</bdi></div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.status + "</div>");
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');
+
+				//hide td if needed
+				var active_percent = m_serverconfig["STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT"].split(",");
+				for(i=0;i<active_percent.length;i++){
+					if (active_percent[i] == "0%"){
+						$tdList.eq(i).css("display","none")
+						console.log($tdList.eq(i))
+					}
+				}
 
                 data.tree.getRootNode().sortChildren(function(a, b) {
                     return (a.data.state.localeCompare(b.data.state))
@@ -588,8 +688,8 @@
             postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
-                console.log("POSTPROC")
                 data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+				
             },
             dblclick: function(event, data) {},
             select: function(event, data) {
@@ -779,7 +879,7 @@
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
-                $tdList.eq(5).html("<div class='celltext'>" + node.data.file + "</div>");
+                $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.file + "</bdi></div>");
                 
                 var outcome = node.data.outcome.substring(0, 1000);
                 
@@ -790,18 +890,19 @@
                 
                 $tdList.eq(6).html("<div class='celltext' title='"+outcome+"'>" +outcome + "</div>"); //outcome can be lengthy
                 
+				var percent = m_serverconfig["STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT"].split(",");
+				for(i=0;i<percent.length;i++){
+					if (percent[i] == "0%"){
+						console.log("Hiding finished grid col",$tdList.eq(i))
+						$tdList.eq(i).css("display","none")
+						//console.log($tdList.eq(i))
+					}
+				}
+				
             },
             init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
-                $("#treetable_history").colResizable({
-                    resizeMode: 'fit',
-                    hoverCursor: "col-resize",
-                    dragCursor: "col-resize",
-                    postbackSafe: true,
-                    useLocalStorage: true,
-                    minWidth: 10,
-                    liveDrag: true,
-                });
+                attachColResizeable("#treetable_history");
             },
             postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
@@ -1350,7 +1451,7 @@
             }
         }, true);
         
-        console.log("storing localstorage",JSON.stringify(m_lastsortelementid))
+        //console.log("storing localstorage",JSON.stringify(m_lastsortelementid))
         localStorage.setItem("m_lastsortelementid", JSON.stringify(m_lastsortelementid));
         localStorage.setItem("m_lastsortdir", JSON.stringify(m_lastsortdir));
     }
@@ -1374,7 +1475,7 @@
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
         <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
             <table id="treetable_active" class="obj">
-                <colgroup>
+                <colgroup id="colgroup_active" >
                     <col width="5%"></col>
                     <col width="10%"></col>
                     <col width="5%"></col>
@@ -1384,7 +1485,7 @@
                     <col width="10%"></col>
                 </colgroup>
                 <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
-                    <tr>
+                    <tr id="tr_treetable_active">
                         <th id="active-state" name="state" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="" >        <i id="active-state-sorticon" name="treetable_active-sorticon" ></i>State</th>
                         <th id="active-workflow" name="workflow" onclick="sortGrid('treetable_active',this.id)" data-sort_dir="">   <i id="active-workflow-sorticon" name="treetable_active-sorticon" ></i>Workflow</th>
                         <th id="active-job_start" name="job_start" onclick="sortGrid('treetable_active',this.id)" data-sort_dir=""> <i id="active-job_start-sorticon" name="treetable_active-sorticon" ></i>Start</th>
@@ -1402,7 +1503,7 @@
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
         <div id="history_div" style="" class="gridbox_dhx_skyblue gridbox">
             <table id="treetable_history" class="obj">
-                <colgroup>
+                <colgroup id="colgroup_history">
                     <col width="5%"></col>
                     <col width="10%"></col>
                     <col width="10%"></col>
@@ -1412,7 +1513,7 @@
                     <col width="30%"></col>
                 </colgroup>
                 <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
-                    <tr class="">
+                    <tr id="tr_treetable_history">
                         <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">           <i id="history-state-sorticon" name="treetable_history-sorticon" class=""></i> <input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search"  incremental autocomplete="off"></th>
                         <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                         <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">   <i id="history-job_start-sorticon" name="treetable_history-sorticon"/></i>      <input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>

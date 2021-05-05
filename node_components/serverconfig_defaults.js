@@ -25,9 +25,8 @@ defaultConfig.STATIC_API_HOST = "localhost";
 defaultConfig.STATIC_API_PORT = "65445";
 defaultConfig.STATIC_API_NEW_PORT = "3003";
 
-
-//defaultConfig.STATIC_INIT_RUNNING_GRID_COL_WIDTHS_PERCENT = "5,10,10,10,30,10,0,0,*,0,5"; 
-//defaultConfig.STATIC_INIT_FINISHED_GRID_COL_WIDTHS_PERCENT = "5,15,10,5,0,30,*";
+defaultConfig.STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,20%,10%,10%"; 
+defaultConfig.STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,5%,10%,20%";
 
 defaultConfig.STATIC_START_JOB_URL = "/api/json/v2/jobs/";
 defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v2/workflows";

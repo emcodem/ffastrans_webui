@@ -11,7 +11,7 @@ const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
 
-const https = require('https');
+
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
@@ -255,6 +255,7 @@ function init(conf){
 	var path_to_cert = global.approot  		+ '/cert/cert.pem';
 	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
 	if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+		const https = require('https');
 		const httpsServer = https.createServer({
 		  key: fs.readFileSync(path_to_privkey),
 		  cert: fs.readFileSync(path_to_cert),
@@ -281,8 +282,12 @@ function init(conf){
 		
 	}else{
 		const http = require('http').Server(app);
-		http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT)).on('error', handleListenError)
-		initSocketIo(http);	
+		
+		http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
+			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT);
+			initSocketIo(http);	
+		}).on('error', handleListenError);
+		
     }
     
 }
