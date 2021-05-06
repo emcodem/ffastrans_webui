@@ -30,9 +30,14 @@ if '%errorlevel%' NEQ '0' (
 :--------------------------------------    
 @echo off
 
-set InstallFolder="%~dp0"
+set SERVICE_NAME=FFAStrans Webinterface
 
-net stop "FFAStrans Webinterface"
-"%~dp0tools\nssm" remove "FFAStrans Webinterface" 
+if exist "%~dp0alternate-server\css\override.css" (
+	rem service name is "last folder" when override.css exists
+	set /p SERVICE_NAME=Enter service name: 
+) 
+
+net stop "%SERVICE_NAME%"
+"%~dp0"tools\nssm remove "%SERVICE_NAME%" 
 
 pause

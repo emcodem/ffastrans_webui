@@ -30,20 +30,26 @@ if '%errorlevel%' NEQ '0' (
 :--------------------------------------    
 @echo off
 
-echo "%~dp0"tools\nssm
+set SERVICE_NAME=FFAStrans Webinterface
 
-"%~dp0tools\nssm" install "FFAStrans Webinterface" "%~dp0server.exe"
-"%~dp0tools\nssm" set "FFAStrans Webinterface" AppDirectory "%~dp0"
+if exist "%~dp0alternate-server\css\override.css" (
+	rem service name is "last folder" when override.css exists
+	set /p SERVICE_NAME=Enter service name: 
+) 
+echo Installing Service Name: %SERVICE_NAME%
 
-"%~dp0tools\nssm" set "FFAStrans Webinterface" Description "FFAStrans Webinterface"
-"%~dp0tools\nssm" set "FFAStrans Webinterface" Start SERVICE_AUTO_START
+"%~dp0tools\nssm" install "%SERVICE_NAME%" "%~dp0server.exe"
+REM "%~dp0tools\nssm" set "%SERVICE_NAME%" AppDirectory "%~dp0"
 
-"%~dp0tools\nssm" set "FFAStrans Webinterface" AppStdout "%~dp0log\Windows_Service_STDOUT.log"
-"%~dp0tools\nssm" set "FFAStrans Webinterface" AppStderr "%~dp0log\Windows_Service_STERR.log"
+"%~dp0tools\nssm" set "%SERVICE_NAME%" Description "%SERVICE_NAME%"
+"%~dp0tools\nssm" set "%SERVICE_NAME%" Start SERVICE_AUTO_START
 
-net start "FFAStrans Webinterface"
+"%~dp0tools\nssm" set "%SERVICE_NAME%" AppStdout "%~dp0log\Windows_Service_STDOUT.log"
+"%~dp0tools\nssm" set "%SERVICE_NAME%" AppStderr "%~dp0log\Windows_Service_STERR.log"
 
-echo Hello and thank you for using FFAStrans. If you did not change the port, you cann access the webserver on:
+net start "%SERVICE_NAME%"
+
+echo Hello and thank you for using %SERVICE_NAME%. If you did not change the port, you cann access the webserver on:
 echo http://localhost:3002
 
 pause

@@ -1257,7 +1257,10 @@
             activeJobIds.push(key);
             var existing = tree.getNodeByKey(key);
             if (existing) {
+				//console.log("Node exists, updating",jobArray[y])
+				//console.log("Node exists, existing",existing)
                 existing.data = jobArray[y];
+				existing.title = jobArray[y]["title"]
                 existing.renderTitle(); //forces reload of node
             } else {
                 rootNode.addChildren(jobArray[y]);
