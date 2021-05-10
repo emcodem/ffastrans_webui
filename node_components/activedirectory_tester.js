@@ -20,11 +20,10 @@ module.exports = function(app, passport){
 					}
 				}
                 
-                				//password is base64
+                //password is base64
 				console.log("decrypted pw",data["ad_password"])
 				var decrypted = Buffer.from(data["ad_password"], 'base64').toString();
-				decrypted = ("decrypted ad_pw",decrypted)
-				
+				decrypted = ("decrypted ad_pw",decrypted);
 				
 				//prepare AD connection
 				var adopts = {
@@ -35,7 +34,13 @@ module.exports = function(app, passport){
 				}
 				console.log("Testing AD with options:",adopts,data);
 				var ad = new ActiveDirectory(adopts);
-				ad.getGroupMembershipForUser(data["ad_user"], function(err, groups) {
+				var usernameToCheck = data["ad_user"];
+				if (data["ad_alternate_user"]){
+					usernameToCheck = data["ad_alternate_user"];
+					
+				}
+				
+				ad.getGroupMembershipForUser(usernameToCheck, function(err, groups) {
 					if (err) {
 						var msg = "Didn't work. \n\nError: "+JSON.stringify(err)+"\n\nADCONFIG:\n\n"+ JSON.stringify(adopts);
 						console.log(msg)
@@ -44,8 +49,19 @@ module.exports = function(app, passport){
 						res.end(); 
 						return;
 					}
-					console.log("ADTest OK:", groups)
-					res.write(JSON.stringify(groups))
+					console.log("Groups for user", usernameToCheck, ":", groups)
+					var groups_cn_only = [];
+					groups.forEach(function(_obj){
+						try{
+							console.log(_obj["cn"])
+						   groups_cn_only.push(_obj["cn"]);
+						   
+						}catch(ex){
+							console.error("Unexpected error parsing groups from ad user ", ex)
+						}
+					});
+					
+					res.write("AD Groups for user" + usernameToCheck + "\n" + JSON.stringify(groups_cn_only,null, 4))
 					res.status(200);//Send error response here
 					res.end();
 					return;

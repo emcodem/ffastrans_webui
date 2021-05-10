@@ -29,7 +29,11 @@ module.exports = {
                 global.db.config.find({ "local.usergroup.name": {$in: data.local.groups }}, function(err, cursor) {//get all permissions of all groups
                     var allpermissions = [];
                     for (i in cursor){
+					if (typeof(cursor[i]) == "function"){
+						continue;
+					}
                         //concat all permission arrays from all groups
+						console.log(cursor[i])
                         allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
                     }
                     callback(allpermissions);

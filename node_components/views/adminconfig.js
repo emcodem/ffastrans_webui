@@ -23,12 +23,10 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 //check if config is in db or we need to use default //todo: support getting a default config intentionally
                 configServer.get(function(outputConfig){
                      //loop through all config items and display them, this way we support adding/removing items in the config dynamically
+					 console.log("config from database",outputConfig)
 					for (const key in outputConfig) {
 						
-						//filter special items
-						if (key == "ad_config"){
-							continue;
-						}
+
 						
                         var disabled = false;
                         //hide some items
@@ -36,6 +34,8 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
                         if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;}
 						if (key.indexOf("alternate-server")!=-1){disabled=true;}
+												//filter special items
+						if (key == "ad_config"){disabled=true;}
 						//add special btn for Activedirectory config
 						if (key.indexOf("STATIC_USE_WEB_AUTHENTIFICATION")!=-1){
 							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "", list: [
@@ -76,7 +76,8 @@ var configServer = require(global.approot  + '/node_components/server_config');
 						}
 						if (typeof (outputConfig[key]) == "object"){
 							//currently we support only array type and serialize/deserialize as comma separated string
-							fieldset.list.push({type:"input", name: "csv__"+key, label: "<b>"+key+"</b>",inputWidth:600,value:outputConfig[key].join()})
+							console.log("detected type object in global config:",outputConfig[key])
+							fieldset.list.push({type:"input", name: "csv__"+key, "hidden":disabled, label: "<b>"+key+"</b>",inputWidth:600,value:JSON.stringify(outputConfig[key])})
 						}
 					 	fieldset.list.push( {type: "label", label: ""});//add spacer
 					}
@@ -100,7 +101,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
        for (const key in data) {
           if (key.indexOf("csv_")!=-1){
               var newName = key.replace("csv__","");
-              toSave[newName] = data[key].split(",");
+              toSave[newName] = JSON.parse(data[key]);
               //csv data is stored as array in the db
           }else{
               toSave[key] = data[key];

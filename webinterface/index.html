@@ -221,11 +221,23 @@ function loadusermenu(){
     });
 }
 
+function inIframe () {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+}
 
 
 /* build basic page layout and init periodic job loading*/
 function init(permissions){
-
+	
+	//checks if i am an iframe, if yes, user was most likely logged out and we want to reload
+	if (inIframe()){
+		parent.location.reload()
+	}
+	
     //check if html5 features supported
     if (typeof(Storage) !== "undefined") {
     } else {
@@ -251,7 +263,7 @@ function init(permissions){
     '<div onclick="onHeaderClick()"> <h1 style="cursor:pointer"  ><img class="brand_image" alt="" height="16" src="images/F364x64.png"  title="" width="16" style="margin-bottom:6px;float:left"/><div class="ffastransheadertext">FFAStrans&nbsp</div><div class="instancename" id="STATIC_WEBUI_HEADER_NAME"></div></div></h1><p class="description"> </p></header>');//HEADER STUFF, HEAVY USE OF CUSTOM CSS (which is unusual, the rest of the page relies on dhtmlx)
     //set instance name to header
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
-    
+    document.title =  document.getElementById("STATIC_WEBUI_HEADER_NAME").innerText ||  document.getElementById("STATIC_WEBUI_HEADER_NAME").textContent;
     //show logged in username
     
     try{

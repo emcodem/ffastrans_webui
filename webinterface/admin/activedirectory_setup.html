@@ -98,6 +98,7 @@ function testAdConfig(){
     var o_ad = {};
     o_ad["ad_config"] = m_serverconfig["ad_config"];
     o_ad["ad_user"] = document.getElementById("ad_user").value;
+	o_ad["ad_alternate_user"] = document.getElementById("ad_alternate_user").value;
 	o_ad["ad_password"] = btoa(document.getElementById("ad_password").value);
     document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain fqdn\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
 	$.ajax({
@@ -193,10 +194,16 @@ function saveAdConfig(){
 		<label for="ad_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username for testing</label>
 		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
 		<input type="text" class="form-control form-control-sm"  id="ad_user" placeholder="mypersonaldomainuser">
+		
 		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
 		<label for="ad_password" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Password for testing</label>
 		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
 		<input type="password" class="form-control form-control-sm"  id="ad_password" />
+		<!-- alternate username to get groups for -->
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<label for="ad_alternate_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username to check groups</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="text" class="form-control form-control-sm"  id="ad_alternate_user" />
 		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
 			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_test">Test</div>
 		</div>

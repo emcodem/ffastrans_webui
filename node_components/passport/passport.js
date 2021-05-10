@@ -37,20 +37,23 @@ passport.deserializeUser(function(user, done) {
         passReqToCallback : true // allows us to pass back the entire request to the callback
     },
     async function(req, username, password, done) { // callback with email and password from our form
-        
         //await ActiveDirectoryLogin(username, password);
     
         console.log("trying local-login",username);
         // find a user whose username is the same as the forms username
         // we are checking to see if the user trying to login already exists
-        var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username ,"local.is_ad_user": { $exists: false }});
-        console.log("Local user exists", existing);
+        var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username });
         if (!existing){
+			console.log("Username not found, trying AD login")
+			ActiveDirectoryLogin(req, username, password, done);
+		}
+        if (existing["local"]["password"] == "aduser"){
 			console.log("Local user does not exist, trying AD login")
             ActiveDirectoryLogin(req, username, password, done);
 			
         }else{
             //LOCAL LOGIN
+			console.log("Local user exists", existing);
             global.db.config.findOne({ 'local.username' :  username }, function(err, doc) {
                 // if there are any errors, return the error before anything else
                 if (err){
@@ -132,6 +135,18 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 						return done("AD username and pw is correct\nbut user has no group in AD\nthat exists also locally")
 					}
 					
+					//merge ad groups and existing groups to update user
+					var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username });
+					var newGroups = groups_cn_only;
+					
+						if (existing){
+							console.log("merging existing user groups with ad groups", existing,groups_cn_only )
+							
+							newGroups = [...existing.local.groups, ...groups_cn_only];
+							newGroups = newGroups.unique();
+							console.log("combined local and ad groups of user:",newGroups)
+						}
+					
 					//we always recreate the ad user in order to have updated groups       
 					await asyncDeleteOne(global.db.config,{ 'local.username' :  username});
 					var newUser            = {};
@@ -140,13 +155,13 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					newUser.local.password    = "aduser";
 					newUser.local.is_ad_user        = true;
 					newUser.local.id                = Math.random(1000000000000);
-					newUser.local.groups            = groups_cn_only;
+					newUser.local.groups            = newGroups;
 					console.log("Storing user in db: ",newUser)
 					await asyncInsertOne(global.db.config,newUser);
 					return done(null, newUser);
 				}catch(ex){
 					console.log("Unexpected Exception while ad login ", ex)
-					return done("User does not exist locally,\ntried AD login but failed. Bad username/password?" + ex)
+					return done("User does not exist locally,\ntried AD login but failed.\nBad username/password?\n" + ex)
 				}
 			
 		});
@@ -184,3 +199,16 @@ function asyncInsertOne(db,query) {
         });
     });
 }
+
+//HELPES
+Array.prototype.unique = function() {
+    var a = this.concat();
+    for(var i=0; i<a.length; ++i) {
+        for(var j=i+1; j<a.length; ++j) {
+            if(a[i] === a[j])
+                a.splice(j--, 1);
+        }
+    }
+
+    return a;
+};

@@ -3,9 +3,20 @@ module.exports = function(app, express){
 
 	app.get('/usergrouplist', (req, res) => {
 		try{
-			global.db.config.find({ "local.usergroup.name": { $exists: true } }).sort({'local.usergroup.name': 1}).exec(function(err, cursor) {//'global':'config'
+			global.db.config.find({ "local.usergroup.name": { $exists: true} }).sort({'local.usergroup.name': 1}).exec(function(err, cursor) {//'global':'config'
                 var groups = [];
+				if (err){
+						console.log("ERROR: unxepected error in usergrouplist: " + err);
+						res.status(500);//Send error response here
+						res.end();
+					
+				}
+				console.log("cursor;",cursor)
                 for (usergroup in cursor){
+					if (typeof(cursor[usergroup]) == "function"){
+						continue
+					}
+					console.log("Existing usergroup: ", cursor[usergroup])
                     groups.push (cursor[usergroup].local.usergroup);
                 }
                 res.writeHead(200,{"Content-Type" : "application/JSON"});
@@ -13,7 +24,7 @@ module.exports = function(app, express){
                 res.end();
             })
 		}catch (ex){
-				console.log("ERROR: unxepected error in adminconfig: " + ex);
+				console.log("ERROR: unxepected error in usergrouplist: " + ex);
                 res.status(500);//Send error response here
                 res.end();
 		}

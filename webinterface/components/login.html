@@ -13,7 +13,20 @@
     }
 </style>
 <script>
+function inIframe () {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+}
+
+
 function init(){
+	if (inIframe()){
+		parent.location.reload()
+	}
+
     var query = window.location.search.substring(1);
 	query = parse_query_string(query);
     m_mainForm  = new dhtmlXForm("mainform");

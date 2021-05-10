@@ -94,10 +94,12 @@ function init(conf){
     global.config = conf;
         
     // required for passport
+	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
     app.use(session({ 
                         secret: 'you_will_never_guess_the_secret' ,    
                         resave: true,
-                        saveUninitialized: true
+                        saveUninitialized: true,
+						cookie: { maxAge: farFuture }
         }));
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions

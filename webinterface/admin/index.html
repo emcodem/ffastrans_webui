@@ -79,6 +79,7 @@ function init(){
     });
 		
 	m_mainForm.attachEvent("onButtonClick", function(name){
+		console.log("mainform button click")
 		if (name == "btn_adconfig"){
 			showAdConfigWindows();
 		}
@@ -86,8 +87,9 @@ function init(){
     m_fileBrowseGridMenu.attachEvent("onClick", function (name, value, state){
             if (name == 'save'){
                 m_mainForm.send("/adminconfig", function(loader, response){
-                m_mainForm  = m_mainTabBar.tabs("serverconfig").attachForm();
-                    m_mainForm.loadStruct("/adminconfig", function(){ });
+					window.location.reload()
+					//m_mainForm  = m_mainTabBar.tabs("serverconfig").attachForm();
+                    //m_mainForm.loadStruct("/adminconfig", function(){ });
                 });
             }
             if (name == 'default'){
