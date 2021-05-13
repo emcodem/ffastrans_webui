@@ -143,7 +143,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 							console.log("merging existing user groups with ad groups", existing,groups_cn_only )
 							
 							newGroups = [...existing.local.groups, ...groups_cn_only];
-							newGroups = newGroups.unique();
+							newGroups = array_unique(newGroups);
 							console.log("combined local and ad groups of user:",newGroups)
 						}
 					
@@ -201,14 +201,13 @@ function asyncInsertOne(db,query) {
 }
 
 //HELPES
-Array.prototype.unique = function() {
-    var a = this.concat();
+function array_unique(arr) {
+    var a = _arr.concat();
     for(var i=0; i<a.length; ++i) {
         for(var j=i+1; j<a.length; ++j) {
             if(a[i] === a[j])
                 a.splice(j--, 1);
         }
     }
-
     return a;
 };

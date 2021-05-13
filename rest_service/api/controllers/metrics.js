@@ -3,7 +3,7 @@
 Metrics collection can be called every second and therefore MUST avoid long-running stuff, e.g. stat of many files
 */
 const fs = require('fs')
-const fsPromises = require('fs/promises');
+const fsPromises = require('fs').promises;
 const path = require("path")
 const common = require("./common/ticket_helpers.js")
 const readLastLines = require('read-last-lines')
@@ -39,6 +39,7 @@ async function start(req, res) {
 	    var o_return = {};
 		res.write("ffas_jobs_incoming_count " + await count_incoming() +"\n");
         res.write("ffas_jobs_queue_count " + await count_queue_tickets() +"\n");
+		console.log("Metrics found queue tickets: ", await count_queue_tickets() )
         var running = await count_running_tickets()
         res.write("ffas_jobs_running_count " + running[0] + "\n");
         res.write(running[1]);
@@ -62,7 +63,7 @@ async function count_running_tickets() {
         for (var _idx in allfiles){
             var _entry = "ffas_running_job";
             var _job= "";
-            var wfname = await common.get_wf_name(allfiles[_idx].split("~")[4]);
+            var wfname = await common.get_wf_name(allfiles[_idx].split("~")[3]);
             _job+= "{"
             _job+= "job_id=\"" + allfiles[_idx].split("~")[1] +"\",";
             _job+= "wf_name=\"" + wfname + "\",";
@@ -80,7 +81,7 @@ async function count_running_tickets() {
 async function count_queue_tickets() {
         //global.api_config["s_SYS_CACHE_DIR"]
 		var dir = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets");
-        dir = path.join(dir,"queue");
+        dir = path.join(dir,"pending");
         var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
         return allfiles.length;
 }
@@ -92,7 +93,9 @@ async function count_incoming(){
         var all_wf_monitor_folders = await fsPromises.readdir(s_monitor_path, { withFileTypes: true });
         for  (var _t in all_wf_monitor_folders){
             //in every workflow folder, find all watches, e.g. db\cache\wfs\GUID\mons\GUID
+
             if(all_wf_monitor_folders[_t].isDirectory()){
+				
                 var _mons = s_monitor_path + "\\" + all_wf_monitor_folders[_t].name + "\\mons";
                 var _mons_exists = (await fs.promises.stat(_mons).catch(e => false));;
                 if (!_mons_exists){
@@ -137,14 +140,15 @@ async function parse_monitor_log(){
     var lines = result.toString().split("\n");
     for  (var _l in lines){
         // line = WF_NAME|STARTDATE|ENDDATE|FILENAME|OUTCOME|INT STATE|JOB_ID~SPLIT_ID
+		
         var split = lines[_l].split("|");
-        var state = split[5];
+        var state = split[5]; //0= error, 1= good, 2= aborted
         if(first_call_after_startup){
             //at startup, just store all currently known error jobs 
             global["metrics"]["monitorlog_reported_erros"][caller_ip][lines[_l]]   = 1;
             continue;
         }else{
-            if (state != 0 && !(lines[_l] in global["metrics"]["monitorlog_reported_erros"][caller_ip])){
+            if (state == 0 && !(lines[_l] in global["metrics"]["monitorlog_reported_erros"][caller_ip])){
                 global["metrics"]["monitorlog_reported_erros"][caller_ip][lines[_l]]   = 1;               
                 returnvalue = "ffas_jobs_error_job_info";
                 returnvalue+= "{"

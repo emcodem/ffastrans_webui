@@ -167,7 +167,7 @@
     var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
-
+	var m_max_history_gridrows = 1000;
     /*load config from server*/
     function loadserverconfig() {
         $.ajax({
@@ -328,10 +328,17 @@
         //    mainLayout.cells("a").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
-            
+           
             if (applyWorkflowFilter(msg) == false) {
-                return;
+            //apply user permissions
+				return;
             }
+			if (history_search_is_active()){
+			//apply search if any
+				if (!search_history_check_new_row(msg)){
+					return;
+				}
+			}
             //server informs us about new history jobs in db, if there are new, we fetch them
             var rootNode = $("#treetable_history").fancytree("getRootNode");
 
@@ -341,7 +348,7 @@
                 existing_node.fromDict(msg);
                 return;
             }
-            
+			
             firstnode = rootNode.findFirst("")
             if (firstnode) {
                 if (firstnode.extraClasses == "odd_dhx_skyblue") {
@@ -350,10 +357,18 @@
                     msg.extraClasses = "odd_dhx_skyblue";
                 }
             }
-            //add new node
+
+			//cleanup too many nodes to support running the webinterface for indefinite time
+			while(rootNode.countChildren() > m_max_history_gridrows){
+				rootNode.getLastChild().remove();
+			}
+            
+			//add new node
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
             //take care about grid sorting
             sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
+			
+			
         });
 
         socket.on('incomingjobs', function(msg) {
@@ -676,7 +691,6 @@
 				for(i=0;i<active_percent.length;i++){
 					if (active_percent[i] == "0%"){
 						$tdList.eq(i).css("display","none")
-						console.log($tdList.eq(i))
 					}
 				}
 
@@ -905,6 +919,7 @@
                 attachColResizeable("#treetable_history");
             },
             postProcess: function(event, data) {
+				console.log("History grid postproc")
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
                 data["result"] = filterHistoryList(data["response"]["data"]) //setting data["result"] means override the originally loaded data
@@ -966,9 +981,51 @@
         })
 
         //search btn
-        $('input[name=search]').bind("enterKey", function(e) {
-            //iterate all search fields
-            var search_obj = {};
+        $('input[name=search]').bind("enterKey", search_history_grid);
+
+        $("input[name=search]").keyup(function(e) {
+            if (e.keyCode == 13) {
+                $(this).trigger("enterKey");
+            }
+        });
+
+    } //buildhistorygrid
+
+	function search_history_check_new_row(new_row){
+		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
+			for (i = 0; i < $("input[name=search]").length; i++) {
+                var input = $("input[name=search]")[i];
+                match = $.trim(input.value);
+                var keyname = input.placeholder.toLowerCase();
+                if(keyname.match(/start|end/)){
+                    keyname = "job_" + keyname;
+                }
+                if (match) {
+					console.log("Checking if new row field ", keyname, "value:",new_row[keyname],"matches",match)
+                    if (new_row[keyname].match(match)){
+						return true;
+					}
+                }
+            }
+			//exclude by default
+			return false;
+	}
+	
+	function history_search_is_active(){
+		/* is a filter active? */
+			var searchCount = 0;
+			for (i = 0; i < $("input[name=search]").length; i++) {
+                var input = $("input[name=search]")[i];
+                match = $.trim(input.value);
+                if (match) {
+                    searchCount++;
+                }
+            }
+			return searchCount;
+	}
+	
+	function search_history_grid(btn_event){
+		 var search_obj = {};
             for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 match = $.trim(input.value);
@@ -980,22 +1037,12 @@
                     search_obj[keyname] = (match)
                 }
             }
-
             var tree = $('#treetable_history').fancytree('getTree');
             tree.reload({
-                url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=1000&filterobj=" + JSON.stringify(search_obj),
+                url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(search_obj),
                 cache: false
             });
-
-        });
-
-        $("input[name=search]").keyup(function(e) {
-            if (e.keyCode == 13) {
-                $(this).trigger("enterKey");
-            }
-        });
-
-    } //buildhistorygrid
+	}
 
     function delete_jobs(array_of_rows) {
 
@@ -1243,7 +1290,7 @@
     }
 
     function addActiveJobsToGrid(targetGridObj, jobArray, qstate) {
-
+		
         var rootNode = $("#treetable_active").fancytree("getRootNode");
         var tree = $("#treetable_active").fancytree("getTree");
         //add or update new jobs
@@ -1281,7 +1328,6 @@
         //take care about grid sorting
         sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
         
-
     }
 
     /* HELPERS */

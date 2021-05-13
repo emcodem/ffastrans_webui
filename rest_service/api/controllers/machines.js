@@ -1,7 +1,7 @@
 'use strict';
 //var util = require('util');
 const fs = require('fs')
-const fsPromises = require('fs/promises');
+const fsPromises = require('fs').promises;
 const path = require("path")
 // const DEBUG_MODE_ON = true;
 // if (!DEBUG_MODE_ON) {
