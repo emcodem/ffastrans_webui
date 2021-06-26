@@ -344,8 +344,8 @@
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
                                 <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
                                 <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                                <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> ');
-                                //<button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> 
+                                <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                                 <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
@@ -705,7 +705,7 @@ function copy_style_for_svg(ParentNode, OrigData){
 
 function export_StyledSVG(){
     var SVGElem = document.getElementsByTagName("svg")[0];
-    var exportname = (m_workflowdata["wf_name"] + "_" + m_jobobject["id"]);
+    var exportname = (m_workflowdata["wf_name"] + "_" + m_jobobject["id"] + ".svg");
     var oDOM = SVGElem.cloneNode(true)
     copy_style_for_svg(oDOM, SVGElem);
     var data = new XMLSerializer().serializeToString(oDOM);

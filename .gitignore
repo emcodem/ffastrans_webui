@@ -1,5 +1,7 @@
 #untrack database
+tools/prometheus/grafana-7.4.3/data
 database/
 server.exe
 alternate-server/
 alternate-server.old/
+.log

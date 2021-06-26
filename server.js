@@ -151,8 +151,8 @@ function init(conf){
             console.log(proxyReq)
         },
         parseReqBody: false,
-      reqBodyEncoding: null,
-      reqAsBuffer: true,
+		reqBodyEncoding: null,
+		reqAsBuffer: true,
         proxyReqBodyDecorator: function(bodyContent, srcReq) {
        //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
        //we actually want the body to be forwarded unmodified
@@ -180,6 +180,24 @@ function init(conf){
         }
     }));
 
+    app.use('/grafana_proxy', proxy("http://localhost:3004", {
+        logLevel: "info",
+        proxyTimeout: 2000,
+        onProxyReq: function (proxyReq, req, res) {
+                                    console.log(proxyReq) 
+                                },
+        parseReqBody: true,
+        reqBodyEncoding: null,
+        reqAsBuffer: true,
+        proxyReqBodyDecorator: function (bodyContent, srcReq) {
+            //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
+            //we actually want the body to be forwarded unmodified
+            console.log("Proxying Grafana call: " , srcReq.url)
+            bodyContent = ("" + srcReq.body)
+            return bodyContent;
+        }
+    }));
+	
     // get information from POST like messages
     app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());

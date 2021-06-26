@@ -46,22 +46,32 @@
         line-height: 18px;
     }
     .sidenav {
+	  padding-left:2px;
+	  display: table-cell;
       height: 100%;
-      float:left;
+	  width:110px;
       z-index: 1;
       top: 0;
       left: 0;
       overflow-x: hidden;
       padding-top: 20px;
       border-right: 1px solid #AAA;
-      width:100px;
+      
     }
+	.main{
+		height: 100%;
+		width: 100%;
+		padding-left:2px;
+		display: table-cell;
+	}
+	
     .sidenav a {
       padding: 6px 8px 6px 16px;
       text-decoration: none;
       font-size: 12px;
       color: #000000;
       display: block;
+	  
     }
     .button {
         display: block;
@@ -163,13 +173,17 @@
 
 </script>
 <body onload="loadserverconfig()">
-<div class="sidenav  dhtmlxMenu_dhx_skyblue_Middle" style="padding-left:2px">
+<div style="display:table;height:100%" >
+<div style="display: table-row; height: 100%;">
+<div class="sidenav  dhtmlxMenu_dhx_skyblue_Middle" >
   <div id="machines" style="width:90%" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="farmadmin/farm_machines.html">Farm Machines</div><br/>
   <div id="metrics" style="width:90%" class="button dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal" data-url="farmadmin/metrics_admin.html">Metrics Admin</div>
 </div>
 
 
 <div class="main" >
-<iframe class="farm_iframe" style="width:90%" id="farm_iframe"/>
+<iframe class="farm_iframe" style="width:100%;height:100%" id="farm_iframe"/>
+</div>
+</div>
 </div>
 </body>
