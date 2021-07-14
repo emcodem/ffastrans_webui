@@ -15,11 +15,13 @@ module.exports = function(app, passport){
                //TODO: make this work
                
                //download workflowlist from ffastrans server
-                var _url = global.config.STATIC_GET_WORKFLOW_VARS_URL.replace("<wf_id>",wf_id)
-                Request.get(buildApiUrl(_url), {timeout: 7000},(error, workflowResponse, body) => {
+                var _url = buildApiUrl(global.config.STATIC_GET_WORKFLOW_VARS_URL.replace("<wf_id>",wf_id));
+                console.log("calling ",_url)
+                Request.get(_url, {timeout: 7000},(error, workflowResponse, body) => {
                     console.log("--------------------")
-                    console.log(body)
+                    console.log("Response body: ",body)
                     if(error) {
+                        console.log("Error response from getworkflowdetails,",error)
                         global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(_url));
                         res.writeHead(200,{"Content-Type" : "text/text"});
                         res.write("");//output json array to client

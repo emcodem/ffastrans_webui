@@ -17,7 +17,7 @@ module.exports = function(app, passport){
                         console.error("Error calling workflowlist, " + error)
                         res.status(500);//Send error response here
                         res.end();
-                        global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+                        global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL));
                         return;
                     }
                     //disabled web security, show all worfklows

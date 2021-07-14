@@ -1,6 +1,18 @@
 const fs = require('fs');
 var path = require('path');
-var regexEscape = import('escape-string-regexp');
+
+function regexEscape(string) {
+	if (typeof string !== 'string') {
+		throw new TypeError('Expected a string');
+	}
+
+	// Escape characters with special meaning either inside or outside character sets.
+	// Use a simple backslash escape when it’s always valid, and a `\xnn` escape when the simpler form would be disallowed by Unicode patterns’ stricter grammar.
+	return string
+		.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
+		.replace(/-/g, '\\x2d');
+}
+
 
 function twoDigits(d) {//todo: move this to server.js?
     if(0 <= d && d < 10) return "0" + d.toString();

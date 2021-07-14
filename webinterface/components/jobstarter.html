@@ -139,7 +139,7 @@ function init(){
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
 	
-	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                               
+	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({                                              
 		items:[
             {id:"location", text:"Locations <i class='fas fa-list'></i>"},
 			{id:"savelocation", text:"Save Location <i class='fas fa-save'></i>"},
@@ -154,7 +154,6 @@ function init(){
             //disallow drag&drop rows to self   
             //tObj.deleteRow(dId);//row was already pasted, delete it!
     })
-    
     
     m_fileBrowserGrid.attachEvent("onDrag",function(sid,tid){
         //if target id is undefinded, we got something from a different grid. if defined we are in own grid
@@ -592,6 +591,7 @@ function on_processorSelected(selectedWorkflow){
         context: this,
         success: function (response) {
             console.log(response)
+            console.log("getworkflowdetails",response)
             //rebuild subform for variable selection
             if (m_subForm){
                 m_subForm.unload();//clear existing form items
@@ -646,7 +646,8 @@ function on_processorSelected(selectedWorkflow){
             }
         },
         error: function (xhr, status) {
-            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. ");
+            dhtmlx.message("ERROR in getworkflowdetails for " +selectedWorkflow.wf_id );
+            console.log(xhr,status)
         }
     });
 }
@@ -669,7 +670,6 @@ function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
     }catch(e){
         dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
     }
-
 }
 
 
@@ -841,7 +841,7 @@ function getWorkflows(){
         },
         error: function (xhr, status) {
             m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
         }
     });
 }
@@ -896,7 +896,7 @@ function startJobs(){
                 postBody.variables.push({"name":name,"data":m_subForm.getItemValue(name)});
             }
         });
-         m_selectedFileGrid.cells(id,2).setValue("Submitted")
+         m_selectedFileGrid.cells(id,2).setValue("Submitted");
          $.ajax({
             url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
             type: "POST",
