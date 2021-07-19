@@ -201,7 +201,7 @@ function asyncInsertOne(db,query) {
 }
 
 //HELPES
-function array_unique(arr) {
+function array_unique(_arr) {
     var a = _arr.concat();
     for(var i=0; i<a.length; ++i) {
         for(var j=i+1; j<a.length; ++j) {

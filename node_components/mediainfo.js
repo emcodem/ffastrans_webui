@@ -1,6 +1,5 @@
 const fs = require('fs');
 var path = require('path');
-var regexEscape = import('escape-string-regexp');
 const mediainfo = require('node-mediainfo');
 
 module.exports = function(app, express){
