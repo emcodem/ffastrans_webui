@@ -241,6 +241,7 @@
                 url: ("/getserverconfig"),
                 type: "GET",
                 success: function (response) {
+                    console.log("ServerConfig loaded")
                     m_serverconfig = JSON.parse(response)
                     init();
                 },
@@ -256,7 +257,7 @@
             buildMainLayout();
             buildLogGridGrid();
             buildNodeGridGrid()
-
+            console.log("Getting Job Details of " + getQueryVariable("job_id"))
             get_all_job_details(getQueryVariable("job_id"));
         }
 
