@@ -235,6 +235,7 @@
         var m_serverconfig;
         var mainLayout;
         var m_timelineobject =  [];
+        
         /*load config from server*/
         function loadserverconfig() {
             $.ajax({
@@ -450,7 +451,9 @@
             }
         }
 
-        function buildMxGraph(container) {
+
+        var firstrun = true;
+        function buildMxGraph(container,workflow_json) {
             //set default box sizes as defined by ffastrans.au3
             var i_BOX_WIDTH = 115;
             var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
@@ -491,6 +494,15 @@
                         var FF_NODE_TITLE = cell.ffastransobj["name"] || cell.ffastransobj["type"];
                         var FF_NODE_DESC = cell.ffastransobj["description"] || "";
                         var FF_NODE_ID = cell.ffastransobj["id"].toUpperCase();
+                        var FF_NODE_TYPE = cell.ffastransobj["type"];
+                        <!-- if (FF_NODE_TYPE == "sub_wf"){ -->
+                            <!-- if (firstrun){ -->
+                                <!-- firstrun = false; -->
+                                <!-- window.setTimeout(function(){ -->
+                                    <!-- buildMxGraph(document.getElementById(FF_NODE_ID+'_body')) -->
+                                <!-- },3000); -->
+                            <!-- } -->
+                        <!-- } -->
                         //create the cell style
                         if (this.isCellCollapsed(cell)) {
                             //return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
@@ -501,8 +513,9 @@
                                 'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                 '<tr class="tr_ffastrans_processor_top" >' +
                                 '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
-                                '<tr style="height:70%;font-size:8px" title="' +FF_NODE_DESC + '"><th> ' + FF_NODE_DESC + '</th></tr>' +
+                                '<tr style="height:70%;font-size:8px" title="' +FF_NODE_DESC + '"><th id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
                                 '</table>';
+                                
                             return tbl;
                         }
                     } else {
@@ -561,8 +574,8 @@
 
                     var connections = []; //build an object used to create the connections between the nodes
                     //parse ffastrans workflow json
-                    var nodes = m_workflowdata["nodes"];
-                    var wf_size = m_workflowdata["variable"]["wf_size"];
+                    var nodes = workflow_json["nodes"];
+                    var wf_size = workflow_json["variable"]["wf_size"];
                     
                     for (var key in nodes) {
                         var x = nodes[key]["pos_x"] / i_POS_FACTOR;
@@ -752,7 +765,38 @@ function export_StyledSVG(){
                     a_log_per_node[_proc_id] = [];
                     $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
                     $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
+                    
+                    //handle sub-wf
+                    if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
+                       if (line['data']['wf_id']){
+                            var _tablehead = document.getElementById(line["node"]["id"].toUpperCase()+"_body");
+                            console.log(_tablehead);
+                            _tablehead.style.backgroundColor ="white";
+                            //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
+                            //load current sub-workflows
+                            var _url = "/getjobdetails?jobid=" + getQueryVariable("job_id");
+                            //TODO: herausfinden wie ich den ajax call absetze und bei der antwort IMMER NOCH WEISS nach welcher WF ID ich gesucht habe
+                            $.ajax({
+                                url: build_new_api_url(_url),
+                                type: "GET",
+                                crossDomain: true,
+                                dataType: "json",
+                                context: this,
+                                beforeSend:function( jqXHR ){
+                                  jqXHR.wf_id = line['data']['wf_id'];
+                                },
+                                success: function (response,status,fuckit) {
+                                   console.log("i wanted worklfow id",fuckit)
+                                },
+                                error: function (xhr, status) {
+                                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+                                }
+                            });
 
+                            buildMxGraph(_tablehead,m_workflowdata["workflows"][line['data']['wf_id']]);
+                       }
+                    }
+                    
                     //check processor error state and count
                     if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
                         m_unique_nodes[new_key] = (line);
@@ -764,7 +808,7 @@ function export_StyledSVG(){
                         $("#" + _proc_id).addClass("blinking-progress");
 
                     }
-
+                    
                     //check for processor end and state
                     if (line["event"] == "node end") {
                         m_unique_nodes[new_key]["date_end"] = line["created"];
@@ -1089,12 +1133,9 @@ function export_StyledSVG(){
                 crossDomain: true,
                 dataType: "json",
                 success: function (response,status,request) {
+                
                     //PARSE JOB LOG
 
-
-
-                    //!!tree would delete data property so we need to rename it before adding to tree
-                    
                     for (var a in response) {
                         response[a]["_data"] = response[a]["data"];
                     }
@@ -1163,7 +1204,7 @@ function export_StyledSVG(){
                         //populate top left data
                         var copy = JSON.stringify(response);
                         copy = JSON.parse(copy); //copy the whole object to be able to delete wf_object for display in general_div
-                        delete copy["wf_object"];
+                        delete copy["wf_object"]; 
                         //sort
                         
                         var table = (JsonHuman.format(copy));
@@ -1171,7 +1212,7 @@ function export_StyledSVG(){
                         document.getElementById("general_div").appendChild(table);
                         $("#general_text").text("General [" + response["workflow"]["name"] + "]");
                         //populate workflow canvas
-                        buildMxGraph(document.getElementById('graphContainer'));
+                        buildMxGraph(document.getElementById('graphContainer'),m_workflowdata);
                         get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
                     }
                 },

@@ -1,6 +1,9 @@
 'use strict';
 //var util = require('util');
 const fs = require('fs')
+const fsPromises = require('fs').promises;
+const common = require("./common/ticket_helpers.js");
+const path = require('path');
 
 module.exports = {
     get: start
@@ -12,7 +15,7 @@ module.exports = {
   Param 1: a handle to the request object
   Param 2: a handle to the response object
  */
-function start(req, res) {
+async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var jobid = req.query.jobid;
     console.debug("get_job_details called for: " + jobid);
@@ -21,19 +24,16 @@ function start(req, res) {
     console.debug("Locating file " + job_description_path)
 	try {
         if (fs.existsSync(job_description_path)) {
-            console.debug("File exists, reading contents");
-          //res.sendFile(path) //cannot use sendfile here as it will freak out about the filename starting with .
-            fs.readFile(job_description_path, 'utf8', function (err, job_file_contents) {
-                if (err) {
-                    console.error(err);
-                    res_error();
-                    return;
-                }
+                console.debug("File exists, reading contents");
+                //res.sendFile(path) //cannot use sendfile here as it will freak out about the filename starting with .
+                var job_file_contents = await common.readfile_cached(job_description_path, 'utf8');
+                console.log(job_file_contents);
+            
                 //remove UTF8 BOM
                 if (job_file_contents.charCodeAt(0) === 0xFEFF) {
                     job_file_contents = job_file_contents.substr(1);
                 }
-              //enrich job obj with workflow object
+                //enrich job obj with workflow object
                 console.debug("Parsing Job Json... " + job_file_contents )
                 var o_job = JSON.parse(job_file_contents);
                 if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")) {
@@ -50,6 +50,26 @@ function start(req, res) {
                         return;
                     });
                 }else if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows")){
+                    //from ffastrans 1.3 we may have sub-workflows
+                    var dir = global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows";
+                    o_job["workflows"] = {};
+                    var allfiles = await fsPromises.readdir(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows", { withFileTypes: false });
+                    for (var _idx in allfiles){
+                        try{
+                            var newitem = (JSON.parse(await common.readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
+                            if (newitem["wf_id"] == o_job["workflow"]["id"]){
+                                //this is the mother workflow
+                                o_job["wf_object"] = newitem;
+                            }
+                            var cur_wf_id = o_job["workflow"]["id"];
+                            console.log("Found workflow ", newitem["wf_id"], "to be part of the current wf");
+                            o_job["workflows"][newitem["wf_id"]] = newitem;
+                        }catch(ex){
+                            console.log("Could parse Json from file:",path.join(dir,allfiles[_idx]),ex)
+                        }
+                    }
+                    
+                    
                     var wf_path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows";
                     console.log("workflows folder found in ",global.api_config["s_SYS_JOB_DIR"],",assuming ffastrans Version 1.3");
                     var files = fs.readdirSync(wf_path);
@@ -58,6 +78,9 @@ function start(req, res) {
                         res_error("Expected at least 1 file in ",wf_path);
                         return;
                     }
+                    //enrich .json with all sub-workflows 
+                    
+                    
                     //serve first found workflow file. TODO: for 1.3, check if we can have more than 1 workflow here
                     fs.readFile(wf_path + "/" + files[0], 'utf8', function (err, wf_file_contents) {
                         if (err) {
@@ -94,7 +117,7 @@ function start(req, res) {
                 }
               console.error("Unexpected error getting get_job_details serving " + job_file_contents.length + " bytes");
               res_error("Unexpected error getting get_job_details");
-          });
+          
         
             function res_error() {
                 return res.status(500).json({});
