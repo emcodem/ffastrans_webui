@@ -49,6 +49,7 @@ async function start(req, res) {
                         respond((o_job));
                         return;
                     });
+                    return;
                 }else if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows")){
                     //from ffastrans 1.3 we may have sub-workflows
                     var dir = global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows";

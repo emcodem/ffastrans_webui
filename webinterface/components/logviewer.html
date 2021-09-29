@@ -453,7 +453,7 @@
 
 
         var firstrun = true;
-        function buildMxGraph(container,workflow_json) {
+        function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph
             //set default box sizes as defined by ffastrans.au3
             var i_BOX_WIDTH = 115;
             var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
@@ -480,9 +480,10 @@
                 var graph = new mxGraph(container);
                 m_graph = graph; //store graph for global reuse
                 graph.setHtmlLabels(true);
-                graph.panningHandler.ignoreCell = true;
-                graph.setPanning(true);
-                //graph.setCellsSelectable(false)
+                graph.panningHandler.ignoreCell = panning; //disables selection of a single cell but instead allow moving the whole graph
+                graph.setPanning(panning);
+                graph.setCellsMovable(false)
+                graph.setCellsSelectable(false)
                 //trackColor = new mxCellTracker(graph, "#666");
                 
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
@@ -659,24 +660,6 @@
                       mxEvent.consume(evt);
                       return;
                         
-                        <!-- var allcells = m_graph.getChildVertices(graph.getDefaultParent()); -->
-                        <!-- var mousepointer_coordinates = (m_graph.getPointForEvent(evt, false)) -->
-                        <!-- m_graph.centerZoom = true; -->
-                        <!-- //insert invisible "fake node" to get out delta for moving graph after zoom, used to kind of zoom to cursor position -->
-                        <!-- var v1 = m_graph.insertVertex(m_graph.getDefaultParent(), "zoom", 'zoom', mousepointer_coordinates.x, mousepointer_coordinates.y, 100, 100, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)'); -->
-                        <!-- var old_x = m_graph.view.getState(v1).x; -->
-                        <!-- var old_y = m_graph.view.getState(v1).y; -->
-                        <!-- if (up) { -->
-                            <!-- m_graph.zoomIn();                         -->
-                        <!-- } else { -->
-                            <!-- m_graph.zoomOut(); -->
-                        <!-- } -->
-                        <!-- var new_x = m_graph.view.getState(v1).x; -->
-                        <!-- var new_y = m_graph.view.getState(v1).y; -->
-                        
-                        <!-- m_graph.moveCells(allcells, (old_x-new_x), (old_y-new_y), false); -->
-                        <!-- m_graph.removeCells([v1]);//remove fake zoom node -->
-                        <!-- mxEvent.consume(evt); -->
                     }))
                 }
             }
@@ -735,11 +718,19 @@ function export_StyledSVG(){
 }
 
         
+function asyncsleep(time) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve();
+    }, time);
+  });
+}
 
         //parse Job log
-        function parseJobLog(lines) {
+        async function parseJobLog(lines) {
             var a_log_per_node = {};
             var id_pid_mapping = {};
+            var sub_workflow_is_loading = false;
             for (var i = 0; i < lines.length; i++) {
                 var _proc_id;
                 var line = lines[i];
@@ -756,16 +747,7 @@ function export_StyledSVG(){
                     }
                     
                     //start of new node log
-                    //check if node is unique for nodegrid
-                    var new_key = line["node"]["id"] + line["split_id"]
-                    _proc_id = line["node"]["id"].toUpperCase();
-                    id_pid_mapping[line["pid"]] = _proc_id;
 
-                    //show processor as enabled on ui
-                    a_log_per_node[_proc_id] = [];
-                    $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
-                    $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
-                    
                     //handle sub-wf
                     if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
                        if (line['data']['wf_id']){
@@ -776,6 +758,7 @@ function export_StyledSVG(){
                             //load current sub-workflows
                             var _url = "/getjobdetails?jobid=" + getQueryVariable("job_id");
                             //TODO: herausfinden wie ich den ajax call absetze und bei der antwort IMMER NOCH WEISS nach welcher WF ID ich gesucht habe
+                            sub_workflow_is_loading = true;
                             $.ajax({
                                 url: build_new_api_url(_url),
                                 type: "GET",
@@ -785,17 +768,43 @@ function export_StyledSVG(){
                                 beforeSend:function( jqXHR ){
                                   jqXHR.wf_id = line['data']['wf_id'];
                                 },
-                                success: function (response,status,fuckit) {
-                                   console.log("i wanted worklfow id",fuckit)
+                                success: function (response,status,jqXHR) {
+                                   try{
+                                        jqXHR["wf_id"];
+                                        var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
+                                        buildMxGraph(_tablehead,sub_wf_json,false);
+                                        
+                                   }catch(ex){
+                                        alert("There was a problem getting subworkflow data, contact developers");
+                                   }
+                                   sub_workflow_is_loading = false;
+
                                 },
                                 error: function (xhr, status) {
+                                    sub_workflow_is_loading = false;
                                     alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
                                 }
                             });
 
-                            buildMxGraph(_tablehead,m_workflowdata["workflows"][line['data']['wf_id']]);
+                            
                        }
                     }
+                    
+                    //wait until sub-wf is drawn in order to guarantee the nodes are already there
+                    while (sub_workflow_is_loading){
+                        await asyncsleep(1000)
+                    }
+                                        
+                    //check if node is unique for nodegrid
+                    var new_key = line["node"]["id"] + line["split_id"]
+                    _proc_id = line["node"]["id"].toUpperCase();
+                    id_pid_mapping[line["pid"]] = _proc_id;
+
+                    //show processor as enabled on ui
+                    a_log_per_node[_proc_id] = [];
+                    $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
+                    $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
+                    
                     
                     //check processor error state and count
                     if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
