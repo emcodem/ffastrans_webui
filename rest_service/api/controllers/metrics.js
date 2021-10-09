@@ -89,6 +89,11 @@ async function count_queue_tickets() {
 async function count_incoming(){
         var found_incoming = [];
 		var s_monitor_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"wfs"),"");
+        if (!fs.existsSync(s_monitor_path)){
+            //no workflows enabled monitoring yet
+            return 0;
+        }
+
         //find all monitor enabled workflows in /cache/wfs folder
         var all_wf_monitor_folders = await fsPromises.readdir(s_monitor_path, { withFileTypes: true });
         for  (var _t in all_wf_monitor_folders){

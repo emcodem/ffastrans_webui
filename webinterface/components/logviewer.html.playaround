@@ -221,13 +221,25 @@
                 box-shadow: 0 0 10px 5px #a21a1a;
             }
         }
+		
+		div.mxgraph {
+			max-width: 100%;
+		}
+		div.mxgraph svg {
+			width: 100%;
+			min-width: 50% !important; /* or whatever you need to override the default */
+			max-width: 100% !important; /* or whatever you need to override the default */
+			height: 100%;
+			min-height: 50% !important; /* or whatever you need to override the default */
+			max-height: 100% !important; /* or whatever you need to override the default */
+		}
+
     </style>
 
 
     <script type="text/javascript">
         //madatory url parameter: workflowid
         //request job from server
-        var m_debuggraph = {};
 
         var m_workflowdata = {};
         var m_jobobject = {};
@@ -455,6 +467,7 @@
 
         var firstrun = true;
         function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph
+			
             //set default box sizes as defined by ffastrans.au3
             var i_BOX_WIDTH = 115;
             var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
@@ -488,6 +501,7 @@
                 //trackColor = new mxCellTracker(graph, "#666");
                 
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
+				
                     if (this.getModel().isVertex(cell)) {
                         if (cell.value == "zoom"){
                             return "";
@@ -497,19 +511,26 @@
                         var FF_NODE_DESC = cell.ffastransobj["description"] || "";
                         var FF_NODE_ID = cell.ffastransobj["id"].toUpperCase();
                         var FF_NODE_TYPE = cell.ffastransobj["type"];
-
+                        <!-- if (FF_NODE_TYPE == "sub_wf"){ -->
+                            <!-- if (firstrun){ -->
+                                <!-- firstrun = false; -->
+                                <!-- window.setTimeout(function(){ -->
+                                    <!-- buildMxGraph(document.getElementById(FF_NODE_ID+'_body')) -->
+                                <!-- },3000); -->
+                            <!-- } -->
+                        <!-- } -->
                         //create the cell style
                         if (this.isCellCollapsed(cell)) {
                             //return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
                             //    '<tr><th>Customers</th></tr>' +
                             //    '</table>';
                         } else { //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
-                            var tbl = '<div style="width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px"><table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                            var tbl = '<table name="gui_node" style="width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                                 'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                 '<tr class="tr_ffastrans_processor_top" >' +
                                 '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
-                                '<tr style="height:70%;font-size:8px" title="' +FF_NODE_DESC + '"><th id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
-                                '</table></div>';
+                                '<tr style="height:70%;font-size:8px;"  title="' +FF_NODE_DESC + '"><th style="height:70%;font-size:8px;max-height:80%" id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
+                                '</table>';
                                 
                             return tbl;
                         }
@@ -517,7 +538,8 @@
                         return '';
                     }
                 };
-                
+
+
 
                 graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
                     //disable doubleclick evt
@@ -557,6 +579,7 @@
                 // is normally the first child of the root (ie. layer 0).
                 var parent = graph.getDefaultParent();
                 // Adds cells to the model in a single step
+				graph.view.rendering = false;
                 graph.getModel().beginUpdate();
                 try {
                     var style = graph.getStylesheet().getDefaultVertexStyle()
@@ -577,10 +600,18 @@
                         var x = nodes[key]["pos_x"] / i_POS_FACTOR;
                         var y = nodes[key]["pos_y"] / i_POS_FACTOR;
                         //i_BOX_WIDTH
-
-
+						
+						
+						var style = new Object();
+						style[mxConstants.STYLE_RESIZABLE] = '0';
+						style[mxConstants.STYLE_STROKECOLOR] = 'rgb(85,85,85,0)';
+						style[mxConstants.STYLE_FILLCOLOR] = 'rgb(184,184,184,0)';
+						style[mxConstants.STYLE_RESIZE_HEIGHT] = '0';
+						style[mxConstants.STYLE_RESIZABLE] = '0';
+						style[mxConstants.MIN_HOTSPOT_SIZE] = '1';
+						graph.getStylesheet().putCellStyle('ffastrans_node', style);
                         /*width and heigth are defined in ffastrans as 115 and 1.6 aspect ratio. Fontsize as $i_BOX_WIDTH / 15 */
-                        var v1 = graph.insertVertex(parent, nodes[key]["id"].toUpperCase(), '', x, y, i_BOX_WIDTH, i_BOX_HEIGHT, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                        var v1 = graph.insertVertex(parent, nodes[key]["id"].toUpperCase(), '', x, y, i_BOX_WIDTH, i_BOX_HEIGHT, 'ffastrans_node');
                         nodes[key].originalname = key; //expand ffastrans properties by name of processor
                         v1.ffastransobj = nodes[key];
                         v1.data = new CustomData('v1'); //TODO: fill with useful data?
@@ -621,9 +652,28 @@
                     }
                 }
                 finally {
+				
+					//mxgraph automatically overwrites min-height and with for the svg to 93px or such, we reset it to 100%
+					<!-- var allsvgs = document.getElementsByTagName("svg"); -->
+					<!-- for (_i=0;_i<allsvgs.length;_i++){ -->
+						<!-- console.log(allsvgs[_i]) -->
+						<!-- allsvgs[_i].style.minWidth = "fit-content" -->
+						<!-- allsvgs[_i].style.maxWidth = "100%" -->
+						<!-- allsvgs[_i].style.minHeight = "fit-content" -->
+						<!-- allsvgs[_i].style.maxHeight = "100%" -->
+					<!-- } -->
+					
+					
                     // Updates the display, fullscreen zoom graph
-                    graph.getModel().endUpdate();
-                    graph.fit(0, false, 35);
+                    
+					graph.getModel().endUpdate();
+					//graph.fit();
+					graph.fit(0, false, 35,true,false,false);//.fit(border,keepOrigin,margin,enabled,ignoreWidth,ignoreHeight,maxHeight)
+						
+                    graph.view.rendering = true;
+					graph.refresh();
+
+					//recenter and scale the graph
                     m_graph = graph;
                     m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
                      
@@ -747,7 +797,7 @@ function asyncsleep(time) {
                     if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
                        if (line['data']['wf_id']){
                             var _tablehead = document.getElementById(line["node"]["id"].toUpperCase()+"_body");
-                            console.log(_tablehead);
+                            
                             _tablehead.style.backgroundColor ="white";
                             //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
                             //load current sub-workflows
@@ -767,11 +817,12 @@ function asyncsleep(time) {
                                    try{
                                         jqXHR["wf_id"];
                                         var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
-                                         
-                                        
                                         buildMxGraph(_tablehead,sub_wf_json,false);
-                                        buildMxGraph(document.getElementById("deleteme"),sub_wf_json,false);
-                                        
+										
+										if (jqXHR["wf_id"]== '20210403-1138-4890-0e57-04943e7c8d8a'){
+										buildMxGraph(document.getElementById("deleteme"),sub_wf_json,false);
+                                        console.log("sub-wf-id",jqXHR["wf_id"])
+										}
                                    }catch(ex){
                                         alert("There was a problem getting subworkflow data, contact developers");
                                    }
@@ -1214,12 +1265,15 @@ function asyncsleep(time) {
                         delete copy["wf_object"]; 
                         //sort
                         
+						//
+						
                         var table = (JsonHuman.format(copy));
                         //render
                         document.getElementById("general_div").appendChild(table);
                         $("#general_text").text("General [" + response["workflow"]["name"] + "]");
                         //populate workflow canvas
                         buildMxGraph(document.getElementById('graphContainer'),m_workflowdata);
+						console.log("MXGraph Building finished for " , m_workflowdata)
                         get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
                     }
                 },
@@ -1307,10 +1361,8 @@ function asyncsleep(time) {
 
 <!-- Page passes the container for the graph to the program -->
 <body onload="loadserverconfig()">
-<div style="max-width:20px;max-height:20px;height:20px;width:20px" id="parentofdeleteme" >
-<div style="height:20px;width:20px" id="deleteme"/>
-</div>
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
+	<div style="width:30px;height:30px;max-width:30px;max-height:30px" id="deleteme"/>
     <div id="log_div" style="visibility:hidden;overflow:visible" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_log"  class="obj">
             <colgroup>

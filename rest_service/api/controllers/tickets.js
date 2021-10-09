@@ -66,7 +66,13 @@ async function get_incoming(returnarray){
 		//enrich workflow names for pending tickets
 		var found_incoming = [];
         //find all monitor enabled workflows in /cache/wfs folder
-        var all_wf_monitor_folders = await fsPromises.readdir(s_monitor_path, { withFileTypes: true });
+        var all_wf_monitor_folders = [];
+        
+        try{
+            all_wf_monitor_folders = await fsPromises.readdir(s_monitor_path, { withFileTypes: true });
+        }catch(e){
+            //no workflows have been enabled for monitoring yet
+        }
         for  (var _t in all_wf_monitor_folders){
              
             //in every workflow folder, find all watches, e.g. db\cache\wfs\GUID\mons\GUID
