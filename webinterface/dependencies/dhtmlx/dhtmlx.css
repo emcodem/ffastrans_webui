@@ -8378,4 +8378,9 @@ div.dhx_modal_cover {
 }
 
 
-	
+.bootstrap_tab_text {
+	color: #333333;
+	font-weight: bold;
+	font-family: Tahoma;
+	font-size: 11px;
+}	

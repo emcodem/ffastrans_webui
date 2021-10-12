@@ -182,23 +182,25 @@
 
 <div class="dhxtabbar_base_dhx_skyblue dhxtabbar_tabs dhxtabbar_tab_text">
   <ul class="nav nav-tabs" id="myTab" role="tablist">
-    <li class="nav-item dhxtabbar_tabs dhxtabbar_tab.dhxtabbar_tab_actv dhxtabbar_tab_text">
-      <a class="nav-link active show" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">
-        <div class="">Home</div>
+    <li class="nav-item bootstrap_tab_pane">
+      <a class="nav-link active show bootstrap_tab_text" id="machines-tab" data-toggle="tab" href="#machines" role="tab" aria-controls="machines" aria-selected="true">
+        <div class="bootstrap_tab_text">Machines</div>
         </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link dhxtabbar_base_dhx_skyblue" id="profile-tab" data-toggle="tab" href="#profile" role="tab" aria-controls="profile" aria-selected="false">Profile</a>
+      <a class="nav-link bootstrap_tab_text " id="metrics-tab" data-toggle="tab" href="#metrics" role="tab" aria-controls="metrics" aria-selected="false">
+		<div class="bootstrap_tab_text">Metrics</div>
+	  </a>
     </li>
   </ul>
 </div>
   <div class="tab-content" id="myTabContent">
-    <div class="tab-pane fade active show" id="home" role="tabpanel" aria-labelledby="home-tab">
+    <div class="tab-pane fade active show" id="machines" role="tabpanel" aria-labelledby="machines-tab">
         <div>
             <iframe class="farm_iframe"  id="farm_machines" src="farmadmin/farm_machines.html"></iframe>
         </div>       
     </div>
-    <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+    <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
         <div>
             <iframe class="farm_iframe"  id="metrics_admin" src="farmadmin/metrics_admin.html"></iframe>
         </div>
