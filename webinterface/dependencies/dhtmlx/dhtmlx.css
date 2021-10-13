@@ -8377,10 +8377,63 @@ div.dhx_modal_cover {
   border-width: 0 1px 0 1px;
 }
 
-
+/* non dhtmlx styles for webinterface, we change from dhtmlx to bootstrap! */
 .bootstrap_tab_text {
 	color: #333333;
 	font-weight: bold;
 	font-family: Tahoma;
 	font-size: 11px;
+	margin-top: -1px;
 }	
+
+.bootstrap_tab_header {
+  position: relative;
+  height: 38px;
+  line-height: 26px;
+  font-family: Tahoma;
+  font-size: 11px;
+  color: #333333;
+  font-weight: bold;
+  border: 1px solid #c3c3c3;
+  background-color: #e0e0e0;
+  background: linear-gradient(#e0e0e0, #d9d9d9);
+  background: -webkit-linear-gradient(#e0e0e0, #d9d9d9);
+  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#e0e0e0, endColorStr=#d9d9d9) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
+  overflow: hidden;
+  cursor: default;
+}
+
+.bootstrap_tab_item {
+	min-width: 100px;
+	text-align: center;
+  position: relative;
+  height: 27px;
+  padding: 0px !important;
+  line-height: 26px;
+  font-family: Tahoma;
+  font-size: 11px;
+  color: #333333;
+  font-weight: bold;
+  border: 1px solid #c3c3c3;
+  border-bottom: 0px;
+  background-color: #C0C0C0 !important;
+  background: linear-gradient(#e0e0e0, #d9d9d9);
+  background: -webkit-linear-gradient(#e0e0e0, #d9d9d9);
+  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#e0e0e0, endColorStr=#d9d9d9) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
+  overflow: hidden;
+  cursor: pointer;
+    margin-top: 1px;
+    margin-left: 1px;
+}
+/*override bootstrap internal color for selected tab*/
+.nav-link.active{
+  background-color: #d9d9d9 !important;
+  background: linear-gradient(#e0e0e0, #d9d9d9);
+  background: -webkit-linear-gradient(#e0e0e0, #d9d9d9);
+  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#e0e0e0, endColorStr=#d9d9d9) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
+  cursor: auto !important
+ }
+
+.nav-tabs .nav-link{
+	border :0px !important;
+}

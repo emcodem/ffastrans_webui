@@ -181,7 +181,7 @@ function init(conf){
     }));
 
     app.use('/grafana_proxy', proxy("http://localhost:3004", {
-        logLevel: "info",
+        logLevel: "info", // TODO : configure grafana serve_from_sub_path 
         proxyTimeout: 2000,
         onProxyReq: function (proxyReq, req, res) {
                                     console.log(proxyReq) 
