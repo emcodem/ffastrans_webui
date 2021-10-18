@@ -203,16 +203,23 @@
     }
 
     function formattime(_dt){
-        console.log("formatt",_dt)
-        return moment(_dt.replace(/......$/,"")).format("YYYY-MM-DD HH:mm:ss")
+        try{
+            console.log("formatting date",_dt)
+            return moment(_dt.replace(/......$/,"")).format("YYYY-MM-DD HH:mm:ss");
+        }catch(ex){
+            return "";
+        }
     }
-            
+    
+    
     function buildMachinesGrid() {
         
         var sourceUrl = build_new_api_url("/machines");
-        console.log(sourceUrl)
-        //var sourceUrl = "testdata.xml";
+       
+        $.ui.fancytree.debugLevel = 2; 
+        console.log("debuglevel of grid: ",$.ui.fancytree.debugLevel)
         $("#treetable_machines").fancytree({
+            debugLevel: 2,
             extensions: ["contextMenu", "table", "gridnav", "multi"],
             checkbox: false,
             titlesTabbable: false, // Add all node titles to TAB chain
@@ -224,13 +231,12 @@
             multi: { //multiselct
                 mode: ""
             },
-			
             modifyChild: function(event, data) {
-                
+                console.log("tree modifyChild")
                 //reset all odd even row colors
                 var rootNode = $("#treetable_machines").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
-
+                
                 for (i = 0; i < oldnodes.length; i++) {
                     if (i % 2 == 0) {
                         oldnodes[i].toggleClass("ev_dhx_skyblue", false)
@@ -242,39 +248,44 @@
                 }
             },
             renderColumns: function(event, data) {
-                
-                var node = data.node;
-                console.log("data",node)
-                if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
-                    if (data.node.getIndex() % 2 == 0) {
-                        //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
-                        node.toggleClass("ev_dhx_skyblue"); //apply dthmlx style to node
-                    } else {
-                        //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
-                        node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                try{
+                    console.log("rendernodes")
+                    var node = data.node;
+                    console.log("data",node)
+                    if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
+                        if (data.node.getIndex() % 2 == 0) {
+                            //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
+                            node.toggleClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                        } else {
+                            //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
+                            node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                        }
                     }
-                }
-                node.addClass("hist_row"); //for context menu
+                    node.addClass("hist_row"); //for context menu
 
-                $tdList = $(node.tr).find(">td");
-                // (index #0 is rendered by fancytree (title node))
-                //$tdList.eq(0).text(node.data.state)
-                $tdList.eq(0).html("<div class='celltext'>" + node.data.computername + "</div>")
-                $tdList.eq(1).html("<div class='celltext'>" + node.data.ip_address + "</div>"); //.addClass("alignRight");
-                $tdList.eq(2).html("<div class='celltext'>" + 0 + "</div>");//TODO:active JOBS!
-                $tdList.eq(3).html("<div class='celltext'>" + node.data.core_usage + "</div>");
-                $tdList.eq(4).html("<div class='celltext'>" + node.data.cpu_roof + "</div>");
-                var coretext = " Cores: " + node.data.cpu["cores"] + " " +node.data.cpu["architecture"] + " " +"" +node.data.cpu["identifier"] ;
-                $tdList.eq(5).html("<div class='celltext' title='"+coretext+"'>" + coretext +"</div>");
-                $tdList.eq(6).html("<div class='celltext'>" + formattime(node.data.last_heartbeat) + "</div>");
-                $tdList.eq(7).html("<div class='celltext'>" + formattime(node.data.ffas_start_time) + "</div>");
-                $tdList.eq(8).html("<div class='celltext'>" + formattime(node.data.ffas_end_time) + "</div>");
-                $tdList.eq(9).html("<div class='celltext'>" + node.data.web_enable + "</div>");
-                
+                    $tdList = $(node.tr).find(">td");
+                    // (index #0 is rendered by fancytree (title node))
+                    // we use original_data here because we needed to cripple the original json from ffastrans in transform_Data function
+                    $tdList.eq(0).html("<div class='celltext'>" + node.data["original_data"]["computername"] + "</div>")
+                    $tdList.eq(1).html("<div class='celltext'>" + node.data["ip_address"] + "</div>"); //.addClass("alignRight");
+                    $tdList.eq(2).html("<div class='celltext'>" + 0 + "</div>");//TODO:active JOBS!
+                    $tdList.eq(3).html("<div class='celltext'>" + node.data["core_usage"] + "</div>");
+                    $tdList.eq(4).html("<div class='celltext'>" + node.data["cpu_roof"] + "</div>");
+                    var coretext = " Cores: " + node.data["cpu"]["cores"] + " " +node.data["cpu"]["architecture"] + " " +"" +node.data["cpu"]["identifier"] ;
+                    $tdList.eq(5).html("<div class='celltext' title='"+coretext+"'>" + coretext +"</div>");
+                    $tdList.eq(6).html("<div class='celltext'>" + formattime(node.data["last_heartbeat"]) + "</div>");
+                    $tdList.eq(7).html("<div class='celltext'>" + formattime(node.data["ffas_start_time"]) + "</div>");
+                    $tdList.eq(8).html("<div class='celltext'>" + formattime(node.data["ffas_end_time"]) + "</div>");
+                    $tdList.eq(9).html("<div class='celltext'>" + node.data.web_enable + "</div>");
+                }catch(ex){
+                    alert("There was an error rendering the data for machines grid, "+ex.toString())
+                    console.log(ex)
+                }
                 
             },
             init: function(event, data) {
                 //ENABLE RESIZE COLUMNS
+                console.log("grid init")
                 $("#treetable_machines").colResizable({
                     resizeMode: 'fit',
                     hoverCursor: "col-resize",
@@ -288,6 +299,7 @@
             postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
+                
                 console.log("Machines Api response:",data["response"]);
                 data["result"] = transformDataForGrid(data["response"]["machines"]) //setting data["result"] means override the originally loaded data
                 
@@ -364,12 +376,16 @@
     
     
     function transformDataForGrid(the_list) {
+        //set computername to be title
+        //we need to rename the "active" column because fancytreegrid needs this field for internal operations
         
-        //data["result"] = [{"title":"2"}]
         var filtered = [];
         for (i = 0; i < the_list.length; i++){
-            var _itm = {}
+            the_list[i]["original_data"] = JSON.parse(JSON.stringify(the_list[i]))
             the_list[i]["title"] = the_list[i]["computername"] 
+            the_list[i]["ff_active"] = the_list[i]["active"] ; 
+            the_list[i]["active"] = false; 
+            
         }
         return the_list;
 

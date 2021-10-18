@@ -29,14 +29,6 @@ global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
 //LOGGING
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
-//LOGGING SETUP WINSTON
-//redirect console.log functions
-//console.log = function () {return logger.info.apply(logger, arguments)};
-//console.error = function () {return logger.error.apply(logger, arguments)};
-//console.warn = function () { return logger.warn.apply(logger, arguments) };
-//console.info = function () { return logger.warn.apply(logger, arguments) };
-//END OF LOGGING SETUP
-
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
@@ -45,10 +37,7 @@ process.on('uncaughtException', function(err) {
       err.stackTraceLimit = Infinity;
       console.error(err.stack);
     }
-    if (err.name === 'AssertionError') {
-        // handle the assertion here or just ignore it..
-        console.log("HERE WE GO, MEDIAINFO FOOLED US");
-    }
+    
 });
 process.on('unhandledRejection', (reason, promise) => {
     console.trace('Global unexpected error: ' , reason);
@@ -161,7 +150,7 @@ function init(conf){
       }
     }));
 
-    //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
+    //PROXY, forward to new api, port 3003 default
     app.use('/new_proxy', proxy("http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
         logLevel: "info",
         proxyTimeout: 1000,
@@ -264,6 +253,7 @@ function init(conf){
     require("./node_components/resumeable_backend.js")(app, passport);
     require("./node_components/mediainfo.js")(app, passport);
 	require("./node_components/activedirectory_tester.js")(app, passport);
+	require("./node_components/farmadmin_install_service.js")(app, passport);
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 

@@ -13,7 +13,7 @@
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
 	
-        margin: 5px;
+        margin: 0 px;
         overflow: hidden;
     }
 
@@ -97,45 +97,56 @@
     }
 
 function check_install(){
-                $.ajax({
-                    //url: ("/grafana_proxy"),
-					url: "http://localhost:3004/goto/EUrkujv7z",
-                    type: "GET",
-					timeout: 6000,
-                    success: function(response) {
-                        alert("is installed")
-                    },
-                    error: function(xhr, status) {
-                        //alert("not installed" + window.location.protocol + "//" + window.location.hostname + ":3004")
-						console.log(xhr)
-                    }
-                });
+
+    $.ajax({
+        url: "/grafana_proxy",
+        type: "GET",
+        timeout: 2000,
+        success: function(response) {
+            
+            document.getElementById("installer").style.display = "none";
+            document.getElementById("i_grafana").style.display = "block";
+           
+            document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info?orgId=1&theme=light&kiosk"
+            
+        },
+        error: function(xhr, status) {
+            //service is not installed!
+            document.getElementById("installer").style.display = "block"
+            document.getElementById("i_grafana").style.display = "none";
+        }
+    });
+}
+
+function submit(){
+    $.ajax({
+            //url: ("/grafana_proxy"),
+            url: "/farmadmin_install_service",
+            type: "GET",
+            timeout: 60000,
+            success: function(response) {
+                document.getElementById("installer").style.display = "none"
+                document.getElementById("i_grafana").style.display = "block";
+                document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info?orgId=1&theme=light&kiosk"
+            
+            },
+            error: function(xhr, status) {
+                //service is not installed!
+                document.body.innerHTML = "Error,           " + xhr.responseText;
+            }
+        });
 }
 
 </script>
 
 <body onload="loadserverconfig()" >
 
+<iframe style="display:none" width="100%" height="100%" id="i_grafana" src=""> </iframe>
 
-<form class="dhxform_obj_dhx_skyblue" >
-
-    <div class="row mb-3">
-      <label for="colFormLabelSm" class="col-sm-0 col-form-label col-form-label-sm">Username</label>
-      <div class="col-sm-2">
-        <input type="email" class="form-control form-control-sm" id="colFormLabelSm" placeholder="Admin username for service installation">
-      </div>
-    </div>
-    <div class="row mb-3">
-    <label for="inputPassword4" class="col-sm-0 col-form-label col-form-label-sm">Password</label>
-        <div class="col-sm-2">
-            <input type="password" class="form-control form-control-sm"  id="inputPassword4">
-
-        </div>
-    </div>
-	 
-		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler">
-			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
-		</div>
-</form>
+<div id="installer" style="display:none">
+    FFAStrans Metrics Service UI (Grafana) is not reachable on port 3004, do you want to install the Services?
+    <input value="Install Windows Service" type="submit" onclick="submit()" onclick="" ></input>
+    Note that Prometheus is a Data Collector, it might require some Gigabytes of data on your harddrive
+</div>
 
 </body>

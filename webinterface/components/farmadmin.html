@@ -189,20 +189,40 @@
     </li>
     <li class="nav-item bootstrap_tab_item">
       <a class="nav-link bootstrap_tab_text bootstrap_tab_item" id="metrics-tab" data-toggle="tab" href="#metrics" role="tab" aria-controls="metrics" aria-selected="false">
-		<div class="bootstrap_tab_text">Metrics</div>
+		<div class="bootstrap_tab_text">Job Metrics</div>
+	  </a>
+    </li>
+    <li class="nav-item bootstrap_tab_item">
+      <a class="nav-link bootstrap_tab_text bootstrap_tab_item" id="hosts-tab" data-toggle="tab" href="#hosts" role="tab" aria-controls="hosts" aria-selected="false">
+		<div class="bootstrap_tab_text">Host Metrics</div>
+	  </a>
+    </li>
+    <li class="nav-item bootstrap_tab_item">
+      <a class="nav-link bootstrap_tab_text bootstrap_tab_item" id="setup-tab" data-toggle="tab" href="#setup" role="tab" aria-controls="setup" aria-selected="false">
+		<div class="bootstrap_tab_text">Metrics Setup</div>
 	  </a>
     </li>
   </ul>
 </div>
   <div class="tab-content" id="myTabContent">
-    <div class="tab-pane fade active show" id="machines" role="tabpanel" aria-labelledby="machines-tab">
+    <div class="tab-pane fade  active show" id="machines" role="tabpanel" aria-labelledby="machines-tab">
         <div>
             <iframe class="farm_iframe"  id="farm_machines" src="farmadmin/farm_machines.html"></iframe>
         </div>       
     </div>
     <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
         <div>
-            <iframe class="farm_iframe"  id="metrics_admin" src="farmadmin/metrics_admin.html"></iframe>
+            <iframe class="farm_iframe"  id="job_metrics" src="farmadmin/job_metrics.html"></iframe>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="hosts" role="tabpanel" aria-labelledby="hosts-tab">
+        <div>
+            <iframe class="farm_iframe"  id="host_metrics" src="farmadmin/host_metrics.html"></iframe>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="setup" role="tabpanel" aria-labelledby="setup-tab">
+        <div>
+            <iframe class="farm_iframe"  id="metrics_setup" src="farmadmin/metrics_setup.html"></iframe>
         </div>
     </div>
     <!-- copy above div to crate new tab (dont forget to add new li item class nav-item -->

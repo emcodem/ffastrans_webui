@@ -11,18 +11,11 @@ REM  --> Check for permissions
 
 REM --> If error flag set, we do not have admin.
 if '%errorlevel%' NEQ '0' (
-    echo Requesting administrative privileges...
-    goto UACPrompt
+    echo You have not enough privileges to install a service, please run as administrator
+    exit 1
 ) else ( goto gotAdmin )
 
-:UACPrompt
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    set params= %*
-    echo UAC.ShellExecute "cmd.exe", "/c ""%~s0"" %params:"=""%", "", "runas", 1 >> "%temp%\getadmin.vbs"
 
-    "%temp%\getadmin.vbs"
-    del "%temp%\getadmin.vbs"
-    exit /B
 
 :gotAdmin
     pushd "%CD%"
@@ -31,6 +24,17 @@ if '%errorlevel%' NEQ '0' (
 @echo off
 
 echo "%~dp0\nssm"
+
+REM uninstall 
+
+set InstallFolder="%~dp0"
+
+net stop "FFAStrans Metrics Collector"
+"%~dp0\nssm" remove "FFAStrans Metrics Collector" confirm
+
+net stop "FFAStrans Metrics UI"
+"%~dp0\nssm" remove "FFAStrans Metrics UI" confirm
+
 
 REM install prometheus
 echo "%~dp0prometheus\prometheus.exe"
