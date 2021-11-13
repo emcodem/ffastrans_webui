@@ -624,6 +624,7 @@
                     // Updates the display, fullscreen zoom graph
                     graph.getModel().endUpdate();
                     graph.fit(0, false, 35);
+                    graph.zoomOut();
                     m_graph = graph;
                     m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
                      
@@ -770,7 +771,7 @@ function asyncsleep(time) {
                                          
                                         
                                         buildMxGraph(_tablehead,sub_wf_json,false);
-                                        buildMxGraph(document.getElementById("deleteme"),sub_wf_json,false);
+                                        //buildMxGraph(document.getElementById("deleteme"),sub_wf_json,false);
                                         
                                    }catch(ex){
                                         alert("There was a problem getting subworkflow data, contact developers");
@@ -1307,8 +1308,8 @@ function asyncsleep(time) {
 
 <!-- Page passes the container for the graph to the program -->
 <body onload="loadserverconfig()">
-<div style="max-width:20px;max-height:20px;height:20px;width:20px" id="parentofdeleteme" >
-<div style="height:20px;width:20px" id="deleteme"/>
+<!-- <div style="max-width:20px;max-height:20px;height:20px;width:20px" id="parentofdeleteme" > -->
+<!-- <div style="height:20px;width:20px" id="deleteme"/> -->
 </div>
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
     <div id="log_div" style="visibility:hidden;overflow:visible" class="gridbox_dhx_skyblue gridbox">

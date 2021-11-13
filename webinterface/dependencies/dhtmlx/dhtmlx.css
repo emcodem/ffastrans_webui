@@ -3723,23 +3723,6 @@ div.gridbox_dhx_skyblue table.obj.row20px tr td.editable .treegrid_cell {
 div.gridbox_dhx_skyblue.gridbox table.obj tr td.editable div.treegrid_cell {
   padding: 1px 4px !important;
 }
-div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected {
-  background-color: #ffc341;
-}
-div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td {
-  background-color: #ffc341;
-  color: #000000;
-}
-div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td,
-div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue.rowselected td {
-  background-color: #ffc341;
-  border-top: 1px solid #ffc341;
-  border-bottom: 1px solid #ffc341;
-  border-right: 1px solid #ffc341;
-}
-div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
-  background-color: #ffc341;
-}
 div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue {
   background: #e5e5e5;
   border-top: 1px solid #e5e5e5;
@@ -8437,3 +8420,32 @@ div.dhx_modal_cover {
 .nav-tabs .nav-link{
 	border :0px !important;
 }
+
+/* Grid related stuff */
+.css_jobviewer_history_row_status_Error {
+   background-color:#eb5d5d !important;
+}
+.css_jobviewer_history_row_status_Cancelled {
+   background-color:#fff1b4 !important;
+}
+
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected {
+  background-color:  #CCE8FF;
+  background: linear-gradient(124deg, rgba(2,0,36,1) 0%, rgba(53,53,138,0.38139005602240894) 0%, rgba(107,157,199,0.6110819327731092) 0%);
+}
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td {
+ 
+}
+
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td,
+div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue.rowselected td {
+  
+  border-top: 1px solid #5B82EE;
+  border-bottom: 1px solid #5B82EE;
+  border-right: 1px solid #5B82EE;
+}
+
+div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
+  
+}
+

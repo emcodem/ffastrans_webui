@@ -261,13 +261,12 @@ module.exports = {
         
         jobArray = await getFancyTreeArray(jobArray);
 //END OF Family sorting
-        
         for (i=0;i<jobArray.length;i++){
             (function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
                 //NEDB BUG HERE: upsert didnt work conistently, so we switched to update
                 global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
                     if(docs > 0 ){
-                            console.log("New History Job: " + job_to_insert["source"])
+                            console.log("New History Job: " , job_to_insert["source"]);
                             global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
                     }else{
                         
@@ -285,11 +284,13 @@ module.exports = {
 /* HELPERS */
 
 async function getFancyTreeArray(jobArray){
-    
+
         //find out all parents
         var godfathers = jobArray.filter(function (el) {
             return el["sort_generation"] === 0;
         });
+        
+
         console.log("New History data, Number of Jobs ", godfathers.length, "Number of splits", jobArray.length);
         //find out all subjobs of same id
         for (var i in godfathers){
@@ -313,28 +314,33 @@ async function getFancyTreeArray(jobArray){
             var generations = []
             //for (genidx=0;genidx<generation_count;genidx++){
                 //foreach parent in this generation
-                _parents = family.filter(function (el) {return el["sort_generation"] == 1})
+                //_parents = family.filter(function (el) {return el["sort_generation"] == 1})
                 
                 //find children of current parent in current generation
                 godfather["children"] = family.filter(function (el) {
+                    if (el["state"] != "Error" && el["state"] != "Cancelled"){
+                        //change godfather state to success if any subsequent node succeeded
+                        godfather["state"] = "Success";
+                        godfather["title"] = "Success";
+                    }
                     if (el["state"] == "Error"){
                         godfather["state"] = "Error";
                         godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
                         //todo: change error state also in DB
                     }
-                    if (el["state"] != "Error"){
+                    if (el["title"] == "Cancelled"){
                         //change godfather state to success if any subsequent node succeeded
-                        godfather["state"] = "Success";
-                        godfather["title"] = "Success";
+                        godfather["state"] = "Cancelled";
+                        godfather["title"] = "Cancelled";
                     }
+                    
                     return (el["sort_generation"] == 1) ;
                 });
-                //}                
+                           
             }
             //godfather now contains full family tree
 
         return godfathers;
-
     
 }
 

@@ -159,6 +159,13 @@
     }
 </style>
 
+
+<style id="row_status_colors" type="text/css" id="customstyle">
+
+
+</style>
+
+
 <script>
     /* init SOCKET.IO */
     var socket = io();
@@ -906,9 +913,14 @@
                         node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
                 }
+                
+                
+                
                 node.addClass("hist_row"); //for context menu
+                node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
                 
                 $tdList = $(node.tr).find(">td");
+
                 // (index #0 is rendered by fancytree (title node))
                 //$tdList.eq(0).text(node.data.state);
                 $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
@@ -1014,7 +1026,7 @@
     } //buildhistorygrid
 
 	function search_history_check_new_row(new_row){
-            console.log(new_row)
+           
 		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
 			for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
