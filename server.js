@@ -192,7 +192,7 @@ function init(conf){
 
 
     cron.schedule("*/5 * * * * *", function() {
-        //GET LATEST JOBS FROM FFASTRANS API      
+        //GET LATEST JOBS FROM FFASTRANS API     
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;
             try{

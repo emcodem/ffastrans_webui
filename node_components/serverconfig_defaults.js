@@ -1,3 +1,11 @@
+/*
+
+    Default config is what you see on admin page.
+    To add a new entry, all you need to do is to write it here. If you have a special type, e.g. not string or array, you also want to modify the admin html page 
+    This is designed as backward compatible, e.g. if a user has an existing configdb saved with overriden values and he updates the webint to a version
+    which contains new config items, then only config items with their default value should be automatically merged to his existing config.
+*/
+
 defaultConfig = {};
 
 defaultConfig.STATIC_WEBUI_HEADER_NAME = "";
@@ -24,9 +32,12 @@ defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D
 defaultConfig.STATIC_API_HOST = "localhost";
 defaultConfig.STATIC_API_PORT = "65445";
 defaultConfig.STATIC_API_NEW_PORT = "3003";
+defaultConfig.STATIC_API_TIMEOUT = 7000;
 
 defaultConfig.STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,20%,10%,10%"; 
 defaultConfig.STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,5%,10%,20%";
+
+defaultConfig.STATIC_MAX_HISTORY_JOB_COUNT = 20000;
 
 defaultConfig.STATIC_START_JOB_URL = "/api/json/v2/jobs/";
 defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v2/workflows";

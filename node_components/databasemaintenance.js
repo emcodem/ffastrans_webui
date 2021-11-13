@@ -1,17 +1,24 @@
-var m_maximimjobcount = 20000; //we only support this amount of jobs, no user configuration needed.
-
 module.exports = function(app, express){
 
 	app.get('/deleteoldrecords', (req, res) => {
         //deletes records up to m_maximimjobcount (20k is fast enough in nedb for our application)
+            console.log("Delete old records initiated, count:",global.config.STATIC_MAX_HISTORY_JOB_COUNT)
+            if (!Number.isInteger(parseInt(global.config.STATIC_MAX_HISTORY_JOB_COUNT))){
+                var txt = 'ERROR contact admin. Server setting STATIC_MAX_HISTORY_JOB_COUNT is not a number: [' + global.config.STATIC_MAX_HISTORY_JOB_COUNT + ']';
+                console.error(txt);
+                global.socketio.emit("error", txt);
+            }else{
+                global.config.STATIC_MAX_HISTORY_JOB_COUNT = parseInt(global.config.STATIC_MAX_HISTORY_JOB_COUNT)
+            }
+            
             global.db.jobs.count({}, function(err, count) {
                 console.log("DB maintenance found " + count + " Jobs in database");
-                if(count > m_maximimjobcount){
+                if(count > defaultConfig.STATIC_MAX_HISTORY_JOB_COUNT){
                     console.log("DB maintenance initiating deletion of jobs");
                     var sorting = {};
                     sorting["job_end"] = -1;
                     //sort by date_end and skip maximum jobcount
-                    global.db.jobs.find({}).sort(sorting).skip(m_maximimjobcount).exec( function(err,cursor){
+                    global.db.jobs.find({}).sort(sorting).skip(defaultConfig.STATIC_MAX_HISTORY_JOB_COUNT).exec( function(err,cursor){
                         if (err){
                             console.error("DB maintenance error selecting oldest job");
                                 res.writeHead(500,{"Content-Type" : "application/JSON"});

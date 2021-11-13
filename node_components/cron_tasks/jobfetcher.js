@@ -35,7 +35,16 @@ module.exports = {
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
     }
-    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: 5000,agent: false,maxSockets: Infinity}, function (error, response, body)  {
+    
+    if (!Number.isInteger(parseInt(global.config.STATIC_API_TIMEOUT))){
+        var txt = 'ERROR contact admin. Server setting STATIC_API_TIMEOUT is not a number: [' + global.config.STATIC_API_TIMEOUT + ']';
+        console.error(txt)
+        global.socketio.emit("error", txt);
+    }else{
+        global.config.STATIC_API_TIMEOUT = parseInt(global.config.STATIC_API_TIMEOUT)
+    }
+    
+    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, function (error, response, body)  {
             if(error) {
                 global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                 console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
@@ -82,7 +91,7 @@ module.exports = {
     });
     
     //fetch queued jobs from api
-    Request.get("http://localhost:3003/tickets", {timeout: 5000},(error, response, body) => {   
+    Request.get("http://localhost:3003/tickets", {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {   
         
         //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -180,7 +189,7 @@ module.exports = {
     });
     
 //fetch HISTORY jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: 5000},async function(error, response, body) {
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
             return;
         }
