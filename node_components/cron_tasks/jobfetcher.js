@@ -244,23 +244,30 @@ module.exports = {
                 //mark oldest job a grandfather job
                 if (jobArray[i] == oldest_job){
                     jobArray[i]["sort_family_index"] = 0;//its a grandfather
-                    jobArray[i]["sort_generation"] = 0;//
+                    jobArray[i]["sort_generation"] = 0;
+                    //Reset other's family status, there can be only one grandfather
+                    a_family.forEach(function(_cur){
+                        if (_cur["split_id"] != jobArray[i]["split_id"]){
+                            _cur["sort_family_index"] = 1;
+                            _cur["sort_generation"] = 1;//its a childjob
+                        }
+                    })
+                    
                 }else{
-                    jobArray[i]["sort_family_index"] = 1;//
+                    jobArray[i]["sort_family_index"] = 1;
                     jobArray[i]["sort_generation"] = 1;//its a childjob
                 }
         }
         
-//END OF Family sorting
         jobArray = await getFancyTreeArray(jobArray);
-
+//END OF Family sorting
+        
         for (i=0;i<jobArray.length;i++){
             (function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
-                //upsert history record (update if family_member_count changed, insert new if not exists)
+                //NEDB BUG HERE: upsert didnt work conistently, so we switched to update
                 global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
                     if(docs > 0 ){
-                            //TODO: either change to another db or find out why docs sometimes contains a non changed document ^^
-                            console.log("inserted " + job_to_insert["source"])
+                            console.log("New History Job: " + job_to_insert["source"])
                             global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
                     }else{
                         
@@ -344,7 +351,7 @@ async function countJobsAsync(countobj) {
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
     var re = new RegExp(".....$");
-    
+    var tz = str.match(/.(\d\d)$/);
 	tz = tz[1];
 	if (tz == "50")
 		tz = "30"
