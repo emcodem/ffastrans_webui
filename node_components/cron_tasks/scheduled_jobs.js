@@ -47,8 +47,7 @@ module.exports = {
                 }//for every job
 
             } else {
-                //no scheduled jobs in DB, create a default job!
-                //console.log("No Scheduled jobs stored in DB");
+                //no scheduled jobs in DB
             }
         });
   },
@@ -77,6 +76,7 @@ module.exports = {
 //starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
 
 function executeJob(current_job,socketioClientId,informCallback){
+    console.log("detected a scheduled job needs execution")
     tmp.file({ mode: '0777', prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
         console.log('Scheduled job user script File: ', path);
@@ -210,7 +210,6 @@ function needsExecution(current_job){
         if (current_job["next_start"] != ""){
                updateScheduledJob(current_job["id"],"next_start","");
         }
-     
         return false;
     }
     if (current_job['last_pid']){
@@ -221,7 +220,7 @@ function needsExecution(current_job){
         }
     }
     //job is not running. Check if we need to start it
-    var dateOfInterest = current_job["last_start"]||current_job["date_created"];
+    var dateOfInterest = current_job["last_start"] || current_job["date_created"];
     var options = {
       currentDate: dateOfInterest,
       //endDate: new Date('Wed, 26 Dec 2012 14:40:00 UTC'),
@@ -251,6 +250,7 @@ function needsExecution(current_job){
     //update "next run" time
 
     if (current_job["next_start"] != moment(_nextdate).format("YYYY-MM-DD HH:mm:ss")){
+        console.log("Updating next start of ",current_job["job_name"], "to",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
         updateScheduledJob(current_job["id"],"next_start",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
     }
     return returnvalue;
@@ -269,7 +269,7 @@ function updateScheduledJob(id,field,value){
             console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
             throw err;
         }
-        console.log("updated scheduled job ",id, field, value)
+        console.trace("updated scheduled job ",id, field, value)
         global.db.config.persistence.compactDatafile(); //deletes unused stuff from DB file
         
     })

@@ -11,7 +11,6 @@ const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
 
-
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');

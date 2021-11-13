@@ -270,7 +270,26 @@
         
     /* build basic page layout and init periodic job loading*/
     function init() {
-		
+
+        //search params from URL go to their corresponding search inputs
+        var query = window.location.search.substring(1);
+        query = parse_query_string(query);
+        console.log(query)
+        for (var filtername in query) {
+            if (query.hasOwnProperty(filtername) && filtername != "") {
+                console.log(filtername + " -> " + query[filtername]);
+                for (i = 0; i < $("input[name=search]").length; i++) {
+                    var input = $("input[name=search]")[i];     
+                    var keyname = input.placeholder.toLowerCase();
+                    if(keyname.match(filtername)){
+                        console.log("Applying filter from URL: " + filtername)
+                        input.value = query[filtername];
+                    }
+                 }  
+            }
+        }
+        
+            
         //kick off DB maintenance verytime a client opens the UI - fire and forget TODO: kick off from server instead of from client
         $.get("/deleteoldrecords");
 
@@ -873,6 +892,9 @@
                 }
             },
             renderColumns: function(event, data) {
+                if (!search_history_check_new_row(data["node"]["data"])){
+                     //data.node.remove(); 
+                }
                 
                 var node = data.node;
                 if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
@@ -992,6 +1014,7 @@
     } //buildhistorygrid
 
 	function search_history_check_new_row(new_row){
+            console.log(new_row)
 		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
 			for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
@@ -1273,6 +1296,8 @@
     }
 
     function applyWorkflowFilter(o_job) {
+        
+        
         //returns true or false based on userpermission job filter
         for (i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
             if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
@@ -1523,6 +1548,29 @@
             var sel = window.getSelection();
             sel.removeAllRanges();
         }
+    }
+    
+        
+    function parse_query_string(query) {
+      var vars = query.split("&");
+      var query_string = {};
+      for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        var key = decodeURIComponent(pair[0]);
+        var value = decodeURIComponent(pair[1]);
+        // If first entry with this name
+        if (typeof query_string[key] === "undefined") {
+          query_string[key] = decodeURIComponent(value);
+          // If second entry with this name
+        } else if (typeof query_string[key] === "string") {
+          var arr = [query_string[key], decodeURIComponent(value)];
+          query_string[key] = arr;
+          // If third or later entry with this name
+        } else {
+          query_string[key].push(decodeURIComponent(value));
+        }
+      }
+      return query_string;
     }
 </script>
 

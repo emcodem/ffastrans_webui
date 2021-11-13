@@ -5,9 +5,11 @@
 <script src="../../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
-<link href="../../dependencies/bootstrap/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" >
-<script src="../../dependencies/bootstrap/bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" ></script>
+<link href="../../dependencies/bootstrap/bootstrap-4.6.0-dist/css/bootstrap.min.css" rel="stylesheet" >
+<script src="../../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
+<script src="../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+<link rel="stylesheet" href="../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -26,20 +28,19 @@
 	}
     div, label, input{
         font-size:12px; 
-        width: 300px !important;
+       
     }
     form{
         width:100%
     }
     
-    fieldset.scheduler-border {
-        border: 1px groove #ddd !important;
-        padding: 0 1.4em 1.4em 1.4em !important;
-        margin: 0 0 1.5em 0 !important;
-        -webkit-box-shadow:  0px 0px 0px 0px #000;
-                box-shadow:  0px 0px 0px 0px #000;
+    label{
+        display:block;
     }
-
+    legend{
+        width:initial;
+    }
+   
 </style>
 
 <script>
@@ -93,7 +94,92 @@
 		  $(this).parent().removeClass("dhxform_btn_over");
 		});
 		
+        buildHostsGrid()
+        
 		check_install()
+        
+
+    }
+    
+    function buildHostsGrid(){
+    	
+        //var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
+        var sourcedata =  [
+            {title: "Node 1", key: "1"},
+            {title: "Folder 2", key: "2", folder: true, children: [
+              {title: "Node 2.1", key: "3", myOwnAttr: "abc"},
+              {title: "Node 2.2", key: "4"}
+            ]}
+          ];
+        //var sourceUrl = "testdata.xml";
+        $("#treetable_hosts").fancytree({
+            extensions: ["table"],
+            icon: false,
+            checkbox: false,
+            titlesTabbable: true, // Add all node titles to TAB chain
+            source: sourcedata,
+            table: {
+                indentation: 15,
+                nodeColumnIdx: 0,
+            },
+            select: function(event, data) {
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
+            },
+            gridnav: {
+                autofocusInput: false,
+                handleCursorKeys: true
+            },
+            multi: { //multiselct
+                mode: "",
+            },
+            init: function(event, data) {
+                //ENABLE RESIZE COLUMNS
+                console.log("TREE INIT")
+            },
+            renderColumns: function(event, data) {
+                
+                var node = data.node;
+                node.addClass("act_row"); //for context menu
+                if (data.node.getIndex() % 2 == 0) {
+                    node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                    node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                } else {
+                    node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                    node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                }
+
+                $tdList = $(node.tr).find(">td");
+                
+				
+                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.hostname +"'>" + node.data.hostname + "</div>"); //.addClass("alignRight");
+                $tdList.eq(2).html("<div class='celltext'>" + node.data.state + "</div>");
+               
+				//hide td if needed
+				var active_percent = m_serverconfig["STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT"].split(",");
+			
+
+            },
+            postProcess: function(event, data) {
+                // transform gethistoryjobsajax result into tree compatible
+                // data is a treegrid specific object
+                //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+				
+            },
+            dblclick: function(event, data) {},
+            select: function(event, data) {
+                
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
+            },
+
+        })
 
     }
     
@@ -109,38 +195,55 @@
 </script>
 
 <body onload="loadserverconfig()" >
-<div class="dhx_cell_cont_tabbar" style="left: 0px; top: 31px; width: 954px; height: 909px;">
-<div class="dhxform_obj_dhx_skyblue" style="width: 100%; height: 100%; position: relative; overflow: auto; font-size: 12px;">
-<div class="dhxform_base">
-<div class="fs_dhxform_item_label_top" style="padding-left: 20px !important; padding-top: 20px !important;">
-<fieldset class="dhxform_fs" style="width: 798px;">
-<legend class="fs_legend" align="dhxform_label_left" style="text-align:dhxform_label_left">Server Configuration</legend>
-</fieldset></div></div></div></div>
 
 <div class="dhxform_base">
     <form class="dhxform_obj_dhx_skyblue" style="width:90%" >
         <div class="fs_dhxform_item_label_top" style="padding-left: 20px !important; padding-top: 20px !important; ">
-            <fieldset class="dhxform_fs">
-                <legend class="fs_legend" style="text-align:dhxform_label_left">Start Time</legend>
-                <div class="row mb-3  dhxform_label dhxform_label_align_left">
-                  <label for="colFormLabelSm" class="col-sm-0 col-form-label col-form-label-sm">Username</label>
-                  <div class="col-sm-2">
-                    <input type="username" class="form-control form-control-sm" id="colFormLabelSm" placeholder="Admin username for service installation">
-                  </div>
+            <fieldset class="dhxform_fs" style="padding-left:20px">
+                <legend class="fs_legend" >General</legend>
+                <div class="form-group dhxform_label dhxform_label_align_left">
+                    <label for="grafanaurl_jobs">Job Metrics Grafana Url</label>
+                    <input type="text" class="dhxform_textarea" id="grafanaurl_jobs" >
+                    
                 </div>
-                <div class="row mb-3 dhxform_label dhxform_label_align_left">
-                <label for="inputPassword4" class="col-sm-0 col-form-label col-form-label-sm">Password</label>
-                <div class="col-sm-2">
-                    <input type="password" class="form-control form-control-sm"  id="inputPassword4">
-
+                <div class="form-group dhxform_label dhxform_label_align_left">
+                    <label for="grafanaurl_hosts">Host Metrics Grafana Url </label>
+                    <input type="text" class="dhxform_textarea" id="grafanaurl_hosts" >
+                    <small id="help1" class="form-text text-muted">If you create your own Grafana Dashboards, enter the links here.</small>
                 </div>
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input " id="exampleCheck1">
+                    <label class="form-check-label" for="exampleCheck1">Check me out</label>
                 </div>
-                <div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler">
-                    <div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
-                </div>
-            
+                  
+                <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                    <div class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
+                    <div class="dhxform_btn_filler" disabled="true"/>
+                </div>               
+                  
             </fieldset>
+            
+            <fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+                <legend class="fs_legend" >Hosts</legend>
+                    <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
+                        <table id="treetable_hosts" class="obj">
+                            <colgroup id="colgroup_active" >
+                                <col width="5%"></col>
+                                <col width="10%"></col>      
+                            </colgroup>
+                            <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
+                                <tr id="tr_treetable_active">
+                                    <th id="host-name" name="name" onclick="sortGrid('treetable_hosts',this.id)" data-sort_dir="" >        <i id="active-state-sorticon" name="treetable_hosts-sorticon" ></i>Hostname</th>
+                                    <th id="host-state" name="workflow" onclick="sortGrid('treetable_hosts',this.id)" data-sort_dir="">   <i id="active-workflow-sorticon" name="treetable_hosts-sorticon" ></i>State</th>
+                                 </tr>
+                            </thead>
+                        </table>
+                    </div>
+                
+            </fieldset>
+        
         </div>
+
     </form>
 </div>
 </body>

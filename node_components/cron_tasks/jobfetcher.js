@@ -61,7 +61,11 @@ module.exports = {
                 jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
                 jobArray[i].file = jobArray[i]["source"]
                 jobArray[i].outcome = jobArray[i]["status"]
-                jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
+                try{
+                    jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
+                }catch(exc){
+                    console.log("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
+                }
                 jobArray[i].wf_name = jobArray[i]["workflow"];
                 
             }//for all jobs
@@ -339,8 +343,8 @@ async function countJobsAsync(countobj) {
 
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
-    var re = new RegExp("-.....");
-	var tz = str.match(/.(\d\d)$/);
+    var re = new RegExp(".....$");
+    
 	tz = tz[1];
 	if (tz == "50")
 		tz = "30"
