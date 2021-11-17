@@ -175,6 +175,7 @@
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
 	var m_max_history_gridrows = 1000;
+    var m_query = {}; //url parameters
     /*load config from server*/
     function loadserverconfig() {
         $.ajax({
@@ -231,7 +232,8 @@
         var b_resubmit = '<button class="btn" name="b_resubmit" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm" ></i>Resubmit</button> ';
         var b_delall = '<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete All</button> ';
         var b_delsel = '<button class="btn" name="b_delsel" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete Selected</button> ';
-        var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel];
+        var b_opts = '<button class="btn" name="b_opts" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel,b_opts];
         
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
@@ -256,7 +258,7 @@
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
             _appendtext('a',arr_all_in_a.join("") );
-            _appendtext('b', b_details + b_resubmit + b_delall + b_delsel);
+            _appendtext('b', b_details + b_resubmit + b_delall + b_delsel + b_opts);
         }
         function _appendtext (cellid, to_append){//helper
             mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
@@ -281,14 +283,16 @@
         //search params from URL go to their corresponding search inputs
         var query = window.location.search.substring(1);
         query = parse_query_string(query);
+        m_query = query;
         console.log(query)
+        //insert filter from url into text fields
         for (var filtername in query) {
             if (query.hasOwnProperty(filtername) && filtername != "") {
                 console.log(filtername + " -> " + query[filtername]);
                 for (i = 0; i < $("input[name=search]").length; i++) {
                     var input = $("input[name=search]")[i];     
                     var keyname = input.placeholder.toLowerCase();
-                    if(keyname.match(filtername)){
+                    if(keyname.match(filtername.toLowerCase())){
                         console.log("Applying filter from URL: " + filtername)
                         input.value = query[filtername];
                     }
@@ -323,6 +327,24 @@
         mainLayout.cells("a").attachObject("active_div");
         mainLayout.cells("a").showInnerScroll();
         
+        
+        //url parameter hideheaders
+        if (query["hideheaders"]){
+            mainLayout.cells("a"). hideHeader();
+            mainLayout.cells("b"). hideHeader();
+        }
+
+        //ur param hideactive
+        if (query["hideactive"]){
+            mainLayout.cells("a").collapse()
+            mainLayout.cells("a").hideArrow();
+            $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";          
+        }
+        if (query["hidehistory"]){
+            mainLayout.cells("b").collapse()
+            mainLayout.cells("b").hideArrow();
+            $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";           
+        }
         //menu text and buttons
         mainLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
@@ -564,16 +586,26 @@
         }
  
     }
+    
+    function show_options_window(){
+        var dhxwins = new dhtmlXWindows();
+        //dhxwins.attachViewportTo(window.parent.document.body);
+        var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 600);
+        win.setText("View Options ");
+        win.attachHTML("TODO: draw fancy user settings here");
+    
+    }
 
     function click_b_header(id,node) {
         //if we have node argument, we are called from context menu
         var tree = $('#treetable_history').fancytree('getTree');
         var selected = tree.getSelectedNodes();
-        //console.log("selectd before",selected)
-        //console.log("clicked node,",node)
+         
+        if (id == "b_opts") {
+            show_options_window();
+            return;
+        }
         
-       // if (node){console.log("extending");$.extend(selected,node)}
-        //console.log("selected,",selected.length,selected)
         if (selected.length == 0 && (id != "b_delall")) {
             dhtmlx.alert("Please select row");
             return;
@@ -867,7 +899,20 @@
     
     function buildHistoryGrid() {
         
-        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
+        var filterobj = {};
+			for (i = 0; i < $("input[name=search]").length; i++) {
+                var input = $("input[name=search]")[i];
+                searchfor = $.trim(input.value);
+                var keyname = input.placeholder.toLowerCase();
+                
+                if (searchfor) {
+                    filterobj[keyname]= searchfor;
+                
+                }
+            }
+        
+        
+        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj="+JSON.stringify(filterobj);
         //var sourceUrl = "testdata.xml";
         $("#treetable_history").fancytree({
             extensions: ["contextMenu", "table", "gridnav", "multi"],
@@ -898,12 +943,12 @@
                     }
                 }
             },
+
             renderColumns: function(event, data) {
-                if (!search_history_check_new_row(data["node"]["data"])){
-                     //data.node.remove(); 
-                }
+                
                 
                 var node = data.node;
+                
                 if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
                     if (data.node.getIndex() % 2 == 0) {
                         //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
@@ -913,8 +958,6 @@
                         node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
                 }
-                
-                
                 
                 node.addClass("hist_row"); //for context menu
                 node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
@@ -1028,22 +1071,32 @@
 	function search_history_check_new_row(new_row){
            
 		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
+            var show_row = true;
 			for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
-                match = $.trim(input.value);
+                searchfor = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
                 if(keyname.match(/start|end/)){
                     keyname = "job_" + keyname;
                 }
-                if (match) {
-					console.log("Checking if new row field ", keyname, "value:",new_row[keyname],"matches",match)
-                    if (new_row[keyname].match(match)){
-						return true;
-					}
+                if (searchfor) {
+					console.log("Checking if new row field ", keyname, "value:",new_row[keyname],"matches",searchfor)
+                    var regex = new RegExp(searchfor, 'gi');
+
+                    if (new_row[keyname].match(regex)){
+                        console.log("match",regex)
+						show_row = show_row == false ? show_row : true;
+					}else{
+                        console.log("no match",regex)
+                        show_row = show_row == false ? show_row : false;
+                    }
+                }else{
+                    show_row = show_row == false ? show_row : true;
                 }
             }
-			//exclude by default
-			return false;
+            
+            return show_row;
+
 	}
 	
 	function history_search_is_active(){
@@ -1056,6 +1109,7 @@
                     searchCount++;
                 }
             }
+            console.log("History Search num of filters:",searchCount)
 			return searchCount;
 	}
 	
@@ -1333,6 +1387,9 @@
         //add or update new jobs
         var activeJobIds = [];
         for (y = 0; y < jobArray.length; y++) {
+            if (!search_history_check_new_row(jobArray[y])){
+                continue;
+            }
             if (applyWorkflowFilter(jobArray[y]) == false) {
                 continue;
             }
