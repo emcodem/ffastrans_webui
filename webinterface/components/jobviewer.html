@@ -178,6 +178,7 @@
     var m_query = {}; //url parameters
     /*load config from server*/
     function loadserverconfig() {
+        
         $.ajax({
             url: ("/getuserpermissions" + "?" + Math.random()),
             type: "GET",
@@ -276,10 +277,14 @@
         }
         return to_return;
     }
-        
+    
+
     /* build basic page layout and init periodic job loading*/
     function init() {
+        
 
+        
+        
         //search params from URL go to their corresponding search inputs
         var query = window.location.search.substring(1);
         query = parse_query_string(query);
@@ -590,10 +595,10 @@
     function show_options_window(){
         var dhxwins = new dhtmlXWindows();
         //dhxwins.attachViewportTo(window.parent.document.body);
-        var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 600);
+        var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 200);
         win.setText("View Options ");
-        win.attachHTML("TODO: draw fancy user settings here");
-    
+        win.attachURL("jobviewer_pages/options.html");
+        
     }
 
     function click_b_header(id,node) {
@@ -960,7 +965,10 @@
                 }
                 
                 node.addClass("hist_row"); //for context menu
-                node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
+                if (localStorage.getItem("jobviewer_showrowcolors_history") != "false"){
+                    node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
+                }
+                
                 
                 $tdList = $(node.tr).find(">td");
 
@@ -1175,6 +1183,7 @@
             dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
             dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
         }
+        
     }
 
     function onHeaderClick() {
