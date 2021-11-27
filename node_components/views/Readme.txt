@@ -1,1 +1,0 @@
-this folder contains node scripts that create a whole view for the client

@@ -253,6 +253,7 @@ function init(conf){
     require("./node_components/mediainfo.js")(app, passport);
 	require("./node_components/activedirectory_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
+    require("./node_components/metrics_control.js")(app, passport);
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 

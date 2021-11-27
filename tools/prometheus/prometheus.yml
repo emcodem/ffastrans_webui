@@ -20,11 +20,12 @@ rule_files:
 # Here it's Prometheus itself.
 scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-  - job_name: 'prometheus'
+  - job_name: 'ffastrans'
 
     # metrics_path defaults to '/metrics'
     # scheme defaults to 'http'.
+    file_sd_configs:
+    - files:
+        - 'ffastrans_targets.json'
+    
 
-    static_configs:
-    #- targets: ['localhost:9182','localhost:3003']
-    - targets: ['localhost:3003']

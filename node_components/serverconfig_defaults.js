@@ -39,6 +39,9 @@ defaultConfig.STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,5%,10%,20%";
 
 defaultConfig.STATIC_MAX_HISTORY_JOB_COUNT = 20000;
 
+defaultConfig.STATIC_METRICS_METRICS_HOST = "localhost"; //who serves prometheus and grafana?
+
+//hidden items. TODO: keep those in separate global object?
 defaultConfig.STATIC_START_JOB_URL = "/api/json/v2/jobs/";
 defaultConfig.STATIC_GET_WORKFLOWS_URL = "/api/json/v2/workflows";
 defaultConfig.STATIC_GET_WORKFLOW_DETAILS_URL = "/api/json/v2/workflows";
@@ -47,6 +50,7 @@ defaultConfig.STATIC_GET_RUNNING_JOBS_URL = "/api/json/v2/jobs";
 defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
 defaultConfig.STATIC_GET_JOB_LOG_URL = "/api/json/v2/joblog/" //+ <job_id>?start=0&count=100
+
 defaultConfig.STATIC_USE_PROXY_URL = true;
 
 //new methods of node api (WEB_API_PORT )

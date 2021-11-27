@@ -769,16 +769,7 @@
 				
             },
             dblclick: function(event, data) {},
-            select: function(event, data) {
-                
-                if (data.node.isSelected()) {
-                    data.node.addClass("rowselected");
-                } else {
-                    data.node.removeClass("rowselected");
-                }
-            },
             contextMenu: {
-            
                 selector: "act_row",
                 menu: getContextMenuHistoryGrid( 
                     {   

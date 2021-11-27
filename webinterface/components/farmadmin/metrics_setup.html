@@ -7,9 +7,9 @@
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
 <link href="../../dependencies/bootstrap/bootstrap-4.6.0-dist/css/bootstrap.min.css" rel="stylesheet" >
 <script src="../../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
-<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
 <script src="../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -65,13 +65,11 @@
                         init();
                     },
                     error: function(xhr, status) {
-                        dhtmlx.message("Fatal error, could not load serverconfig. ");
                         document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
                     }
                 });
             },
             error: function(xhr, status) {
-                dhtmlx.message("Fatal error, could not load serverconfig. ");
                 document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
             }
 
@@ -85,7 +83,7 @@
 
         //check if html5 features supported
         if (typeof(Storage) !== "undefined") {} else {
-            dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+            alert("ERROR, no html5 store support, cannot save view state")
         }
 		//button hover style
 		$("div").hover(function(){
@@ -94,40 +92,51 @@
 		  $(this).parent().removeClass("dhxform_btn_over");
 		});
 		
-        buildHostsGrid()
-        
-		check_install()
-        
+        //load currently configured metris clients
+        $.ajax({
+            url: ("/metrics_control" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+                //transform response to fancytree compatible
+                var fancytreeobj = [];
+                try{
+                    console.log(response["data"]["activeTargets"])
+                   for (i=0;i<response["data"]["activeTargets"].length;i++){
+                        var _cur = response["data"]["activeTargets"][i];
+                        fancytreeobj.push({"title":_cur["labels"]["instance"],"state":_cur["health"]});
+                         
+                   }  
+                   
+                }catch(ex){
+                    alert("" + ex)
+                }
+                
+                buildHostsGrid(fancytreeobj)
+            },
+            error: function(xhr, status) {
+                document.body.innerHTML = "Fatal error, could not load metrics_setup. Is Metrics Collector (Prometheus) server running?<br/>" + xhr.responseText;
+                document.body.innerHTML += "<br><br>If you already have a Metrics server running, please go to admin configuration on the left and enter the hostname of METRICS_HOST";
+                document.body.innerHTML += "<br><br>Or do you want to try and install Metrics Services (Prometheus and Grafana) on the Machine where this Webinterface is running on?";
+                document.body.innerHTML += "<br/><br/><input style='margin-left:20px;width:30%' type='submit' onclick='install_prometeus()' value=' Install '/>";
+            }
+
+        });
 
     }
     
-    function buildHostsGrid(){
+    
+    function buildHostsGrid(setup_json){
     	
-        //var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
-        var sourcedata =  [
-            {title: "Node 1", key: "1"},
-            {title: "Folder 2", key: "2", folder: true, children: [
-              {title: "Node 2.1", key: "3", myOwnAttr: "abc"},
-              {title: "Node 2.2", key: "4"}
-            ]}
-          ];
         //var sourceUrl = "testdata.xml";
         $("#treetable_hosts").fancytree({
-            extensions: ["table"],
+            extensions: [ "table", "gridnav", "multi"],
             icon: false,
             checkbox: false,
             titlesTabbable: true, // Add all node titles to TAB chain
-            source: sourcedata,
+            source: setup_json,
             table: {
                 indentation: 15,
                 nodeColumnIdx: 0,
-            },
-            select: function(event, data) {
-                if (data.node.isSelected()) {
-                    data.node.addClass("rowselected");
-                } else {
-                    data.node.removeClass("rowselected");
-                }
             },
             gridnav: {
                 autofocusInput: false,
@@ -141,7 +150,6 @@
                 console.log("TREE INIT")
             },
             renderColumns: function(event, data) {
-                
                 var node = data.node;
                 node.addClass("act_row"); //for context menu
                 if (data.node.getIndex() % 2 == 0) {
@@ -153,25 +161,15 @@
                 }
 
                 $tdList = $(node.tr).find(">td");
-                
-				
-                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.hostname +"'>" + node.data.hostname + "</div>"); //.addClass("alignRight");
-                $tdList.eq(2).html("<div class='celltext'>" + node.data.state + "</div>");
-               
-				//hide td if needed
-				var active_percent = m_serverconfig["STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT"].split(",");
-			
+                //title is hostname
+                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.state +"'>" + node.data.state + "</div>"); //.addClass("alignRight");
 
             },
             postProcess: function(event, data) {
-                // transform gethistoryjobsajax result into tree compatible
-                // data is a treegrid specific object
-                //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
 				
             },
             dblclick: function(event, data) {},
             select: function(event, data) {
-                
                 if (data.node.isSelected()) {
                     data.node.addClass("rowselected");
                 } else {
@@ -181,6 +179,23 @@
 
         })
 
+    }
+    
+    function install_prometeus(){
+        $.ajax({
+            url: ("/metrics_control" + "?" + Math.random()),
+            type: "PUT",
+            success: function(response) {
+                //transform response to fancytree compatible
+                alert(success);
+            },
+            error: function(xhr, status) {
+                document.body.innerHTML = "Error installing: <br/>" + xhr.responseText;
+                document.body.innerHTML += "<br/><br/>Please try to install the service manually: webinterface/tools/install_metrics_server.bat"
+                
+            }
+
+        });
     }
     
     function build_new_api_url(what) {
@@ -231,7 +246,7 @@
                                 <col width="5%"></col>
                                 <col width="10%"></col>      
                             </colgroup>
-                            <thead class="dhtmlxMenu_dhx_skyblue_Middle sticky" style="border:none">
+                            <thead class="dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                                 <tr id="tr_treetable_active">
                                     <th id="host-name" name="name" onclick="sortGrid('treetable_hosts',this.id)" data-sort_dir="" >        <i id="active-state-sorticon" name="treetable_hosts-sorticon" ></i>Hostname</th>
                                     <th id="host-state" name="workflow" onclick="sortGrid('treetable_hosts',this.id)" data-sort_dir="">   <i id="active-workflow-sorticon" name="treetable_hosts-sorticon" ></i>State</th>

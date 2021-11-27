@@ -1,28 +1,28 @@
 @echo off
 
-:: BatchGotAdmin
-:-------------------------------------
-REM  --> Check for permissions
-    IF "%PROCESSOR_ARCHITECTURE%" EQU "amd64" (
->nul 2>&1 "%SYSTEMROOT%\SysWOW64\cacls.exe" "%SYSTEMROOT%\SysWOW64\config\system"
-) ELSE (
->nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
-)
+REM :: BatchGotAdmin
+REM :-------------------------------------
+REM REM  --> Check for permissions
+    REM IF "%PROCESSOR_ARCHITECTURE%" EQU "amd64" (
+REM >nul 2>&1 "%SYSTEMROOT%\SysWOW64\cacls.exe" "%SYSTEMROOT%\SysWOW64\config\system"
+REM ) ELSE (
+REM >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+REM )
 
-REM --> If error flag set, we do not have admin.
-if '%errorlevel%' NEQ '0' (
-    echo You have not enough privileges to install a service, please run as administrator
-    exit 1
-) else ( goto gotAdmin )
+REM REM --> If error flag set, we do not have admin.
+REM if '%errorlevel%' NEQ '0' (
+    REM echo You have not enough privileges to install a service, please run as administrator
+    REM exit 1
+REM ) else ( goto gotAdmin )
 
 
 
-:gotAdmin
-    pushd "%CD%"
-    CD /D "%~dp0"
-:--------------------------------------    
+REM :gotAdmin
+    REM pushd "%CD%"
+    REM CD /D "%~dp0"
+REM :--------------------------------------    
+REM @echo off
 @echo off
-
 echo "%~dp0\nssm"
 
 REM uninstall 
@@ -55,3 +55,5 @@ REM "%~dp0\nssm" set "FFAStrans Metrics UI" AppDirectory "%~dp0prometheus\grafan
 "%~dp0\nssm" set "FFAStrans Metrics UI" Start SERVICE_AUTO_START
 
 net start "FFAStrans Metrics UI"
+
+exit /b %ERRORLEVEL%

@@ -76,17 +76,17 @@
         if (typeof(Storage) !== "undefined") {} else {
             dhtmlx.message("ERROR, no html5 store support, cannot save view state")
         }
-		//button hover style
-		$("div").hover(function(){
-		  $(this).parent().addClass("dhxform_btn_over");  //Add the active class to the area is hovered
-		}, function () {
-		  $(this).parent().removeClass("dhxform_btn_over");
-		});
-		
-		check_install()
+        //button hover style
+        $("div").hover(function(){
+          $(this).parent().addClass("dhxform_btn_over");  //Add the active class to the area is hovered
+        }, function () {
+          $(this).parent().removeClass("dhxform_btn_over");
+        });
+        
+        check_install()
 
     }
-    
+
     function build_new_api_url(what) {
         if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             return "/new_proxy" + what;
@@ -96,46 +96,46 @@
         }
     }
 
-function check_install(){
+    function check_install(){
 
-    $.ajax({
-        url: "/grafana_proxy",
-        type: "GET",
-        timeout: 2000,
-        success: function(response) {
-            
-            document.getElementById("installer").style.display = "none";
-            document.getElementById("i_grafana").style.display = "block";
-           
-            document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info?orgId=1&theme=light&kiosk"
-            
-        },
-        error: function(xhr, status) {
-            //service is not installed!
-            document.getElementById("installer").style.display = "block"
-            document.getElementById("i_grafana").style.display = "none";
-        }
-    });
-}
-
-function submit(){
-    $.ajax({
-            //url: ("/grafana_proxy"),
-            url: "/farmadmin_install_service",
+        $.ajax({
+            url: "/grafana_proxy",
             type: "GET",
-            timeout: 60000,
+            timeout: 2000,
             success: function(response) {
-                document.getElementById("installer").style.display = "none"
+                
+                document.getElementById("installer").style.display = "none";
                 document.getElementById("i_grafana").style.display = "block";
-                document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info?orgId=1&theme=light&kiosk"
-            
+               
+                document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info&theme=light"
+                
             },
             error: function(xhr, status) {
                 //service is not installed!
-                document.body.innerHTML = "Error,           " + xhr.responseText;
+                document.getElementById("installer").style.display = "block"
+                document.getElementById("i_grafana").style.display = "none";
             }
         });
-}
+    }
+
+    function submit(){
+        $.ajax({
+                //url: ("/grafana_proxy"),
+                url: "/farmadmin_install_service",
+                type: "GET",
+                timeout: 60000,
+                success: function(response) {
+                    document.getElementById("installer").style.display = "none"
+                    document.getElementById("i_grafana").style.display = "block";
+                    document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info&theme=light"
+                
+                },
+                error: function(xhr, status) {
+                    //service is not installed!
+                    document.body.innerHTML = "Error,           " + xhr.responseText;
+                }
+            });
+    }
 
 </script>
 

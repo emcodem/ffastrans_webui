@@ -1,6 +1,6 @@
 
-module.exports = function(app, express){
-
+module.exports = function(app, passport){
+    passport.authenticate('local-login');
     //list all 
 	app.get('/scheduledjobs', (req, res) => {
 		try{
