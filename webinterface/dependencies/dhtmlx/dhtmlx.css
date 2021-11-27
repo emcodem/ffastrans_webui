@@ -8449,3 +8449,8 @@ div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
   
 }
 
+.fas.disabled {
+    /* font awesome menu and folder icons*/
+        color:#999 !important;
+    
+}

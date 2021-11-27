@@ -42,7 +42,7 @@
     "request": "^2.88.0",
     "resumablejs": "^1.1.0",
     "retry-request": "^4.1.3",
-    "socket.io": "^4.0.1",
+    "socket.io": "^4.4.0",
     "socketio-wildcard": "^2.0.0",
     "strip-bom": "^5.0.0",
     "tableify": "^1.1.0",
