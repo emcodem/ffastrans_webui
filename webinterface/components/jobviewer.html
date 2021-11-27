@@ -285,8 +285,8 @@
         }else{
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
-            _appendtext('a',arr_all_in_a.join("") );
-            _appendtext('b', b_details + b_resubmit + b_delall + b_delsel + b_opts);
+            _appendtext('b',arr_all_in_a.join("") );
+            _appendtext('c', b_details + b_resubmit + b_delall + b_delsel + b_opts);
         }
         function _appendtext (cellid, to_append){//helper
             mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
@@ -342,44 +342,69 @@
         }
 
         mainLayout = new dhtmlXLayoutObject({
-            // mainLayout = headerLayout.cells("b").attachLayout({
             parent: document.body,
-            pattern: "2E"
+            pattern: "3L",
+            cells: [
+					{id: "a", text: "Workflow Filter", collapsed_text: "<span id='workflow_filter_header_collaped' style='display:flex;cursor:pointer'><b>Workflows</b></span>"},
+					{id: "b", text: "Running"},
+					{id: "c", text: "Finished"}
+				]
         });
 
+    
+        mainLayout.cells("a").collapse(); //todo:restore user state
+        mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
+        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
+        mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
 
-        mainLayout.cells("b").setWidth($(document).width() / 3);
+        
+        //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
+        $('#workflow_filter_header_collaped').click(()=>{
+            mainLayout.cells("a").expand()
+            restoreLayoutSizes(mainLayout, "mainLayout");
+        });
+        mainLayout.attachEvent("onCollapse", function(name){
+                $('#workflow_filter_header_collaped').click(()=>{
+                    mainLayout.cells("a").expand()
+                    restoreLayoutSizes(mainLayout, "mainLayout");
+                });
+        });
+
+        
+  
+        
+        mainLayout.cells("c").setWidth($(document).width() / 3);
         //mainLayout.cells("c").setText("Finished");
-        mainLayout.cells("a").setHeight($(document).height() / 3.5);
+        mainLayout.cells("b").setHeight($(document).height() / 3.5);
         restoreLayoutSizes(mainLayout, "mainLayout");
 
+
+        
         //attach grids
-        mainLayout.cells("b").attachObject("history_div");
+        mainLayout.cells("c").attachObject("history_div");
+        mainLayout.cells("c").showInnerScroll();
+        mainLayout.cells("b").attachObject("active_div");
         mainLayout.cells("b").showInnerScroll();
-        mainLayout.cells("a").attachObject("active_div");
-        mainLayout.cells("a").showInnerScroll();
         
         
         //url parameter hideheaders
         if (query["hideheaders"]){
-            mainLayout.cells("a"). hideHeader();
             mainLayout.cells("b"). hideHeader();
+            mainLayout.cells("c"). hideHeader();
         }
 
         //ur param hideactive
         if (query["hideactive"]){
-            mainLayout.cells("a").collapse()
-            mainLayout.cells("a").hideArrow();
+            mainLayout.cells("b").collapse()
+            mainLayout.cells("b").hideArrow();
             $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";          
         }
         if (query["hidehistory"]){
-            mainLayout.cells("b").collapse()
-            mainLayout.cells("b").hideArrow();
+            mainLayout.cells("c").collapse()
+            mainLayout.cells("c").hideArrow();
             $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";           
         }
         //menu text and buttons
-        mainLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
-        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
         addMenuButtons();
         
         mainLayout.attachEvent("onPanelResizeFinish", function() {
@@ -405,7 +430,7 @@
             console.log("Applying stored sorting for active grid", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"])
         }
 		
-        //    mainLayout.cells("a").progressOn();
+        //    mainLayout.cells("b").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
            
@@ -465,7 +490,7 @@
                 }
                 addActiveJobsToGrid(runningJobGrid, q_obj, "Incoming");
             }
-            mainLayout.cells("a").progressOff();
+            mainLayout.cells("b").progressOff();
         });
 		
         socket.on('queuedjobs', function(msg) {
@@ -473,11 +498,11 @@
                 var q_obj = (JSON.parse(msg))
                 addActiveJobsToGrid(runningJobGrid, q_obj, "Queued");
             }
-            mainLayout.cells("a").progressOff();
+            mainLayout.cells("b").progressOff();
         });
         socket.on('activejobs', function(msg) {
             addActiveJobsToGrid(runningJobGrid, JSON.parse(msg), "Active");
-            mainLayout.cells("a").progressOff();
+            mainLayout.cells("b").progressOff();
         });
         socket.on('error', function(msg) {
             dhtmlx.message(msg);
@@ -1183,10 +1208,10 @@
 
     function saveLayoutSizes(dhxLayout, name) {
         //store layout cells height and with into html5 storage (in percentage of document height)
-        var aw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
-        var ah = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
-        var bw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
-        var bh = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+        var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
+        var ah = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+        var bw = (dhxLayout.cells("c").getWidth() / document.body.scrollWidth);
+        var bh = (dhxLayout.cells("c").getHeight() / document.body.scrollHeight);
         localStorage.setItem(name + "_aw", aw);
         localStorage.setItem(name + "_ah", ah);
         localStorage.setItem(name + "_bw", bw);
@@ -1200,10 +1225,10 @@
             var ah = localStorage.getItem(name + "_ah");
             var bw = localStorage.getItem(name + "_bw");
             var bh = localStorage.getItem(name + "_bh");
-            dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
-            dhxLayout.cells("a").setHeight(ah * document.body.scrollHeight);
-            dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
-            dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
+            dhxLayout.cells("b").setWidth(aw * document.body.scrollWidth);
+            dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
+            dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
+            dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
         }
         
     }
@@ -1384,7 +1409,7 @@
             dataType: "json",
             context: this,
             success: function(response) {
-                mainLayout.cells("a").progressOff();
+                mainLayout.cells("b").progressOff();
             },
             error: function(xhr, status) {
                 dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
@@ -1529,7 +1554,7 @@
             context: this,
             success: function(response) {
                 addQueuedJobsToGrid(targetGridObj, response.queue);
-                mainLayout.cells("a").progressOff();
+                mainLayout.cells("b").progressOff();
             },
             error: function(xhr, status) {
                 dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
@@ -1546,7 +1571,7 @@
             context: this,
             success: function(response) {
                 addActiveJobsToGrid(targetGridObj, response.jobs);
-                mainLayout.cells("a").progressOff();
+                mainLayout.cells("b").progressOff();
             },
             error: function(xhr, status) {
                 dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
@@ -1565,7 +1590,7 @@
             success: function(response) {
 
                 addHistoryJobsToGrid(targetGridObj, response.history);
-                mainLayout.cells("b").progressOff();
+                mainLayout.cells("c").progressOff();
             },
             error: function(xhr, status) {
                 dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
