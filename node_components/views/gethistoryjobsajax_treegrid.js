@@ -78,7 +78,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
 }
 
 function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  return string.replace(/[.*+?^${}()[\]\\]/g, '\\$&'); // $& means the whole matched string -- | is not escaped in order to support multiple conditions
 }
 
 function hashCode (string) {

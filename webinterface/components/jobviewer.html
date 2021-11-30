@@ -3,8 +3,8 @@
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 
 <script src="/socket.io/socket.io.js"></script>
- <script src="../dependencies/dhtmlx/dhtmlx.js"></script> 
- <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
 
 
 <!-- <script src="../dependencies/dhtmlx/vault/vault.js"></script> -->
@@ -29,14 +29,19 @@
 <script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.persist.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
 
+
+ 
 <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
 <link rel="stylesheet"
       href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
 <script src="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.js">
 </script>
+
+<script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -46,7 +51,7 @@
         margin: 0px;
         overflow: hidden;
         color: #333;
-        font: 14px Helvetica, Arial, sans-serif;
+        font: 12px Tahoma;
         line-height: 18px;
         
     }
@@ -250,18 +255,19 @@
         
         //menu buttons html
         //do not forget to add the button name to togglejobcontrol if you add more btns 
-        var a_details = '<button class="btn" name="a_details" disabled="true" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i>Job Details</button> ';
-        var a_abort = '<button class="btn" name="a_abort" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i>Abort</button> ';
-        var a_pause = '<button class="btn" name="a_pause" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
-        var a_resume = '<button class="btn" name="a_resume" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
-        var arr_all_in_a = [a_details,a_abort,a_pause,a_resume];
+        var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i>Job Details</button> ';
+        var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i>Abort</button> ';
+        var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
+        var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
+        var a_opts =    '<button class="btn jobviewer_menu" name="b_opts" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
         
-        var b_details = '<button class="btn" name="b_details" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
-        var b_resubmit = '<button class="btn" name="b_resubmit" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
-        var b_delall = '<button class="btn" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete All</button> ';
-        var b_delsel = '<button class="btn" name="b_delsel" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
-        var b_opts = '<button class="btn" name="b_opts" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
-        var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel,b_opts];
+        var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
+        
+        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
+        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
+        var b_delall =      '<button class="btn jobviewer_menu" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete All</button> ';
+        var b_delsel =      '<button class="btn jobviewer_menu" name="b_delsel" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel];
         
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
@@ -286,7 +292,7 @@
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
             _appendtext('b',arr_all_in_a.join("") );
-            _appendtext('c', b_details + b_resubmit + b_delall + b_delsel + b_opts);
+            _appendtext('c', b_details + b_resubmit + b_delall + b_delsel);
         }
         function _appendtext (cellid, to_append){//helper
             mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
@@ -305,34 +311,35 @@
         return to_return;
     }
     
+    function applyFilter(filtername,filtervalue){
+        for (i = 0; i < $("input[name=search]").length; i++) {
+            var input = $("input[name=search]")[i];     
+            var keyname = input.placeholder.toLowerCase();
+            if(keyname.match(filtername.toLowerCase())){
+                console.log("Applying filter from URL: " + filtername)
+                input.value = filtervalue;
+                 var e = $.Event( "keyup", { keyCode: 13 } );
+                 $(input).trigger(e);
+            }
+         }  
+    }
 
     /* build basic page layout and init periodic job loading*/
     function init() {
-        
-
-        
         
         //search params from URL go to their corresponding search inputs
         var query = window.location.search.substring(1);
         query = parse_query_string(query);
         m_query = query;
-        console.log(query)
-        //insert filter from url into text fields
+        console.log("Querystring",query)
+        //insert filter from url into search text fields
         for (var filtername in query) {
             if (query.hasOwnProperty(filtername) && filtername != "") {
                 console.log(filtername + " -> " + query[filtername]);
-                for (i = 0; i < $("input[name=search]").length; i++) {
-                    var input = $("input[name=search]")[i];     
-                    var keyname = input.placeholder.toLowerCase();
-                    if(keyname.match(filtername.toLowerCase())){
-                        console.log("Applying filter from URL: " + filtername)
-                        input.value = query[filtername];
-                    }
-                 }  
+                applyFilter(filtername, query[filtername])
             }
         }
-        
-            
+
         //kick off DB maintenance verytime a client opens the UI - fire and forget TODO: kick off from server instead of from client
         $.get("/deleteoldrecords");
 
@@ -351,8 +358,12 @@
 				]
         });
 
-    
-        mainLayout.cells("a").collapse(); //todo:restore user state
+        mainLayout.cells("a").showInnerScroll()
+        mainLayout.cells("a").setMinWidth(150);
+        mainLayout.cells("a").setWidth(350);
+        mainLayout.cells("a").collapse(); 
+        
+        buildWorfklowTree(); //load workflows
         mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
         mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
@@ -368,8 +379,12 @@
                     mainLayout.cells("a").expand()
                     restoreLayoutSizes(mainLayout, "mainLayout");
                 });
+                localStorage.setItem("mainLayout_c_collapsed", "true");
+                console.log("saving collapsed state")
         });
-
+        mainLayout.attachEvent("onExpand", function(name){
+                localStorage.setItem("mainLayout_c_collapsed", "false");
+        });
         
   
         
@@ -558,6 +573,75 @@
 		
     }
 
+
+    function buildWorfklowTree(){
+
+        $.ajax({
+            url:  "/getworkflowlist",
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            success: function (response) {
+                if (response['workflows'].length == 0){
+                    alert("Did not get any workflows from FFASTRANS API");
+                }else{
+                    m_workflowArray = response['workflows'];
+                    
+                    mainLayout.cells("a").progressOff();
+                    mainLayout.cells("a").detachObject();
+                    mainLayout.cells("a").attachObject("workflow_filter_menu");
+                    
+                    //search button
+                    $("input[name=wf_filter]").keyup(function(e){
+                      var n,
+                            tree = $("#workflowtree").fancytree('getTree');
+                            opts = {},
+                            filterFunc = tree.filterNodes,
+                            match = $(this).val();
+                            if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                                tree.clearFilter();
+                                return;
+                            }
+                        // Pass a string to perform case insensitive matching
+                        n = filterFunc.call(tree, match, opts);
+                    }).focus();
+                    
+                    //finally build workflow tree
+                    parseWorkflows(m_workflowArray,{"selectMode":2,"dom_id":"workflowtree","extensions":["filter","multi","persist"]},on_treeWorkflowSelected,function(){/*no click evt*/});
+                    var sel = $("#workflowtree").fancytree('getTree').getSelectedNodes();
+                    applyWorkflowSearch(sel);
+                    
+                }
+            },
+            error: function (xhr, status) {
+                mainLayout.cells("a").progressOff();
+                dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+            }
+        });
+    }
+
+    function applyWorkflowSearch(selectednodes){
+        var a = [];
+        selectednodes.forEach(function(n){           
+            if (n.folder){
+                //unselect folders
+                console.log("unselecting folder",n.title)
+                n.setSelected(false)
+            }else{
+                a.push(n.title);
+            }
+        })
+     
+     applyFilter("workflow",a.join("|"));
+    }
+    
+    
+    function on_treeWorkflowSelected(event, data){
+        //user selected a workflow, modify workflowfilter
+        
+        var s = data.tree.getSelectedNodes();
+        applyWorkflowSearch(s);
+    }
 
 		
 	function setInitialColumnWidths(){
@@ -1212,79 +1296,44 @@
         var ah = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
         var bw = (dhxLayout.cells("c").getWidth() / document.body.scrollWidth);
         var bh = (dhxLayout.cells("c").getHeight() / document.body.scrollHeight);
+        var cw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
+        var ch = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
         localStorage.setItem(name + "_aw", aw);
         localStorage.setItem(name + "_ah", ah);
         localStorage.setItem(name + "_bw", bw);
         localStorage.setItem(name + "_bh", bh);
-
+        if (!dhxLayout.cells("a").isCollapsed()){
+            localStorage.setItem(name + "_cw", cw);
+            localStorage.setItem(name + "_ch", ch);
+        }
+        localStorage.setItem(name + "_c_collapsed", dhxLayout.cells("a").isCollapsed());
     }
 
     function restoreLayoutSizes(dhxLayout, name) {
         if (localStorage.getItem(name + "_aw")) {
+            if (localStorage.getItem(name + "_c_collapsed") == "false"){
+                dhxLayout.cells("a").expand();
+            }
             var aw = localStorage.getItem(name + "_aw");
             var ah = localStorage.getItem(name + "_ah");
             var bw = localStorage.getItem(name + "_bw");
             var bh = localStorage.getItem(name + "_bh");
+            var cw = localStorage.getItem(name + "_cw");
+            var ch = localStorage.getItem(name + "_ch");
             dhxLayout.cells("b").setWidth(aw * document.body.scrollWidth);
             dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
             dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
             dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
+            if (dhxLayout.cells("a").isCollapsed() == false){
+                console.log("CW",cw)
+                dhxLayout.cells("a").setWidth(cw * document.body.scrollWidth);
+                dhxLayout.cells("a").setHeight(ch * document.body.scrollHeight);
+            }
+
         }
         
     }
 
-    function onHeaderClick() {
-        window.open("http://www.ffastrans.com");
-    }
-
-    <!-- function openLogViewer(dhxgrid) { -->
-        <!-- var tree = $('#treetable_history').fancytree('getTree'); -->
-        <!-- var selected = tree.getSelectedNodes(); -->
-
-        <!-- if (selected.length == 0) { -->
-            <!-- dhtmlx.alert("Please select rows to view Log"); -->
-            <!-- return; -->
-        <!-- } -->
-
-        <!-- var win_offset = 0; -->
-        <!-- selected.forEach(function(treeNode) { -->
-            <!-- var jobObj = treeNode.data; -->
-
-            <!-- var dhxwins = new dhtmlXWindows(); -->
-            <!-- //dhxwins.attachViewportTo(window.parent.document.body); -->
-            <!-- var win = dhxwins.createWindow("Workflow", 50 + win_offset, 150 + win_offset, 1200, 800); -->
-            <!-- win_offset += 30; -->
-            <!-- win.setText("Log "); -->
-
-            <!-- var logGrid = win.attachGrid(); -->
-            <!-- logGrid.setImagesPath("../dependencies/dhtmlx/imgs/"); -->
-            <!-- logGrid.setHeader("Time,Processor,Host,PID,Message"); //the headers of columns -->
-            <!-- logGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter"); -->
-            <!-- logGrid.setInitWidthsP("10,10,10,5,*"); //the widths of columns -->
-            <!-- logGrid.setColAlign("left,left,left,left.left"); //the alignment of columns -->
-            <!-- logGrid.setColTypes("ed,ed,ed,ed,ed"); //the types of columns -->
-            <!-- logGrid.setColSorting("str,str,str,int,str"); //the sorting types -->
-            <!-- logGrid.enableMultiline(true); -->
-            <!-- logGrid.init(); //finishes initialization and renders the grid on the page -->
-
-            <!-- if (jobObj["job_id"]) { -->
-                <!-- //we have a job_id that eases the life of finding jobs -->
-                <!-- var url = "/logparser?job_id=" + encodeURI(jobObj["job_id"]) + "&wf_name=" + encodeURI(jobObj["wf_name"]); -->
-                <!-- logGrid.load(url, "json") -->
-            <!-- } else { -->
-                <!-- var file = (dhxgrid.cells(rId, dhxgrid.getColIndexById("file")).getValue()); -->
-                <!-- var job_end = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_end")).getValue()); -->
-                <!-- var job_start = (dhxgrid.cells(rId, dhxgrid.getColIndexById("job_start")).getValue()); -->
-                <!-- var wf_name = (dhxgrid.cells(rId, dhxgrid.getColIndexById("wf_name")).getValue()); -->
-                <!-- //we don'T have a jobid, server will need to find files based on the infos we have. this is currently being changed in ffastrans -->
-                <!-- var url = ("/logparser?file=" + encodeURI(file) + "&job_end=" + encodeURI(job_end) + "&job_start=" + encodeURI(job_start) + "&wf_name=" + encodeURI(wf_name)); -->
-                <!-- logGrid.load(url, "json"); -->
-            <!-- } -->
-            <!-- win.show(); -->
-            <!-- //win.attachURL("worfklowcanvas.html?jobid=element&logfolder=element"); -->
-        <!-- }); -->
-
-    <!-- } -->
 
     function resubmit_job(job_id) {
         //get all workflows from server and start main with the workflow of interest
@@ -1697,6 +1746,19 @@
       }
       return query_string;
     }
+    
+    function wokrflow_tree_control(what){
+        var tree = $("#workflowtree").fancytree('getTree');
+        if (what.id == "wf_filter_clear"){
+            tree.selectAll(false);
+        }
+        if (what.id == "wf_filter_unexpand"){
+            
+        }
+        if (what.id == "wf_filter_clear"){
+            
+        }
+    }
 </script>
 
 <body onload="loadserverconfig()">
@@ -1756,5 +1818,23 @@
                 </thead>
             </table>
         </div>
+        
+         <!-- WORKFLOW FILTER TEMPLATE -->
+        <div id="workflow_filter_menu" class="workflow_filter_background" style="">
+            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='width:100% ;height:30px;white-space:nowrap'>
+                <button title="Expand Groups"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button>
+                <button title="Collapse Groups"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button>
+                <button title="Delete Selection" name="delsel"       class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> <i class="fas fa-ban"></i></button>
+                <input name='wf_filter' class="workflow_filter_menu_item" style='margin-top:5px;height:20px;margin-left:10px;margin-bottom:5px' id='wf_filter' autocomplete='off'></input> <i class="fas fa-search"></i>
+            </div>
+            <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
+        </div>
+        
+        
     </div><!-- global hiding div -->
+    
+    <!-- html code to be loaded by javascript into dhtmlx cells. This is not directly shown on the page but loaded as a template on demand -->
+    <div style="display:none" id="dhtmlx attachObject Templates">
+
+    </div>
 </body>

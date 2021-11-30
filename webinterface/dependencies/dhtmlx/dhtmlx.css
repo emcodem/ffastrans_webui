@@ -8451,6 +8451,38 @@ div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
 
 .fas.disabled {
     /* font awesome menu and folder icons*/
-        color:#999 !important;
+    color:#999 !important;
     
+}
+
+.btn.jobviewer_menu{
+    width:120px;
+}
+
+ul.fancytree-container {
+    font-family: tahoma, arial, helvetica;
+    border: none !important;
+}
+
+.ui-fancytree.fancytree-container.fancytree-plain.fancytree-ext-multi:focus{
+      outline: none; /*remove border drawn by browser when workflow is selected*/
+}
+
+ul.fancytree-container{/* workflow selection */
+    font-size: 14px !important;
+}
+
+.workflow_filter_menu_item{
+    border:1px solid #c3c3c3;
+    height:15px;
+}
+
+
+.workflow_filter_background{
+    background-color:#fefefe;
+    
+}
+
+.ui-fancytree.fancytree-container.fancytree-plain.fancytree-ext-multi{
+     background-color:#fefefe;
 }

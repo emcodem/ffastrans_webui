@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+ <script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -712,117 +713,6 @@ function on_gridWorkflowSelected(wf_name,wf_object){
 }
 
 
-function parseWorkflows(wfArray){
-//callback for getWorkflows, builds workflow selection tree
-    //build tree object structure and events
-    var finalTreeObj = {
-        source:[],
-        selectMode: 1,
-        extensions: ["filter"],
-        quicksearch: true,
-        filter: {
-            autoExpand: true, // Expand all branches that contain matches while filtered
-            fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
-            hideExpandedCounter: true,  // Hide counter badge if parent is expanded
-            hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
-            highlight: true,   // Highlight matches by wrapping inside <mark> tags
-            leavesOnly: false, // Match end nodes only
-            nodata: true,      // Display a 'no data' status node if result is empty
-            mode: "dimm"       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
-        },
-        click: function(event, data) {
-           if (! data.node.folder){
-                //a workflow was selected!
-                if (localStorage.getItem("lastselectedworkflow")){
-                    var tree = $("#workflowtree").fancytree("getTree");
-                    var n = localStorage.getItem("lastselectedworkflow");
-                    
-                    if (n && n != "undefined"){
-                        //var node = tree.findAll(n)[0];
-                        var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"));
-                        if (node && node != "undefined" ){
-                            node.setSelected(false);//de-select 
-                        }
-                    }
-                    
-                }
-                on_gridWorkflowSelected(data.node.title,data.node.data["wf_object"]);
-           }
-        }
-    };
-    
-//build fancytree showing all workflows
-    m_mainLayout.cells("b").progressOff();
-    m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
-    m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
-    var treeObj = {};
-    //collect data for fancytree obj
-    for (i=0;i<wfArray.length;i++){
-        var folder = wfArray[i]["wf_folder"];
-        if (folder == ""){
-            //workflow in root of tree
-            treeObj[wfArray[i]["wf_id"]] = {};
-            treeObj[wfArray[i]["wf_id"]].title = wfArray[i]["wf_name"];
-            treeObj[wfArray[i]["wf_id"]].key = wfArray[i]["wf_id"]; 
-            treeObj[wfArray[i]["wf_id"]]["wf_object"] = wfArray[i];
-            
-        }else{
-           
-            if (treeObj[folder]){   //a workflow in a folder that already exists
-                treeObj[folder].children.push({title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}});
-            }else{  //a workflow in a new folder 
-                treeObj[folder] = {};
-                treeObj[folder].title = folder;
-                treeObj[folder].folder = true;
-                treeObj[folder].children = [{title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}}];//
-            }
-        }
-    }
-    
-    //attach final treeObj items
-    for (itm in treeObj){
-        finalTreeObj.source.push(treeObj[itm]);
-    }
-    
-    $("#workflowtree").fancytree(finalTreeObj); //finally render tree on page
-    var cmp= function(a, b) {//sort by folder name but folders first
-        var x = (a.folder ? "0" : "1") + a.title.toLowerCase(),                    
-            y = (b.folder ? "0" : "1") + b.title.toLowerCase();                 
-            return x === y ? 0 : x > y ? 1 : -1;
-    };
-    var node = $("#workflowtree").fancytree("getRootNode");
-    node.sortChildren(cmp,true);
-    
-    //restore user selection from last time
-    if (localStorage.getItem("lastselectedworkflow")){
-        var tree = $("#workflowtree").fancytree("getTree");
-        var n = localStorage.getItem("lastselectedworkflow")
-        if (n && n!= "undefined"){
-            //var node = tree.findAll(n)[0]
-            var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"))
-            if (node && node!= "undefined"){
-                node.setSelected(true);
-                node.parent.setExpanded(true);            
-            }
-        }
-    }
-    
-    //search button 
-    $("input[name=wf_filter]").keyup(function(e){
-      var n,
-            tree = $.ui.fancytree.getTree(),
-            opts = {},
-            filterFunc = tree.filterNodes,
-            match = $(this).val();
-            if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
-                tree.clearFilter();
-                return;
-            }
-        // Pass a string to perform case insensitive matching
-        n = filterFunc.call(tree, match, opts);
-    }).focus();
-    
-}
 
 function getWorkflows(){
 
@@ -836,7 +726,41 @@ function getWorkflows(){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{
                 m_workflowArray = response['workflows'];
-                parseWorkflows(m_workflowArray);
+                
+                m_mainLayout.cells("b").progressOff();
+                m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
+                m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+                //search button 
+                $("input[name=wf_filter]").keyup(function(e){
+                  var n,
+                        tree = $.ui.fancytree.getTree(),
+                        opts = {},
+                        filterFunc = tree.filterNodes,
+                        match = $(this).val();
+                        if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                            tree.clearFilter();
+                            return;
+                        }
+                    // Pass a string to perform case insensitive matching
+                    n = filterFunc.call(tree, match, opts);
+                }).focus();
+                
+                //finally build workflow tree
+                parseWorkflows(m_workflowArray,{"selectMode":1,"extensions":["filter"],"dom_id":"workflowtree"},function(){/*no select func*/},on_gridWorkflowSelected);
+                //restore user selection from last time
+                if (localStorage.getItem("lastselectedworkflow")){
+                    var tree = $("#workflowtree").fancytree("getTree");
+                    var n = localStorage.getItem("lastselectedworkflow")
+                    if (n && n!= "undefined"){
+                        //var node = tree.findAll(n)[0]
+                        var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"))
+                        if (node && node!= "undefined"){
+                            node.setSelected(true);
+                            node.parent.setExpanded(true);            
+                        }
+                    }
+                }
+                
             }
         },
         error: function (xhr, status) {
@@ -845,6 +769,8 @@ function getWorkflows(){
         }
     });
 }
+
+
 
 function startJobs(){
 //kick off one workflow per file in grid

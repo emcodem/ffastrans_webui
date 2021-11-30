@@ -10,8 +10,10 @@
 <link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-151931970-1"></script>
-<script >
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR"></script>
+<script>
+
+</script>
 
 </script>
 
@@ -186,12 +188,12 @@ var m_permissionUrls = {
 }
 /*load config from server*/
 function loadserverconfig(){
+
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'UA-151931970-1', { 'anonymize_ip': true });
-  gtag('config', 'UA-151931970-1');
-  
+  gtag('config', 'G-4FCDW4WBMR',{ 'anonymize_ip': true });
+
    $.ajax({
         url:  ("/getserverconfig") ,
         type: "GET",
