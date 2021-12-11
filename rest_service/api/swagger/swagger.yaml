@@ -61,6 +61,13 @@ paths:
     x-swagger-router-controller: tickets
     get:
       description: Gets active and pending jobs
+      parameters:
+        - name: nodetails
+          in: query
+          description: Reduces performance impact on database significally, only returns currently active jobid's. Excluded incoming (those are complex to get)
+          required: false
+          schema:
+            type: boolean
       operationId: tickets
       responses:
         "200":

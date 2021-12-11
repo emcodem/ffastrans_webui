@@ -2,7 +2,7 @@ const assert = require('assert');
 const Request = require("request");
 //todo: implement queued jobs
 module.exports = {
-
+    
     getWorkflowDetails: (callbackSuccess,callbackError) => {
         Request({ url: buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), method: 'GET'}, function(error, response, body){ 
             if (error){

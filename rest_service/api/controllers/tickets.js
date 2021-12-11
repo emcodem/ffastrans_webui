@@ -15,49 +15,43 @@ module.exports = {
 };
 //HELPERS
 
-async function cache_cleaner(){
-	for (const key in global.filecache.tickets) {
-		try{
-            await fsPromises.access(key, fs.constants.R_OK | fs.constants.W_OK)
-		}catch(ex){
-            //file does not exist, delete from cache
-            delete global.filecache.tickets[key];
-        }
-	}
-}
-
-
-//all files in all directories to array
-async function jsonfiles_to_array(dir) {
-        //console.time("jsonfiles_to_array " + dir);
-		if (!dir){return}
-		var returnarray=[];
-        var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
-        
-        for (var _idx in allfiles){
-            try{
-                var newitem = (JSON.parse(await common.readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
-                var wf_id =  allfiles[_idx].split("~")[3];
-                newitem["fullpath"] = path.join(dir,allfiles[_idx]);
-                newitem["internal_wf_id"] = wf_id;
-                if (! ("internal_wf_name" in newitem)){
-                    newitem["internal_wf_name"] = await common.get_wf_name(wf_id);
-                }
-                //newitem["internal_wf_name"] = wf_id;
-                if (! "internal_file_date" in newitem){ //stat only if needed
-                    var _stat = await fsPromises.stat(path.join(dir,allfiles[_idx]));
-                    newitem["internal_file_date"] = _stat["birthtime"];
-                }
-                global.filecache.tickets[path.join(dir,allfiles[_idx])] = JSON.stringify(newitem);
-                returnarray.push(newitem)
-            }catch(ex){
-                console.log("Could parse Json from file:",path.join(dir,allfiles[_idx]),ex)
+async function get_running(){
+	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
+    var a_running = await common.jsonfiles_to_array(path.join(s_tick_path,"running"));
+   
+    //as we dont want to show both at the same time, we ignore the running tickets from mon_folder to prevent showing the same file twice
+    var keys_to_ignore = []; 
+    for (var key in a_running){
+        try{
+            var _cur = a_running[key];
+            if (! "internal_wf_name" in a_running[key]){//todo: the IF does not work, internal_wf_name is a guid in this case
+                a_running[key]["workflow"] = common.get_wf_name(a_running[key]["internal_wf_id"]);
+                
+            }else{
+                a_running[key]["workflow"] = a_running[key]["internal_wf_name"];
             }
-        }
-        //console.timeEnd("jsonfiles_to_array " + dir);
-		return returnarray;
-}
+            try{
+                a_running[key]["sources"] = {"current_file": a_running[key]["sources"]["original_file"]};
+            }catch(ex){
+                //omit this ticket as it does not carry source file info
+                console.error("Running ticket did not contain source file info",a_running[key])
+                keys_to_ignore.push(key)
+            }
 
+        }catch(ex){
+            console.error("Problem parsing running entry: ", a_running[key],ex);
+        }
+    }
+    for (var key in keys_to_ignore){
+        delete a_running[key];
+    }
+    //after deleting we happen to have a weird empty object
+    var filtered = a_running.filter(function (el) {
+      return el != null;
+    });
+	return filtered;
+	
+}
 //workaround the missing ability of ffastrans to tell us about watchfolder status
 async function get_incoming(returnarray){
 //todo: dont only read files from \i\ folder but also consider files in ..\i\ that are named *.json%shorthash%
@@ -134,7 +128,7 @@ async function get_incoming(returnarray){
 
 async function get_pending(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_pending = await jsonfiles_to_array(path.join(s_tick_path,"pending"));
+    var a_pending = await common.jsonfiles_to_array(path.join(s_tick_path,"pending"));
    
 	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
     //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 
@@ -180,20 +174,33 @@ async function get_pending(){
  */
 async function start(req, res) {
 	try {
-  // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-	    var o_return = {};
+        var o_return = {};
         o_return["tickets"] = {};
-        //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
-        //the real queued folder is more like a temp folder for tickets between pending and running
-		o_return["tickets"]["queued"] = await get_pending(); 
-		//o_return["tickets"]["queue"] = jsonfiles_to_array(path.join(s_tick_path,"queue"));
-		o_return["tickets"]["incoming"] = await get_incoming();
-		res.json(o_return);
-		res.end();
+
+  // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
+        if ("nodetails" in req.query){
+            var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
+            o_return["tickets"]["running"] = await fsPromises.readdir(path.join(s_tick_path,"running"), { withFileTypes: false });
+            o_return["tickets"]["queued"] = await fsPromises.readdir(path.join(s_tick_path,"pending"), { withFileTypes: false });
+
+        }else{
+  
+            //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
+            //the real queued folder is more like a temp folder for tickets between pending and running
+            o_return["tickets"]["queued"] = await get_pending(); 
+            //o_return["tickets"]["queue"] = common.jsonfiles_to_array(path.join(s_tick_path,"queue"));
+            o_return["tickets"]["incoming"] = await get_incoming();
+            o_return["tickets"]["running"] = await get_running();
+        }
+
 	} catch(err) {
 		console.debug(err);
 		return res.status(500).json({description: err});
 	}
+    
+    res.json(o_return);
+    res.end();
+    
 }
 
 

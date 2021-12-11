@@ -110,7 +110,6 @@ function init(conf){
 		global.config["alternate-server"] = false;
     }
     
-	
 	if (!global.config["alternate-server"]){
 		console.log("NOT running on alternate-server, getting about")
 		    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base

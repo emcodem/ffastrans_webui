@@ -582,6 +582,7 @@
             crossDomain: true,
             dataType: "json",
             success: function (response) {
+                console.log("workflows",response)
                 if (response['workflows'].length == 0){
                     alert("Did not get any workflows from FFASTRANS API");
                 }else{

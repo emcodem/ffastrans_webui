@@ -4,6 +4,7 @@ const fs = require('fs')
 const fsPromises = require('fs').promises;
 const common = require("./common/ticket_helpers.js");
 const path = require('path');
+const axios = require('axios');
 
 module.exports = {
     get: start
@@ -21,21 +22,25 @@ async function start(req, res) {
     console.debug("get_job_details called for: " + jobid);
 	//check if full log exists, if yes, serve contents
     const job_description_path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/.json";  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\.json
-    console.debug("Locating file " + job_description_path)
+    //console.debug("Locating file " + job_description_path)
 	try {
         if (fs.existsSync(job_description_path)) {
-                console.debug("File exists, reading contents");
-                //res.sendFile(path) //cannot use sendfile here as it will freak out about the filename starting with .
+                //console.debug("File exists, reading contents");
                 var job_file_contents = await common.readfile_cached(job_description_path, 'utf8');
-                console.log(job_file_contents);
-            
                 //remove UTF8 BOM
                 if (job_file_contents.charCodeAt(0) === 0xFEFF) {
                     job_file_contents = job_file_contents.substr(1);
                 }
+
                 //enrich job obj with workflow object
-                console.debug("Parsing Job Json... " + job_file_contents )
                 var o_job = JSON.parse(job_file_contents);
+
+                //security check, is this an abandoned job?
+                if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/full_log.json")){
+                    if ("status" in o_job){
+                        o_job["status"] = "finished"
+                    }
+                }
                 if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")) {
                     console.debug("workflow exists in jobdir " + global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")
                     fs.readFile(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json", 'utf8', function (err, wf_file_contents) {
@@ -61,13 +66,11 @@ async function start(req, res) {
                             if (newitem["wf_id"] == o_job["workflow"]["id"]){
                                 //this is the mother workflow
 								console.log("Main Workflow detected: ", o_job["workflow"]["id"]);
-								console.log("Main WF JSON: ",JSON.stringify(newitem));
+								//console.log("Main WF JSON: ",JSON.stringify(newitem));
 								var _cp = JSON.stringify(newitem);
                                 o_job["wf_object"] = JSON.parse(_cp);
                             }
                             var cur_wf_id = o_job["workflow"]["id"];
-                            console.log("Found workflow ", newitem["wf_id"], "to be part of the current wf");
-							
                             o_job["workflows"][newitem["wf_id"]] = newitem;
                         }catch(ex){
                             console.log("Could parse Json from file:",path.join(dir,allfiles[_idx]),ex)
@@ -75,30 +78,6 @@ async function start(req, res) {
                     }
                     respond(o_job);
                     
-                    // var wf_path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows";
-                    // console.log("workflows folder found in ",global.api_config["s_SYS_JOB_DIR"],",assuming ffastrans Version 1.3");
-                    // var files = fs.readdirSync(wf_path);
-                    // if (files.length < 1){
-                        // console.error("Expected at least 1 file in ",wf_path);
-                        // res_error("Expected at least 1 file in ",wf_path);
-                        // return;
-                    // }
-                    //enrich .json with all sub-workflows 
-                    
-                    
-                    //serve first found workflow file. TODO: for 1.3, check if we can have more than 1 workflow here
-                    // fs.readFile(wf_path + "/" + files[0], 'utf8', function (err, wf_file_contents) {
-                        // if (err) {
-                            // console.error(err);
-                            // res_error();
-                            // return;
-                        // }
-                        // wf_file_contents = wf_file_contents.trim();
-                        // o_job["wf_object"] = JSON.parse(wf_file_contents);
-                        // console.debug("responding with wf_object")
-                        // respond(o_job);
-                        // return;
-                    // });
                     return;
                 }
                 
@@ -134,12 +113,39 @@ async function start(req, res) {
                 res.end();
                 return;
             }
+            
         } else {
+            var nonrunning = await get_job_from_tickets(jobid);
+            if (nonrunning){
+                console.log("get_job_details returns job from tickets folder instead of work_dir (non running job)")
+                res.json(nonrunning);
+                res.end();
+                return;
+            }
+            
             console.debug("File does not exists, returning 404");
-		return res.status(404).json({});		  
+            return res.status(404).json({});		  
 	  }
 	} catch(err) {
 		console.debug(err);
 		return res.status(500).json({description: err});
 	}
+}
+
+async function get_job_from_tickets(lookfor_jobid){
+    // if we have no running job, serve ticket from db/tickets folder
+    var url = 'http://localhost:'+global.config['STATIC_API_NEW_PORT'] + "/tickets";
+    const resp = await axios.get(url);
+
+    var found_ticket = false;
+    for (var state in resp["data"]["tickets"]){
+        resp["data"]["tickets"][state].forEach(function(job){
+            if (job["job_id"] == lookfor_jobid){
+                
+                found_ticket = job;
+            }
+        })
+    }
+    
+    return found_ticket;
 }

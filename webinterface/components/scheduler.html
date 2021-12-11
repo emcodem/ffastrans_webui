@@ -174,12 +174,12 @@ function init(){
     m_mainLayout.cells("a").setText("Schedule");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
-    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Next Start, Created on,workflow");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,next_start,date_created,workflow");     
-    m_mainGrid.setInitWidthsP("0,5,25,20,15,15,15,15,15,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left.left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,txttxt,combo");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str");  
+    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Next Start, Created on,Last Message,Workflow");
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,next_start,date_created,last_message,workflow");     
+    m_mainGrid.setInitWidthsP("0,5,15,10,10,10,10,10,10,0");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");       
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,txttxt,ro");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");  
     /*typecombo = m_mainGrid.getCombo(8);
     typecombo.put("custom","Custom");
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
@@ -204,7 +204,7 @@ function init(){
         //create new job rows
         if (id=="new"){
             var newId = Math.random();
-            m_mainGrid.addRow(newId,[newId,"false", "New Job", "", "*/5 * * * *",  "", new Date().toMysqlFormat()]);
+            m_mainGrid.addRow(newId,[newId,"false", "New Job", "", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
             m_mainGrid.setUserData(newId,"script","process.send(['testvalue']);//starts one job");
             saveJobGrid();
         }
@@ -375,7 +375,6 @@ function loadWorkflows(wf_combo,procCombo){
     $.ajax({
         url:  "/getworkflowlist",
         type: "GET",
-        crossDomain: true,
         dataType: "json",
         context: this,
         success: function (response) {
@@ -458,8 +457,9 @@ function updateJobs(){
             for (i in response){
                 var _job = response[i]['scheduled_jobs'];
                 console.log("updateing",  response);
-                var colNameLastStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_start"));
-                var colNameNextStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("next_start"));
+                <!-- var colNameLastStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_start")); -->
+                <!-- var colNameNextStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("next_start")); -->
+                <!-- var colNameLastMessage = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_message")); -->
                 for (colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
                     if (colName == "last_start"){
@@ -467,7 +467,10 @@ function updateJobs(){
                     }           
                     if (colName == "next_start"){
                         m_mainGrid.cells(_job["id"],colidx).setValue(_job["next_start"]);//last start
-                    }      
+                    }    
+                    if (colName == "last_message"){
+                        m_mainGrid.cells(_job["id"],colidx).setValue(_job["last_message"]);//last start
+                    }                     
                 }
                 continue;
             }
@@ -515,6 +518,7 @@ function saveJobGrid(rIdToSave,callback){
             }
         }
         
+        console.log("getRowdata,",rId)
         var jobobj = m_mainGrid.getRowData(rId);
         jobobj.script = m_mainGrid.getUserData(rId,"script");
         $.ajax({

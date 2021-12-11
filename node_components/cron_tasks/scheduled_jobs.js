@@ -9,6 +9,8 @@ const isRunning = require('is-running')
 tmp.setGracefulCleanup();
 const ffastransapi = require("../ffastransapi");
 const moment = require("moment");
+const asyncdatastore = require("nedb-promise");
+const axios = require("axios");
 
 function twoDigits(d) {
     if(0 <= d && d < 10) return "0" + d.toString();
@@ -24,52 +26,55 @@ Date.prototype.toMysqlFormat = function() {
 //* * * * * At every minute
 //checks for all scheduled tasks in DB and executes them if neccessary
 module.exports = {
-    execute: function () {
+    /*ASYNC DB ACCESS EXAMPLE (nedb-promise)!*/
+    execute: async function () {
         //get all scheduled jobs from DB
-        global.db.config.find({ "scheduled_jobs": { $exists: true } }, function (err, data) {//get all groups from user
-            if (err) {
-                throw err;
-            }
-            if (data.length>0) {
-                for (jobIndex in data){
-                    try {
-                        var current_job = data[jobIndex]["scheduled_jobs"];
-                        //check if job needs execution
-                        if (!needsExecution(current_job)){
-                            continue;
-                        }
-                        //START JOB!
-                        executeJob(current_job);
-                        
-                    } catch (exec) {
-                        console.log("Error parsing cron entry from scheduled_job, " + exec);
+        var DB = asyncdatastore.fromInstance(global.db.config);
+        var data = await DB.find({ "scheduled_jobs": { $exists: true } });
+        if (data.length>0) {
+            for (jobIndex in data){
+                try {
+                    var current_job = data[jobIndex]["scheduled_jobs"];
+                    //check if job needs execution
+                    if (! await needsExecution(current_job)){
+                        continue;
                     }
-                }//for every job
+                    //START JOB!
+                    executeJob(current_job);
+                    
+                } catch (exec) {
+                    console.trace("Error parsing cron entry from scheduled_job, " + exec);
+                }
+            }//for every job
 
-            } else {
-                //no scheduled jobs in DB
-            }
-        });
+        } else {
+            //no scheduled jobs in DB
+        }
+        
   },
   
-  executeImmediate:function(id,socketioClientId,informCallback){
-      global.db.config.findOne({ "scheduled_jobs.id": id },function (err, data) {
-        if (err) {
-            console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
-            throw err;
-        }
-        if (data){
-            console.log("Executing immediate: " + id);
-            var job = data["scheduled_jobs"];
-            if (!needsExecution(job)){
-                 killRunningJob(job);
+  executeImmediate: async function(id,socketioClientId,informCallback){
+        global.db.config.find({ "scheduled_jobs.id": id }, function (err, data) {
+            if (err) {
+                console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
+                throw err;
             }
-            executeJob(job,socketioClientId,informCallback);
-                    
-        }else{
-            console.error("Could not find job in database for executeimmediate, jobid: " + id)
-        } 
-    })    
+            if (data){
+                
+                var current_job = data[0]["scheduled_jobs"];
+                console.log("Executing immediate: " + id);
+                executeJob(current_job,socketioClientId,informCallback);
+                        
+            }else{
+                console.error("Could not find job in database for executeimmediate, jobid: " + id)
+            }  
+        
+        })
+
+      // var DB = asyncdatastore.fromInstance(global.db.config);
+      // var data = await DB.find({ "scheduled_jobs.id": id });
+      // console.log("Found Jobs to execute immedate: ", data["scheduled_jobs"])
+ 
   }
 };
 
@@ -126,6 +131,7 @@ function executeJob(current_job,socketioClientId,informCallback){
             console.log("MESSAGE FROM FORK: " + msg);
             if (current_job["workflow"] == ""){
                 console.warn("No Workflow selected!", "number of non started jobs:", msg.length);
+                updateScheduledJob(current_job["id"],"last_message","No Workflow selected!");
                 return;
             }
             //if we have an array of values, execute the ffastrans job
@@ -141,8 +147,16 @@ function executeJob(current_job,socketioClientId,informCallback){
                     for (i in fileArray){
                         _workflow['inputfile'] = fileArray[i];
                         ffastransapi.startJob(JSON.stringify(_workflow),function(data){
-                            console.log("Return message from ffastrans job: " + data)
-                            global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"FFAStrans Job was started, Message: "+ data })
+                            console.log("Return message from ffastrans job: " + data);
+                            
+                            try{
+                                console.log("JobID:",JSON.parse(data)["job_id"])
+                                updateScheduledJob(current_job["id"],"last_job_id",JSON.parse(data)["job_id"]);
+                                global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"FFAStrans Job was started, Message: "+ data })
+                            }catch(ex){
+                                console.log("Error starting ffastrans job, ",ex);
+                                global.socketio.to(socketioClientId).emit("logmessage","Error starting ffastrans job, see logs")
+                            }
                         },function(err){
                             console.log("Error occured starting ffastrans job: " + err)
                             global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"Error starting FFAStrans Job, Message: "+ err })
@@ -203,56 +217,95 @@ function killRunningJob(current_job){
     
 }
 
-function needsExecution(current_job){    
-    //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
+async function needsExecution(current_job){  
+    
+     //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
     //check if job is still running
     if (current_job['enabled'] != 1 || current_job["cron"] == ""){
         if (current_job["next_start"] != ""){
                updateScheduledJob(current_job["id"],"next_start","");
+               
         }
+        updateScheduledJob(current_job["id"],"last_message","Job is disabled or has no crons");
         return false;
     }
-    if (current_job['last_pid']){
-        if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
-            console.log("Scheduled Job " + current_job["job_name"] + " is still running");
-            //todo: check for timeout and reset pid if neccessary 
-            return false;
-        }
-    }
+    
+    
     //job is not running. Check if we need to start it
-    var dateOfInterest = current_job["last_start"] || current_job["date_created"];
+    var dateOfInterest = current_job["last_start"] || current_job["date_created"] ;
     var options = {
       currentDate: dateOfInterest,
       //endDate: new Date('Wed, 26 Dec 2012 14:40:00 UTC'),
       iterator: false
     };
-    
     crons = current_job["cron"].split(",");
-    var closestDate = "";
+    
     var returnvalue = false; 
-    for (cron in crons){
-        cron = crons[cron]
+    
+    for (cron in crons){ //check all configured intervals of current job
+        //why do we parse all cron jobs here?
+        cron = crons[cron];
         var interval = parser.parseExpression(cron,options);
         var nextExecutionDate = interval.next();
         var _nextdate = new Date(nextExecutionDate);
-        if ((_nextdate < closestDate) || (closestDate == "")) {
-            closestDate = _nextdate;
-        }
-        if (_nextdate < new Date()){
-            console.log("Created or last run: "  + dateOfInterest);
-            console.log("DATE INTERVAL: "  + nextExecutionDate);
-            console.log("CURRENT DATE: "  + new Date());
+        var _datenow = new Date();
+        if (_nextdate < _datenow){
+            console.log("Scheduled job is pending:" , {"_nextdate":_nextdate,"_datenow":_datenow, "nextExecutionDate(fromCron)":new Date(nextExecutionDate),"cron":cron})
+            updateScheduledJob(current_job["id"],"last_message","Job is pending execution, nextstart: ",_nextdate);
             returnvalue = true;
         }else{
             returnvalue = false;
         }
+        //update "next run" time
+        if (current_job["next_start"] != moment(_nextdate).format("YYYY-MM-DD HH:mm:ss")){
+            console.log("Updating next start of ",current_job["job_name"], "to",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
+            updateScheduledJob(current_job["id"],"next_start",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
+        }else{
+           
+        }
     }
-    //update "next run" time
+    
+    //job is pending but should we really execute it?
+    if (returnvalue){
 
-    if (current_job["next_start"] != moment(_nextdate).format("YYYY-MM-DD HH:mm:ss")){
-        console.log("Updating next start of ",current_job["job_name"], "to",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
-        updateScheduledJob(current_job["id"],"next_start",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
+        if (current_job['last_pid']){
+            if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
+                console.log("Scheduled Job is pending " + current_job["job_name"] + " but PID is still running, preventing execution");
+                //todo: check for timeout and reset pid if neccessary 
+                updateScheduledJob(current_job["id"],"last_message","Job is pending but PID is still running " + current_job['last_pid']);
+                return false;
+            }
+        }
+        
+        if ("last_job_id" in current_job){
+            
+            if (current_job["last_job_id"] != ""){   
+                updateScheduledJob(current_job["id"],"last_message","Detected last Jobid exists, checking if Jobid is active");
+                console.log("checking if job is still runing");
+                var url = 'http://' + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets?nodetails=true" ;
+                
+                console.log("calling,",url)
+                try{
+                    var resp = await axios.get(url);
+                    if ("data" in resp){
+                        if (JSON.stringify(resp["data"]).indexOf(current_job["last_job_id"]) != -1){
+                            console.log("last_job_id is still active")
+                            return false;
+                        }else{
+                            console.trace(resp["data"],"does contain",current_job["last_job_id"])
+                        }
+                        
+                    }
+                }catch(ex){
+                    console.error("Could not get information about currently running job, resetting las_job_id",ex);
+                    updateScheduledJob(current_job["id"],"last_message","Reset last job id due to error getting job details: " + current_job["last_job_id"] + ex);
+                    updateScheduledJob(current_job["id"],"last_job_id","");
+                    return true;
+                }
+            }
+        }
     }
+
     return returnvalue;
 }
 
@@ -269,7 +322,7 @@ function updateScheduledJob(id,field,value){
             console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
             throw err;
         }
-        console.trace("updated scheduled job ",id, field, value)
+        console.log("updated scheduled job ",id, field, value)
         global.db.config.persistence.compactDatafile(); //deletes unused stuff from DB file
         
     })

@@ -118,7 +118,7 @@ function check_install(){
             
             document.getElementById("installer").style.display = "none";
             document.getElementById("i_grafana").style.display = "block";
-            document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/Jlcx_u8Gz/ffastrans-running?from=1634197211932&to=1634218811932&orgId=1&theme=light&kiosk"
+            document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/Jlcx_u8Gz/ffastrans-running?orgId=1"
             
         },
         error: function(xhr, status) {
@@ -138,7 +138,7 @@ function submit(){
             success: function(response) {
                 document.getElementById("installer").style.display = "none"
                 document.getElementById("i_grafana").style.display = "block";
-                document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/Jlcx_u8Gz/ffastrans-running?from=1634197211932&to=1634218811932&orgId=1&theme=light&kiosk"
+                document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/Jlcx_u8Gz/ffastrans-running?orgId=1"
             
             },
             error: function(xhr, status) {

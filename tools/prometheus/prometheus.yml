@@ -21,11 +21,16 @@ rule_files:
 scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'ffastrans'
-
+  
+    http_sd_configs:
+    - url: 'http://localhost:3002/metrics_control/service_discovery'
     # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-    file_sd_configs:
-    - files:
-        - 'ffastrans_targets.json'
+
+    # file_sd_configs:
+    # - files:
+        # - 'ffastrans_targets.json'
+        
+
+    
     
 

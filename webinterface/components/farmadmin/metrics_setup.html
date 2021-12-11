@@ -10,6 +10,7 @@
 <script src="../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
+<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -45,7 +46,7 @@
 
 <script>
     /* GLOBALS */
-    var m_serverconfig, m_userpermissions;
+    var m_serverconfig, m_userpermissions, m_lastTreedata;
 
     /*load config from server*/
     function loadserverconfig() {
@@ -93,7 +94,12 @@
 		});
 		
         //load currently configured metris clients
-        $.ajax({
+        window.setInterval(function(){load()},1000);
+        load();
+    }
+    
+    function load(){
+            $.ajax({
             url: ("/metrics_control" + "?" + Math.random()),
             type: "GET",
             success: function(response) {
@@ -106,12 +112,21 @@
                         fancytreeobj.push({"title":_cur["labels"]["instance"],"state":_cur["health"]});
                          
                    }  
-                   
+
+                   fancytreeobj.sort(function(a, b) {
+                      return a.title > b.title ? 1: -1;
+                      return 0;
+                    });
+
                 }catch(ex){
                     alert("" + ex)
                 }
-                
-                buildHostsGrid(fancytreeobj)
+                if (JSON.stringify(m_lastTreedata) != JSON.stringify(fancytreeobj)){
+                    console.log(JSON.stringify(m_lastTreedata), "!=", JSON.stringify(fancytreeobj));
+                    m_lastTreedata = fancytreeobj;
+                    buildHostsGrid(fancytreeobj);                
+                }
+
             },
             error: function(xhr, status) {
                 document.body.innerHTML = "Fatal error, could not load metrics_setup. Is Metrics Collector (Prometheus) server running?<br/>" + xhr.responseText;
@@ -121,10 +136,8 @@
             }
 
         });
-
+    
     }
-    
-    
     function buildHostsGrid(setup_json){
     	
         //var sourceUrl = "testdata.xml";
@@ -207,6 +220,44 @@
         }
     }
 
+    function install(){
+        var dhxwins = new dhtmlXWindows();
+        //dhxwins.attachViewportTo(window.parent.document.body);
+        var win = dhxwins.createWindow("Add Host to Monitor", window.innerWidth/2, window.innerHeight/4, 600, 400);
+        win.setText("View Options ");
+        win.attachURL("metrics_setup_pages/add_host.html");
+    }
+    
+    function uninstall(){
+        var tree = $("#treetable_hosts").fancytree('getTree');
+        var all_selected_nodes = tree.getSelectedNodes();
+        if (all_selected_nodes.length == 0){
+            dhtmlx.message("No rows were selected");
+            return
+        }
+        var to_delete = []
+        all_selected_nodes.forEach(function(treenode){
+            to_delete.push(treenode.title)
+        })
+        console.log("Removing from monitoring: ",to_delete);
+        $.ajax({
+          url: "/metrics_control" + "?" + Math.random(),
+          type: 'DELETE',
+          contentType: "application/json; charset=utf-8",
+          data: JSON.stringify(to_delete),
+          success: function(data) {
+            dhtmlx.message("Success deleting nodes from monitoring, it can take one minute until you see the changes")
+          },
+          error: function(err){
+            console.log(err);
+            alert("Error deleting nodes from monitoring: " + xhr.responseText)
+          }
+        });
+        
+        
+    }
+    
+    
 </script>
 
 <body onload="loadserverconfig()" >
@@ -219,7 +270,6 @@
                 <div class="form-group dhxform_label dhxform_label_align_left">
                     <label for="grafanaurl_jobs">Job Metrics Grafana Url</label>
                     <input type="text" class="dhxform_textarea" id="grafanaurl_jobs" >
-                    
                 </div>
                 <div class="form-group dhxform_label dhxform_label_align_left">
                     <label for="grafanaurl_hosts">Host Metrics Grafana Url </label>
@@ -233,14 +283,23 @@
                   
                 <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
                     <div class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
-                    <div class="dhxform_btn_filler" disabled="true"/>
+                    <div class="dhxform_btn_filler" disabled="true"></div>
                 </div>               
-                  
             </fieldset>
             
+
+                
             <fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
-                <legend class="fs_legend" >Hosts</legend>
-                    <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
+
+                <legend class="fs_legend">Monitored Hosts</legend>
+                    <div style="display: table-row" class="" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                        <div class="dhxform_btn" role="link"><div style="display: table-cell;float:none;width:100px" onclick="install()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Add new Host</div></div>
+                        <div style="display: table-cell;width:10px"  class=""></div>
+                        <div class="dhxform_btn" role="link"><div  style="display: table-cell;float:none;width:100px" onclick="uninstall()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Uninstall</div></div>
+                        <div class="dhxform_btn_filler" disabled="true"></div>
+                    </div>  
+                     
+                    <div id="active_div" style="width:100%" class="gridbox_dhx_skyblue gridbox">
                         <table id="treetable_hosts" class="obj">
                             <colgroup id="colgroup_active" >
                                 <col width="5%"></col>
@@ -256,9 +315,7 @@
                     </div>
                 
             </fieldset>
-        
         </div>
-
     </form>
 </div>
 </body>
