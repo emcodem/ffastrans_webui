@@ -31,9 +31,10 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         var disabled = false;
                         //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
-                        if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;}
-                        if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;}
-						if (key.indexOf("alternate-server")!=-1){disabled=true;}
+                        if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;height:0}
+                        if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;height:0}
+						if (key.indexOf("alternate-server")!=-1){disabled=true;height:0}
+                        if (key.indexOf("prometheus_targets")!=-1){disabled=true;height:0}
 												//filter special items
 						if (key == "ad_config"){disabled=true;}
 						//add special btn for Activedirectory config
@@ -76,7 +77,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
 						}
 						if (typeof (outputConfig[key]) == "object"){
 							//currently we support only array type and serialize/deserialize as comma separated string
-							console.log("detected type object in global config:",outputConfig[key])
+							console.log("detected type object in global config:",key,":",outputConfig[key])
 							fieldset.list.push({type:"input", name: "csv__"+key, "hidden":disabled, label: "<b>"+key+"</b>",inputWidth:600,value:JSON.stringify(outputConfig[key])})
 						}
 					 	fieldset.list.push( {type: "label", label: ""});//add spacer

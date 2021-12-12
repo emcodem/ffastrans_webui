@@ -81,7 +81,7 @@ module.exports = {
 //starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
 
 function executeJob(current_job,socketioClientId,informCallback){
-    console.log("detected a scheduled job needs execution")
+    console.log("Executing a scheduled job")
     tmp.file({ mode: '0777', prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
         console.log('Scheduled job user script File: ', path);
@@ -148,14 +148,14 @@ function executeJob(current_job,socketioClientId,informCallback){
                         _workflow['inputfile'] = fileArray[i];
                         ffastransapi.startJob(JSON.stringify(_workflow),function(data){
                             console.log("Return message from ffastrans job: " + data);
-                            
                             try{
-                                console.log("JobID:",JSON.parse(data)["job_id"])
                                 updateScheduledJob(current_job["id"],"last_job_id",JSON.parse(data)["job_id"]);
                                 global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"FFAStrans Job was started, Message: "+ data })
                             }catch(ex){
                                 console.log("Error starting ffastrans job, ",ex);
                                 global.socketio.to(socketioClientId).emit("logmessage","Error starting ffastrans job, see logs")
+                                reportError(current_job,"Error starting workflow. Message:  " + ex + " Workflow: " +_workflow)
+                                
                             }
                         },function(err){
                             console.log("Error occured starting ffastrans job: " + err)
@@ -217,8 +217,22 @@ function killRunningJob(current_job){
     
 }
 
+function reportError(current_job,msg){
+    if ((! current_job["error_list"] )|| current_job["error_list"] == ""){
+        current_job["error_list"] = [];
+    }
+    if (current_job["error_list"].length > 200){
+        current_job["error_list"] = [];
+    }
+    current_job["error_list"].unshift(moment(new Date()).format("YYYY-MM-DD HH:mm:ss") + " " + msg);
+    updateScheduledJob(current_job["id"],"error_list",current_job["error_list"]);
+    
+}
+
 async function needsExecution(current_job){  
     
+
+                                
      //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
     //check if job is still running
     if (current_job['enabled'] != 1 || current_job["cron"] == ""){
@@ -289,6 +303,7 @@ async function needsExecution(current_job){
                     var resp = await axios.get(url);
                     if ("data" in resp){
                         if (JSON.stringify(resp["data"]).indexOf(current_job["last_job_id"]) != -1){
+                            updateScheduledJob(current_job["id"],"last_message","Last job is still active");
                             console.log("last_job_id is still active")
                             return false;
                         }else{

@@ -31,7 +31,7 @@ module.exports = function(app, passport){
                    if (existingjob.length != 0){
                        existingjob = existingjob[0]["scheduled_jobs"];
                        for (var property in job) {
-                          if (property == "last_start" || property == "next_start" || property == "last_message"){
+                          if (property == "last_start" || property == "next_start" || property == "last_message" || property == "error_list"){
                                continue;
                            }
                           if (job.hasOwnProperty(property)) {

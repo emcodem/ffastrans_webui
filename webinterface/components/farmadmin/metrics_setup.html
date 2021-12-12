@@ -47,7 +47,7 @@
 <script>
     /* GLOBALS */
     var m_serverconfig, m_userpermissions, m_lastTreedata;
-
+    var m_loadinterval;
     /*load config from server*/
     function loadserverconfig() {
         $.ajax({
@@ -94,7 +94,7 @@
 		});
 		
         //load currently configured metris clients
-        window.setInterval(function(){load()},1000);
+        m_loadinterval = window.setInterval(function(){load()},1000);
         load();
     }
     
@@ -129,10 +129,13 @@
 
             },
             error: function(xhr, status) {
-                document.body.innerHTML = "Fatal error, could not load metrics_setup. Is Metrics Collector (Prometheus) server running?<br/>" + xhr.responseText;
-                document.body.innerHTML += "<br><br>If you already have a Metrics server running, please go to admin configuration on the left and enter the hostname of METRICS_HOST";
-                document.body.innerHTML += "<br><br>Or do you want to try and install Metrics Services (Prometheus and Grafana) on the Machine where this Webinterface is running on?";
-                document.body.innerHTML += "<br/><br/><input style='margin-left:20px;width:30%' type='submit' onclick='install_prometeus()' value=' Install '/>";
+                err_html = "<div style='margin:10px'>";
+                err_html += "Fatal error, could not load metrics_setup. Is Metrics Collector (Prometheus) server running?<br/>" + xhr.responseText;
+                err_html += "<br><br>If you already have a Metrics server running, please go to admin configuration on the left and enter the hostname of METRICS_HOST";
+                err_html += "<br><br>Or do you want to try and install Metrics Services (Prometheus and Grafana) on the Machine where this Webinterface is running on?";
+                err_html += "<br/><br/><input style='margin-left:0px;width:30%' type='submit' onclick='install_prometeus()' value=' Install '/>";
+                err_html += "</div>"
+                document.body.innerHTML = err_html;
             }
 
         });
@@ -203,8 +206,17 @@
                 alert(success);
             },
             error: function(xhr, status) {
-                document.body.innerHTML = "Error installing: <br/>" + xhr.responseText;
-                document.body.innerHTML += "<br/><br/>Please try to install the service manually: webinterface/tools/install_metrics_server.bat"
+                
+                window.setTimeout(function(){
+                    
+                    err_html = "<div style='margin:10px'>";
+                    err_html += "Error installing: <br/>" + xhr.responseText;
+                    err_html += "<br/><br/>Please try to install the service manually: webinterface/tools/install_metrics_server.bat"
+                    err_html += "<br/><br/>Once the FFAStrans Metrics Services are installed and running, reload this page"
+                    err_html += "</div>"
+                    document.body.innerHTML = err_html;
+                },2000);
+                clearInterval(m_loadinterval)
                 
             }
 

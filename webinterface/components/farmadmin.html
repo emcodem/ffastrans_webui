@@ -135,13 +135,15 @@
         
     /* build basic page layout and init periodic job loading*/
     function init() {
-        var contentiframe = document.getElementById("farm_iframe");
+        var contentiframe = document.getElementById("content_iframe");
         
         //tabs change
         $(function(){
             $('.nav-tabs a').on('click', function (e) {
                 e.preventDefault();
                 $(this).tab('show');
+                document.getElementById("content_iframe").src = this.dataset["target"];
+                localStorage.setItem("selected_farm_menu_item",this.id);
             });
         });
     
@@ -155,21 +157,12 @@
             });
         });
         
-        //button click
-        $('.button').click(function(e){
-           localStorage.setItem("selected_farm_menu_item",this.id);
-           if (this.id=="machines"){
-                console.log(contentiframe)
-                contentiframe.src = document.getElementById(this.id).dataset["url"];
-           }
-           if (this.id=="metrics"){
-                contentiframe.src = document.getElementById(this.id).dataset["url"];
-           }
-        });
-        
         //restore last session
         if (localStorage.getItem("selected_farm_menu_item")){
-            contentiframe.src = document.getElementById(localStorage.getItem("selected_farm_menu_item")).dataset["url"];
+            var _ele = document.getElementById(localStorage.getItem("selected_farm_menu_item"));
+            $(_ele).tab('show');
+            document.getElementById("content_iframe").src = _ele.dataset["target"];
+            //contentiframe.src = document.getElementById(localStorage.getItem("selected_farm_menu_item")).dataset["url"];
         }else{
            contentiframe.src = "farmadmin/farm_machines.html";
         }
@@ -183,48 +176,34 @@
 <div class="dhxtabbar_base_dhx_skyblue dhxtabbar_tabs dhxtabbar_tab_text">
   <ul class="nav nav-tabs bootstrap_tab_header" id="myTab" role="tablist">
     <li class="nav-item bootstrap_tab_pane bootstrap_tab_item">
-      <a class="nav-link active show bootstrap_tab_item bootstrap_tab_text" id="machines-tab" data-toggle="tab" href="#machines" role="tab" aria-controls="machines" aria-selected="true">
+      <a data-target="farmadmin/farm_machines.html" class="nav-link active show bootstrap_tab_item bootstrap_tab_text" id="machines-tab" data-toggle="tab" href="#machines" role="tab" aria-controls="machines" aria-selected="true">
         <div class="bootstrap_tab_text  ">Machines</div>
         </a>
     </li>
     <li class="nav-item bootstrap_tab_item">
-      <a class="nav-link bootstrap_tab_text bootstrap_tab_item" id="metrics-tab" data-toggle="tab" href="#metrics" role="tab" aria-controls="metrics" aria-selected="false">
+      <a data-target="farmadmin/job_metrics.html" class="nav-link bootstrap_tab_text bootstrap_tab_item" id="metrics-tab" data-toggle="tab" href="#metrics" role="tab" aria-controls="metrics" aria-selected="false">
 		<div class="bootstrap_tab_text">Job Metrics</div>
 	  </a>
     </li>
     <li class="nav-item bootstrap_tab_item">
-      <a class="nav-link bootstrap_tab_text bootstrap_tab_item" id="hosts-tab" data-toggle="tab" href="#hosts" role="tab" aria-controls="hosts" aria-selected="false">
+      <a data-target="farmadmin/host_metrics.html" class="nav-link bootstrap_tab_text bootstrap_tab_item" id="hosts-tab" data-toggle="tab" href="#hosts" role="tab" aria-controls="hosts" aria-selected="false">
 		<div class="bootstrap_tab_text">Host Metrics</div>
 	  </a>
     </li>
     <li class="nav-item bootstrap_tab_item">
-      <a class="nav-link bootstrap_tab_text bootstrap_tab_item" id="setup-tab" data-toggle="tab" href="#setup" role="tab" aria-controls="setup" aria-selected="false">
+      <a data-target="farmadmin/metrics_setup.html" class="nav-link bootstrap_tab_text bootstrap_tab_item" id="setup-tab" data-toggle="tab" href="#setup" role="tab" aria-controls="setup" aria-selected="false">
 		<div class="bootstrap_tab_text">Metrics Setup</div>
 	  </a>
     </li>
   </ul>
 </div>
   <div class="tab-content" id="myTabContent">
-    <div class="tab-pane fade  active show" id="machines" role="tabpanel" aria-labelledby="machines-tab">
+    <div  class="tab-pane fade  active show" id="content_window" role="tabpanel" aria-labelledby="content-window-tab">
         <div>
-            <iframe class="farm_iframe"  id="farm_machines" src="farmadmin/farm_machines.html"></iframe>
+            <iframe class="farm_iframe"  id="content_iframe" src=""></iframe>
         </div>       
     </div>
-    <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
-        <div>
-            <iframe class="farm_iframe"  id="job_metrics" src="farmadmin/job_metrics.html"></iframe>
-        </div>
-    </div>
-    <div class="tab-pane fade" id="hosts" role="tabpanel" aria-labelledby="hosts-tab">
-        <div>
-            <iframe class="farm_iframe"  id="host_metrics" src="farmadmin/host_metrics.html"></iframe>
-        </div>
-    </div>
-    <div class="tab-pane fade" id="setup" role="tabpanel" aria-labelledby="setup-tab">
-        <div>
-            <iframe class="farm_iframe"  id="metrics_setup" src="farmadmin/metrics_setup.html"></iframe>
-        </div>
-    </div>
+
     <!-- copy above div to crate new tab (dont forget to add new li item class nav-item -->
   </div>
   

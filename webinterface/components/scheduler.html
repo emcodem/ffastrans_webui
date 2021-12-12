@@ -174,12 +174,12 @@ function init(){
     m_mainLayout.cells("a").setText("Schedule");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
-    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Next Start, Created on,Last Message,Workflow");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,next_start,date_created,last_message,workflow");     
-    m_mainGrid.setInitWidthsP("0,5,15,10,10,10,10,10,10,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,txttxt,ro");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");  
+    m_mainGrid.setHeader("id, Enabled, Name, Description, Frequency,  Last Start, Next Start, Created on,Last Message,Errors,Workflow");
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,cron,last_start,next_start,date_created,last_message,error_list,workflow");     
+    m_mainGrid.setInitWidthsP("0,5,15,10,10,10,10,10,10,10,0");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,cron,ro,ro,txttxt,txttxt,txttxt,ro");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str");  
     /*typecombo = m_mainGrid.getCombo(8);
     typecombo.put("custom","Custom");
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
@@ -470,7 +470,10 @@ function updateJobs(){
                     }    
                     if (colName == "last_message"){
                         m_mainGrid.cells(_job["id"],colidx).setValue(_job["last_message"]);//last start
-                    }                     
+                    }    
+                    if (colName == "error_list"){
+                        m_mainGrid.cells(_job["id"],colidx).setValue(_job["error_list"]);//last start
+                    }                      
                 }
                 continue;
             }
