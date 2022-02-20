@@ -249,7 +249,12 @@
         }
         var to_delete = []
         all_selected_nodes.forEach(function(treenode){
-            to_delete.push(treenode.title)
+			if (treenode.title.indexOf("3003") != -1){
+				alert("You can only remove Windows monitoring, removing port 3003 (FFAStrans monitoring) is not supportd, if you want to do that, please uninstall webinterface from the selected host.\n")
+			}else{
+				to_delete.push(treenode.title)
+				
+			}
         })
         console.log("Removing from monitoring: ",to_delete);
         $.ajax({
@@ -258,7 +263,7 @@
           contentType: "application/json; charset=utf-8",
           data: JSON.stringify(to_delete),
           success: function(data) {
-            dhtmlx.message("Success deleting nodes from monitoring, it can take one minute until you see the changes")
+            dhtmlx.message("Success deleting nodes from monitoring, make sure you copy the folder prometheus_clientsuninstall the metrics client from the affected machine.")
           },
           error: function(err){
             console.log(err);
@@ -276,29 +281,34 @@
 
 <div class="dhxform_base">
     <form class="dhxform_obj_dhx_skyblue" style="width:90%" >
+	
         <div class="fs_dhxform_item_label_top" style="padding-left: 20px !important; padding-top: 20px !important; ">
-            <fieldset class="dhxform_fs" style="padding-left:20px">
-                <legend class="fs_legend" >General</legend>
-                <div class="form-group dhxform_label dhxform_label_align_left">
-                    <label for="grafanaurl_jobs">Job Metrics Grafana Url</label>
-                    <input type="text" class="dhxform_textarea" id="grafanaurl_jobs" >
-                </div>
-                <div class="form-group dhxform_label dhxform_label_align_left">
-                    <label for="grafanaurl_hosts">Host Metrics Grafana Url </label>
-                    <input type="text" class="dhxform_textarea" id="grafanaurl_hosts" >
-                    <small id="help1" class="form-text text-muted">If you create your own Grafana Dashboards, enter the links here.</small>
-                </div>
-                <div class="form-group form-check">
-                    <input type="checkbox" class="form-check-input " id="exampleCheck1">
-                    <label class="form-check-label" for="exampleCheck1">Check me out</label>
-                </div>
+            <!-- <fieldset class="dhxform_fs" style="padding-left:20px"> -->
+                <!-- <legend class="fs_legend" >General</legend> -->
+                <!-- <div class="form-group dhxform_label dhxform_label_align_left"> -->
+                    <!-- <label for="grafanaurl_jobs">Job Metrics Grafana Url</label> -->
+                    <!-- <input type="text" class="dhxform_textarea" id="grafanaurl_jobs" > -->
+                <!-- </div> -->
+                <!-- <div class="form-group dhxform_label dhxform_label_align_left"> -->
+                    <!-- <label for="grafanaurl_hosts">Host Metrics Grafana Url </label> -->
+                    <!-- <input type="text" class="dhxform_textarea" id="grafanaurl_hosts" > -->
+                    <!-- <small id="help1" class="form-text text-muted">If you create your own Grafana Dashboards, enter the links here.</small> -->
+                <!-- </div> -->
+                <!-- <div class="form-group form-check"> -->
+                    <!-- <input type="checkbox" class="form-check-input " id="exampleCheck1"> -->
+                    <!-- <label class="form-check-label" for="exampleCheck1">Check me out</label> -->
+                <!-- </div> -->
                   
-                <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
-                    <div class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
-                    <div class="dhxform_btn_filler" disabled="true"></div>
-                </div>               
-            </fieldset>
+                <!-- <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;"> -->
+                    <!-- <div class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div> -->
+                    <!-- <div class="dhxform_btn_filler" disabled="true"></div> -->
+                <!-- </div>                -->
+            <!-- </fieldset> -->
             
+
+You can add or remove machine monitoring (CPU, Memory, Harddisk...) of FFAStrans hosts in your farm. <br/>
+Notice that FFAStrans "Job Metrics" is reported here but it cannot be added or removed (port 3003).<br/><br/>
+Make sure you copy and install install_metrics_clients.bat and prometheus_clients folder to the machine you want to add and that the FFAStrans Metrics client service is running.<br/>
 
                 
             <fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">

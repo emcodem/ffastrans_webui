@@ -1,5 +1,5 @@
 #untrack database
-tools/prometheus/grafana-7.4.3/data
+
 tools/prometheus/data
 tools/prometheus/data/wal/
 database/

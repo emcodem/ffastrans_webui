@@ -66,7 +66,7 @@ module.exports =  function(app, passport){
             console.log("Current hosts:",global.config["prometheus_targets"]);
             var new_data = [];
             data.forEach(function(what){
-                new_data.push(what + ":9128");//add windows exporter port
+                new_data.push(what + ":9182");//add windows exporter port
             })
             data = new_data;
             

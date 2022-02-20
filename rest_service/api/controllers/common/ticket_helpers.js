@@ -10,16 +10,12 @@ module.exports = {
 
 
 async function get_wf_name(wf_id){
-        try{
+	/* do not catch errors here, the caller must do */
             var workflow_folder =  path.join(global.api_config["s_SYS_CACHE_DIR"], "../configs/workflows/");
             var wf_path = path.join(workflow_folder,wf_id) + ".json";
             var wf_obj = await readfile_cached(wf_path);
             wf_obj = JSON.parse(wf_obj);
             return wf_obj["wf_name"];
-        }catch(ex){
-            console.trace("Error reading workflow ticket: ", (wf_path ),ex);
-            
-        }
 }
 
 //all files in all directories to array
@@ -95,7 +91,7 @@ async function readfile_cached(fullpath){
         return global.filecache.tickets[fullpath]["content"];
 	}else{
 		//read file, store globally and return content
-		try{
+		
             var contents = await fsPromises.readFile(fullpath, 'utf8');
             contents = contents.replace(/^\uFEFF/, '');
             global.filecache.tickets[fullpath] = {};
@@ -104,10 +100,7 @@ async function readfile_cached(fullpath){
             
 			return global.filecache.tickets[fullpath]["content"] ;
 			
-		}catch(ex){
-			console.error("Unexpected error while reading ticket file",fullpath,ex);
-			throw ex;
-		}
+		
 	}
 }
 

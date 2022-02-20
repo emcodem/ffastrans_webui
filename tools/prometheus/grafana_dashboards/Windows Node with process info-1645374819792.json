@@ -18,7 +18,7 @@
   "gnetId": 6593,
   "graphTooltip": 1,
   "id": 7,
-  "iteration": 1615624665938,
+  "iteration": 1645374807885,
   "links": [],
   "panels": [
     {
@@ -549,9 +549,10 @@
       "repeatDirection": "v",
       "scopedVars": {
         "cpumode": {
+          "isNone": true,
           "selected": true,
-          "text": "dpc",
-          "value": "dpc"
+          "text": "None",
+          "value": ""
         }
       },
       "seriesOverrides": [],
@@ -2052,9 +2053,10 @@
       {
         "allValue": ".*",
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "dpc",
-          "value": "dpc"
+          "text": "None",
+          "value": ""
         },
         "datasource": "Prometheus",
         "definition": "label_values(windows_cpu_time_total, mode)",

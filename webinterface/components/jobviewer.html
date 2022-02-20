@@ -605,6 +605,7 @@
                             }
                         // Pass a string to perform case insensitive matching
                         n = filterFunc.call(tree, match, opts);
+						dhtml.message("oida")
                     }).focus();
                     
                     //finally build workflow tree
@@ -821,7 +822,6 @@
 	
     function buildActiveGrid() {
 
-        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200";
         //var sourceUrl = "testdata.xml";
         $("#treetable_active").fancytree({
             extensions: ["contextMenu","table", "gridnav", "multi"],
@@ -1808,13 +1808,13 @@
                 </colgroup>
                 <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                     <tr id="tr_treetable_history">
-                        <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">           <i id="history-state-sorticon" name="treetable_history-sorticon" class=""></i> <input placeholder="State" style="width:50px;height:18px;margin-left:5px" type="search" name="search"  incremental autocomplete="off"></th>
-                        <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">   <i id="history-job_start-sorticon" name="treetable_history-sorticon"/></i>      <input placeholder="Start" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:70px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
-                        <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:150px;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">           <i id="history-state-sorticon" name="treetable_history-sorticon" class=""></i> <input placeholder="State" style="width:90%;height:18px;margin-left:5px" type="search" name="search"  incremental autocomplete="off"></th>
+                        <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">   <i id="history-job_start-sorticon" name="treetable_history-sorticon"/></i>      <input placeholder="Start" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
+                        <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off"></th>
                     </tr>
                 </thead>
             </table>
@@ -1822,10 +1822,10 @@
         
          <!-- WORKFLOW FILTER TEMPLATE -->
         <div id="workflow_filter_menu" class="workflow_filter_background" style="">
-            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='width:100% ;height:30px;white-space:nowrap'>
-                <button title="Expand Groups"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button>
-                <button title="Collapse Groups"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button>
-                <button title="Delete Selection" name="delsel"       class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> <i class="fas fa-ban"></i></button>
+            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='width:100% ;height:40px;white-space:nowrap'>
+                <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
+                <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->
+                <button title="Delete Selection (Show all Workflows)" name="delsel"       class="workflow_filter_menu_item" style="width:30px;height:30px;margin-top:5px;margin-left:5px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> <i class="fas fa-ban"></i></button>
                 <input name='wf_filter' class="workflow_filter_menu_item" style='margin-top:5px;height:20px;margin-left:10px;margin-bottom:5px' id='wf_filter' autocomplete='off'></input> <i class="fas fa-search"></i>
             </div>
             <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>

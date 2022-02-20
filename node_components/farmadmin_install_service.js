@@ -6,10 +6,12 @@ module.exports = function(app, express){
             console.log("Attempting metrics service installation")
             try{
                 var install_bat_grafana = path.join(global["approot"],"tools\\install_metrics_server.bat")
-                
-                var _stdout = await spawnChild(install_bat_grafana)
+                var install_bat_client = path.join(global["approot"],"tools\\install_metrics_clients.bat")
+				
+                var _stdout_server = await spawnChild(install_bat_grafana);
+				var _stdout_client = await spawnChild(install_bat_client);
                 res.writeHead(200,{"Content-Type" : "application/JSON"});
-                res.write("success\n" + _stdout);//output dhtmlx compatible json
+                res.write("success\n" + _stdout_server);//output dhtmlx compatible json
                 res.end();
                 return;    
             }catch(ex){

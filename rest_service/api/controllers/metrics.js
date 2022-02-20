@@ -48,7 +48,7 @@ async function start(req, res) {
 		res.end();
 	} catch(err) {
 		console.debug(err);
-		res.status(500).write({err});
+		res.status(500).write(err.toString());
         return res.end()
 	}
 }
@@ -63,7 +63,13 @@ async function count_running_tickets() {
         for (var _idx in allfiles){
             var _entry = "ffas_running_job";
             var _job= "";
-            var wfname = await common.get_wf_name(allfiles[_idx].split("~")[3]);
+            var wfname 
+				try{
+					wfname = await common.get_wf_name(allfiles[_idx].split("~")[3]);//up to ffastrans 1.2
+					
+				}catch(ex){
+					wfname =await common.get_wf_name(allfiles[_idx].split("~")[4]) //from ffastrans 1.3
+				}
             _job+= "{"
             _job+= "job_id=\"" + allfiles[_idx].split("~")[1] +"\",";
             _job+= "wf_name=\"" + wfname + "\",";
@@ -154,7 +160,7 @@ async function parse_monitor_log(){
             continue;
         }else{
             if (state == 0 && !(lines[_l] in global["metrics"]["monitorlog_reported_erros"][caller_ip])){
-                global["metrics"]["monitorlog_reported_erros"][caller_ip][lines[_l]]   = 1;               
+                global["metrics"]["monitorlog_reported_erros"][caller_ip][lines[_l]]   = 1; //todo: me              
                 returnvalue = "ffas_jobs_error_job_info";
                 returnvalue+= "{"
                 returnvalue+= "job_id=\"" + split[5].split("~")[0] +"\",";
