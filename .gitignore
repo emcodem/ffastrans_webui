@@ -1,5 +1,6 @@
 #untrack database
 
+release
 tools/prometheus/data
 tools/prometheus/data/wal/
 database/
