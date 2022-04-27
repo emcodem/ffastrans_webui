@@ -24,7 +24,7 @@
     "express-session": "^1.17.1",
     "firstline": "^2.0.2",
     "fs-readdir-recursive": "^1.1.0",
-    "grunt": "^1.4.0",
+    "grunt": "^1.5.2",
     "https": "^1.0.0",
     "is-running": "^2.1.0",
     "log4js": "^6.3.0",
