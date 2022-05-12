@@ -362,9 +362,17 @@
         mainLayout.cells("a").setMinWidth(150);
         mainLayout.cells("a").setWidth(350);
         mainLayout.cells("a").collapse(); 
+		
+		if (m_serverconfig["alternate-server"] != true ){
+			buildWorfklowTree(); //load workflows
+			mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
+		}else{
+
+			mainLayout.cells("a").setCollapsedText("");
+			mainLayout.cells("a").hideArrow();
+		}
         
-        buildWorfklowTree(); //load workflows
-        mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
+		mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
         mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
 
@@ -881,9 +889,17 @@
 
                 $tdList = $(node.tr).find(">td");
 				
+				var filename_to_display = node.data.file;
+				try{
+					filename_to_display = (node.data.file.split("\\").pop());
+					
+				}catch(ex){
+					alert(ex)
+				}
+				
                 $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
-                $tdList.eq(3).html("<div class='celltext_rtl'><bdi>" + node.data.file + "</bdi></div>");
+                $tdList.eq(3).html("<div class='celltext_rtl'><bdi>" + filename_to_display + "</bdi></div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.status + "</div>");
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');

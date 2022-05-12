@@ -80,7 +80,7 @@ function init(conf){
     //callback for global config get method, initializes rest of server
     
     global.config = conf;
-        
+    require("./node_components/metrics_control.js")(app);
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
     app.use(session({ 
@@ -223,7 +223,7 @@ function init(conf){
 
     //log all requests
     app.use(function(req, res, next) {
-        //console.log("REQUEST: " + req.originalUrl);
+        console.log("REQUEST: " + "[" + req.originalUrl + "]");
         next();
     });
 
@@ -252,7 +252,7 @@ function init(conf){
     require("./node_components/mediainfo.js")(app, passport);
 	require("./node_components/activedirectory_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
-    require("./node_components/metrics_control.js")(app, passport);
+    
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 

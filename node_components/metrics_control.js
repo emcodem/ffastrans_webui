@@ -13,7 +13,7 @@ var os = require("os");
 
 module.exports =  function(app, passport){
 //serve and store admin config as dhtmlx form json config 
-    passport.authenticate('local-login');//fills req.user with infos from cookie
+    //passport.authenticate('local-login');//fills req.user with infos from cookie
 	app.get('/metrics_control', async(req, res) => {
 		try{
             
