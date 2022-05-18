@@ -3,6 +3,7 @@ const fs = require("fs");
 const axios = require('axios');
 var child_process = require('child_process');
 var configmgr = require( './server_config');
+const bodyParser = require('body-parser');
 
 var os = require("os");
 
@@ -14,6 +15,9 @@ var os = require("os");
 module.exports =  function(app, passport){
 //serve and store admin config as dhtmlx form json config 
     //passport.authenticate('local-login');//fills req.user with infos from cookie
+	app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.json());
+	
 	app.get('/metrics_control', async(req, res) => {
 		try{
             
@@ -62,8 +66,9 @@ module.exports =  function(app, passport){
 		try{
             
             var data = req.body;
-            
+            console.log(req)
             console.log("Current hosts:",global.config["prometheus_targets"]);
+			console.log("New hosts:",data)
             var new_data = [];
             data.forEach(function(what){
                 new_data.push(what + ":9182");//add windows exporter port
