@@ -236,22 +236,35 @@
         var m_serverconfig;
         var mainLayout;
         var m_timelineobject =  [];
-        
+        var m_userpermissions;
         /*load config from server*/
         function loadserverconfig() {
-            $.ajax({
-                url: ("/getserverconfig"),
-                type: "GET",
-                success: function (response) {
-                    console.log("ServerConfig loaded")
-                    m_serverconfig = JSON.parse(response)
-                    init();
-                },
-                error: function (xhr, status) {
-                    dhtmlx.message("Fatal error, could not load serverconfig. ");
-                    document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
-                }
-            });
+        $.ajax({
+            url: ("/getuserpermissions" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+
+                m_userpermissions = JSON.parse(response);
+                //load serverconfig and initialize page
+					$.ajax({
+						url: ("/getserverconfig" + "?" + Math.random()),
+						type: "GET",
+						success: function(response) {
+							m_serverconfig = JSON.parse(response);
+							init();
+						},
+						error: function(xhr, status) {
+							dhtmlx.message("Fatal error, could not load serverconfig. ");
+							document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+						}
+					});
+				},
+				error: function(xhr, status) {
+					dhtmlx.message("Fatal error, could not load serverconfig. ");
+					document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+				}
+
+			});
         }
 
         /*MAIN ENTRY POINT*/
@@ -263,6 +276,18 @@
             get_all_job_details(getQueryVariable("job_id"));
         }
 
+		function _getObjectByValue(object, value) {//helper
+			var to_return = [];
+			for (var _idx in object){
+			   var _v =  object[_idx]["key"];
+			   if (_v == value){
+				to_return.push(object[_idx]);
+			   }
+			}
+			return to_return;
+		}
+
+
         function buildMainLayout() {
             mainLayout = new dhtmlXLayoutObject({
                 // mainLayout = headerLayout.cells("b").attachLayout({
@@ -271,16 +296,52 @@
             });
 
             mainMenu = mainLayout.attachMenu();
-            mainMenu.addNewSibling(null, "reload_youngest", '<button title="Load log from latest Finished Job" class="btn"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>');
-            mainMenu.addNewSibling(null, "retry_job", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>');
-            mainMenu.addNewSibling(null, "refresh_page", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>');
+			
+			var menuButtonLabels = ["Load latest Job",
+									"Resubmit Job",
+									"Refresh this page"];
+			var menuButtonHtml = ['<button title="Load log from latest Finished Job" class="btn"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>',
+								  '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>',
+								  '<button class="btn"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>'
+									];
+									
+	        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+			if (_filter.length > 0){
+				
+				var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+				console.log("Displaying filtered list of buttons, regex: ", regex);
+				
+				//add filtered btns to Running jobgrid
+				for (_id=0;_id<menuButtonLabels.length;_id++){
+					if (menuButtonLabels[_id].match(regex)){
+						_appendtext(menuButtonLabels[_id],menuButtonHtml[_id])
+					}
+				}
+				
+			}else{
+				//just render all btns
+				console.log("Displaying unfiltered list of menu buttons" )
+				for (_id=0;_id<menuButtonLabels.length;_id++){
+					_appendtext(menuButtonLabels[_id],menuButtonHtml[_id])
+				}
+			}
+			
+			function _appendtext (label, html){//helper
+				mainMenu.addNewSibling(null, label, html);
+			}
+		
+            <!-- mainMenu.addNewSibling(null, "reload_youngest", '<button title="Load log from latest Finished Job" class="btn"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>'); -->
+            <!-- mainMenu.addNewSibling(null, "retry_job", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>'); -->
+            <!-- mainMenu.addNewSibling(null, "refresh_page", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>'); -->
+			
+			
             //mainMenu.addNewSibling(null, "reload", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Reload</button>');
             
             mainMenu.attachEvent("onClick", function (id) {
-                    if (id == "refresh_page"){
+                    if (id == "Refresh this page"){
                         window.location.href = window.location.href;
                     }
-                    if (id == "reload_youngest") {
+                    if (id == "Load latest Job") {
                     var url = "/gethistoryjobsajax_treegrid?count=1"
                         $.ajax({
                             url: url,
@@ -299,7 +360,7 @@
                         });
                     }
                 
-                    if (id == "retry_job"){
+                    if (id == "Resubmit Job"){
                         console.log("resubmitting job", m_jobobject)
                         
                         var postBody = {};

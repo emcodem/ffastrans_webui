@@ -117,7 +117,12 @@ module.exports = {
 							q_obj[i]["progress"] = "0";
 							q_obj[i]["workflow"] = q_obj[i]["workflow"]; //todo: implement workflow in ffastrans tickets api for pending jobs
 							if ("sources" in q_obj[i]){
-								q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
+								if ("sources" in q_obj[i]){
+									q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
+								}else if ("source" in q_obj[i]){
+									q_obj[i]["file"] = path.basename(q_obj[i]["source"]);
+								}
+								
 							}
 							q_obj[i]["host"] = "Queued";
 							q_obj[i]["status"] = "Queued";
@@ -365,15 +370,26 @@ async function countJobsAsync(countobj) {
 
 function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
+	
+	try{
     var re = new RegExp(".....$");
     var tz = str.match(/.(\d\d)$/);
-	tz = tz[1];
-	if (tz == "50")
+	if (tz){
+		tz = tz[1];
+	}else{
+		tz = "00";
+		str = str.replace("Z","+00:00");//incoming jobs have wrong date format, this attempts to correct it
+	}
+	if (tz == "50") //translate between momentjs and ffastrans timezone
 		tz = "30"
 	var to_parse = str.replace(/...$/,":" + tz);
     var parsed = moment.parseZone(to_parse)
     return parsed.format("YYYY-MM-DD HH:mm:ss");
-    
+    }catch(ex){
+		
+		console.error("Error getDate: " +str);
+		throw ex;
+	}
 }
 
 function getDurationStringFromDates(start_date,end_date){
