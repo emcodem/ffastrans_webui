@@ -103,6 +103,10 @@
             url: ("/metrics_control" + "?" + Math.random()),
             type: "GET",
             success: function(response) {
+				//fill data retention textbox
+				if (document.getElementById("prometheus_data_retention").value == ""){
+					document.getElementById("prometheus_data_retention").value = response["prometheus_data_retention"];
+				}
                 //transform response to fancytree compatible
                 var fancytreeobj = [];
                 try{
@@ -240,6 +244,34 @@
         win.attachURL("metrics_setup_pages/add_host.html");
     }
     
+	function saveRetention(){
+		var value = document.getElementById("prometheus_data_retention").value;
+		clearInterval(m_loadinterval);
+        console.log("Saving retention: ",value);
+		var loading_ele = document.getElementById("retention-loading");
+		loading_ele.style.visibility = "visible";
+		
+        $.ajax({
+          url: "/metrics_control" + "?" + Math.random(),
+          type: 'PUT',
+          contentType: "application/json; charset=utf-8",
+          data: JSON.stringify({"prometheus_data_retention" : value}),
+          success: function(data) {
+            dhtmlx.message("Success saving retention time and restarting service")
+			//wait until prom has been really fired up and re-init service installation checking
+			window.setTimeout(function(){m_loadinterval = window.setInterval(function(){load()},1000)},10000);
+			loading_ele.style.visibility = "hidden";
+          },
+          error: function(err){
+            console.log(err);
+            alert("Error saving retention time. " + JSON.stringify(err));
+			//m_loadinterval = window.setInterval(function(){load()},1000);
+			loading_ele.style.visibility = "hidden";
+          }
+        });
+	}
+      
+	  
     function uninstall(){
         var tree = $("#treetable_hosts").fancytree('getTree');
         var all_selected_nodes = tree.getSelectedNodes();
@@ -267,7 +299,7 @@
           },
           error: function(err){
             console.log(err);
-            alert("Error deleting nodes from monitoring: " + xhr.responseText)
+            alert("Error deleting nodes from monitoring: " + err)
           }
         });
         
@@ -306,14 +338,30 @@
             <!-- </fieldset> -->
             
 
-You can add or remove machine monitoring (CPU, Memory, Harddisk...) of FFAStrans hosts in your farm. <br/>
+			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+			
+                <legend class="fs_legend">Data retention</legend>       
+						   <div style="width: 350px;" class="form-group dhxform_label dhxform_label_align_left">
+								<label for="grafanaurl_jobs">
+								How many days to keep the Data (default 15) - this will influence the size of the prometheus database directory. Example: DB Size should be less than 5 GB for 15 days and about 5 hosts. 
+								<br/>
+								Change causes "ffastrans metrics collector" Service restart.
+								</label>
+								<textarea id="prometheus_data_retention" style="width: 350px;" rows="1" ></textarea>
+							</div>
+							 <div class="dhxform_btn" role="link"><div style="display: table-cell;float:none;width:100px;margin-left:10px" onclick="saveRetention()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save and restart</div></div>
+							 <div id="retention-loading" style="visibility:hidden" class="spinner-border" role="status">
+							  <span class="sr-only">Loading...</span>
+							</div>
+			</fieldset>		
+				
+			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+				
+                <legend class="fs_legend">Monitored Hosts</legend>
+				You can add or remove machine monitoring (CPU, Memory, Harddisk...) of FFAStrans hosts in your farm. <br/>
 Notice that FFAStrans "Job Metrics" is reported here but it cannot be added or removed (port 3003).<br/><br/>
 Make sure you copy and install install_metrics_clients.bat and prometheus_clients folder to the machine you want to add and that the FFAStrans Metrics client service is running.<br/>
 
-                
-            <fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
-
-                <legend class="fs_legend">Monitored Hosts</legend>
                     <div style="display: table-row" class="" role="link" tabindex="0" dir="ltr" style="width: 150px;">
                         <div class="dhxform_btn" role="link"><div style="display: table-cell;float:none;width:100px" onclick="install()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Add new Host</div></div>
                         <div style="display: table-cell;width:10px"  class=""></div>

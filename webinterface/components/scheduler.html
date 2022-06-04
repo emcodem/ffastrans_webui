@@ -48,7 +48,8 @@ function renderCron(_id,_initial){
     $("#sched"+_id+"").cron({
                                 initial: _initial,
                                 customValues: {
-                                    "2 Minutes" : "*/2 * * * *",
+                                    "1 Minutes" : "*/1 * * * *",
+									"2 Minutes" : "*/2 * * * *",
                                     "5 Minutes" : "*/5 * * * *",
                                     "10 Minutes" : "*/10 * * * *",
                                 }
@@ -153,7 +154,7 @@ function loadserverconfig(){
 }
 
 /* build basic page layout and init periodic job loading*/
-function init(){
+async function init(){
     //store clientid of socket.io in order to receive custom messages (e.g. job log)
     socket.on('socketid', function(msg){
        m_socketId = msg;
@@ -273,15 +274,58 @@ function init(){
         m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(selected_wf_id){
             //workflow was selected, show start_procs
             m_workflowForm.getCombo("start_proc").clearAll();
-
-           
+			
             //collect start procs from wf
-            for (y=0;y<m_allWorfklows[selected_wf_id]["nodes"].length;y++){
+            for (var y=0;y<m_allWorfklows[selected_wf_id]["nodes"].length;y++){
                 var nodes = m_allWorfklows[selected_wf_id]["nodes"];
                 if (nodes[y]["start_proc"]){
                     m_workflowForm.getCombo("start_proc").addOption(  [{value:nodes[y]["id"],text:nodes[y]["type"],selected:true}] ); //todo; get display name
                 }
             }
+			
+			<!-- //add user_variables -->
+			<!-- var user_var_url = m_allWorfklows[selected_wf_id]["user_variables"]["uri"]; -->
+			<!-- $.ajax({url: user_var_url, -->
+				<!-- success:function(data){ -->
+					<!-- console.log("user vars:",data["user_variables"]); -->
+					<!-- for (var i=0;i<data["user_variables"].length;i++){ -->
+					
+						<!-- if (m_subForm){ -->
+							<!-- m_subForm.unload();//clear existing form items -->
+							<!-- m_subForm = null; -->
+						<!-- } -->
+						<!-- //add uservariables inputs -->
+						<!-- var current_var = data["user_variables"][i]; -->
+						<!-- var desc = current_var.description  == "" ? current_var.name : current_var.description; -->
+						<!-- console.log(desc) -->
+						<!-- if (current_var.name.indexOf("webui") != -1){ -->
+							<!-- //detected a variable that interacts with webui (should have JSON default value) -->
+							<!-- try{ -->
+								<!-- parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays! -->
+							<!-- }catch(e){ -->
+								<!-- console.log ("webui variable parsing error",e,"Variable: ",current_var); -->
+								<!-- dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\""); -->
+							<!-- } -->
+						<!-- }else{ -->
+							<!-- //standard ffastrans variables -->
+							<!-- var displayName = current_var.name; -->
+							<!-- displayName = displayName.replace("s_", ""); -->
+							<!-- displayName = displayName.replace("i_", ""); -->
+							<!-- displayName = displayName.replace("f_", ""); -->
+							<!-- m_workflowForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, offsetLeft:10 }); -->
+							
+						<!-- } -->
+					<!-- } -->
+				<!-- }, -->
+				<!-- error:function(data){ -->
+					<!-- console.log(data); -->
+					<!-- alert("There was a problem getting user_variables for the selected workflow, see console"); -->
+				<!-- } -->
+			<!-- });//user_variables ajax -->
+			
+	
+
+			
                  
         });
     });

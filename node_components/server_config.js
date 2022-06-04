@@ -34,18 +34,21 @@ module.exports = {
         //console.log(defaultConfig);
         return defaultConfig;
     },
-    save: (configobj,callbacksuccess,callbackerror) => {
+    save: (configobj,callbacksuccess=false,callbackerror=false) => {
         //updates config in database
 		/* modules should call this whenever they change global.config. TODO: implement setter */
         global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true}, function (err, newDoc) {
             if (err){
-                callbackerror(err);
+				if (callbackerror){
+					callbackerror(err);
+				}
             }
 			console.log("global config after saving",configobj)
             global.config = configobj;
             console.log("Success saving Server Config, config updated")
-			
-            callbacksuccess();
+			if (callbacksuccess){
+				callbacksuccess();
+			}
         });
     },
 	

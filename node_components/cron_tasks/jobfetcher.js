@@ -2,9 +2,11 @@ const assert = require('assert');
 const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
-const path = require("path")
+const path = require("path");
+var smptMail = require("../common/send_smpt_email")
 // const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
 //todo: implement queued jobs
+var alert_sent = false;
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 process.env.UV_THREADPOOL_SIZE = 128;
 
@@ -13,7 +15,7 @@ process.env.UV_THREADPOOL_SIZE = 128;
 // })
 
 module.exports = {
-    fetchjobs: function () {
+    fetchjobs: async function () {
 
     //inform clients about current job count
     var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
@@ -45,13 +47,35 @@ module.exports = {
     }
     
     Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, function (error, response, body)  {
-            if(error) {
-                global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+			if(error) {
+				try{
+					/* take care about alert email */
+					if (!alert_sent){
+						sendEmailAlert("ALERT! FFAStrans is down","Got an error fetching jobs from: <br/>" + global.config.STATIC_GET_RUNNING_JOBS_URL );
+						alert_sent = true;
+					}
+				}catch(ex){
+					console.error("Could not send email alert message: ", ex.stack)
+				}
+				global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                 console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
                 console.error(error);
                 return;
-            }
-                
+			}
+				
+			if (alert_sent){
+				//send all good email if needed
+				alert_sent = false;
+				try{
+					sendEmailAlert("FFAStrans is up again","The system did successfully respond to " + global.config.STATIC_GET_RUNNING_JOBS_URL );
+					
+				}catch(ex){
+					console.error("Could not send email alert message (good again): ", ex.stack);
+				}
+			}
+			
+			/* end of alert email */
+			
             var jobArray;		
             try{
                 jobArray = JSON.parse(body).jobs;
@@ -79,8 +103,6 @@ module.exports = {
                 
             }//for all jobs
                        
-           //todo: store last active jobs array in DB for immediate client initialisation?
-           
         //send the new jobs to connected clients, todo: only notify clients about new stuff
 		try{
 			global.socketio.emit("activejobs", JSON.stringify(jobArray));
@@ -448,3 +470,52 @@ Object.defineProperty(String.prototype, 'hashCode', {
 	return hash;
   }
 });
+
+//var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
+async function renewInstallInfo(about_url){
+    //refresh ffastrans install info infinitely
+    while (true){
+        await sleep(15000);
+        var install_info;
+        try{
+            install_info = await doRequest(about_url);
+            install_info = JSON.parse(install_info);
+        }catch(ex){
+            console.error("Error getting install info, is FFAStrans API online?", about_url)
+        }
+        
+        if (global.api_config["s_SYS_DIR"] != install_info["about"]["general"]["install_dir"] + "/"){
+            console.log("Detected move of FFAStrans installation, resetting paths");
+            global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
+            global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
+            global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
+            global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
+        }
+    }
+}
+
+function doRequest(url) {
+  return new Promise(function (resolve, reject) {
+    request(url, function (error, res, body) {
+      if (!error && res.statusCode == 200) {
+        resolve(body);
+      } else {
+        reject(error);
+      }
+    });
+  });
+}
+
+
+async function sendEmailAlert(subject, body){
+		try{
+			var rcpt = global.config["email_alert_config"]["email_alert_rcpt"];
+			
+			console.log("Sending alert email to: ",rcpt)
+			console.log("Email sending result:",await smptMail.send(rcpt,subject, body));
+			
+		}catch(ex){
+			console.error(ex.stack);
+			console.error("Error sending email: ",ex);
+		}
+}

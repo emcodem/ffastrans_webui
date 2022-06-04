@@ -10,11 +10,12 @@ const passport = require('passport');
 const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
-
 const fs = require('fs');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
+const configmgr = require( './node_components/server_config')
+
 // const blocked = require('blocked-at')
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
@@ -73,13 +74,14 @@ global.db.config.loadDatabase(function (err) {    //database is vacuumed at star
 });
 
 //get global config
-require( './node_components/server_config').get(init);
+configmgr.get(init);
 
 
-function init(conf){
+async function init(conf){
     //callback for global config get method, initializes rest of server
     
     global.config = conf;
+	
     require("./node_components/metrics_control.js")(app);
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
@@ -106,26 +108,35 @@ function init(conf){
 		global.config["alternate-server"] = true;
 	}
 	else{
+		console.log("No alternate server detected");
 		jobfetcher = require("./node_components/cron_tasks/jobfetcher");
 		global.config["alternate-server"] = false;
     }
     
 	if (!global.config["alternate-server"]){
-		console.log("NOT running on alternate-server, getting about")
+		delete global.config["ffastrans-about"];
 		    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
 		var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
+		console.log("NOT running on alternate-server, getting FFAStrans API about:",about_url);
 		var _request = require('retry-request', {
 			request: require('request')
 		});
 		//we need to get install directory when running as part of webinterface, before we can start new api
-		_request(about_url, {noResponseRetries:50000,timeout:1000}, (error, response, body) => {
-			
+		_request(about_url, {noResponseRetries:1000000,timeout:1000}, (error, response, body) => {
+			console.log("Email config retrieved from ffastrans.")
 			if (error) {
 				console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
 				return;
 			};
-			console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
 			
+			try{
+				global["ffastrans-about"] = JSON.parse(body);
+				console.log("FFAStrans config:",global["ffastrans-about"])
+			}catch(exception){
+				console.error("Could not parse about JSON from ffastrans url: ",about_url,exception);
+			}
+			//startup our own rest API
+			console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
 			var api_root = path.join(__dirname, 'rest_service');
 			ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
 			
@@ -190,12 +201,12 @@ function init(conf){
     app.use(bodyParser.json());
 
 
-    cron.schedule("*/5 * * * * *", function() {
+    cron.schedule("*/5 * * * * *", async function() {
         //GET LATEST JOBS FROM FFASTRANS API     
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;
             try{
-                jobfetcher.fetchjobs();
+                await jobfetcher.fetchjobs();
             }catch (ex){
                 console.trace("Error, jobfetcher exception. " + ex)
             }
@@ -251,6 +262,7 @@ function init(conf){
     require("./node_components/resumeable_backend.js")(app, passport);
     require("./node_components/mediainfo.js")(app, passport);
 	require("./node_components/activedirectory_tester.js")(app, passport);
+	require("./node_components/admin_alert_email_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
     
     //favicon

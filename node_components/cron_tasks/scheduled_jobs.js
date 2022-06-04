@@ -81,7 +81,9 @@ module.exports = {
 //starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
 
 function executeJob(current_job,socketioClientId,informCallback){
-    console.log("Executing a scheduled job")
+    console.log("Executing a scheduled job");
+	console.log ("SCIRPT",current_job["script"])
+	
     tmp.file({ mode: '0777', prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
         console.log('Scheduled job user script File: ', path);
@@ -230,9 +232,7 @@ function reportError(current_job,msg){
 }
 
 async function needsExecution(current_job){  
-    
-
-                                
+   
      //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
     //check if job is still running
     if (current_job['enabled'] != 1 || current_job["cron"] == ""){
@@ -282,14 +282,14 @@ async function needsExecution(current_job){
     //job is pending but should we really execute it?
     if (returnvalue){
 
-        if (current_job['last_pid']){
-            if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
-                console.log("Scheduled Job is pending " + current_job["job_name"] + " but PID is still running, preventing execution");
-                //todo: check for timeout and reset pid if neccessary 
-                updateScheduledJob(current_job["id"],"last_message","Job is pending but PID is still running " + current_job['last_pid']);
-                return false;
-            }
-        }
+        // if (current_job['last_pid']){ //LAST PID IS A REALLY BAD CHECK; ANOTHER PROCESS MIGHT HAVE THE PID
+            // if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
+                // console.log("Scheduled Job is pending " + current_job["job_name"] + " but PID is still running, preventing execution");
+                // //todo: check for timeout and reset pid if neccessary 
+                // updateScheduledJob(current_job["id"],"last_message","Job is pending but PID is still running " + current_job['last_pid']);
+                // return false;
+            // }
+        // }
         
         if ("last_job_id" in current_job){
             

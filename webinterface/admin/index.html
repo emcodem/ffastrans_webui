@@ -79,11 +79,15 @@ function init(){
     });
 		
 	m_mainForm.attachEvent("onButtonClick", function(name){
-		console.log("mainform button click")
+		console.log("mainform button click");
 		if (name == "btn_adconfig"){
-			showAdConfigWindows();
+			showConfigWindow("Activedirectory Config","activedirectory_setup.html");
+		}
+		if (name == "btn_email_alert_config"){
+			showConfigWindow("Email Alert Config","email_alert_setup.html");
 		}
 	});
+	
     m_fileBrowseGridMenu.attachEvent("onClick", function (name, value, state){
             if (name == 'save'){
                 m_mainForm.send("/adminconfig", function(loader, response){
@@ -96,18 +100,17 @@ function init(){
                 
             }
     });   
-	
-	
+
 	window.setInterval(function(){
 		if (m_needreload){m_fileBrowseGridMenu.setItemDisabled("save");}
 	},500)
 }
 
-function showAdConfigWindows(){
+function showConfigWindow(win_text,win_url){
 	var myWins = new dhtmlXWindows();
 	w1 = myWins.createWindow("w1",100,100,800,600);
-	w1.setText("Activedirectory Config")
-	w1.attachURL("activedirectory_setup.html"); 
+	w1.setText(win_text)
+	w1.attachURL(win_url); 
 	myWins.attachEvent("onClose", function(win){
 		//we reload to get the updated config from ad window
 		window.location.reload();

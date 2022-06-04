@@ -36,10 +36,23 @@ var configServer = require(global.approot  + '/node_components/server_config');
 						if (key.indexOf("alternate-server")!=-1){disabled=true;height:0}
                         if (key.indexOf("prometheus_targets")!=-1){disabled=true;height:0}
 												//filter special items
+						if (key == "email_alert_config"){disabled=true;}
+						if (key.indexOf("STATIC_SEND_EMAIL_ALERTS")!=-1){
+							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "Email Alerts", list: [
+								{type: "select", "hidden":disabled,name: key,width:550, label: "<b>"+key+"</b>", options:[
+                                    {text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
+                                    {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
+                                ]},
+								{type:"button", id:"btn_email_alert_config", "hidden":disabled,name: "btn_email_alert_config", width:550,label: "<b>1</b>",value:"Email Alert Configuration"}
+							]} );//add spacer
+							continue;
+							
+						}
+						
 						if (key == "ad_config"){disabled=true;}
 						//add special btn for Activedirectory config
 						if (key.indexOf("STATIC_USE_WEB_AUTHENTIFICATION")!=-1){
-							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "", list: [
+							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "Authentification", list: [
 								{type: "select", "hidden":disabled,name: key,width:550, label: "<b>"+key+"</b>", options:[
                                     {text: "Enable", value: "true",	selected:(true==JSON.parse(outputConfig[key]))},
                                     {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},

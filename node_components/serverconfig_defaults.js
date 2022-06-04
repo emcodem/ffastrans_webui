@@ -9,10 +9,11 @@
 defaultConfig = {};
 
 defaultConfig.STATIC_WEBUI_HEADER_NAME = "";
-
+defaultConfig.STATIC_SEND_EMAIL_ALERTS = false;
 defaultConfig.STATIC_WEBSERVER_LISTEN_PORT = 3002;
 defaultConfig.STATIC_WEBSERVER_ENABLE_HTTPS = false;
 defaultConfig.STATIC_WEBSERVER_HTTPS_PK_PASSWORD = "webserver";
+
 
 defaultConfig.STATIC_USE_WEB_AUTHENTIFICATION = false;
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
