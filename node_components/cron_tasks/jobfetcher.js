@@ -16,6 +16,8 @@ process.env.UV_THREADPOOL_SIZE = 128;
 
 module.exports = {
     fetchjobs: async function () {
+    
+    //delete old jobs
 
     //inform clients about current job count
     var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };

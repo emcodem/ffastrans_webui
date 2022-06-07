@@ -15,6 +15,7 @@ const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
 const configmgr = require( './node_components/server_config')
+const dbManager = require( './node_components/common/database_controller')
 
 // const blocked = require('blocked-at')
 // blocked((time, stack) => {
@@ -202,6 +203,12 @@ async function init(conf){
 
 
     cron.schedule("*/5 * * * * *", async function() {
+        //DELETE OLD JOBS
+        try{
+        dbManager.deleteOldRecords();
+        }catch(ex){
+            console.error("Error deleting old records from DB: ",ex)
+        }
         //GET LATEST JOBS FROM FFASTRANS API     
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;

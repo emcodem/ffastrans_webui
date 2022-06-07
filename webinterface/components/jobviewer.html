@@ -380,9 +380,6 @@
             }
         }
 
-        //kick off DB maintenance verytime a client opens the UI - fire and forget TODO: kick off from server instead of from client
-        $.get("/deleteoldrecords");
-
         //check if html5 features supported
         if (typeof(Storage) !== "undefined") {} else {
             dhtmlx.message("ERROR, no html5 store support, cannot save view state")
@@ -403,7 +400,7 @@
         mainLayout.cells("a").setWidth(350);
         mainLayout.cells("a").collapse(); 
 		
-		if ("alternate-server" in m_serverconfig != true){
+		if (m_serverconfig["alternate-server"] != true){
 			buildWorfklowTree(); //load workflows
 			mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
 		
@@ -474,13 +471,13 @@
         });
 
         //restore last sort order for active jobs - disabled due to benjamin intervetion
-        <!-- try{ -->
-            <!-- m_lastsortelementid = JSON.parse(localStorage.getItem("m_lastsortelementid")); -->
-            <!-- m_lastsortdir = JSON.parse(localStorage.getItem("m_lastsortdir")); -->
-        <!-- }catch(ex){ -->
-            <!-- console.log("No Sorting stored in client cache, will apply default sort order.") -->
-        <!-- } -->
-        //if (!m_lastsortelementid || !m_lastsortdir || typeof(m_lastsortelementid) != "object" || typeof(m_lastsortdir) != "object") {
+        // <!-- try{ -->
+        //     <!-- m_lastsortelementid = JSON.parse(localStorage.getItem("m_lastsortelementid")); -->
+        //     <!-- m_lastsortdir = JSON.parse(localStorage.getItem("m_lastsortdir")); -->
+        // <!-- }catch(ex){ -->
+        //     <!-- console.log("No Sorting stored in client cache, will apply default sort order.") -->
+        // <!-- } -->
+        // //if (!m_lastsortelementid || !m_lastsortdir || typeof(m_lastsortelementid) != "object" || typeof(m_lastsortdir) != "object") {
             m_lastsortelementid = {}
             m_lastsortdir = {}
             m_lastsortelementid["treetable_active"] = "active-state";
@@ -488,9 +485,9 @@
 			m_lastsortelementid["treetable_history"] = "history-job_start";
             m_lastsortdir["treetable_history"] = "des";
             console.log("Applying default sorting for active and history grid")
-        <!-- } else { -->
-            <!-- console.log("Applying stored sorting for active grid", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]) -->
-        <!-- } -->
+        // <!-- } else { -->
+        //     <!-- console.log("Applying stored sorting for active grid", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]) -->
+        // <!-- } -->
 		
         //    mainLayout.cells("b").progressOn();
 
@@ -533,6 +530,7 @@
 			//add new node
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
             //take care about grid sorting
+            
             sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
 			
 			
@@ -652,7 +650,7 @@
                             }
                         // Pass a string to perform case insensitive matching
                         n = filterFunc.call(tree, match, opts);
-						dhtml.message("oida")
+						
                     }).focus();
                     
                     //finally build workflow tree
@@ -1054,14 +1052,7 @@
 
     function getContextMenuHistoryGrid(allpossible){
         //opens context menu
-        
-        <!-- try{//special code to mark rightlcicked node as selected -->
-            <!-- console.log("trying") -->
-            <!-- var tree = $('#treetable_history').fancytree('getTree'); -->
-            <!-- var selected = tree.getSelectedNodes(); -->
-            <!-- console.log("selected count: ", selected.length) -->
-        <!-- }catch(ex){} -->
-        
+                
         var contextmenu = {};
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){

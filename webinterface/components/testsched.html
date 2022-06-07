@@ -45,24 +45,9 @@
         overflow: auto;
     }
 
-    .fs_legend{
-        width:auto;
-    }
-
-    .dhxform_label{
-        min-width: 150px;
-    }
-
-    .dhxform_control{
-        width: auto;
-    }
-
-
 
 </style>
 <script>
-// #region Helpers 
-
 /* init SOCKET.IO */
 var socket = io(); 
 
@@ -167,8 +152,10 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
 /* nests all other methods from the base class */
 eXcell_cron.prototype = new eXcell;
 
+</script>
+<script>
 /* GLOBALS */
-var  m_workflowSelectionWindow,m_workflowSelectionLayout,m_mainGrid,m_codemirror,m_lastSelectedWorkflow,m_allWorfklows = {},m_socketId;
+var  m_workflowSelectionWindow,m_mainGrid,m_codemirror,m_lastSelectedWorkflow,m_allWorfklows = {},m_socketId;
 
 
 /*load config from server*/
@@ -186,143 +173,94 @@ function loadserverconfig(){
         }
     });
 }
-// #endregion
 
-//#region variableselector
-function loadVariables(wf_id,success_cb){
-//adds options to workflow select combo
-    //get currently selected workflow
+function getWorkflowList(cb_success, cb_error=function(){}){
+
     $.ajax({
-        url:  "/getworkflowdetails?workflowid="+wf_id,
+        url:  "/getworkflowlist",
         type: "GET",
         dataType: "json",
         context: this,
         success: function (response) {
-            success_cb(response);
+            if (response['workflows'].length == 0){
+                cb_error("Did not get any workflows from FFASTRANS API");
+            }else{            
+                cb_success(response['workflows']);
+            }
         },
         error: function (xhr, status) {
-            m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR getting variables, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+            cb_error("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
         }
     });
 }
 
-function openVariableSelector(rId,savedVariables){
-            //restore values from saved vals
-    var savedvars = m_mainGrid.getUserData(rId,"variables");
-    try{
-        savedvars = JSON.parse(savedvars);
+
+
+function openWorkflowSelector(rowId,savedWorkflow){
+        /*open dhxwin for choosing workflow and related */
+        console.log("Saved workflow:",savedWorkflow);
+        var selectedWfId = false;
+        var selectedStartProc = false;
+        try{
+            savedWorkflow = JSON.parse(savedWorkflow);
+            selectedWfId = savedWorkflow["wf_id"];
+            selectedStartProc = savedWorkflow["start_proc"];
+        }catch(ex){
+
+        }
+        
+        //todo: get currently selected row, show it in win title and use it for updating workflow and startproc
+        getWorkflowList(function(workflows){
+            //render workflow selector tree
+            console.log("parsing workflwows",workflows);
+            parseWorkflows(m_workflowArray,{"selectMode":1,"dom_id":"workflowtree","extensions":["filter"],"selected":selectedWfId},function(){},on_treeWorkflowClick);
+            m_workflowSelectionWindow.attachObject("workflow_selector_template");
+            //m_workflowSelectionWindow.setUserData("rowId",rowId);
+            m_workflowSelectionWindow.show();
+        });
+
+        function on_treeWorkflowClick(name,wf_obj,evt){
+            //render possible start procs
+            var tree = $("#workflowtree").fancytree("getTree");
+            tree.selectAll(false);
+            evt["node"].setActive(true);
+            var wf_obj = evt["node"]["data"]["wf_object"];
+            //delete possible existing tree
+            document.getElementById("startproctree_parent").innerHTML = "";
+            document.getElementById("startproctree_parent").innerHTML = "<div id='startproctree' name='"+rowId+"''></div>";//this is how we pass back selected rowid to getSelectedWorkflow
+            //render new tree
+            parseProcessors(wf_obj["nodes"],{"selectMode":1,"dom_id":"startproctree","extensions":["filter"],"startprocs_only":true,"selected":selectedStartProc,"icon_path":"../images/"},function(){return true},on_treeStartProcClick);
+        }
+        
+        function on_treeStartProcClick(proc_name,proc_obj,evt){
+            var tree = $("#startproctree").fancytree("getTree");
+            tree.selectAll(false);
+            evt["node"].setSelected(true,{"noEvents":true});
+        }
+
+}
+
+function getSelectedWorkflow(){
+   var selWf =  $("#workflowtree").fancytree("getTree").getActiveNode();
+   var selProc = $("#startproctree").fancytree("getTree").getActiveNode();
+   var gridRowId = ($("#startproctree").attr('name'));
+   try{
+        var selectedWf = selWf["wf_object"];
+        var selectedProc = selProc["full_object"];
+        var wf_to_save ={};
+        console.log("SELECTED WF:",selectedWf)
+        wf_to_save["wf_id"] = selectedWf["wf_id"];
+        wf_to_save["start_proc"] = selectedProc["id"];
+        wf_to_save["start_proc_name"] = selectedProc["name"];
+        wf_to_save["inputfile"] = "";
+        wf_to_save["variables"] = [];
+        m_mainGrid.setUserData(gridRowId,"workflow",JSON.stringify(wf_to_save));
+        
     }catch(ex){
-        console.error("Could not parse variables:",ex);
-        savedvars = [];
-    }
-    //seekme
-    var dhxwins = new dhtmlXWindows();
-    var wf_id;
-    try{
-        wf_id = JSON.parse(m_mainGrid.getUserData(rId,"workflow"))["wf_id"];
-    }catch(ex){
-        alert("Error, did you select a workflow?");
+        alert("You have to select both, a workflow and a start processor." + ex);
         return;
     }
-    console.log(wf_id)
-    var m_variableSelectionWindow = dhxwins.createWindow("Variable Selection", window.innerWidth/6, window.innerHeight/7, 800, 600);
-    m_variableSelectionWindow.setText("Variables");
-    m_variableSelectionWindow.attachHTMLString("<div id='subform'></div>")
-    var _menu = m_variableSelectionWindow.attachMenu({
-            icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
-            items:[
-                {id:"save", text:'<i class="fas fa-save"></i>OK'}
-            ]
-        });
-
-
-    loadVariables(wf_id,function(response){
-        //variable loading ajax callback
-       
-        var m_subForm  = new dhtmlXForm("subform");
-        m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 500, offsetTop : 0, offsetLeft : 10,list:[]},1);
-        //attach onclick event for save function
-        _menu.attachEvent("onClick", function(id, zoneId, cas){
-            if (id == "save"){
-                //check if user chose a workflow and startproc
-                var varsToSave = [];
-                m_subForm.forEachItem(function(name){
-                    if (m_subForm.getItemValue(name)){
-                        varsToSave.push({"name":name,"data":m_subForm.getItemValue(name)});
-                    }
-                });
-                console.log("Saving variables to userdata",varsToSave);
-                //store in userdata of gridrow
-                m_mainGrid.setUserData(rId,"variables",JSON.stringify(varsToSave));
-                saveJobGrid();
-                m_variableSelectionWindow.close();
-            }
-        });
-
-        //parse variables and add them to the form
-        for (var i=0;i<response["user_variables"].length;i++){
-            /* TODO: this could be merged with jobstarter.js */
-                        //add uservariables inputs 
-                        var current_var = response["user_variables"][i];
-                        var saved_data = "";
-                        for (var y=0;y<savedvars.length;y++){
-                            if (savedvars[y].name == current_var.name){
-                                console.log("Restoring var value for ",current_var.name);
-                                saved_data = savedvars[y].data;
-                            }
-                        }
-                        var desc = current_var.description  == "" ? current_var.name : current_var.description;
-                        if (current_var.name.indexOf("webui") != -1){
-                            //detected should create a dropdown on webui (should have JSON default value)
-                            try{
-                                parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name,saved_data);//special support for key value arrays!
-                            }catch(e){
-                                console.error("webui variable parsing error",e,"Variable: ",current_var)
-                                dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
-                            }
-                        }else{
-                            //standard ffastrans variables
-                            var displayName = current_var.name;
-                            displayName = displayName.replace("s_", "");
-                            displayName = displayName.replace("i_", "");
-                            displayName = displayName.replace("f_", "");
-                            m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, value: saved_data,offsetLeft:10 });
-                        }
-        }
-    });
-    
 }
-
-
-function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name,saved_data){
-    var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
-    var_obj = JSON.parse(var_obj);
-    if (var_obj.length == 0){
-        dhtmlx.alert(errormsg)
-    };
-    try{
-        var var_display_name = var_name;
-        var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
-        var options=[];
-        for (var y=0;y<var_obj.length;y++){
-            var is_sel = false;
-            console.log("compare ",var_obj[y].value,"with",saved_data)
-            if (var_obj[y].value == saved_data){
-                is_sel = true;
-            }
-            options.push({text:var_obj[y].key,value:var_obj[y].value,selected:is_sel});
-        }
-        var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-        dhxForm.addItem("data", itemData);
-    }catch(e){
-        console.log("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg,e)
-        dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
-    }
-}
-
-
-//#endregion
 
 /* build basic page layout and init periodic job loading */
 async function init(){
@@ -337,9 +275,8 @@ async function init(){
         pattern: "2U"           
     });
     
-    //workflow selection window
     var dhxwins = new dhtmlXWindows();
-    m_workflowSelectionWindow = dhxwins.createWindow("Workflow Selection", window.innerWidth/6, window.innerHeight/7, 800, 600);
+    m_workflowSelectionWindow = dhxwins.createWindow("Workflow Selection", window.innerWidth/6, window.innerHeight/10, 600, 200);
     var _menu = m_workflowSelectionWindow.attachMenu({
             icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
             items:[
@@ -349,24 +286,21 @@ async function init(){
     _menu.attachEvent("onClick", function(id, zoneId, cas){
         if (id == "save"){
             //check if user chose a workflow and startproc
-            saveSelectedWorkflow();
+            getSelectedWorkflow();
            // m_workflowSelectionWindow.hide();
         }
     });
     /*Workflow window always exists, it will be just hidden when not needed*/
-
+    m_workflowSelectionWindow.setText("Workflow Selection");
     m_workflowSelectionWindow.hide(); 
-
     m_workflowSelectionWindow.attachEvent("onClose", function(w){
+                /*detaches object and attaches it to body to save for next time*/
+                m_workflowSelectionWindow.detachObject();
+                /*hides window*/
                 m_workflowSelectionWindow.hide(); 
-    });
+        });
     //m_mainLayout.setAutoSize("a", "a;b");//make left cell expand on resize
-    m_workflowSelectionWindow.attachEvent("onClose", function(win){
-            win.hide();
-            console.log("WF window hidden")
-            return false;
-    });
-
+    
     m_mainLayout.cells("a").setMinWidth(50);
     m_mainLayout.cells("b").setMinWidth(50);
     m_mainLayout.cells("a").setMinHeight(50);
@@ -374,35 +308,25 @@ async function init(){
     m_mainLayout.cells("a").setText("Schedule");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
-    m_mainGrid.setHeader("id, Enabled, Name, Description, Workflow, Variables,Frequency,  Last Start, Next Start, Created on,Last Message,Errors");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,workflow_name,variables_display,cron,last_start,next_start,date_created,last_message,error_list");     
-    m_mainGrid.setInitWidthsP("0,5,15,10,10,15,10,10,10,10,10,10,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,txttxt,txttxt,cron,ro,ro,txttxt,txttxt,txttxt,ro");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str");  
+    m_mainGrid.setHeader("id, Enabled, Name, Description, Workflow Name, Frequency,  Last Start, Next Start, Created on,Last Message,Errors,Workflow");
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,workflow_name,cron,last_start,next_start,date_created,last_message,error_list,workflow");     
+    m_mainGrid.setInitWidthsP("0,5,15,10,15,10,10,10,10,10,10,0");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");       
+    m_mainGrid.setColTypes("ed,ch,ed,txttxt,txttxt,cron,ro,ro,txttxt,txttxt,txttxt,ro");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str");  
     /*typecombo = m_mainGrid.getCombo(8);
     typecombo.put("custom","Custom");
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
     */ 
     m_mainGrid.init();    
-    m_mainGrid.setColValidators(",NotEmpty,NotEmpty,,,NotEmpty,NotEmpty"); 
+    m_mainGrid.setColValidators(",NotEmpty,NotEmpty,NotEmpty,NotEmpty"); 
 
 	m_mainGrid.attachEvent("onRowDblClicked", function(rId,cInd){
 		//opens workflow chooser
 		var colName = m_mainGrid.getColumnId(cInd);
 		if (colName == "workflow_name"){
 			var savedWorkflow = m_mainGrid.getUserData(rId,"workflow");
-            loadWorkflows(function(){
-                openWorkflowSelector(rId,savedWorkflow);
-            })
-			return false;
-		}
-        if (colName == "variables_display"){
-			var savedVars = m_mainGrid.getUserData(rId,"variables");
-            
-            loadWorkflows(function(){
-                openVariableSelector(rId,savedVars);
-            });
+            openWorkflowSelector(rId,savedWorkflow);
 			return false;
 		}
 		return true;
@@ -425,13 +349,8 @@ async function init(){
         //create new job rows
         if (id=="new"){
             var newId = Math.random();
-            m_mainGrid.addRow(newId,[newId,"false", "New Job", "","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
+            m_mainGrid.addRow(newId,[newId,"false", "New Job", "", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
             m_mainGrid.setUserData(newId,"script","process.send(['testvalue']);//starts one job");
-            //force validation
-            for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
-                m_mainGrid.validateCell(newId,colidx);
-
-            }
             saveJobGrid();
         }
         if (id=="delete"){
@@ -479,219 +398,84 @@ async function init(){
     })
     //EVENTS
     m_mainGrid.attachEvent("onValidationCorrect", function(id,index,value,rule){
-        console.log("Validation correct, saving");
         saveJobGrid();
     });
     m_mainGrid.attachEvent("onCheck", function(rId,cInd,state){
         saveJobGrid();
     });
-    // m_mainGrid.attachEvent("onRowSelect", function(id,ind){
-    //     detailsLayout.cells("a").setText("Target Workflow");
-    //     //show workflow selection
-    //     detailsLayout.cells("a").attachHTMLString('<div id="wfform" style="width:100%;height:130px;overflow:visible"></div>');
-    //     m_workflowForm  = new dhtmlXForm("wfform");
-    //     m_workflowForm.addItem(null, {type : "fieldset", name : "data", label : "Workflow", inputWidth : 220, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
-    //     m_workflowForm.addItem("data", {type: "combo", label: "Workflow Name", name: "wf_id", width:200, options:[]},1);
-    //     m_workflowForm.addItem("data", {type: "combo", label: "Start Proc", name: "start_proc", width:200   , options:[]},2);
+    m_mainGrid.attachEvent("onRowSelect", function(id,ind){
+        detailsLayout.cells("a").setText("Target Workflow");
+        //show workflow selection
+        detailsLayout.cells("a").attachHTMLString('<div id="wfform" style="width:100%;height:130px;overflow:visible"></div>');
+        m_workflowForm  = new dhtmlXForm("wfform");
+        m_workflowForm.addItem(null, {type : "fieldset", name : "data", label : "Workflow", inputWidth : 220, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
+        m_workflowForm.addItem("data", {type: "combo", label: "Workflow Name", name: "wf_id", width:200, options:[]},1);
+        m_workflowForm.addItem("data", {type: "combo", label: "Start Proc", name: "start_proc", width:200   , options:[]},2);
         
-    //     //loads workflows into combo
-    //     loadWorkflows(m_workflowForm.getCombo("wf_id"),m_workflowForm.getCombo("start_proc"));+
-    //     //load start_procs into combo
-    //     m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(selected_wf_id){
-    //         //workflow was selected, show start_procs
-    //         m_workflowForm.getCombo("start_proc").clearAll();
+        //loads workflows into combo
+        loadWorkflows(m_workflowForm.getCombo("wf_id"),m_workflowForm.getCombo("start_proc"));+
+        //load start_procs into combo
+        m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(selected_wf_id){
+            //workflow was selected, show start_procs
+            m_workflowForm.getCombo("start_proc").clearAll();
 			
-    //         //collect start procs from wf
-    //         for (var y=0;y<m_allWorfklows[selected_wf_id]["nodes"].length;y++){
-    //             var nodes = m_allWorfklows[selected_wf_id]["nodes"];
-    //             if (nodes[y]["start_proc"]){
-    //                 m_workflowForm.getCombo("start_proc").addOption(  [{value:nodes[y]["id"],text:nodes[y]["type"],selected:true}] ); //todo; get display name
-    //             }
-    //         }        
-    //     });
-    // });
-        
-        
-}
-
-// #region WorkflowSelector
-
-function getWorkflowList(cb_success, cb_error=function(){}){
-    $.ajax({
-        url:  "/getworkflowlist",
-        type: "GET",
-        dataType: "json",
-        context: this,
-        success: function (response) {
-            if (response['workflows'].length == 0){
-                cb_error("Did not get any workflows from FFASTRANS API");
-            }else{            
-                cb_success(response['workflows']);
-            }
-        },
-        error: function (xhr, status) {
-            cb_error("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
-        }
-    });
-}
-
-function openWorkflowSelector(rowId,savedWorkflow){
-        /*open dhxwin for choosing workflow and related */
-        
-        m_workflowSelectionWindow.show();
-
-        var attachedMenu = m_workflowSelectionWindow.getAttachedMenu();
-        attachedMenu.setUserData("","gridRowId",rowId);
-        m_workflowSelectionWindow.setText("Workflow Selection");
-        //2 cell layout
-        m_workflowSelectionLayout = m_workflowSelectionWindow.attachLayout({
-                pattern: "2U"
-        });
-        m_workflowSelectionLayout.cells("a").setMinWidth(50);
-        m_workflowSelectionLayout.cells("b").setMinWidth(50);
-        m_workflowSelectionLayout.cells("a").setText("Workflow");
-        m_workflowSelectionLayout.cells("b").setText("Start Processor");
-        
-        //content template
-        var workflowHtml = '<div id="workflowtree_parent" ><div style="width:100%;height:30px"><input name="wf_filter" style="margin-top:3px;margin-left:10px;height:25px" id="wf_filter" autocomplete="off" />&nbsp<i class="fas fa-search"></i></div><div id="workflowtree" style="margin-left:10px;margin-top:10px"></div></div>' ;
-        var processorHtml = '<div id="startproctree_parent" style="margin-left:10px;margin-top:10px;font-family:tahoma, arial, helvetica"><div id="startproctree"></div></div>';
-        m_workflowSelectionLayout.cells("a").attachHTMLString(workflowHtml);
-        //search button
-        $("input[name=wf_filter]").keyup(function(e){
-            var n,
-                tree = $("#workflowtree").fancytree('getTree');
-                opts = {},
-                filterFunc = tree.filterNodes,
-                match = $(this).val();
-                if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
-                    tree.clearFilter();
-                    return;
+            //collect start procs from wf
+            for (var y=0;y<m_allWorfklows[selected_wf_id]["nodes"].length;y++){
+                var nodes = m_allWorfklows[selected_wf_id]["nodes"];
+                if (nodes[y]["start_proc"]){
+                    m_workflowForm.getCombo("start_proc").addOption(  [{value:nodes[y]["id"],text:nodes[y]["type"],selected:true}] ); //todo; get display name
                 }
-            // Pass a string to perform case insensitive matching
-            n = filterFunc.call(tree, match, opts);
-            
-        }).focus();
+            }
+			
+			<!-- //add user_variables -->
+			<!-- var user_var_url = m_allWorfklows[selected_wf_id]["user_variables"]["uri"]; -->
+			<!-- $.ajax({url: user_var_url, -->
+				<!-- success:function(data){ -->
+					<!-- console.log("user vars:",data["user_variables"]); -->
+					<!-- for (var i=0;i<data["user_variables"].length;i++){ -->
+					
+						<!-- if (m_subForm){ -->
+							<!-- m_subForm.unload();//clear existing form items -->
+							<!-- m_subForm = null; -->
+						<!-- } -->
+						<!-- //add uservariables inputs -->
+						<!-- var current_var = data["user_variables"][i]; -->
+						<!-- var desc = current_var.description  == "" ? current_var.name : current_var.description; -->
+						<!-- console.log(desc) -->
+						<!-- if (current_var.name.indexOf("webui") != -1){ -->
+							<!-- //detected a variable that interacts with webui (should have JSON default value) -->
+							<!-- try{ -->
+								<!-- parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays! -->
+							<!-- }catch(e){ -->
+								<!-- console.log ("webui variable parsing error",e,"Variable: ",current_var); -->
+								<!-- dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\""); -->
+							<!-- } -->
+						<!-- }else{ -->
+							<!-- //standard ffastrans variables -->
+							<!-- var displayName = current_var.name; -->
+							<!-- displayName = displayName.replace("s_", ""); -->
+							<!-- displayName = displayName.replace("i_", ""); -->
+							<!-- displayName = displayName.replace("f_", ""); -->
+							<!-- m_workflowForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, offsetLeft:10 }); -->
+							
+						<!-- } -->
+					<!-- } -->
+				<!-- }, -->
+				<!-- error:function(data){ -->
+					<!-- console.log(data); -->
+					<!-- alert("There was a problem getting user_variables for the selected workflow, see console"); -->
+				<!-- } -->
+			<!-- });//user_variables ajax -->
+			
+	
 
-        var selectedWfId = false;
-        var selectedStartProc = false;
-
-        try{
-            savedWorkflow = JSON.parse(savedWorkflow);
-            selectedWfId = savedWorkflow["wf_id"];
-            selectedStartProc = savedWorkflow["start_proc"];
-        }catch(ex){
-            
-        }
-        
-        //todo: get currently selected row, show it in win title and use it for updating workflow and startproc
-        getWorkflowList(function(workflows){
-            //render workflow selector tree
-            console.log("parsing workflwows",workflows);
-            parseWorkflows(m_workflowArray,{"selectMode":1,"dom_id":"workflowtree","extensions":["filter"],"selected":selectedWfId},on_treeWorkflowClick);
-            
-            
+			
+                 
         });
-
-        function on_treeWorkflowClick(unknonwn,evt){
-            console.log("selected")
-            //render possible start procs
-            var tree = $("#workflowtree").fancytree("getTree");
-            var wf_obj = evt["node"]["data"]["wf_object"];
-            //reset the view to allow new tree to be loaded
-            m_workflowSelectionLayout.cells("b").attachHTMLString(processorHtml);
-            //render new tree
-            parseProcessors(wf_obj["nodes"],{"selectMode":1,"dom_id":"startproctree","extensions":["filter"],"startprocs_only":true,"selected":selectedStartProc,"icon_path":"../images/"},on_treeStartProcSelect,function(){return true});
-        }
-        
-        function on_treeStartProcSelect(proc_name,proc_obj,evt){
-            //no select function needed, ok btn is enough
-        }
-
-}
-
-
-
-function saveSelectedWorkflow(){
-    //saves selected wf and proc  
-    var attachedMenu = m_workflowSelectionWindow.getAttachedMenu();
-    var gridRowId = attachedMenu.getUserData("","gridRowId");
-   var selWf =  $("#workflowtree").fancytree("getTree").getSelectedNodes();
-   var selProc = $("#startproctree").fancytree("getTree").getSelectedNodes();
-   try{
-        var selectedWf = selWf[0]["data"]["wf_object"];
-        var selectedProc = selProc[0]["data"]["full_object"];
-        var wf_to_save ={};
-        wf_to_save["wf_id"] = selectedWf["wf_id"];
-        wf_to_save["start_proc"] = selectedProc["id"];
-        wf_to_save["start_proc_name"] = selectedProc["name"];
-        wf_to_save["inputfile"] = "";
-        wf_to_save["variables"] = [];
-        alert("SAVESELECTRED!");
-        m_mainGrid.setUserData(gridRowId,"workflow",JSON.stringify(wf_to_save));
-        for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
-            var colName = m_mainGrid.getColumnId(colidx);
-            if (colName == "workflow_name"){
-                console.log("SELECTED WF: ", selectedWf)
-                m_mainGrid.cells(gridRowId,colidx).setValue(selectedWf["wf_name"]);//last start
-            }
-            // if (colName == "workflow"){
-            //     m_mainGrid.cells(gridRowId,colidx).setValue(JSON.stringify(wf_to_save));//last start
-            // }
-        }
-        saveJobGrid();
-        m_workflowSelectionWindow.hide(); 
-        //dhtmlx.message("Saved.");
-    }catch(ex){
-        console.log(ex);
-        alert("You have to select both, a workflow and a start processor. \n" + ex);
-        return;
-    }
-}
-
-
-function loadWorkflows(success_cb){
-//adds options to workflow select combo
-    //_combo = wf_combo;
-    //get currently selected workflow
-    $.ajax({
-        url:  "/getworkflowlist",
-        type: "GET",
-        dataType: "json",
-        context: this,
-        success: function (response) {
-            if (response['workflows'].length == 0){
-                alert("Did not get any workflows from FFASTRANS API");
-            }else{            
-                //get currently selected workflow:
-                // var cellindex = m_mainGrid.getColIndexById('workflow');
-                // var currentWf = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
-                // if (currentWf){
-                //     currentWf = JSON.parse(currentWf);
-                //     procCombo.addOption(  [{value:currentWf["start_proc"],text:currentWf["start_proc_name"],selected:true}] );
-                // }
-                //add options to dropdown
-                m_workflowArray = response['workflows'];
-                success_cb();
-                // for (i in m_workflowArray){
-                //     //create a combo option for each workflow
-                //     var _selected = false;
-                //     if (currentWf['wf_id'] == m_workflowArray[i]['wf_id']){
-                //         _selected = true;
-                //     }
-                //     m_allWorfklows[m_workflowArray[i]['wf_id']] = m_workflowArray[i];//store all workflows for later proc selection
-                //     _combo.addOption(  [{selected:_selected,value:m_workflowArray[i]['wf_id'],text:m_workflowArray[i]["wf_name"]}] );  
-                // };
-            }
-        },
-        error: function (xhr, status) {
-            m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
-        }
     });
+        
+        
 }
-
-
-// #endregion
 
 function showScriptEditor(selectedRowId){
 
@@ -771,6 +555,49 @@ function showExampleBrowser(){
         
 }
 
+
+function loadWorkflows(wf_combo,procCombo){
+//adds options to workflow select combo
+    _combo = wf_combo;
+    //get currently selected workflow
+    $.ajax({
+        url:  "/getworkflowlist",
+        type: "GET",
+        dataType: "json",
+        context: this,
+        success: function (response) {
+            if (response['workflows'].length == 0){
+                alert("Did not get any workflows from FFASTRANS API");
+            }else{            
+                //get currently selected workflow:
+                var cellindex = m_mainGrid.getColIndexById('workflow');
+                var currentWf = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
+                if (currentWf){
+                    currentWf = JSON.parse(currentWf);
+                    procCombo.addOption(  [{value:currentWf["start_proc"],text:currentWf["start_proc_name"],selected:true}] );
+                }
+                //add options to dropdown
+                m_workflowArray = response['workflows'];
+                for (i in m_workflowArray){
+                    //create a combo option for each workflow
+                    var _selected = false;
+                    if (currentWf['wf_id'] == m_workflowArray[i]['wf_id']){
+                        _selected = true;
+                    }
+                    m_allWorfklows[m_workflowArray[i]['wf_id']] = m_workflowArray[i];//store all workflows for later proc selection
+                    _combo.addOption(  [{selected:_selected,value:m_workflowArray[i]['wf_id'],text:m_workflowArray[i]["wf_name"]}] );  
+                };
+            }
+        },
+        error: function (xhr, status) {
+            m_mainLayout.cells("b").progressOff();
+            dhtmlx.message("ERROR getting workflows, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+        }
+    });
+}
+
+
+
 function startJobImmediate(jobId,dhxLayoutCell){
     saveUserScript(jobId,function(){
         var cellindex = m_mainGrid.getColIndexById('id');
@@ -817,7 +644,11 @@ function updateJobs(){
             response = JSON.parse(response) 
             for (i in response){
                 var _job = response[i]['scheduled_jobs'];
-                for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                console.log("updateing",  response);
+                <!-- var colNameLastStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_start")); -->
+                <!-- var colNameNextStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("next_start")); -->
+                <!-- var colNameLastMessage = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_message")); -->
+                for (colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
                     if (colName == "last_start"){
                         m_mainGrid.cells(_job["id"],colidx).setValue(_job["last_start"]);//last start
@@ -861,8 +692,7 @@ function loadJobs(dhxGrid){
                 dhxGrid.addRow(_job["id"],rowData);
                 dhxGrid.setUserData(_job["id"],"script",_job["script"]);
 				dhxGrid.setUserData(_job["id"],"workflow",_job["workflow"]);
-                dhxGrid.setUserData(_job["id"],"test",_job["variables"]);
-                dhxGrid.setUserData(_job["id"],"variables",_job["variables"] || "[]");
+                console.log("saved wf",_job["workflow"])
                 m_mainGrid.getColIndexById('script');
                 continue;
             }
@@ -886,8 +716,6 @@ function saveJobGrid(rIdToSave,callback){
         console.log("getRowdata,",rId)
         var jobobj = m_mainGrid.getRowData(rId);
         jobobj.script = m_mainGrid.getUserData(rId,"script");
-        jobobj.workflow = m_mainGrid.getUserData(rId,"workflow");
-        jobobj.variables = m_mainGrid.getUserData(rId,"variables");
         $.ajax({
             url:  ("/scheduledjobs"),
             type: "POST",
@@ -989,8 +817,15 @@ fs.readdir("C:\\temp\\input", function(err, items) {
 
 
     <div id="workflow_selector_template" style="display: none;font-family:tahoma, arial, helvetica">
-
-        <!-- </div> -->
+        <div style="float:left;width:60%;border-right: 1px solid rgb(116, 115, 115);">
+            <div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div>
+            <div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>
+        </div>
+        <div style="float:right;width:38%">
+            <div id='startproctree_parent' style='margin-left:10px;margin-top:10px'>
+                <!--Dynamically inserted: <div id='startproctree'></div>-->
+            </div>
+        </div>
     </div>
 
 </body>

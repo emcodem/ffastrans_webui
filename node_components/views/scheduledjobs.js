@@ -10,7 +10,8 @@ module.exports = function(app, passport){
                 res.end();
             })
 		}catch (ex){
-				console.log("ERROR: unxepected error in adminconfig: " + ex);
+				
+                console.log("ERROR: unxepected error in adminconfig: " + ex);
                 res.status(500);//Send error response here
                 res.end();
 		}
@@ -34,9 +35,9 @@ module.exports = function(app, passport){
                           if (property == "last_start" || property == "next_start" || property == "last_message" || property == "error_list"){
                                continue;
                            }
-                          if (job.hasOwnProperty(property)) {
+                          //if (job.hasOwnProperty(property)) {
                              existingjob[property] = job[property];
-                          }
+                          //}
                         }
                    }else{
                        existingjob = job;   

@@ -576,6 +576,12 @@ function getBrowseLocations(){
    }
 }
 
+function buildVariablesForm(ele_id,varArray){
+    
+
+}
+
+
 function on_processorSelected(selectedWorkflow){
     /*
         called from onChange function of Form
@@ -612,8 +618,7 @@ function on_processorSelected(selectedWorkflow){
             }else{
                 //ok, we have the workflow info, populate user variables and start btn
                 if (!("user_variables" in response)){
-					m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);
-                                                   
+					m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);                
                     return;
                 }
                 //show user variables

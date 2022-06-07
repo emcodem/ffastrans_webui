@@ -1,43 +1,36 @@
-const Request = require("request");
+const axios = require("axios");
 var userpermissions = require("../userpermissions");
 
 
 
-module.exports = function(app, passport){
+module.exports = async function(app, passport){
 //serve and store admin config as dhtmlx form json config 
 
-	app.get('/getworkflowlist', (req, res) => {
+	app.get('/getworkflowlist', async (req, res) => {
 		try{
+			
 			if (req.method === 'GET' || req.method === 'POST') {
                passport.authenticate('local-login');//fills req.user with infos from cookie
                 
                 console.log("Calling " + buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL))
                //download workflowlist from ffastrans server
-                Request.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000},(error, workflowResponse, body) => {
-                    
-                    if(error) {
-                        console.error("Error calling workflowlist, " + error)
-                        res.status(500);//Send error response here
-                        res.end();
-                        global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL));
-                        return;
-                    }
-                    //disabled web security, show all worfklows
-                    if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
-                        res.writeHead(200,{"Content-Type" : "application/JSON"});
-                        res.write(workflowResponse.body);//output json array to client
-                        res.end();
-                        return;
-                    }
-                    console.log("-------------------")
+			   
+				var workflowResponse = await axios.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000,agent: false, maxSockets: Infinity});
+				//disabled web security, show all worfklows
+				if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+					console.log(workflowResponse["data"]);
+					res.writeHead(200,{"Content-Type" : "application/JSON"});
+					res.write(JSON.stringify(workflowResponse["data"]));//output json array to client
+					res.end();
+					return;
+				}
+				
                    //apply filter if any
-                   var workflowlist = JSON.parse(workflowResponse.body);
+                   var workflowlist = workflowResponse["data"];
                    var filteredWorkflowList = [];
                    var alreadyAdded = {};
                    console.log(req.user);
                    userpermissions.getpermissionlist(req.user["local"]["username"],function(allpermissions){
-                       
-                       
                        try{
                            for (x in allpermissions){
                                
@@ -127,7 +120,7 @@ module.exports = function(app, passport){
                           
                    });//getpermissionlist callback
 
-            });
+            
           }
         }
 		catch (ex){

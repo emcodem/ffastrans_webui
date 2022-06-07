@@ -12,7 +12,6 @@ module.exports = function(app, passport){
                if (!wf_id){
                    throw("Error, need workflowid parameter")
                }
-               //TODO: make this work
                
                //download workflowlist from ffastrans server
                 var _url = buildApiUrl(global.config.STATIC_GET_WORKFLOW_VARS_URL.replace("<wf_id>",wf_id));
@@ -99,9 +98,6 @@ module.exports = function(app, passport){
                                                         }
                                                    }
                                                
-                                           //}//for all workflows
-                                               
-                                            
                                        }
                                        
                                    }
