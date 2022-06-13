@@ -101,7 +101,7 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
     this.edit = function(){
         //open cron editor
         var myWins= new dhtmlXWindows();
-        var win = myWins.createWindow(Math.random(), 40,90, 400,400);
+        var win = myWins.createWindow(Math.random(),window.innerWidth/6, window.innerHeight/7, 400, 400);
         win.setText("Frequency");
      
         var _menu = win.attachMenu({
@@ -255,6 +255,12 @@ function openVariableSelector(rId,savedVariables){
                 console.log("Saving variables to userdata",varsToSave);
                 //store in userdata of gridrow
                 m_mainGrid.setUserData(rId,"variables",JSON.stringify(varsToSave));
+				for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+					var colName = m_mainGrid.getColumnId(colidx);
+					if (colName == "variables_display"){
+						m_mainGrid.cells(rId,colidx).setValue(JSON.stringify(varsToSave));//last start
+					}
+				}
                 saveJobGrid();
                 m_variableSelectionWindow.close();
             }
@@ -374,23 +380,31 @@ async function init(){
     m_mainLayout.cells("a").setText("Schedule");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
-    m_mainGrid.setHeader("id, Enabled, Name, Description, Workflow, Variables,Frequency,  Last Start, Next Start, Created on,Last Message,Errors");
-    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,workflow_name,variables_display,cron,last_start,next_start,date_created,last_message,error_list");     
-    m_mainGrid.setInitWidthsP("0,5,15,10,10,15,10,10,10,10,10,10,0");          
-    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,txttxt,txttxt,txttxt,cron,ro,ro,txttxt,txttxt,txttxt,ro");               
-    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str");  
+    m_mainGrid.setHeader("id, Enabled, Name, Description, Condition, Workflow, Variables,Frequency,  Last Start, Next Start, Created on,Last Message,Errors");
+    m_mainGrid.setColumnIds("id,enabled,job_name,job_description,condition_display,workflow_display,variables_display,cron,last_start,next_start,date_created,last_message,error_list");     
+    m_mainGrid.setInitWidthsP("0,5,10,10,10,10,10,10,6,6,6,10,7");          
+    m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left,left");       
+    m_mainGrid.setColTypes("ed,ch,ed,ed,txttxt,txttxt,txttxt,cron,ro,ro,txttxt,txttxt,txttxt,ro");               
+    m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str,str");  
     /*typecombo = m_mainGrid.getCombo(8);
     typecombo.put("custom","Custom");
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
     */ 
     m_mainGrid.init();    
-    m_mainGrid.setColValidators(",NotEmpty,NotEmpty,,,NotEmpty,NotEmpty"); 
+    m_mainGrid.setColValidators(",NotEmpty,,,NotEmpty,,NotEmpty"); 
 
 	m_mainGrid.attachEvent("onRowDblClicked", function(rId,cInd){
 		//opens workflow chooser
 		var colName = m_mainGrid.getColumnId(cInd);
-		if (colName == "workflow_name"){
+		if (colName == "condition_display"){
+			if (m_mainGrid.getSelectedRowId()){
+                showScriptEditor(m_mainGrid.getSelectedRowId());
+            }else{
+                dhtmlx.message("No Row selected!")
+            }
+			return false;
+		}
+		if (colName == "workflow_display"){
 			var savedWorkflow = m_mainGrid.getUserData(rId,"workflow");
             loadWorkflows(function(){
                 openWorkflowSelector(rId,savedWorkflow);
@@ -415,8 +429,11 @@ async function init(){
             
             {id:"new", text:"<i class='fas fa-plus-square'></i>New"},
 			{id:"delete", text:"<i class='fas fa-minus-square'></i>Delete"},
-            {id:"edit_condition", text:"<i class='fas fa-edit'></i>Edit Condition"},
-            {id:"save", text:"<i class='fas fa-save'></i>Save"},
+            {id:"clone", text:"<i class='fas fa-copy'></i>Clone"},
+			{id:"exportrow", text:"<i class='fas fa-file-export'></i>Export"},
+			{id:"importrow", text:"<i class='fas fa-file-import'></i>Import"},
+			// {id:"exportall", text:"<i class='fas fa-save'></i>Export All"},
+			{id:"save", text:"<i class='fas fa-save'></i>Save"},
             
 		]
 	});
@@ -425,8 +442,8 @@ async function init(){
         //create new job rows
         if (id=="new"){
             var newId = Math.random();
-            m_mainGrid.addRow(newId,[newId,"false", "New Job", "","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
-            m_mainGrid.setUserData(newId,"script","process.send(['testvalue']);//starts one job");
+            m_mainGrid.addRow(newId,[newId,"false", "New Job", "No Condition","","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
+            m_mainGrid.setUserData(newId,"script","process.send(['Scheduled Job']);//starts one job");
             //force validation
             for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                 m_mainGrid.validateCell(newId,colidx);
@@ -438,12 +455,35 @@ async function init(){
             deleteJob(m_mainGrid.getSelectedRowId());
             saveJobGrid();
         }
+		if (id=="exportrow"){
+            if (!m_mainGrid.getSelectedRowId()){
+				alert("Please select a row");
+				return;
+			}
+			saveJobGrid();
+			var to_save = getRowDataJson(m_mainGrid.getSelectedRowId());
+			downloadStringAsFile(JSON.stringify(to_save),"application/json",getColumnValueByColName(m_mainGrid.getSelectedRowId(),"job_name"));
+			
+        }
+		if (id=="importrow"){
+            openImportWindow();
+        }
         if (id=="save"){
             saveJobGrid();
         }
-        if (id=="edit_condition"){
+        if (id=="clone"){
             if (m_mainGrid.getSelectedRowId()){
-                showScriptEditor(m_mainGrid.getSelectedRowId());
+                
+				var newId = Math.random();
+				m_mainGrid.addRow(newId,[newId,"false", "New Job", "No Condition","","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
+				m_mainGrid.copyRowContent(m_mainGrid.getSelectedRowId(),newId);
+				m_mainGrid.cells(newId,0).setValue(newId); //reset id after copyrowcontent method
+				var currentName = m_mainGrid.cells(newId,2).getValue();
+				m_mainGrid.cells(newId,2).setValue(currentName + "_copy");
+				//copy userdata, e.g. script, workflow, variables
+				m_mainGrid.setUserData(newId,"script",m_mainGrid.getUserData(newId,"script"));
+				m_mainGrid.setUserData(newId,"workflow",m_mainGrid.getUserData(newId,"workflow"));
+				m_mainGrid.setUserData(newId,"variables",m_mainGrid.getUserData(newId,"variables"));
             }else{
                 dhtmlx.message("No Row selected!")
             }
@@ -461,7 +501,7 @@ async function init(){
     var worfklowmenu = detailsLayout.cells("a").attachMenu({
         icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
         items:[
-            {id:"save", text:'<i class="fas fa-save"></i>Save'},
+            //{id:"save", text:'<i class="fas fa-save"></i>Save'},
         ]
     });
     worfklowmenu.attachEvent("onClick", function(id,ind){
@@ -512,6 +552,70 @@ async function init(){
     // });
         
         
+}
+
+function openImportWindow(){
+        var myWins= new dhtmlXWindows();
+        var win = myWins.createWindow(Math.random(), window.innerWidth/6, window.innerHeight/7, 800,600);
+        win.setText("Import Backup");
+        var layout = win.attachLayout({
+                pattern: "1C"  
+        });
+        
+        //file select button
+        layout.cells("a").setText('File: <input type="file" id="import_file" style="line-height:initial"/>');
+        document.getElementById('import_file').addEventListener('change', handleFileSelect, false);
+		layout.cells("a").attachHTMLString("<div id='output' ></div>")
+		
+		//grid for showing whats imported
+		var restoregrid  = layout.cells("a").attachGrid();
+		restoregrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
+		restoregrid.setHeader("Job Name");
+		restoregrid.setColumnIds("job_name");     
+		restoregrid.setColAlign("left");       
+		restoregrid.setColTypes("ro");  
+		restoregrid.init()	
+		
+        var menu = layout.cells("a").attachMenu({
+                icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
+                items:[
+                    {id:"save", text:'<i class="fas fa-save"></i>Finish Import (Overwrite possible existing)'}   
+                ]
+            });
+
+        menu.attachEvent("onClick", function(id,ind){
+            //create new job rows
+            if (id=="save"){
+				restoregrid.forEachRow(function(rId){
+					var jobJson = restoregrid.getUserData(rId,"jobdata");
+					createJobRowInGrid(jobJson,m_mainGrid);
+				});
+				
+            }
+        });
+		
+		function handleFileSelect(evt) {
+		/* File was selected */
+			var files = evt.target.files; // FileList object
+	
+			// files is a FileList of File objects. List some properties.
+			var output = [];
+			for (var i = 0, f; f = files[i]; i++) {
+				var fr = new FileReader();
+				fr.onload=function(){
+					//file has been read
+					var importJson = fr.result;
+					importJson = JSON.parse(importJson);
+					var newId = Math.random();
+					restoregrid.addRow(newId,[importJson["job_name"]]);
+					restoregrid.setUserData(newId,"jobdata",importJson);
+					
+				}
+				
+				fr.readAsText(files[i]);
+			}
+		}
+	 
 }
 
 // #region WorkflowSelector
@@ -626,17 +730,12 @@ function saveSelectedWorkflow(){
         wf_to_save["start_proc_name"] = selectedProc["name"];
         wf_to_save["inputfile"] = "";
         wf_to_save["variables"] = [];
-        alert("SAVESELECTRED!");
         m_mainGrid.setUserData(gridRowId,"workflow",JSON.stringify(wf_to_save));
         for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
             var colName = m_mainGrid.getColumnId(colidx);
-            if (colName == "workflow_name"){
-                console.log("SELECTED WF: ", selectedWf)
-                m_mainGrid.cells(gridRowId,colidx).setValue(selectedWf["wf_name"]);//last start
+            if (colName == "workflow_display"){
+                m_mainGrid.cells(gridRowId,colidx).setValue(selectedWf["wf_name"]);
             }
-            // if (colName == "workflow"){
-            //     m_mainGrid.cells(gridRowId,colidx).setValue(JSON.stringify(wf_to_save));//last start
-            // }
         }
         saveJobGrid();
         m_workflowSelectionWindow.hide(); 
@@ -697,7 +796,7 @@ function showScriptEditor(selectedRowId){
 
         //show script editor
         var myWins= new dhtmlXWindows();
-        var win = myWins.createWindow(Math.random(), 40,90, 800,600);
+        var win = myWins.createWindow(Math.random(), window.innerWidth/6, window.innerHeight/7, 800,600);
         win.setText("Condition Script");
         var scriptDevLayout = win.attachLayout({
                 pattern: "2U"  
@@ -711,7 +810,8 @@ function showScriptEditor(selectedRowId){
                 icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
                 items:[
                     {id:"save", text:'<i class="fas fa-save"></i>Save'},
-                    {id:"start", text:'<i class="fas fa-play"></i>Test Run'}
+                    {id:"start", text:'<i class="fas fa-play"></i>Test Run'},
+					//{id:"examplebrowser", text:'<i class="fas fa-play"></i>Examples'}
                 ]
             });
         scriptMenu.setUserData("save", "jobid", selectedRowId);//stores scheduled jobid for this window so later on we find out which job we are connected to
@@ -745,7 +845,7 @@ function showScriptEditor(selectedRowId){
 function showExampleBrowser(){
         //show script editor
         var myWins= new dhtmlXWindows();
-        var win = myWins.createWindow(Math.random(), 120,60, 600,600);
+        var win = myWins.createWindow(Math.random(), window.innerWidth/6, window.innerHeight/7, 600,600);
         win.setText("Example Browser");
         var exampleLayout = win.attachLayout({
                 pattern: "2E"  
@@ -802,9 +902,19 @@ function startJobImmediate(jobId,dhxLayoutCell){
     })
 }
 
+
 function saveUserScript(rId,callback){
     //saves code to selected job in grid
     m_mainGrid.setUserData(m_mainGrid.getSelectedRowId(),"script",m_codemirror.getValue());
+	var displayVal = "Default Condition";
+	if (m_codemirror.getValue() == ""){
+		displayVal = "Error!";
+	}
+	if (m_codemirror.getValue().split("\n").length != 1){
+		displayVal = "Custom condition";
+	}
+	//insert condition_Display here
+	setColumnValueByColName(rId,"condition_display",displayVal);
     saveJobGrid(rId,callback)
 }
 
@@ -850,20 +960,8 @@ function loadJobs(dhxGrid){
         success: function (response) {
             response = JSON.parse(response) 
             for (i in response){
-                var _job = response[i]['scheduled_jobs'];
-                var rowData = [];
-                for (colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
-                    var colName = m_mainGrid.getColumnId(colidx);
-					console.log("colname",colName,"val",_job[colName])
-                    rowData.push(_job[colName]);                    
-                }
-				
-                dhxGrid.addRow(_job["id"],rowData);
-                dhxGrid.setUserData(_job["id"],"script",_job["script"]);
-				dhxGrid.setUserData(_job["id"],"workflow",_job["workflow"]);
-                dhxGrid.setUserData(_job["id"],"test",_job["variables"]);
-                dhxGrid.setUserData(_job["id"],"variables",_job["variables"] || "[]");
-                m_mainGrid.getColIndexById('script');
+				var _job = response[i]['scheduled_jobs'];
+				createJobRowInGrid(_job,dhxGrid);
                 continue;
             }
         },
@@ -875,6 +973,34 @@ function loadJobs(dhxGrid){
     
 }
 
+function createJobRowInGrid(_job,dhxGrid){
+				if (dhxGrid.doesRowExist(_job["id"])){
+					dhxGrid.deleteRow(_job["id"]);
+				}
+				
+                var rowData = [];
+                for (colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                    var colName = m_mainGrid.getColumnId(colidx);
+                    rowData.push(_job[colName]);                    
+                }
+				
+                dhxGrid.addRow(_job["id"],rowData);
+                dhxGrid.setUserData(_job["id"],"script",_job["script"]);
+				dhxGrid.setUserData(_job["id"],"workflow",_job["workflow"]);
+                dhxGrid.setUserData(_job["id"],"test",_job["variables"]);
+                dhxGrid.setUserData(_job["id"],"variables",_job["variables"] || "[]");
+				if (getColumnValueByColName(_job["id"],"condition_display") == ""){
+					setColumnValueByColName(_job["id"],"condition_display",_job["script"]);
+				}
+				if (getColumnValueByColName(_job["id"],"workflow_display") == ""){
+					setColumnValueByColName(_job["id"],"workflow_display","Please edit to see value");
+				}
+				if (getColumnValueByColName(_job["id"],"variables_display") == ""){
+					setColumnValueByColName(_job["id"],"variables_display","No Variables");
+				}
+}
+
+
 function saveJobGrid(rIdToSave,callback){
     m_mainGrid.forEachRow(function(rId){   
         if (rIdToSave){
@@ -883,11 +1009,8 @@ function saveJobGrid(rIdToSave,callback){
             }
         }
         
-        console.log("getRowdata,",rId)
-        var jobobj = m_mainGrid.getRowData(rId);
-        jobobj.script = m_mainGrid.getUserData(rId,"script");
-        jobobj.workflow = m_mainGrid.getUserData(rId,"workflow");
-        jobobj.variables = m_mainGrid.getUserData(rId,"variables");
+        var jobobj = getRowDataJson(rId);
+
         $.ajax({
             url:  ("/scheduledjobs"),
             type: "POST",
@@ -934,6 +1057,48 @@ function deleteJob(id){
     });
 }
 
+/////////////
+//// HELPERS 
+////////////
+
+function getRowDataJson(rowId){
+	/* transform row into saveable json */
+	var jobobj = m_mainGrid.getRowData(rowId);
+	jobobj.script = m_mainGrid.getUserData(rowId,"script");
+	jobobj.workflow = m_mainGrid.getUserData(rowId,"workflow");
+	jobobj.variables = m_mainGrid.getUserData(rowId,"variables");
+	return jobobj;
+	
+}
+
+function getColumnValueByColName(gridRowId,colname){
+/* please use this for setting values of cells in grid */
+	for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+		var cur_colName = m_mainGrid.getColumnId(colidx);
+		if (cur_colName == colname){
+			return m_mainGrid.cells(gridRowId,colidx).getValue();
+		}
+	}
+}
+
+function setColumnValueByColName(gridRowId,colname, new_value){
+/* please use this for setting values of cells in grid */
+	for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+		var cur_colName = m_mainGrid.getColumnId(colidx);
+		if (cur_colName == colname){
+			m_mainGrid.cells(gridRowId,colidx).setValue(new_value);
+		}
+	}
+}
+
+function downloadStringAsFile(content, mimeType, filename){
+  const a = document.createElement('a') // Create "a" element
+  const blob = new Blob([content], {type: mimeType}) // Create a blob (file-like object)
+  const url = URL.createObjectURL(blob) // Create an object URL from blob
+  a.setAttribute('href', url) // Set "a" element link
+  a.setAttribute('download', filename) // Set download filename
+  a.click() // Start downloading
+}
 
 </script>
 

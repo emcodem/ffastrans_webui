@@ -141,7 +141,17 @@ function executeJob(current_job,socketioClientId,informCallback){
                 if (msg){
                     var fileArray = msg;
                     var _workflow = JSON.parse(current_job["workflow"]);
-                    if (!_workflow){
+					
+					try{
+						if (current_job["variables"]){
+							var _variables = JSON.parse(current_job["variables"]);
+							_workflow["variables"] = _variables;
+						}
+					}catch(exce){
+						console.error("Error adding Variables to job, ",exce);
+					}
+					
+					if (!_workflow){
                         console.log("No target workflow configured for scheduled_job " +  current_job["job_name"]);
                         global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"No target workflow configured for scheduled_job " +  current_job["job_name"] })
                         return;
@@ -293,7 +303,7 @@ async function needsExecution(current_job){
         
         if ("last_job_id" in current_job){
             
-            if (current_job["last_job_id"] != ""){   
+            if (current_job["last_job_id"] != ""){  
                 updateScheduledJob(current_job["id"],"last_message","Detected last Jobid exists, checking if Jobid is active");
                 console.log("checking if job is still runing");
                 var url = 'http://' + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets?nodetails=true" ;
