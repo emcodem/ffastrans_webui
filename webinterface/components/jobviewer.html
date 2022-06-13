@@ -1246,6 +1246,19 @@
         //search btn
         $('input[name=search]').bind("enterKey", search_history_grid);
 
+        //delete filter imgs
+        $('img[title=\"delete filters\"]').bind("click", function(e){
+           
+            $('input[name=search]').val("");
+            e.stopPropagation()
+            if (this.previousElementSibling.placeholder == "Workflow"){
+                var tree = $("#workflowtree").fancytree('getTree');
+                tree.selectAll(false);
+                dhtmlx.message("Workflow Filters Cleared")
+            }
+
+        });
+
         $("input[name=search]").keyup(function(e) {
             if (e.keyCode == 13) {
                 $(this).trigger("enterKey");
@@ -1309,7 +1322,11 @@
                     keyname = "job_" + keyname;
                 }
                 if (match) {
-                    search_obj[keyname] = (match)
+                    search_obj[keyname] = (match);
+                    //seekme 
+                    input.nextElementSibling.style.display = "";
+                }else{
+                    input.nextElementSibling.style.display = "none";
                 }
             }
             var tree = $('#treetable_history').fancytree('getTree');
@@ -1874,13 +1891,13 @@
                 </colgroup>
                 <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                     <tr id="tr_treetable_history">
-                        <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">    		<div style="display:flex;margin-left:10px"><div id="history-state-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div>  <i id="history-state-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="State" style="width:90%;height:18px;margin-left:5px" type="search" name="search"  incremental autocomplete="off" /></div> </th>
-                        <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-wf_name-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off" />		</div></th>
-                        <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir=""> 	<div style="display:flex;margin-left:10px"><div id="history-job_start-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_start-sorticon" name="treetable_history-sorticon"/></i>      <input placeholder="Start" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off" />		</div></th>
-                        <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <div style="display:flex;margin-left:10px"><div id="history-duration-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off">		</div></th>
-                        <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-job_end-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off" />			</div></th>
-                        <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <div style="display:flex;margin-left:10px"><div id="history-file-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off" /> 		</div></th>
-                        <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-outcome-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:90%;height:18px;margin-left:5px" type="search" name="search" incremental autocomplete="off" />		</div></th>
+                        <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">    		<div style="display:flex;margin-left:10px"><div id="history-state-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div>  <i id="history-state-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="State" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search"  incremental autocomplete="off" />                     <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-wf_name-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px;margin-right:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /><img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir=""> 	<div style="display:flex;margin-left:10px"><div id="history-job_start-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_start-sorticon" name="treetable_history-sorticon"></i>      <input placeholder="Start" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <div style="display:flex;margin-left:10px"><div id="history-duration-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off">		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-job_end-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />			            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <div style="display:flex;margin-left:10px"><div id="history-file-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /> 		                <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-outcome-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                     </tr>
                 </thead>
             </table>
