@@ -48,10 +48,12 @@ module.exports =  function(app, passport){
 				
 				var re = new RegExp(/(\d+)/);
 				var matches = re.exec(getCmdResult);
-
+				
 				console.log(matches)
 				console.log("parsed current retention days from prometheus appparameters: ",matches);
-
+				if (matches){
+					currentDays = matches[0];
+				}
 			}catch(ex){
 				console.error(ex)
 			}

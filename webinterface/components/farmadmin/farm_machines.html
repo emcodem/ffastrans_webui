@@ -34,7 +34,7 @@
         /* width: 100%; */
         height: 100%;
         margin: 0px;
-        overflow: hidden;
+        overflow: auto;
         color: #333;
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
@@ -271,15 +271,18 @@
                     $tdList.eq(2).html("<div class='celltext'>" + 0 + "</div>");//TODO:active JOBS!
                     $tdList.eq(3).html("<div class='celltext'>" + node.data["core_usage"] + "</div>");
                     $tdList.eq(4).html("<div class='celltext'>" + node.data["cpu_roof"] + "</div>");
-                    var coretext = " Cores: " + node.data["cpu"]["cores"] + " " +node.data["cpu"]["architecture"] + " " +"" +node.data["cpu"]["identifier"] ;
+                    var coretext = ""
+					try{coretext = " Cores: " + node.data["cpu"]["cores"] + " " +node.data["cpu"]["architecture"] + " " +"" +node.data["cpu"]["identifier"] ;}
+					catch(ex){}
                     $tdList.eq(5).html("<div class='celltext' title='"+coretext+"'>" + coretext +"</div>");
                     $tdList.eq(6).html("<div class='celltext'>" + formattime(node.data["last_heartbeat"]) + "</div>");
                     $tdList.eq(7).html("<div class='celltext'>" + formattime(node.data["ffas_start_time"]) + "</div>");
                     $tdList.eq(8).html("<div class='celltext'>" + formattime(node.data["ffas_end_time"]) + "</div>");
                     $tdList.eq(9).html("<div class='celltext'>" + node.data.web_enable + "</div>");
                 }catch(ex){
+					console.log(node.data,ex)
                     alert("There was an error rendering the data for machines grid, "+ex.toString())
-                    console.log(ex)
+                    
                 }
                 
             },
