@@ -14,7 +14,6 @@ defaultConfig.STATIC_WEBSERVER_LISTEN_PORT = 3002;
 defaultConfig.STATIC_WEBSERVER_ENABLE_HTTPS = false;
 defaultConfig.STATIC_WEBSERVER_HTTPS_PK_PASSWORD = "webserver";
 
-
 defaultConfig.STATIC_USE_WEB_AUTHENTIFICATION = false;
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
 //your path MUST end with slash or backslash, the rest of the code assumes it.
@@ -25,9 +24,6 @@ defaultConfig.STATIC_UPLOADPATH = "\\\\localhost\\c$\\temp\\";
 //display_names and the locations themselves have to contain the same amount of items!
 defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES = ["Local examle","UNC example","D Drive on server"];
 defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D:\\"];
-
-//not yet active, files in upload dir are deleted if older than x hours check/delete happens everytime a new file is uploaded...
-//defaultConfig.STATIC_UPLOAD_FILES_MAXAGE = 1;
 
 //FFAStrans server
 defaultConfig.STATIC_API_HOST = "localhost";

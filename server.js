@@ -16,7 +16,7 @@ const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
 const configmgr = require( './node_components/server_config')
 const dbManager = require( './node_components/common/database_controller')
-
+const { Player } = require( './node_components/player')
 // const blocked = require('blocked-at')
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
@@ -358,8 +358,9 @@ function initSocketIo(created_httpserver){
 	  
 	  //register to all events from client
 		_socket.on('*', function(data){
-			var regex = /cancel/
-			var result = data.data[0].match(regex);
+			console.log("Received command via socket.io",data);
+			//var regex = /cancel/
+			//var result = data.data[0].match(regex);
 			var cmd = data.data[0];
 			var obj = data.data[1];
 			if (cmd == "pausejob"){
@@ -372,6 +373,15 @@ function initSocketIo(created_httpserver){
 			}
 			if (cmd == "deletealljobs"){
 				jobcontrol.deletealljobs();
+				return;
+			}
+			if (cmd == "player"){
+				console.log("PLAYER CONNECTION STARTING")
+				let thisplayer = new Player();
+				//player has it's own socket io connection, should be ok to attach event only for this socket.
+				obj = JSON.parse(obj);
+				thisplayer.initiate(_socket,obj);
+
 				return;
 			}
 		})
