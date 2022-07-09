@@ -1,39 +1,40 @@
 <html>
+
 	<head>
 		<meta charset="UTF-8">
-			<script src="/socket.io/socket.io.js"></script>
 			<script src="../../dependencies/jquery/jquery.js"></script>
+			<script src="/socket.io/socket.io.js"> </script>
 			<script src="jsmpeg-master/jsmpeg.min.js"> </script>
+			<link type="text/css" href="css/main.css" rel="stylesheet"></link>
 			
-			<script type="text/javascript" src="js/ui.js"></script>
-			<link type="text/css" href="css/main.css" rel="stylesheet" />
-			<script type="text/javascript" src="../../dependencies/jquery/jquery.js"></script>
-			<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.13/jquery-ui.min.js"></script>
-			<!-- <script src="jsmpeg-master/websocket-relay.js"></script> -->
-		
-<script>
+			<script>
 var socket = io(); 
+var player;
 
 function load(){
 			var query = window.location.search.substring(1);
 			query = parse_query_string(query);
 			var buf = [];
 			
-		    var player = new JSMpeg.Player(null,
+		    player = new JSMpeg.Player(null,//null
 				{
+					source: JSMpegWritableSource,
+					
 					videoBufferSize: 1024*1024 * 10,
 					audioBufferSize: 256*1024 * 10,
 					disableWebAssembly:false,
-					source: JSMpegWritableSource,
+					pauseWhenHidden:false,
 					canvas:document.getElementById('myCanvas'),
 					loop: true, 
 					autoplay: true, 
-					debug: true,
 					onVideoDecode:function(what,time){
 						//console.log("Videodecode",what,time)
 					}
 				});
 				
+			var statusInterval = window.setInterval(function(){
+				socket.emit("player", JSON.stringify({"getstatus":true})); 
+			},250);
 			
 			socket.emit("player", JSON.stringify({
                 "file":query.file
@@ -41,85 +42,143 @@ function load(){
 			
 			socket.on('binarydata', function (data) {
 				// pretend you are getting data as follows
-				
 					player.source.write(data,function(){});
 					
 			});
-        <!-- var query = window.location.search.substring(1); -->
-        <!-- query = parse_query_string(query); -->
-		<!-- console.log("pleayer query:",query) -->
-		<!-- socket.emit("player", JSON.stringify({ -->
-                <!-- "file":query.file -->
-			<!-- }));  -->
-		<!-- var player = new JSMpeg.Player(url [, options]); -->
+			socket.on('playererror', function (data) {
+				// pretend you are getting data as follows
+					alert(data)
+					
+			});
+			socket.on('setstatus', function (data) {
+				// pretend you are getting data as follows
+				var status = JSON.parse(data);	
+				status.root.position //navbar in percent
+				var _framerate = getFramerateFromStatus(status);
+				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,_framerate)).replace(/:00$/,"");
+				document.getElementById("currentTime").value = _timecode;
+				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,_framerate)).replace(/:00$/,"");
+				document.getElementById("totalTime").value = _duration;
+				var percentage = status.root.position * 100;
+				document.getElementById("slider").value = percentage;
+				document.getElementById("buttonPlay").value = capitalizeFirstLetter(status.root.state);
+				
+			});
 }
 
-async function write(bufferarray,player){
-	for (let i=0;i<bufferarray.length;i++){
-		player.source.write(bufferarray[i]);
+function getFramerateFromStatus(status){
+	//we cannot take the framerate from jsmpeg because vlc might play a different source framerate
+	for (var catIdx in status.root.information.category){
+		try{
+			var infoObj = status.root.information.category[catIdx];
+			var infoObj = infoObj.info;
+			//TODO: support audio only?
+			var _framerate = infoObj.find((info) => info.name == "Frame rate");
+			return _framerate["$t"];
+		}catch(ex){}	
 	}
+
 }
-<!-- <!-- function attachVideoControls(){ --> -->
-	<!-- <!-- var vid = document.getElementById("video"); --> -->
-	<!-- <!-- vid.ontimeupdate = function(){ --> -->
-	  <!-- <!-- var percentage = ( vid.currentTime / vid.duration ) * 100; --> -->
-	  <!-- <!-- console.log("time update",vid.currentTime) --> -->
-	  <!-- <!-- $("#custom-seekbar span").css("width", percentage+"%"); --> -->
-	<!-- <!-- }; --> -->
 
-	<!-- <!-- $("#custom-seekbar").on("click", function(e){ --> -->
-		<!-- <!-- var offset = $(this).offset(); --> -->
-		<!-- <!-- var left = (e.pageX - offset.left); --> -->
-		<!-- <!-- var totalWidth = $("#custom-seekbar").width(); --> -->
-		<!-- <!-- var percentage = ( left / totalWidth ); --> -->
-		<!-- <!-- var vidTime = vid.duration * percentage; --> -->
-		<!-- <!-- vid.currentTime = vidTime; --> -->
-	<!-- <!-- });//click() --> -->
-
-<!-- <!-- } --> -->
-		
+	
 function parse_query_string(query) {
-	var vars = query.split("&");
-	var query_string = {};
-		for (var i = 0; i < vars.length; i++) { var pair=vars[i].split("=" ); var key=decodeURIComponent(pair[0]); var value=decodeURIComponent(pair[1]); 
-		//If first entry with this name
-		if (typeof query_string[key]==="undefined" ) { 
-		query_string[key]=decodeURIComponent(value); 
-		//If second entry with this name 
-		} else if (typeof query_string[key]==="string" ) { var arr=[query_string[key], decodeURIComponent(value)]; query_string[key]=arr; 
-		//If third or later entry with this name
-		} else { query_string[key].push(decodeURIComponent(value)); } } 
-	
-	return query_string;
-	
+    var vars = query.split("&");
+    var query_string = {};
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        var key = decodeURIComponent(pair[0]);
+        var value = decodeURIComponent(pair[1]);
+        //If first entry with this name 
+		if (typeof query_string[key] === "undefined") {
+            query_string[key] = decodeURIComponent(value);
+           // If second entry with this name
+        } else if (typeof query_string[key] === "string") {
+            var arr = [query_string[key], decodeURIComponent(value)];
+            query_string[key] = arr;
+            //If third or later entry with this name
+        } else {
+            query_string[key].push(decodeURIComponent(value));
+        }
+    }
+    return query_string;
+}
+function playerCommand(what, where) {
+    if (where) {
+        socket.emit("player", JSON.stringify({
+                "command": what,
+                "val": encodeURIComponent(where)
+            }));
+    } else {
+        socket.emit("player", JSON.stringify({
+                "command": what
+            }));
+    }
+
+}
+function playPause(){
+	console.log(player)
+	playerCommand('rate',"1");
+	playerCommand("play");
+	<!-- TODO: this does not catch up with vlc but makes the impression that we pause immediately -->
+	<!-- if (player.isPlaying) --> -->
+		<!-- <!-- player.pause(); --> -->
+	<!-- else -->
+		<!-- setTimeout(function(){player.play()},1000); -->
+}
+
+/** Convert seconds to SMPTE timecode JSON object, example input is html video.currentTime */
+function secondsToSMPTE(seconds, framerate) {
+    var f = Math.floor((seconds % 1) * framerate);
+    var s = Math.floor(seconds);
+    var m = Math.floor(s / 60);
+    var h = Math.floor(m / 60);
+    m = m % 60;
+    s = s % 60;
+
+    return {h: h, m: m, s: s, f: f};
+}
+
+/** Pretty print SMPTE timecode JSON object */
+function SMPTEToString(timecode) {
+    if (timecode.h < 10) { timecode.h = "0" + timecode.h; }
+    if (timecode.m < 10) { timecode.m = "0" + timecode.m; }
+    if (timecode.s < 10) { timecode.s = "0" + timecode.s; }
+    if (timecode.f < 10) { timecode.f = "0" + timecode.f; }
+
+    return timecode.h + ":" + timecode.m + ":" + timecode.s + ":" + timecode.f;
+}
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 </script>
-</head>
 
-<body onload="load()">
+		</head>
+		<body onload="load()">
+			<div width="540px" height="500px" style="text-align: center;">
 
-<div id="controlContainer" class="ui-widget">
-		<!-- <video id="video" src="http://localhost:1935/live" controls> -->
-			<!-- </video> -->
-			<canvas id="myCanvas" width="512" height="240"></canvas><br/>
-			<div id="controlTable" class="ui-widget-content">
-					<ul id="controlButtons">
-						
-						<li id="buttonPlay" class="button48  ui-corner-all paused" title="Play"></li>
-						
-						<li id="buttonStop" class="button48  ui-corner-all" title="Stop"></li>
-						<li id="buttonFull" class="button48  ui-corner-all" title="Full Screen"></li>
-					</ul>
+				<canvas id="myCanvas" width="512px" height="240px" class=""></canvas>
+				
+				<div id="controlTable" class="controltable">
 					<div id="seekContainer">
-					<div id="seekSlider" title=""></div>
-					<div id="currentTime" class="dynamic">00:00:00</div>
-					<div id="totalTime" class="dynamic">00:00:00</div>
+						<div style="float:left"><input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+						<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+						<div class="slidecontainer">
+							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="playerCommand('seek',this.value + '%')">
+						</div>
+					</div>
+					<div id="controlButtons" class="vertical-center">
+						<input id="buttonSeekB1m" type="submit" onclick="playerCommand('seek',this.value)" value="-1m"></input>
+						<input id="buttonSeekB10s" type="submit" onclick="playerCommand('seek',this.value)" value="-10s"></input>
+						<input id="slow" type="submit" onclick="playerCommand('rate',this.value)" value="0.25"></input>
+						<input id="buttonPlay" type="submit" title="Play/Pause" onclick="playPause()" value="play"></input>
+						<input id="fast" type="submit" onclick="playerCommand('rate',this.value)" value="4"></input>
+						<input id="buttonSeekF10s" type="submit" onclick="playerCommand('seek',this.value)" value="+10s"></input>
+						<input id="buttonSeekF1m" type="submit" onclick="playerCommand('seek',this.value)" value="+1m"></input>
+					</div>
+
+					</div>
 				</div>
-			</div>
-</div>
-			<!-- <div id="custom-seekbar"> -->
-				<!-- <span/> -->
-			<!-- </div> -->
-</body>
-</html>
+			</body>
+		</html>

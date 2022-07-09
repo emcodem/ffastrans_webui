@@ -39,6 +39,7 @@ MPEG1WASM.prototype.bufferGetIndex = function() {
 	if (!this.decoder) {
 		return;
 	}
+	
 	return this.functions._mpeg1_decoder_get_index(this.decoder);
 };
 
@@ -46,6 +47,7 @@ MPEG1WASM.prototype.bufferSetIndex = function(index) {
 	if (!this.decoder) {
 		return;
 	}
+	
 	this.functions._mpeg1_decoder_set_index(this.decoder, index);
 };
 
@@ -70,6 +72,7 @@ MPEG1WASM.prototype.bufferWrite = function(buffers) {
 };
 
 MPEG1WASM.prototype.write = function(pts, buffers) {
+	console.log("Decoder elapsed time",elapsedTime)
 	JSMpeg.Decoder.Base.prototype.write.call(this, pts, buffers);
 
 	if (!this.hasSequenceHeader && this.functions._mpeg1_decoder_has_sequence_header(this.decoder)) {
@@ -78,6 +81,7 @@ MPEG1WASM.prototype.write = function(pts, buffers) {
 };
 
 MPEG1WASM.prototype.loadSequenceHeader = function() {
+
 	this.hasSequenceHeader = true;
 	this.frameRate = this.functions._mpeg1_decoder_get_frame_rate(this.decoder);
 	this.codedSize = this.functions._mpeg1_decoder_get_coded_size(this.decoder);
@@ -94,6 +98,7 @@ MPEG1WASM.prototype.loadSequenceHeader = function() {
 };
 
 MPEG1WASM.prototype.decode = function() {
+	
 	var startTime = JSMpeg.Now();
 
 	if (!this.decoder) {
@@ -114,13 +119,14 @@ MPEG1WASM.prototype.decode = function() {
 		var dy = this.instance.heapU8.subarray(ptrY, ptrY + this.codedSize);
 		var dcr = this.instance.heapU8.subarray(ptrCr, ptrCr + (this.codedSize >> 2));
 		var dcb = this.instance.heapU8.subarray(ptrCb, ptrCb + (this.codedSize >> 2));
-
+		
 		this.destination.render(dy, dcr, dcb, false);
 	}
 
 	this.advanceDecodedTime(1/this.frameRate);
 
 	var elapsedTime = JSMpeg.Now() - startTime;
+	
 	if (this.onDecodeCallback) {
 		this.onDecodeCallback(this, elapsedTime);
 	}

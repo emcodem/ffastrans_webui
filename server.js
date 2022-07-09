@@ -358,11 +358,25 @@ function initSocketIo(created_httpserver){
 	  
 	  //register to all events from client
 		_socket.on('*', function(data){
-			console.log("Received command via socket.io",data);
-			//var regex = /cancel/
-			//var result = data.data[0].match(regex);
 			var cmd = data.data[0];
 			var obj = data.data[1];
+			if (cmd == "player"){
+				let thisplayer = new Player();
+				//player has it's own socket io connection, should be ok to attach event only for this socket.
+				obj = JSON.parse(obj);
+				if (obj.file){//opens file
+					thisplayer.initiate(_socket,obj);
+				}
+
+				return;
+			}
+			
+			//non player commands are logged
+			
+			console.log("Received jobcommand via socket.io",data);
+			//var regex = /cancel/
+			//var result = data.data[0].match(regex);
+
 			if (cmd == "pausejob"){
 				jobcontrol.pausejob(obj);
 				return;
@@ -375,15 +389,7 @@ function initSocketIo(created_httpserver){
 				jobcontrol.deletealljobs();
 				return;
 			}
-			if (cmd == "player"){
-				console.log("PLAYER CONNECTION STARTING")
-				let thisplayer = new Player();
-				//player has it's own socket io connection, should be ok to attach event only for this socket.
-				obj = JSON.parse(obj);
-				thisplayer.initiate(_socket,obj);
 
-				return;
-			}
 		})
 		
 		//client disconnected

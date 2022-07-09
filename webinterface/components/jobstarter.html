@@ -312,8 +312,15 @@ function init(){
     
 	m_fileBrowseGridMenu.attachEvent("onClick", function(id, zoneId, cas){
         if (id == "delete_browsercache") { 
-            localStorage.clear();
-            location.reload();
+			dhtmlx.message({
+				type:"confirm",
+				text: "This will reset stored locations, layout, last visited folder. Do you wish to continue?",
+				callback: function() {
+				   localStorage.clear();
+				   location.reload();
+				}
+			});
+			return;
         }
     
 		if (id == "select") {
@@ -369,7 +376,7 @@ function init(){
 				   var dhxwins = new dhtmlXWindows();
                     //dhxwins.attachViewportTo(window.parent.document.body);
                     win_offset = 0;
-                    var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, 600, 600);
+                    var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, 600, 400);
                     win_offset+=30;
                     win.setText("File [" + file.name + "]");
                     win.attachURL("player/player.html?file=" + encodeURIComponent(m_fileBrowserGrid.getUserData(rId,"fullpath")));
