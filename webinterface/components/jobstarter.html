@@ -315,9 +315,11 @@ function init(){
 			dhtmlx.message({
 				type:"confirm",
 				text: "This will reset stored locations, layout, last visited folder. Do you wish to continue?",
-				callback: function() {
-				   localStorage.clear();
-				   location.reload();
+				callback: function(ok) {
+					if (ok){
+						localStorage.clear();
+						location.reload();
+				    }
 				}
 			});
 			return;

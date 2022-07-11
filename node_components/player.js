@@ -1,9 +1,10 @@
 const { spawn,execSync } = require('child_process');
 var fs = require("fs");
 const axios = require('axios');
-var parser = require('xml2json');
+var parser = require('simple-xml2json');
 var path = require("path")
 
+var portfinder = require("portfinder");
 
 class Player
 {
@@ -15,6 +16,8 @@ class Player
         this.type = "Person";
 		this.child = null;
 		this.server = null;
+		this.port = 3200;
+		
     }
 	
 
@@ -24,12 +27,22 @@ class Player
     //     console.log("Player is destructed")
     // }
 	async initiate(socket,config) {
-		
+		var playerInstance = this;
 		var vlcCommandAuth = {
 			username: '',
 			password: 'vlc'
 		  }
 		console.log("PLAYER INITATE", config);
+		
+		try{
+			
+			this.port = await getFreePort(this.port);
+			console.log("port for vlc",this.port)
+			
+		}catch(e){
+			socket.emit("playererror",e.message);
+			return;
+		}
 		var {vlc,ffrewrap} = this.startPlay(socket,config);
 		
 		//attach disconnect event to socket for the case that client closes
@@ -46,24 +59,28 @@ class Player
 					console.log("player command received",data);
 				}
 				if (data.getstatus){
-					var resp = await axios.get("http://127.0.0.1:3010/requests/status.xml",{auth:vlcCommandAuth});
-					var xmljson = parser.toJson(resp.data);
+					var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml",{auth:vlcCommandAuth});
+					var xmljson = parser.parser(resp.data);
+					
 					socket.emit("setstatus",xmljson);
 				} 
 				if (data.command){
 					if (data.command == "play"){
-						var resp = await axios.get("http://127.0.0.1:3010/requests/status.xml?command=pl_pause",{auth:vlcCommandAuth});
-						
+						var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=pl_pause",{auth:vlcCommandAuth});
+						return;
 					} 
 					if (data.command == "seek"){
 						console.log("seeking to", data.val)
-						axios.get("http://127.0.0.1:3010/requests/status.xml?command=seek&val=" + data.val,{auth:vlcCommandAuth});
+						axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=seek&val=" + data.val,{auth:vlcCommandAuth});
+						return;
 					}
 					if (data.command == "rate"){
-						axios.get("http://localhost:3010/requests/status.xml?command=rate&val=" + data.val,{auth:vlcCommandAuth})
+						axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=rate&val=" + data.val,{auth:vlcCommandAuth});
+						return;
 
 					}
-				
+					axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=" + data.command,{auth:vlcCommandAuth});
+					return;
 			}
 		});
 
@@ -72,7 +89,7 @@ class Player
 	
 	startPlay(socket,config){
 
-
+		var playerInstance = this;
 		var vlcexe = "";
 		var ffmpegexe = "";
 		vlcexe = path.join(global.approot,"tools","vlc","vlc.exe");
@@ -95,11 +112,11 @@ class Player
 		}
 		if (!fs.existsSync(ffmpegexe)){
 			console.error("ffmpeg.exe not found in " + ffmpegexe + ", using just 'ffmpeg', let us hope it is in the path");
-			if (systemSync("where ffmpeg") == 0){
+			// if (systemSync("where ffmpeg") == 0){
 				ffmpegexe = "ffmpeg";
-			}else{
-				socket.emit("playererror","Error, VLC not found on webinterface server. Please either make sure it is in path or place here: ",ffmpegexe)
-			}
+			// }else{
+				// socket.emit("playererror","Error, ffmpeg not found on webinterface server. Please either make sure it is in path or place here: ",ffmpegexe)
+			// }
 		}
 		
 		//REWRAPPING - we need that in order to compensate "frame bursts" from vlc when loading some source formats e.g. mp4aacavc 
@@ -135,8 +152,7 @@ class Player
 
 		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
 		ffrewrap.on('error', data => {
-		  var returnobj = {"message":"Fatal error spawning ingest command, check for installation errors. "};
-		  returnobj["exception"] = data;
+		  socket.emit("playererror","Error spawning ffmpeg on webinterface server, check if ffmpeg is in the PATH");
 		});	
 		
 
@@ -148,7 +164,7 @@ class Player
 		var secondaryaccess = 'udp' //"udp"  || 'file,dst="c:\\temp\\recording.ts"'
 		
 		
-		console.log("Spawning ",vlcexe);
+		console.log("Spawning VLC",vlcexe,"port",this.port);
 		var vlc = spawn(vlcexe, [
 												
 												"-I","http", 
@@ -161,10 +177,10 @@ class Player
 												':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=240}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
 												"--sout-avcodec-keyint=1",// I frame only
 												"--http-host" ,"127.0.0.1",
-												"--http-port", "3010",
+												"--http-port", this.port,
 												'--http-pass','vlc',
 												
-												]
+												],{windowsHide: true},
 												
 						); 
 						
@@ -213,4 +229,8 @@ async function systemSync(cmd){
     console.log('stderr is:' + stderr)
     console.log('error is:' + err)
   }).on('exit', code => console.log('final exit code is', code))
+}
+
+async function getFreePort(){
+	return await portfinder.getPortPromise();
 }

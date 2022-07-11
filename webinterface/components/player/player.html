@@ -52,7 +52,7 @@ function load(){
 			});
 			socket.on('setstatus', function (data) {
 				// pretend you are getting data as follows
-				var status = JSON.parse(data);	
+				var status = data;	
 				status.root.position //navbar in percent
 				var _framerate = getFramerateFromStatus(status);
 				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,_framerate)).replace(/:00$/,"");
@@ -104,10 +104,12 @@ function parse_query_string(query) {
 }
 function playerCommand(what, where) {
     if (where) {
+		//playerCommand("pl_forcepause");
         socket.emit("player", JSON.stringify({
                 "command": what,
                 "val": encodeURIComponent(where)
             }));
+		//playerCommand("pl_forceresume");
     } else {
         socket.emit("player", JSON.stringify({
                 "command": what
@@ -171,9 +173,9 @@ function capitalizeFirstLetter(string) {
 					<div id="controlButtons" class="vertical-center">
 						<input id="buttonSeekB1m" type="submit" onclick="playerCommand('seek',this.value)" value="-1m"></input>
 						<input id="buttonSeekB10s" type="submit" onclick="playerCommand('seek',this.value)" value="-10s"></input>
-						<input id="slow" type="submit" onclick="playerCommand('rate',this.value)" value="0.25"></input>
+						<input id="slow" type="submit" title="0.25" onclick="playerCommand('rate',this.title)" value="<<"></input>
 						<input id="buttonPlay" type="submit" title="Play/Pause" onclick="playPause()" value="play"></input>
-						<input id="fast" type="submit" onclick="playerCommand('rate',this.value)" value="4"></input>
+						<input id="fast" type="submit" title="4" onclick="playerCommand('rate',this.title)" value=">>"></input>
 						<input id="buttonSeekF10s" type="submit" onclick="playerCommand('seek',this.value)" value="+10s"></input>
 						<input id="buttonSeekF1m" type="submit" onclick="playerCommand('seek',this.value)" value="+1m"></input>
 					</div>
