@@ -219,101 +219,106 @@ module.exports = {
     
 //fetch HISTORY jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
-        if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
-            return;
-        }
-        if(error) {
-            console.log("Error retrieving finished jobs",buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL),error)
-            global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
-            return;
-        }
-
-        if (global.lasthistory == body){          
-            return;
-        }
-        global.lasthistory = body;
-        
-        var jobArray;		
 		try{
-			jobArray = JSON.parse(body).history;
+			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
+				return;
+			}
+			if(error) {
+				console.log("Error retrieving finished jobs",buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL),error)
+				global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
+				return;
+			}
+
+			if (global.lasthistory == body){          
+				return;
+			}
+			global.lasthistory = body;
 			
-		}catch(exc){
-			console.error("Error occured while parsing history jobs to json: " + exc + body)
+			var jobArray;		
+			try{
+				jobArray = JSON.parse(body).history;
+				
+			}catch(exc){
+				console.error("Error occured while parsing history jobs to json: " + exc + body)
+			}
+			//store history jobs in database
+			var newjobsfound = 0;
+	//TRY GET CHILDS FOR TREEGRID        
+			
+			//restructure array from ffastrans,build famliy tree
+			
+			for (i = 0; i < jobArray.length; i++){
+					//only jobguid plus split makes each job entry unique
+					jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
+					
+					//data for client display
+					jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
+					jobArray[i].guid = jobArray[i]["guid"]
+					jobArray[i]._id = jobArray[i].guid;
+					jobArray[i].state = m_jobStates[jobArray[i]["state"]];
+					jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
+					jobArray[i].file = jobArray[i]["source"]
+					jobArray[i].outcome = jobArray[i]["result"]
+					jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
+					jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
+					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
+					jobArray[i].wf_name = jobArray[i]["workflow"];
+					
+					//internal data for sorting
+					jobArray[i]["sort_family_name"] = jobArray[i]["job_id"];
+											
+					//workaround splitid does not allow us to parse family tree
+					//get out if the lowest splitid of all jobs in array with this jobids
+					var a_family = jobArray.filter(function (el) {
+						return el["job_id"] === jobArray[i]["job_id"];
+					});
+
+					var oldest_job = jobArray[i];
+					
+					for (x=0;x<a_family.length;x++){
+						if (getDate(a_family[x]["end_time"]) < getDate(oldest_job["end_time"]) ){
+							oldest_job = a_family[x];
+						}
+					}
+					//mark oldest job a grandfather job
+					if (jobArray[i] == oldest_job){
+						jobArray[i]["sort_family_index"] = 0;//its a grandfather
+						jobArray[i]["sort_generation"] = 0;
+						//Reset other's family status, there can be only one grandfather
+						a_family.forEach(function(_cur){
+							if (_cur["split_id"] != jobArray[i]["split_id"]){
+								_cur["sort_family_index"] = 1;
+								_cur["sort_generation"] = 1;//its a childjob
+							}
+						})
+						
+					}else{
+						jobArray[i]["sort_family_index"] = 1;
+						jobArray[i]["sort_generation"] = 1;//its a childjob
+					}
+			}
+			
+			jobArray = await getFancyTreeArray(jobArray);
+	//END OF Family sorting
+			for (i=0;i<jobArray.length;i++){
+				(function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
+					//NEDB BUG HERE: upsert didnt work conistently, so we switched to update
+					global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
+						if(docs > 0 ){
+								console.log("New History Job: " , job_to_insert["source"]);
+								global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
+						}else{
+							
+						}
+					})//job update
+				})(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
+				continue;            
+			}//for
 		}
-		//store history jobs in database
-        var newjobsfound = 0;
-//TRY GET CHILDS FOR TREEGRID        
-        
-        //restructure array from ffastrans,build famliy tree
-        
-        for (i = 0; i < jobArray.length; i++){
-                //only jobguid plus split makes each job entry unique
-                jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
-                
-                //data for client display
-                jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
-                jobArray[i].guid = jobArray[i]["guid"]
-                jobArray[i]._id = jobArray[i].guid;
-                jobArray[i].state = m_jobStates[jobArray[i]["state"]];
-                jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-                jobArray[i].file = jobArray[i]["source"]
-                jobArray[i].outcome = jobArray[i]["result"]
-                jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
-                jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
-                jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
-                jobArray[i].wf_name = jobArray[i]["workflow"];
-                
-                //internal data for sorting
-                jobArray[i]["sort_family_name"] = jobArray[i]["job_id"];
-                                        
-                //workaround splitid does not allow us to parse family tree
-                //get out if the lowest splitid of all jobs in array with this jobids
-                var a_family = jobArray.filter(function (el) {
-                    return el["job_id"] === jobArray[i]["job_id"];
-                });
-
-                var oldest_job = jobArray[i];
-                
-                for (x=0;x<a_family.length;x++){
-                    if (getDate(a_family[x]["end_time"]) < getDate(oldest_job["end_time"]) ){
-                        oldest_job = a_family[x];
-                    }
-                }
-                //mark oldest job a grandfather job
-                if (jobArray[i] == oldest_job){
-                    jobArray[i]["sort_family_index"] = 0;//its a grandfather
-                    jobArray[i]["sort_generation"] = 0;
-                    //Reset other's family status, there can be only one grandfather
-                    a_family.forEach(function(_cur){
-                        if (_cur["split_id"] != jobArray[i]["split_id"]){
-                            _cur["sort_family_index"] = 1;
-                            _cur["sort_generation"] = 1;//its a childjob
-                        }
-                    })
-                    
-                }else{
-                    jobArray[i]["sort_family_index"] = 1;
-                    jobArray[i]["sort_generation"] = 1;//its a childjob
-                }
-        }
-        
-        jobArray = await getFancyTreeArray(jobArray);
-//END OF Family sorting
-        for (i=0;i<jobArray.length;i++){
-            (function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
-                //NEDB BUG HERE: upsert didnt work conistently, so we switched to update
-                global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
-                    if(docs > 0 ){
-                            console.log("New History Job: " , job_to_insert["source"]);
-                            global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
-                    }else{
-                        
-                    }
-                })//job update
-            })(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
-            continue;            
-        }//for
-
+		catch(ex){
+			console.log(ex);
+		
+		}
         
     });   
   }

@@ -3,9 +3,9 @@ var fs = require("fs");
 const axios = require('axios');
 var parser = require('simple-xml2json');
 var path = require("path")
-
+var os = require("os");
 var portfinder = require("portfinder");
-
+const tail = require('tail').Tail;
 class Player
 {
 	child = null
@@ -125,7 +125,11 @@ class Player
 		console.log("Spawning ",ffmpegexe);
 		var ffrewrap = spawn(ffmpegexe, [	
 												
-											"-re","-i","-", 
+											"-re",
+											"-i","-", 
+											"-map","0:v?",
+											"-map","0:a?",
+											"-af", "asetpts=PTS-0.2/TB", //for some reason vlc live stream is async, try to compensate
 											"-f","mpegts",
 											"-c:v", "copy",
 											"-c:a","mp2",
@@ -163,18 +167,22 @@ class Player
 		var ffreportvar = "c:\\temp\\ffmpeg.log";
 		var secondaryaccess = 'udp' //"udp"  || 'file,dst="c:\\temp\\recording.ts"'
 		
-		
+		var tempfile = path.join(os.tmpdir(),"vlc_"+this.port+".log");
+		console.log("Writing vlc logs to ",tempfile);
 		console.log("Spawning VLC",vlcexe,"port",this.port);
 		var vlc = spawn(vlcexe, [
 												
 												"-I","http", 
 												"-vv",
+												"--file-logging",
+												"--logfile",tempfile,
 												config.file,
 												"--no-sout-all",	//prevent downmix all channels
+
 												"--play-and-pause", //pause at last frame 
 												//"--start-paused",
 												//"--audio-track=0",//  in encode below dont work but only here, so we have to restart the player for selecting tracks
-												':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=240}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
+												':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=288}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
 												"--sout-avcodec-keyint=1",// I frame only
 												"--http-host" ,"127.0.0.1",
 												"--http-port", this.port,
@@ -187,28 +195,35 @@ class Player
 		
 		vlc.stdout.pipe(ffrewrap.stdin);
 		
-		
-		// vlc.stdout.on('data', data => {
-			// //console.log("got data from vlc",data.length)
-			// //socket.emit("binarydata",data)
-			// ffrewrap.stdin.write(data);
+		// vlc.stderr.on('data', data => {
+			//this does not work, for some reason we get only truncated output her
+		// 	const result = data.toString().split(/\r?\n/);
+		// 	result.forEach(element => {
+		// 		console.log("VLC log: ",element);
+		// 	});
+			
 		// });
-		vlc.stderr.on('data', data => {
-			//console.log(`VLC: ${data}`);
+
+		//continuously read vlc outptut, don't forget to unwatch in error/exit cmd
+		var tailEvent = new tail(tempfile);
+		tailEvent.on("line", function(data) {
+			console.log("VLC: ",data);
 		});
 
 		vlc.on('exit', returncode => { 
-			console.log ("ffmpeg rewrapper end, returncode: "+returncode  )
+			
+			console.log ("vlc end, returncode: "+returncode  )
 			if (returncode != "0"){
-				console.log("ffmpeg failed, return code: ",returncode)
+				console.log("vlc failed, return code: ",returncode)
 			}
-
+			tailEvent.unwatch();
 		});
 
 		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
 		vlc.on('error', data => {
 		  var returnobj = {"message":"Fatal error spawning ingest command, check for installation errors. "};
 		  returnobj["exception"] = data;
+		  tailEvent.unwatch();
 		});	
 		
 		return {vlc,ffrewrap};

@@ -50,6 +50,7 @@
     "socketio-wildcard": "^2.0.0",
     "strip-bom": "^5.0.0",
     "tableify": "^1.1.0",
+    "tail": "^2.2.4",
     "tmp": "^0.2.1",
     "winston": "^3.3.3",
     "winston-console-formatter": "^1.0.0-beta.3",

@@ -59,8 +59,12 @@ function load(){
 				document.getElementById("currentTime").value = _timecode;
 				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,_framerate)).replace(/:00$/,"");
 				document.getElementById("totalTime").value = _duration;
-				var percentage = status.root.position * 100;
-				document.getElementById("slider").value = percentage;
+
+				if ($('#slider:hover').length == 0){
+					//prevent slider update on hover
+					var percentage = status.root.position * 100;
+					document.getElementById("slider").value = percentage;
+				}
 				document.getElementById("buttonPlay").value = capitalizeFirstLetter(status.root.state);
 				
 			});
@@ -102,25 +106,43 @@ function parse_query_string(query) {
     }
     return query_string;
 }
-function playerCommand(what, where) {
-    if (where) {
-		//playerCommand("pl_forcepause");
-        socket.emit("player", JSON.stringify({
+
+
+function simplePlayerCommand(what){
+	socket.emit("player", JSON.stringify({
+                "command": what
+			}));
+}
+
+function playerCommandSetRate(newRate){
+	simplePlayerCommand("pl_forceresume");
+	socket.emit("player", JSON.stringify({
+                "command": "rate",
+                "val": encodeURIComponent(newRate)
+			}));
+}
+
+
+function playerCommandSeek(what,where){
+
+		//disable slider updates, otherwise seek only works sporadically
+
+		socket.emit("player", JSON.stringify({
                 "command": what,
                 "val": encodeURIComponent(where)
             }));
+		
 		//playerCommand("pl_forceresume");
-    } else {
-        socket.emit("player", JSON.stringify({
-                "command": what
-            }));
-    }
-
+		//window.setTimeout(	function(){playerCommand("pl_forcepause")},300);
+		
 }
+
 function playPause(){
 	console.log(player)
-	playerCommand('rate',"1");
-	playerCommand("play");
+	playerCommandSetRate("1");
+	socket.emit("player", JSON.stringify({
+                "command": "play"
+            }));
 	<!-- TODO: this does not catch up with vlc but makes the impression that we pause immediately -->
 	<!-- if (player.isPlaying) --> -->
 		<!-- <!-- player.pause(); --> -->
@@ -160,24 +182,24 @@ function capitalizeFirstLetter(string) {
 		<body onload="load()">
 			<div width="540px" height="500px" style="text-align: center;">
 
-				<canvas id="myCanvas" width="512px" height="240px" class=""></canvas>
+				<canvas id="myCanvas" width="540px" height="288px" style="width:100%" class=""></canvas>
 				
 				<div id="controlTable" class="controltable">
 					<div id="seekContainer">
 						<div style="float:left"><input style="width:60px" id="currentTime"  value='00:00:00'/></div>
 						<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
 						<div class="slidecontainer">
-							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="playerCommand('seek',this.value + '%')">
+							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="playerCommandSeek('seek',this.value + '%')">
 						</div>
 					</div>
 					<div id="controlButtons" class="vertical-center">
-						<input id="buttonSeekB1m" type="submit" onclick="playerCommand('seek',this.value)" value="-1m"></input>
-						<input id="buttonSeekB10s" type="submit" onclick="playerCommand('seek',this.value)" value="-10s"></input>
-						<input id="slow" type="submit" title="0.25" onclick="playerCommand('rate',this.title)" value="<<"></input>
+						<input id="buttonSeekB1m" type="submit" onclick="playerCommandSeek('seek',this.value)" value="-1m"></input>
+						<input id="buttonSeekB10s" type="submit" onclick="playerCommandSeek('seek',this.value)" value="-10s"></input>
+						<input id="slow" type="submit" title="0.25" onclick="playerCommandSetRate(this.title)" value="<<"></input>
 						<input id="buttonPlay" type="submit" title="Play/Pause" onclick="playPause()" value="play"></input>
-						<input id="fast" type="submit" title="4" onclick="playerCommand('rate',this.title)" value=">>"></input>
-						<input id="buttonSeekF10s" type="submit" onclick="playerCommand('seek',this.value)" value="+10s"></input>
-						<input id="buttonSeekF1m" type="submit" onclick="playerCommand('seek',this.value)" value="+1m"></input>
+						<input id="fast" type="submit" title="4" onclick="playerCommandSetRate(this.title)" value=">>"></input>
+						<input id="buttonSeekF10s" type="submit" onclick="playerCommandSeek('seek',this.value)" value="+10s"></input>
+						<input id="buttonSeekF1m" type="submit" onclick="playerCommandSeek('seek',this.value)" value="+1m"></input>
 					</div>
 
 					</div>
