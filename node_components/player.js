@@ -92,6 +92,9 @@ class Player
 		var playerInstance = this;
 		var vlcexe = "";
 		var ffmpegexe = "";
+		
+		const { ext } = path.parse(config.file);
+		
 		vlcexe = path.join(global.approot,"tools","vlc","vlc.exe");
 		try{
 			ffmpegexe = path.join(global["ffastrans-about"].about.general.install_dir,"Processors","ffmpeg","x64","ffmpeg.exe");
@@ -123,7 +126,9 @@ class Player
 		//jsmpeg does not have any inbuilt buffer so it will just display the frame bursts and lags that vlc delivers 
 		//ffmpeg -re option to the rescue
 		console.log("Spawning ",ffmpegexe);
-		var ffrewrap = spawn(ffmpegexe, [	
+		
+		//-filter_complex "[0:a]ebur128=peak=true:video=1:meter=9[v]" -map "[v]" -map 0:a
+		var standard_args = [	
 												
 											"-re",
 											"-i","-", 
@@ -135,9 +140,29 @@ class Player
 											"-c:a","mp2",
 											"-ab","256k",
 											"-"
-										]
+							];
 										
-						 ); 
+	    var audio_only_args = [	
+												
+											"-re",
+											"-i","-", 
+											"-filter_complex","[0:a]ebur128=:video=1:meter=9:size=spal[v]",
+											"-f","mpegts",
+											"-c:v", "mpeg1video", "-g", "1",
+											"-c:a","mp2",
+											"-map", "[v]" , "-map", "0:a",
+											"-s","512x288",
+											"-b:a","256k",
+											"-b:v","5256k",
+											"-"
+							]
+		
+		var selected_args = standard_args;
+		
+		if (ext.match(/mp3$|wav$/i)){
+			selected_args = audio_only_args;
+		}
+		var ffrewrap = spawn(ffmpegexe, selected_args); 
 						
 		ffrewrap.stdout.on('data', data => {
 			socket.emit("binarydata",data)
@@ -157,7 +182,7 @@ class Player
 		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
 		ffrewrap.on('error', data => {
 		  socket.emit("playererror","Error spawning ffmpeg on webinterface server, check if ffmpeg is in the PATH");
-		});	
+		});
 		
 
 

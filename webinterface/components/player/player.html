@@ -3,13 +3,25 @@
 	<head>
 		<meta charset="UTF-8">
 			<script src="../../dependencies/jquery/jquery.js"></script>
+			
 			<script src="/socket.io/socket.io.js"> </script>
 			<script src="jsmpeg-master/jsmpeg.min.js"> </script>
-			<link type="text/css" href="css/main.css" rel="stylesheet"></link>
+			<link rel="stylesheet" type="text/css" href="css/main.css" ></link>
+			<link rel="stylesheet" type="text/css" href="../../dependencies/fontawesome/css/all.css"></link>
+			
+			<style>
+			.player-btns {
+				display:inline-block;
+
+			} 
+			
+
+			</style>
 			
 			<script>
 var socket = io(); 
 var player;
+reversePlayInterval = null;
 
 function load(){
 			var query = window.location.search.substring(1);
@@ -54,20 +66,48 @@ function load(){
 				// pretend you are getting data as follows
 				var status = data;	
 				status.root.position //navbar in percent
+				console.log(status)
 				var _framerate = getFramerateFromStatus(status);
-				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,_framerate)).replace(/:00$/,"");
+				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,_framerate));
 				document.getElementById("currentTime").value = _timecode;
-				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,_framerate)).replace(/:00$/,"");
+				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,_framerate));
 				document.getElementById("totalTime").value = _duration;
-
+				try{
+					if (status.root.rate >= 1){
+						document.getElementById("rate_display").innerHTML = Math.round(status.root.rate);					
+					}else{
+						var _rt = status.root.rate.toFixed(2);
+						document.getElementById("rate_display").innerHTML = _rt;
+					}
+				}catch(ex){
+				
+				}
 				if ($('#slider:hover').length == 0){
 					//prevent slider update on hover
 					var percentage = status.root.position * 100;
 					document.getElementById("slider").value = percentage;
 				}
-				document.getElementById("buttonPlay").value = capitalizeFirstLetter(status.root.state);
+				//fa-play-circle //iconPlay
+				//if (status.root.state == "playing"){
+					$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.root.state != "playing" );
+					$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
+				//}
+				//document.getElementById("buttonPlay").value = capitalizeFirstLetter(status.root.state);
 				
 			});
+			
+			//EVENTS
+			attachEvents()
+}
+
+function attachEvents(){
+		   document.getElementById("slider").addEventListener ('change', function (evt) {
+		   console.log("Slider change",evt)
+		   playerCommandSeek(document.getElementById("slider").value + '%');
+		   //TODO: find a way to get current pos from event instead of dom element. dom ele can be cancelled
+		   evt.cancelBubble = true;
+		   evt.preventDefault();
+	});
 }
 
 function getFramerateFromStatus(status){
@@ -115,20 +155,53 @@ function simplePlayerCommand(what){
 }
 
 function playerCommandSetRate(newRate){
-	simplePlayerCommand("pl_forceresume");
+	//simplePlayerCommand("pl_forceresume");
 	socket.emit("player", JSON.stringify({
                 "command": "rate",
                 "val": encodeURIComponent(newRate)
 			}));
 }
 
+function slower(){
+	var maxspeed = 0.24;
+	var currentRate = document.getElementById("rate_display").innerHTML;
+	currentRate = parseFloat(currentRate);
+	if (currentRate - 0.25 <= maxspeed){
+		//cannot play reverse
+		return;
+	}
+	try{
+		currentRate = currentRate - 0.25;
+		console.log("Setting rate to ", currentRate)
+		playerCommandSetRate(currentRate);
+		
+	}catch(ex){
+		dhtmlx.alert("Current Rate is not a number: " +currentRate);
+	}
+}
 
-function playerCommandSeek(what,where){
+function faster(){
+	var maxspeed = 32;
+	var currentRate = document.getElementById("rate_display").innerHTML;
+	currentRate = parseInt(currentRate);
+	if (currentRate + 1  >= maxspeed){
+	
+		return;
+	}
+	try{
+		currentRate = currentRate * 2;
+		playerCommandSetRate(currentRate);
+	}catch(ex){
+		dhtmlx.alert("Current Rate is not a number: " +currentRate);
+	}
+}
+
+function playerCommandSeek(where){
 
 		//disable slider updates, otherwise seek only works sporadically
 
 		socket.emit("player", JSON.stringify({
-                "command": what,
+                "command": "seek",
                 "val": encodeURIComponent(where)
             }));
 		
@@ -138,7 +211,9 @@ function playerCommandSeek(what,where){
 }
 
 function playPause(){
-	console.log(player)
+	if (reversePlayInterval){
+		window.clearInterval(reversePlayInterval);
+	}
 	playerCommandSetRate("1");
 	socket.emit("player", JSON.stringify({
                 "command": "play"
@@ -168,8 +243,8 @@ function SMPTEToString(timecode) {
     if (timecode.m < 10) { timecode.m = "0" + timecode.m; }
     if (timecode.s < 10) { timecode.s = "0" + timecode.s; }
     if (timecode.f < 10) { timecode.f = "0" + timecode.f; }
-
-    return timecode.h + ":" + timecode.m + ":" + timecode.s + ":" + timecode.f;
+	console.log(timecode.f)
+    return timecode.h + ":" + timecode.m + ":" + timecode.s;// + ":" + timecode.f;
 }
 
 function capitalizeFirstLetter(string) {
@@ -180,29 +255,41 @@ function capitalizeFirstLetter(string) {
 
 		</head>
 		<body onload="load()">
+		<div style="float:left;width:80%">
 			<div width="540px" height="500px" style="text-align: center;">
-
-				<canvas id="myCanvas" width="540px" height="288px" style="width:100%" class=""></canvas>
+				<canvas id="myCanvas" width="540px" height="288px" style="width:100%;border-style: inset" class=""></canvas>
 				
 				<div id="controlTable" class="controltable">
 					<div id="seekContainer">
-						<div style="float:left"><input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+						<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+						<div style="display:inline">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
 						<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
 						<div class="slidecontainer">
-							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="playerCommandSeek('seek',this.value + '%')">
+							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
 						</div>
 					</div>
 					<div id="controlButtons" class="vertical-center">
-						<input id="buttonSeekB1m" type="submit" onclick="playerCommandSeek('seek',this.value)" value="-1m"></input>
-						<input id="buttonSeekB10s" type="submit" onclick="playerCommandSeek('seek',this.value)" value="-10s"></input>
-						<input id="slow" type="submit" title="0.25" onclick="playerCommandSetRate(this.title)" value="<<"></input>
-						<input id="buttonPlay" type="submit" title="Play/Pause" onclick="playPause()" value="play"></input>
-						<input id="fast" type="submit" title="4" onclick="playerCommandSetRate(this.title)" value=">>"></input>
-						<input id="buttonSeekF10s" type="submit" onclick="playerCommandSeek('seek',this.value)" value="+10s"></input>
-						<input id="buttonSeekF1m" type="submit" onclick="playerCommandSeek('seek',this.value)" value="+1m"></input>
-					</div>
+						<div class="player-btns">
+						<i style="margin:3px" title="-10s" id="iconStepMinus" 		class="fas fa-step-backward 	fa-3x" onclick="playerCommandSeek('-10s')"></i>
+						<i style="margin:3px" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x" onclick="slower()"></i>
+						<i style="margin:3px" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 					fa-3x" onclick="playPause()"></i>
+						<i style="margin:3px" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x" onclick="faster()"></i>
+						<i style="margin:3px" title="-10s" id="iconStepPlus" 		class="fas fa-step-forward 	 	fa-3x" onclick="playerCommandSeek('+10s')"></i>
+						
+						</div>
+					<!-- </div> -->
 
 					</div>
 				</div>
+			</div><!-- player -->
+			</div><!-- dev -->
+			<div style="float:right;width:18%">
+				<div style="height:60%">
+					File Properties:
+				</div>
+				<div style="height:30%">
+					<input style="width:100px;height:100px"  type="submit" value="Select > "></input>
+				</div>
+			</div>
 			</body>
 		</html>

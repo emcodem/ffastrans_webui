@@ -149,15 +149,15 @@ async function init(conf){
         onProxyReq: function (proxyReq, req, res) {
             console.log(proxyReq)
         },
-        parseReqBody: false,
+        parseReqBody: true,
 		reqBodyEncoding: null,
 		reqAsBuffer: true,
-        proxyReqBodyDecorator: function(bodyContent, srcReq) {
-       //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
-       //we actually want the body to be forwarded unmodified
-        bodyContent=(""+srcReq.body) 
-        return bodyContent;
-      }
+    //     proxyReqBodyDecorator: function(bodyContent, srcReq) {
+    //    //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
+    //    //we actually want the body to be forwarded unmodified
+    //     bodyContent=(""+srcReq.body) 
+    //     return bodyContent;
+    //   }
     }));
 
     //PROXY, forward to new api, port 3003 default
@@ -174,7 +174,8 @@ async function init(conf){
             //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
             //we actually want the body to be forwarded unmodified
             console.debug("Proxying API call, request url: " , srcReq.url)
-            bodyContent = ("" + srcReq.body)
+            bodyContent = ("" + srcReq.body);
+			console.debug("Body:",srcReq.body)
             return bodyContent;
         }
     }));
@@ -198,8 +199,8 @@ async function init(conf){
     }));
 	
     // get information from POST like messages
-    app.use(bodyParser.urlencoded({ extended: true }));
-    app.use(bodyParser.json());
+    // app.use(bodyParser.urlencoded({ extended: true }));
+    // app.use(bodyParser.json());
 
 
     cron.schedule("*/5 * * * * *", async function() {

@@ -1412,20 +1412,24 @@
                 if (response['wf_object'].length == 0) {
                     alert("Did not get any workflow in job from FFASTRANS API");
                 } else {
+					console.log("res: ",response)
                     var postBody = {};
                     postBody.start_proc = response["nodes"]["start"]["id"];
                     postBody.wf_id = response["workflow"]["id"];
                     postBody.inputfile = response["sources"]["localized_file"];
                     postBody.variables = response["variables"];
+					console.log("submitting wf: ",postBody)
                     $.ajax({
                         url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
                         type: "POST",
                         crossDomain: true,
+                        contentType: "application/json",
                         data: JSON.stringify(postBody),
                         success: function(response) {
                             dhtmlx.message(postBody.inputfile + " was submitted")
                         },
                         error: function(xhr, status) {
+                            console.log(xhr.responseText)
                             dhtmlx.alert("Error submitting workflow: " + xhr.responseText);
                         }
                     });
@@ -1478,6 +1482,7 @@
                 url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
                 type: "PUT",
                 context: this,
+                contentType: "application/json",
                 data: JSON.stringify(postBody),
                 success: function(response) {
                     dhtmlx.message("Success " + action + " " + node.data.job_id);
@@ -1502,6 +1507,7 @@
             $.ajax({
                 url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
                 type: "DELETE",
+                contentType: "application/json",
                 context: this,
                 success: function(response) {
                     dhtmlx.message("Aborted " + jobObj.job_id);
