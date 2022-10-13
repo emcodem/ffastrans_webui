@@ -39,7 +39,7 @@
     "nodemailer": "^6.7.5",
     "npm": "^7.11.1",
     "opn": "^5.5.0",
-    "passport": "^0.4.1",
+    "passport": "^0.6.0",
     "passport-local": "^1.0.0",
     "portfinder": "^1.0.28",
     "recursive-readdir-async": "^1.1.8",
