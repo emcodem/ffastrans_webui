@@ -31,7 +31,7 @@
         color:#444; !important
         border:2px solid #AAA !important;
         background:#DDD;
-        box-shadow: 0 0 3px -1px rgba(0,0,0,0.2);
+        box-shadow: 1px 1px 1px 1px rgb(0 0 0 / 30%) !important;
         cursor:pointer;
         vertical-align:middle;
         max-width: 100px;
@@ -40,6 +40,10 @@
         margin-left: 3px !important;
     }
 
+    .dhtmlxMenu_dhx_skyblue_Middle{
+        height:35px;
+        padding-top:3px !important;
+    }
 </style>
 
 <script>
@@ -91,6 +95,23 @@ function build_new_api_url(what) {
         return _url;
     }
 }
+
+function navigateLevelUp(){
+    //getFileList
+
+}
+
+function globalPageInterval(){
+    if (!m_fileBrowserGrid.getSelectedRowId()){
+        m_fileBrowseGridMenu.setItemDisabled("select");
+        m_fileBrowseGridMenu.setItemDisabled("mediainfo");
+        m_fileBrowseGridMenu.setItemDisabled("player");
+    }else{
+        m_fileBrowseGridMenu.setItemEnabled("select");
+        m_fileBrowseGridMenu.setItemEnabled("mediainfo");
+        m_fileBrowseGridMenu.setItemEnabled("player");
+    }
+}
       
 /* build basic page layout and init periodic job loading*/
 function init(){
@@ -130,8 +151,8 @@ function init(){
 
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_fileBrowserGrid.setHeader("Name,Path,is_folder,Size,Created,Modified,original_size");//the headers of columns  
-    m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
+    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size");//the headers of columns  
+    //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
     m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
@@ -139,19 +160,31 @@ function init(){
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
-	
+	//onclick='(arguments[0]||event).cancelBubble = true'
+    m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'><input id='nfilter' style='margin-left:10px;margin-right:10px' ></div>\
+                                    ,,,\
+                                    <input autocomplete='off' id='sizefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
+                                    <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>");
+    m_fileBrowserGrid.makeFilter("nfilter",0); //attach filter functionality to html input
+    m_fileBrowserGrid.makeFilter("sizefilter",3); 
+    m_fileBrowserGrid.makeFilter("datefilter",4); 
+
+    window.setInterval(function(){globalPageInterval()},250);
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
 		items:[
-            {id:"location", text:"Locations <i class='fas fa-list'></i>"},
-			{id:"savelocation", text:"Save Location <i class='fas fa-save'></i>"},
-            {id:"select", text:"Add Selected <i class='fas fa-angle-right'></i>"},
-            {id:"selectall", text:"Add All <i class='fas fa-angle-double-right'></i>"},
-            {id:"mediainfo", text:"Info <i class='fas fa-info'></i>"},
-			{id:"player", text:"Play <i class='fas fa-play'></i>"},
-            {id:"delete_browsercache", text:"Reset Page <i class='fas fa-eraser'></i>"},
+            {id:"location", text:"<span >Locations <i class='fas fa-list'></i></span>"},
+			{id:"savelocation", text:"<span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span>"},
+
+            {id:"mediainfo", text:"<span title='Mediainfo'>Info <i class='fas fa-search'></i></span>"},
+			{id:"player", text:"<span title='VLC Player'>Play <i class='fas fa-play'></i></span>"},
+            {id:"select", text:"<span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span>"},
+            {id:"selectall", text:"<span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span>"},
 		]
 	});
-    
+    m_fileBrowseGridMenu.setItemDisabled("select");
+    m_fileBrowseGridMenu.setItemDisabled("mediainfo");
+    m_fileBrowseGridMenu.setItemDisabled("player");
+
     m_fileBrowserGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
             //disallow drag&drop rows to self   
             //tObj.deleteRow(dId);//row was already pasted, delete it!
@@ -170,7 +203,7 @@ function init(){
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
-                 {id:"add", text:"<i class='fa fa-folder-plus'></i>Add"},
+                 {id:"add", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
                  {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
                  
             ]
@@ -375,15 +408,22 @@ function init(){
 		if (id == "player"){
            var rId = m_fileBrowserGrid.getSelectedRowId()
            var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
-				   var dhxwins = new dhtmlXWindows();
+				   var dhxWins = new dhtmlXWindows();
                     //dhxwins.attachViewportTo(window.parent.document.body);
                     win_offset = 0;
-                    var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, 650, 480);
+                    var win = dhxWins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, 600, 480);
                     win_offset+=30;
                     win.setText("File [" + file.name + "]");
                     win.attachURL("player/player.html?file=" + encodeURIComponent(m_fileBrowserGrid.getUserData(rId,"fullpath")));
                     win.showInnerScroll(true);
-           
+                    dhxWins.attachEvent("onFocus", function(win){
+                        console.log("global event onFocus was called for "+win.getText());
+                    });
+
+                    win.attachEvent("onBeforeMoveStart", function(whut){
+                        win.bringToTop();
+                        return true;
+                    });
             return;
         }
 		
@@ -418,7 +458,8 @@ function init(){
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
    
-   
+
+
 //MAIN STARTING POINT
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
@@ -549,8 +590,63 @@ function selectFileToProcess(){
     }
 }
 
-function getFileList(dhtmlxGrid,path){
+function constructpathLink(what){
+    /* navbar on top of filebrowser, we construct dynamic html here, sorry for that */
+    console.log(parse_path(what))
+    var html = "";
+    var parsed = parse_path(what);
+    var encoded = btoa(parsed["root"] );
+    //add root 
+    var displaytext = parsed["root"].replace(/^\\\\/,"");
+    displaytext = displaytext.replace(/\\$/,"");
+        
+    html += '<i style="color:#709BFF !important" class="fas fa-folder"></i>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span>";
+    
+    var previous = "";
+    var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);
+
+    var prevdirs = "";
+    for(var i=0;i<a_dirs.length;i++){
+        if (a_dirs[i] ==""){
+            continue;
+        }
+        var current = a_dirs[i] + "\\";
+        var fullpath = btoa(parsed["root"] + previous + current);
+        var displaytext = current.replace("\\","");
+        html += "<div class='folder_browser_nav'  style='font-size:12px !important;margin:0 !important;padding:0 !important;height:15px !important;line-height:unset !important;'><span  onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)'>" + displaytext + " > </span></div>";
+        previous += current;
+
+        if (i==a_dirs.length-2){//pre-last folder, add levelup
+            html = "<i onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
+        }
+    }
+    //finally prevent default dhtmlx onheaderclick sort action by wrapping into this div
+    html = "<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'>" + html + "</div>";
+
+    return html;
+}
+
+function parse_path (what){
+    var output = {};
+    if (what.match(/^(\\\\.+?)\\|^(.:\\)/)){
+        console.log(what.match(/^(\\\\.+?)\\|^(.:)\\/))
+        output["root"] = what.match(/^(\\\\.+?\\)|^(.:\\)/)[1]; //windows drive and unc
+    }else{
+        output["root"] = "/";
+    }
+    
+    output["filename"] = what.substring(what.lastIndexOf('\\')+1);
+    output["dirs"] = what.replace(output["root"],"");
+    output["dirs"] = output["dirs"].substr(0, output["dirs"].lastIndexOf(output["filename"]))
+    return output;
+}
+
+function getFileList(dhtmlxGrid,path,path_is_base64 = false){
 //browse files on server
+        if(path_is_base64){
+            path = atob(path);
+        }
+        console.log("Navigating to ",path)
         m_mainLayout.cells("a").progressOn();
 	    $.ajax({
         url: "/filebrowser?name=" + encodeURIComponent(path) +"&"+Math.random(),
@@ -558,7 +654,15 @@ function getFileList(dhtmlxGrid,path){
         success: function (response,textStatus, xhr) {
             m_mainLayout.cells("a").progressOff();
             localStorage.setItem("lastVisitedBrowseLocation", path);
-			dhtmlxGrid.clearAll();
+			//construct nav link bar
+            document.getElementById("current_folder").innerHTML = constructpathLink(path),
+            $(".folder_browser_nav").hover(function(evt,ele){
+                    $(this).addClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");  //Add the active class to the area is hovered
+                }, function (evt) {
+                    $(this).removeClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");
+            });
+            //loads file list into grid
+            dhtmlxGrid.clearAll();
 			dhtmlxGrid.parse(response,"json");
 			dhtmlxGrid.forEachRow(function(id){
 			//convert filesize to human readable

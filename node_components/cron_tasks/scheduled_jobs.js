@@ -100,7 +100,10 @@ function executeJob(current_job,socketioClientId,informCallback){
         });
         //execute tmp file
         const forked = fork(path, [], { silent: true });
-        
+		
+        //send parameters and infos to the running node script, retrieve in script like process.on('message', (m) => {
+		forked.send({"self":current_job});
+		
         console.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
         if (informCallback){
             informCallback(forked.pid);
@@ -125,7 +128,7 @@ function executeJob(current_job,socketioClientId,informCallback){
                 global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:""+data})
             }
         })
-
+		
         /* we basically only receive a message from child through process.send
          * when this is happening, the child submits a json array and wants to start a job*/
          /* JOB START */

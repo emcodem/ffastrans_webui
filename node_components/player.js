@@ -1,7 +1,7 @@
 const { spawn,execSync } = require('child_process');
 var fs = require("fs");
 const axios = require('axios');
-var parser = require('simple-xml2json');
+const { XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 var path = require("path")
 var os = require("os");
 var portfinder = require("portfinder");
@@ -60,9 +60,13 @@ class Player
 				}
 				if (data.getstatus){
 					var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml",{auth:vlcCommandAuth});
-					var xmljson = parser.parser(resp.data);
 					
-					socket.emit("setstatus",xmljson);
+					const options = {
+						ignoreAttributes : false
+					};
+					var fastparser = new XMLParser(options);
+					let jObj = fastparser.parse(resp.data);
+					socket.emit("setstatus",jObj);
 				} 
 				if (data.command){
 					if (data.command == "play"){

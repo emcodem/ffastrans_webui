@@ -2,6 +2,9 @@
 
 	<head>
 		<meta charset="UTF-8">
+			
+			<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+
 			<script src="../../dependencies/jquery/jquery.js"></script>
 			
 			<script src="/socket.io/socket.io.js"> </script>
@@ -67,7 +70,7 @@ function load(){
 				var status = data;	
 				status.root.position //navbar in percent
 				console.log(status)
-				var _framerate = getFramerateFromStatus(status);
+
 				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,_framerate));
 				document.getElementById("currentTime").value = _timecode;
 				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,_framerate));
@@ -87,13 +90,17 @@ function load(){
 					var percentage = status.root.position * 100;
 					document.getElementById("slider").value = percentage;
 				}
-				//fa-play-circle //iconPlay
-				//if (status.root.state == "playing"){
-					$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.root.state != "playing" );
-					$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
-				//}
-				//document.getElementById("buttonPlay").value = capitalizeFirstLetter(status.root.state);
-				
+		
+				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.root.state != "playing" );
+				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
+				//info bar
+				var _framerate = getVidPropFromStatus(status,"Frame rate");
+				document.getElementById("info-fps").innerHTML = _framerate || "";
+				var _resolution = getVidPropFromStatus(status,"Video resolution");
+				document.getElementById("info-res").innerHTML = _resolution || "";
+				var atracks = JSON.stringify(status).split("Sample rate").length - 1;
+				document.getElementById("info-atracks").innerHTML = atracks || "";
+
 			});
 			
 			//EVENTS
@@ -110,20 +117,18 @@ function attachEvents(){
 	});
 }
 
-function getFramerateFromStatus(status){
+function getVidPropFromStatus(status,tagname){
 	//we cannot take the framerate from jsmpeg because vlc might play a different source framerate
 	for (var catIdx in status.root.information.category){
 		try{
 			var infoObj = status.root.information.category[catIdx];
 			var infoObj = infoObj.info;
 			//TODO: support audio only?
-			var _framerate = infoObj.find((info) => info.name == "Frame rate");
-			return _framerate["$t"];
+			var _framerate = infoObj.find((info) => info["@_name"] == tagname);
+			return _framerate["#text"];
 		}catch(ex){}	
 	}
-
 }
-
 	
 function parse_query_string(query) {
     var vars = query.split("&");
@@ -284,11 +289,33 @@ function capitalizeFirstLetter(string) {
 			</div><!-- player -->
 			</div><!-- dev -->
 			<div style="float:right;width:18%">
-				<div style="height:60%">
-					File Properties:
+				<div style="height:90%" class="gridbox_dhx_skyblue gridbox">
+					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 915px; table-layout: fixed;">
+						<tbody>
+							<tr class=" odd_dhx_skyblue">
+								<td align="left" valign="middle" id="info-res"></td>
+							</tr>
+							<tr class=" ev_dhx_skyblue">
+								<td align="left" valign="middle" id="info-fps"></td>
+							</tr>
+							<tr class=" odd_dhx_skyblue">
+								<td align="left" valign="middle" id="info-atracks"></td>
+							</tr>
+							<tr class=" ev_dhx_skyblue">
+								<td align="left" valign="middle">
+									Track: <select style="max-width:60px" id="cars" name="cars">
+										<option value="volvo">1</option>
+										<option value="saab">2</option>
+										<option value="mercedes">3</option>
+										<option value="audi">4</option>
+									  </select>
+							</td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
-				<div style="height:30%">
-					<input style="width:100px;height:100px"  type="submit" value="Select > "></input>
+				<div style="height:10%;position:relative;">
+					<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
 				</div>
 			</div>
 			</body>
