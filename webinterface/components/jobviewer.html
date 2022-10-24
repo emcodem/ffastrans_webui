@@ -305,9 +305,8 @@
         
         var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
         var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
-        var b_delall =      '<button class="btn jobviewer_menu" name="b_delall" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm" ></i>Delete All</button> ';
         var b_delsel =      '<button class="btn jobviewer_menu" name="b_delsel" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
-        var arr_all_in_b = [b_details,b_resubmit,b_delall,b_delsel];
+        var arr_all_in_b = [b_details,b_resubmit,b_delsel];
         
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
@@ -332,7 +331,7 @@
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
             _appendtext('b',arr_all_in_a.join("") );
-            _appendtext('c', b_details + b_resubmit + b_delall + b_delsel);
+            _appendtext('c', b_details + b_resubmit + b_delsel);
         }
         function _appendtext (cellid, to_append){//helper
             mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
@@ -794,7 +793,7 @@
             return;
         }
         
-        if (selected.length == 0 && (id != "b_delall")) {
+        if (selected.length == 0 ) {
             dhtmlx.alert("Please select row");
             return;
         }
@@ -826,22 +825,7 @@
             });
             socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
         }
-        if (id == "b_delall") {
-            //delete all jobs
-            dhtmlx.confirm({
-                title: "Delete ALL Jobs",
-                type: "confirm-error",
-                text: "Really delete ALL Jobs?",
-                callback: function(yesno) {
-                    if (yesno) {
-                        socket.emit("deletealljobs"); //note, custom structure for socket.emit messages
-
-                        var rootNode = $("#treetable_history").fancytree("getRootNode");
-                        rootNode.removeChildren();
-                    }
-                } //callback
-            }); //confirm
-        } //delall
+        
     }
 
 	function attachColResizeable(tree_id){

@@ -79,12 +79,24 @@ function init(){
     });
 		
 	m_mainForm.attachEvent("onButtonClick", function(name){
-		console.log("mainform button click");
+		console.log("mainform button click" + name);
 		if (name == "btn_adconfig"){
 			showConfigWindow("Activedirectory Config","activedirectory_setup.html");
 		}
 		if (name == "btn_email_alert_config"){
 			showConfigWindow("Email Alert Config","email_alert_setup.html");
+		}
+		if (name == "btn_purge_history"){
+			dhtmlx.confirm({
+                title: "Delete ALL Jobs",
+                type: "confirm-error",
+                text: "Really delete ALL Jobs?",
+                callback: function(yesno) {
+                    if (yesno) {
+                        socket.emit("deletealljobs"); //note, custom structure for socket.emit messages
+                    }
+                } //callback
+            }); //confirm
 		}
 	});
 	

@@ -7,6 +7,21 @@ var configServer = require(global.approot  + '/node_components/server_config');
 			if (req.method === 'GET' || req.method === 'POST') {
                 //basic fieldset, parent of all inputs
                 var dhxform = [];
+				
+				//DATA PURGING FIELDS - static fields / no configuration / admin tools
+				var fieldset_purge = {};
+                fieldset_purge.type = "fieldset";
+                fieldset_purge.name = "purge";
+                fieldset_purge.label = "Data Purging";
+				fieldset_purge.inputWidth = 500;
+                fieldset_purge.position = "label-top";
+                fieldset_purge.width= 800;
+                fieldset_purge.offsetTop = 20;
+                fieldset_purge.offsetLeft = 20;
+				fieldset_purge.list =[];
+				fieldset_purge.list.push({type:"button", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:600,label: "<b>Delete All Jobs</b>",value:"Delete All Jobs"})
+				
+				//SERVER CONFIGURATION FIELDS
                 var fieldset = {};
                 fieldset.type = "fieldset";
                 fieldset.name = "data";
@@ -19,6 +34,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 fieldset.list =[];//all inputs are pushed to this list
                 var settings = {type:"settings", position:"label-top"};
 				dhxform.push(settings)
+				dhxform.push(fieldset_purge)
 				dhxform.push(fieldset)
                 //check if config is in db or we need to use default //todo: support getting a default config intentionally
                 configServer.get(function(outputConfig){

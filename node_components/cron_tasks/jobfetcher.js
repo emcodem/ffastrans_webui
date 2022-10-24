@@ -5,7 +5,7 @@ const moment = require('moment');
 const path = require("path");
 var smptMail = require("../common/send_smpt_email")
 // const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
-//todo: implement queued jobs
+
 var alert_sent = false;
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 process.env.UV_THREADPOOL_SIZE = 128;
@@ -220,6 +220,7 @@ module.exports = {
 //fetch HISTORY jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
 		try{
+			console.log("Finished fetching history jobs from " + buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL));
 			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
 				return;
 			}
@@ -229,7 +230,8 @@ module.exports = {
 				return;
 			}
 
-			if (global.lasthistory == body){          
+			if (global.lasthistory == body){ 
+				console.log("History Jobs did not change since last fetch...")			
 				return;
 			}
 			global.lasthistory = body;
@@ -237,7 +239,6 @@ module.exports = {
 			var jobArray;		
 			try{
 				jobArray = JSON.parse(body).history;
-				
 			}catch(exc){
 				console.error("Error occured while parsing history jobs to json: " + exc + body)
 			}
