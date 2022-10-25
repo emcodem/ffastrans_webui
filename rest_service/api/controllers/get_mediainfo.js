@@ -38,7 +38,7 @@ function start(req, res) {
 async function main(res, filepath) {
     try {
         console.log("Trying mediainfo");
-        require('mediainfo-wrapper')({  }, filepath).then(
+        require('mediainfo-wrapper')(filepath,true).then(
             function (data) {
                 return res.status(200).send(data);
             }
@@ -48,7 +48,6 @@ async function main(res, filepath) {
                 return res.status(500).send("Error getting mediainfo" + error)
             }
         )
-        
     } catch (ex) {
         return res.status(500).send("Error getting mediainfo" + ex);
     }

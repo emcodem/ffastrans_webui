@@ -203,10 +203,12 @@ function init(){
     m_mainLayout.cells("b").setText("Job Configuration");
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
+			
                  {id:"add", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
                  {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
                  
-            ]
+				 
+			]
         });
     
 	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
@@ -605,7 +607,7 @@ function constructpathLink(what){
     var displaytext = parsed["root"].replace(/^\\\\/,"");
     displaytext = displaytext.replace(/\\$/,"");
         
-    html += '<i style="color:#709BFF !important" class="fas fa-folder"></i>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span>";
+    html += '<span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span>";
     
     var previous = "";
     var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);
@@ -673,7 +675,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
 				dhtmlxGrid.cells(id,3).setValue( (dhtmlxGrid.cells(id,3).getValue()));
 				if (dhtmlxGrid.cells(id,2).getValue() =="true"){
                     //folders get a folder icon attached
-					dhtmlxGrid.cells(id,0).setValue( '<i class="fas fa-folder"></i> ' + (dhtmlxGrid.cells(id,0).getValue()) );
+					dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="fancytree-icon"></span></span> ' + (dhtmlxGrid.cells(id,0).getValue()) );
 				}else{
                     dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){ 
                         selectFileToProcess();

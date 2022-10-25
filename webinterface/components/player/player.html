@@ -94,6 +94,7 @@ function load(){
 		
 				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.root.state != "playing" );
 				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
+				
 				//info bar
 				var _framerate = getVidPropFromStatus(status,"Frame rate");
 				document.getElementById("info-fps").innerHTML = "FPS: " + _framerate || "";
