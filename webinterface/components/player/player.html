@@ -27,8 +27,9 @@ var player;
 reversePlayInterval = null;
 
 function load(){
-			var query = window.location.search.substring(1);
-			query = parse_query_string(query);
+
+			var query_params = new URLSearchParams(window.location.search);
+			
 			var buf = [];
 			
 		    player = new JSMpeg.Player(null,//null
@@ -52,7 +53,7 @@ function load(){
 			},250);
 			
 			socket.emit("player", JSON.stringify({
-                "file":query.file
+                "file":query_params.get("file")
 			})); 
 			
 			socket.on('binarydata', function (data) {
@@ -95,11 +96,11 @@ function load(){
 				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
 				//info bar
 				var _framerate = getVidPropFromStatus(status,"Frame rate");
-				document.getElementById("info-fps").innerHTML = _framerate || "";
+				document.getElementById("info-fps").innerHTML = "FPS: " + _framerate || "";
 				var _resolution = getVidPropFromStatus(status,"Video resolution");
 				document.getElementById("info-res").innerHTML = _resolution || "";
 				var atracks = JSON.stringify(status).split("Sample rate").length - 1;
-				document.getElementById("info-atracks").innerHTML = atracks || "";
+				document.getElementById("info-atracks").innerHTML = "Tracks: " + atracks || "";
 
 			});
 			
@@ -108,13 +109,16 @@ function load(){
 }
 
 function attachEvents(){
-		   document.getElementById("slider").addEventListener ('change', function (evt) {
-		   console.log("Slider change",evt)
-		   playerCommandSeek(document.getElementById("slider").value + '%');
-		   //TODO: find a way to get current pos from event instead of dom element. dom ele can be cancelled
-		   evt.cancelBubble = true;
-		   evt.preventDefault();
-	});
+			//slider
+			document.getElementById("slider").addEventListener ('change', function (evt) {
+			   console.log("Slider change",evt)
+			   playerCommandSeek(document.getElementById("slider").value + '%');
+			   //TODO: find a way to get current pos from event instead of dom element. dom ele can be cancelled
+			   evt.cancelBubble = true;
+			   evt.preventDefault();
+			});
+			
+			//
 }
 
 function getVidPropFromStatus(status,tagname){
@@ -130,28 +134,6 @@ function getVidPropFromStatus(status,tagname){
 	}
 }
 	
-function parse_query_string(query) {
-    var vars = query.split("&");
-    var query_string = {};
-    for (var i = 0; i < vars.length; i++) {
-        var pair = vars[i].split("=");
-        var key = decodeURIComponent(pair[0]);
-        var value = decodeURIComponent(pair[1]);
-        //If first entry with this name 
-		if (typeof query_string[key] === "undefined") {
-            query_string[key] = decodeURIComponent(value);
-           // If second entry with this name
-        } else if (typeof query_string[key] === "string") {
-            var arr = [query_string[key], decodeURIComponent(value)];
-            query_string[key] = arr;
-            //If third or later entry with this name
-        } else {
-            query_string[key].push(decodeURIComponent(value));
-        }
-    }
-    return query_string;
-}
-
 
 function simplePlayerCommand(what){
 	socket.emit("player", JSON.stringify({
@@ -303,11 +285,11 @@ function capitalizeFirstLetter(string) {
 							</tr>
 							<tr class=" ev_dhx_skyblue">
 								<td align="left" valign="middle">
-									Track: <select style="max-width:60px" id="cars" name="cars">
-										<option value="volvo">1</option>
-										<option value="saab">2</option>
-										<option value="mercedes">3</option>
-										<option value="audi">4</option>
+									Play Track: <select style="max-width:60px" id="changeAudioTrack" name="changeAudioTrack">
+										<option value="1">1</option>
+										<option value="2">2</option>
+										<option value="3">3</option>
+										<option value="4">4</option>
 									  </select>
 							</td>
 							</tr>

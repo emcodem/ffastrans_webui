@@ -199,25 +199,25 @@ class Player
 		var tempfile = path.join(os.tmpdir(),"vlc_"+this.port+".log");
 		console.log("Writing vlc logs to ",tempfile);
 		console.log("Spawning VLC",vlcexe,"port",this.port);
-		var vlc = spawn(vlcexe, [
-												
-												"-I","http", 
-												"-vv",
-												"--file-logging",
-												"--logfile",tempfile,
-												config.file,
-												"--no-sout-all",	//prevent downmix all channels
+		var vlcopts = [	
+						"-I","http", 
+						"-vv",
+						"--file-logging",
+						"--logfile",tempfile,
+						config.file,
+						"--no-sout-all",	//prevent downmix all channels
 
-												"--play-and-pause", //pause at last frame 
-												//"--start-paused",
-												//"--audio-track=0",//  in encode below dont work but only here, so we have to restart the player for selecting tracks
-												':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=288}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
-												"--sout-avcodec-keyint=1",// I frame only
-												"--http-host" ,"127.0.0.1",
-												"--http-port", this.port,
-												'--http-pass','vlc',
-												
-												],{windowsHide: true},
+						"--play-and-pause", //pause at last frame 
+						//"--start-paused",
+						//"--audio-track=0",//  in encode below dont work but only here, so we have to restart the player for selecting tracks
+						':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=288}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
+						"--sout-avcodec-keyint=1",// I frame only
+						"--http-host" ,"127.0.0.1",
+						"--http-port", this.port,
+						'--http-pass','vlc',					
+						]
+		console.log("VLC Opts: [" + vlcopts.join(' ') + "]");
+		var vlc = spawn(vlcexe, vlcopts,{windowsHide: true},
 												
 						); 
 						
