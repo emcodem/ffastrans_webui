@@ -17,6 +17,7 @@ module.exports = {
 function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var filepath = req.query.filepath;
+	var do_html = req.query.do_html || false;
     console.debug("get_mediainfo called for: " + filepath);
 	//check if full log exists, if yes, serve contents
     try {
@@ -31,14 +32,14 @@ function start(req, res) {
         return res.status(500).json({ description: err.stack });
     }
 
-    main(res, filepath);
+    main(res, filepath,do_html);
     
 }
 
-async function main(res, filepath) {
+async function main(res, filepath,do_html) {
     try {
         console.log("Trying mediainfo");
-        require('mediainfo-wrapper')(filepath,true).then(
+        require('mediainfo-wrapper')(filepath,do_html).then(
             function (data) {
                 return res.status(200).send(data);
             }

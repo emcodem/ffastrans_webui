@@ -373,7 +373,7 @@
                             url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
                             type: "POST",
                             crossDomain: true,
-                            data: JSON.stringify(postBody),
+                            data: postBody,
                             success: function(response) {
                                 console.log("Job Resubmit response:",response);
                                 try{

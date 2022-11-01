@@ -22,9 +22,6 @@ const { Player } = require( './node_components/player')
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
 
-//register special mime types
-//express.mime.type['locallink'] = 'application/internet-shortcut';
-console.log(express.mime)
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 

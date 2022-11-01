@@ -6,97 +6,142 @@ var path = require("path")
 var os = require("os");
 var portfinder = require("portfinder");
 const tail = require('tail').Tail;
+const ffprobeApi = require("ffprobe")
+const ffprobeStatic = require('ffprobe-static');;
+
+/* Player is initated via socket commands in server.js initSocketIo */
 class Player
 {
-	child = null
-	server = null
-	
     constructor()
     {
-        this.type = "Person";
-		this.child = null;
-		this.server = null;
 		this.port = 3200;
-		
+		this.vlc = null;
+		this.ffrewrap = null;
+		this.selectedAudioTrack = 0;
+		this.socket = null;
+		this.config = null;
     }
 	
 
-
-	// destructor()
-    // {
-    //     console.log("Player is destructed")
-    // }
 	async initiate(socket,config) {
+		this.socket = socket;
+		this.config = config;
 		var playerInstance = this;
-		var vlcCommandAuth = {
-			username: '',
-			password: 'vlc'
-		  }
+
 		console.log("PLAYER INITATE", config);
-		
 		try{
-			
-			this.port = await getFreePort(this.port);
-			console.log("port for vlc",this.port)
-			
+			console.log("PLAYER INITIAL PORT: ",playerInstance.port)
+			playerInstance.port = await getFreePort(playerInstance.port);
+			console.log("port for vlc",playerInstance.port)
+			await playerInstance.startPlay(socket,config); //throws!
+			console.log("Player initiate success. ", playerInstance.vlc)
+
 		}catch(e){
 			socket.emit("playererror",e.message);
 			return;
 		}
-		var {vlc,ffrewrap} = this.startPlay(socket,config);
+		
+		socket.onAny((eventName, ...args) => {
+			console.log("SOCKET EVENT",eventName)
+		});
 		
 		//attach disconnect event to socket for the case that client closes
 		socket.on('disconnect', function(){
+			playerInstance.vlc.kill();
+			playerInstance.ffrewrap.kill();
 			console.log("PLAYER CLOSED");
-			vlc.kill();
-			ffrewrap.kill();
 		});
 		
 		/* player commands from client player.html via socket.io */
 		socket.on('player', async function(data){
-			data = JSON.parse(data);
+
+				var vlcCommandAuth = {
+					username: '',
+					password: 'vlc'
+				}
+
+				data = JSON.parse(data);
+
 				if (!data.getstatus){
 					console.log("player command received",data);
 				}
+
 				if (data.getstatus){
-					var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml",{auth:vlcCommandAuth});
-					
-					const options = {
-						ignoreAttributes : false
-					};
-					var fastparser = new XMLParser(options);
-					let jObj = fastparser.parse(resp.data);
-					socket.emit("setstatus",jObj);
-				} 
-				if (data.command){
-					if (data.command == "play"){
-						var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=pl_pause",{auth:vlcCommandAuth});
+					try{
+						var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml",{auth:vlcCommandAuth});
+						const options = {
+							ignoreAttributes : false
+						};
+						var fastparser = new XMLParser(options);
+						let jObj = fastparser.parse(resp.data);
+						socket.emit("setstatus",jObj);
 						return;
-					} 
-					if (data.command == "seek"){
-						console.log("seeking to", data.val)
-						axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=seek&val=" + data.val,{auth:vlcCommandAuth});
-						return;
-					}
-					if (data.command == "rate"){
-						axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=rate&val=" + data.val,{auth:vlcCommandAuth});
-						return;
+					}catch(ex){
 
 					}
-					axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=" + data.command,{auth:vlcCommandAuth});
+				}
+
+				if (data.command){
+					try{
+						if (data.command == "changeAtrack"){
+							var newAtrack = data.value;
+							playerInstance.vlc.kill();
+							playerInstance.ffrewrap.kill();
+							playerInstance.selectedAudioTrack = newAtrack;
+							playerInstance.startPlay(playerInstance.socket,playerInstance.config);
+						}
+						if (data.command == "play"){
+							var resp = await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=pl_pause",{auth:vlcCommandAuth});
+							return;
+						} 
+						if (data.command == "seek"){
+							console.log("seeking to", data.val)
+							await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=seek&val=" + data.val,{auth:vlcCommandAuth});
+							return;
+						}
+						if (data.command == "rate"){
+							await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=rate&val=" + data.val,{auth:vlcCommandAuth});
+							return;
+
+						}
+						await axios.get("http://127.0.0.1:" + playerInstance.port + "/requests/status.xml?command=" + data.command,{auth:vlcCommandAuth});
+					}catch(ex){
+
+					}
+					
 					return;
-			}
+				}
 		});
 
 	}
-	
-	
-	startPlay(socket,config){
+
+	async changeAtrack(newAtrack){
+		//kill old vlc and rewrap and restart
+
+	}
+
+	async startPlay(socket,config){
 
 		var playerInstance = this;
 		var vlcexe = "";
 		var ffmpegexe = "";
 		
+		try{
+			var ffprobe = await ffprobeApi(config.file, { path: ffprobeStatic.path });
+		}catch(ex){
+			throw new Error("Could not analyze the file, is it a valid media file? Path was: " + config.file);
+		}
+		var probe_streams = ffprobe["streams"];
+		if (!probe_streams){
+			var msg = "No streams/tracks found in this file, is it a media file? Path was: " + config.file;
+			console.error(msg);
+			socket.emit("playererror",msg);
+			throw new Error(msg);
+		}
+		console.log("Player ffprobe:",JSON.stringify(ffprobe))
+		//emit ffprobe to the client
+		socket.emit("ffprobe",ffprobe);
+
 		const { ext } = path.parse(config.file);
 		
 		vlcexe = path.join(global.approot,"tools","vlc","vlc.exe");
@@ -132,50 +177,54 @@ class Player
 		console.log("Spawning ",ffmpegexe);
 		
 		//-filter_complex "[0:a]ebur128=peak=true:video=1:meter=9[v]" -map "[v]" -map 0:a
-		var standard_args = [	
-												
-											"-re",
-											"-i","-", 
-											"-map","0:v?",
-											"-map","0:a?",
-											"-af", "asetpts=PTS-0.2/TB", //for some reason vlc live stream is async, try to compensate
-											"-f","mpegts",
-											"-c:v", "copy",
-											"-c:a","mp2",
-											"-ab","256k",
-											"-"
+		var standard_args = [					
+							"-re",
+							"-i","-", 
+							"-map","0:v?",
+							"-map","0:a?",
+							"-af", "asetpts=PTS-0.2/TB", //for some reason vlc live stream is async, try to compensate. this adds some latency!
+							"-f","mpegts",
+							"-c:v", "copy",
+							"-c:a","mp2",
+							"-ab","256k",
+							"-"
 							];
 										
-	    var audio_only_args = [	
-												
-											"-re",
-											"-i","-", 
-											"-filter_complex","[0:a]ebur128=:video=1:meter=9:size=spal[v]",
-											"-f","mpegts",
-											"-c:v", "mpeg1video", "-g", "1",
-											"-c:a","mp2",
-											"-map", "[v]" , "-map", "0:a",
-											"-s","512x288",
-											"-b:a","256k",
-											"-b:v","5256k",
-											"-"
+	    var audio_only_args = [		
+							"-re",
+							"-i","-", 
+							"-filter_complex","[0:a]ebur128=:video=1:meter=9:size=hd480[v]",
+							"-f","mpegts",
+							"-c:v", "mpeg1video", "-g", "1",
+							"-c:a","mp2",
+							"-map", "[v]" , "-map", "0:a",
+							"-s","512x288",
+							"-b:a","256k",
+							"-b:v","5256k",
+							"-"
 							]
 		
-		var selected_args = standard_args;
 		
-		if (ext.match(/mp3$|wav$/i)){
-			selected_args = audio_only_args;
-		}
-		var ffrewrap = spawn(ffmpegexe, selected_args); 
+		var selected_args = audio_only_args;
+
+		//check if there is video
+		var has_video = false;
+		probe_streams.forEach(function(str){
+			if (str["codec_type"] == "video"){
+				selected_args = standard_args;
+			}
+		});
+
+		this.ffrewrap = spawn(ffmpegexe, selected_args); 
 						
-		ffrewrap.stdout.on('data', data => {
+		this.ffrewrap.stdout.on('data', data => {
 			socket.emit("binarydata",data)
 		});
-		ffrewrap.stderr.on('data', data => {
+		this.ffrewrap.stderr.on('data', data => {
 			console.log(`${data}`);
 		});
 
-		ffrewrap.on('exit', returncode => { 
+		this.ffrewrap.on('exit', returncode => { 
 			console.log ("ffmpeg rewrapper end, returncode: "+returncode  )
 			if (returncode != "0"){
 				console.log("ffmpeg failed, return code: ",returncode)
@@ -184,7 +233,7 @@ class Player
 		});
 
 		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
-		ffrewrap.on('error', data => {
+		this.ffrewrap.on('error', data => {
 		  socket.emit("playererror","Error spawning ffmpeg on webinterface server, check if ffmpeg is in the PATH");
 		});
 		
@@ -197,6 +246,7 @@ class Player
 		var secondaryaccess = 'udp' //"udp"  || 'file,dst="c:\\temp\\recording.ts"'
 		
 		var tempfile = path.join(os.tmpdir(),"vlc_"+this.port+".log");
+		try{fs.unlinkSync(tempfile)}catch(ex){}
 		console.log("Writing vlc logs to ",tempfile);
 		console.log("Spawning VLC",vlcexe,"port",this.port);
 		var vlcopts = [	
@@ -209,7 +259,7 @@ class Player
 
 						"--play-and-pause", //pause at last frame 
 						//"--start-paused",
-						//"--audio-track=0",//  in encode below dont work but only here, so we have to restart the player for selecting tracks
+						"--audio-track=" + this.selectedAudioTrack,//  in encode below dont work but only here, so we have to restart the player for selecting tracks
 						':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=288}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
 						"--sout-avcodec-keyint=1",// I frame only
 						"--http-host" ,"127.0.0.1",
@@ -217,12 +267,12 @@ class Player
 						'--http-pass','vlc',					
 						]
 		console.log("VLC Opts: [" + vlcopts.join(' ') + "]");
-		var vlc = spawn(vlcexe, vlcopts,{windowsHide: true},
+		this.vlc = spawn(vlcexe, vlcopts,{windowsHide: true},
 												
 						); 
 						
 		
-		vlc.stdout.pipe(ffrewrap.stdin);
+						this.vlc.stdout.pipe(this.ffrewrap.stdin);
 		
 		// vlc.stderr.on('data', data => {
 			//this does not work, for some reason we get only truncated output her
@@ -234,28 +284,29 @@ class Player
 		// });
 
 		//continuously read vlc outptut, don't forget to unwatch in error/exit cmd
-		var tailEvent = new tail(tempfile);
-		tailEvent.on("line", function(data) {
-			console.log("VLC: ",data);
-		});
+		// var tailEvent = new tail(tempfile);
+		// tailEvent.on("line", function(data) {
+		// 	//TODO: find out how to determine player errors from vlc
+		// 	console.log("VLC: ",data);
+		// });
 
-		vlc.on('exit', returncode => { 
+		this.vlc.on('exit', returncode => { 
 			
 			console.log ("vlc end, returncode: "+returncode  )
 			if (returncode != "0"){
 				console.log("vlc failed, return code: ",returncode)
 			}
-			tailEvent.unwatch();
+			//.unwatch();
 		});
 
 		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
-		vlc.on('error', data => {
+		this.vlc.on('error', data => {
 		  var returnobj = {"message":"Fatal error spawning ingest command, check for installation errors. "};
 		  returnobj["exception"] = data;
-		  tailEvent.unwatch();
+		  //tailEvent.unwatch();
 		});	
 		
-		return {vlc,ffrewrap};
+		return true;
 			
 	}
 

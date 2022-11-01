@@ -541,11 +541,9 @@
                 var q_obj = (JSON.parse(msg));
                 for (i=0;i<q_obj.length;i++){
                     //convert file time to time of user perspective
-                     console.log(new Date(q_obj[i]["job_start"]  ))//TODO: Date dont work in FF und IE
+                    console.log(new Date(q_obj[i]["job_start"]  ))//TODO: Date dont work in FF und IE
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" );//if do not do this, time will be off from timezone
-                   
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" ).toISOString().replace("T"," ").replace(/\..*/,""); 
-                    
                 }
                 addActiveJobsToGrid(runningJobGrid, q_obj, "Incoming");
             }

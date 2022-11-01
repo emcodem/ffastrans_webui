@@ -44,6 +44,14 @@
         height:35px;
         padding-top:3px !important;
     }
+
+    .dhxform_label{
+        min-width: 150px;
+    }
+
+    .dhxform_control{
+        width: auto;
+    }
 </style>
 
 <script>
@@ -73,18 +81,17 @@ function loadserverconfig(){
 }
 
 function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
-     console.log("Filename ", encodeURI(_file.name))
+     console.log("Filename ", encodeURI(_file.name));
      $.ajax({
-                url: build_new_api_url("/getmediainfo?filepath=" + encodeURIComponent(_file.name)),
-                type: "GET",
-                success: function (response) {
-                    _callback(_file,response);
-                },
-                error: function (xhr, status) {
-                    alert("ERROR getting mediainfo for " + _file.name);
-                }
+				url: build_new_api_url("/getmediainfo?do_html=true&filepath=" + encodeURIComponent(_file.name)),
+				type: "GET",
+				success: function (response) {
+					_callback(_file,response);
+				},
+				error: function (xhr, status) {
+					alert("ERROR getting mediainfo for " + _file.name);
+				}
             });
-    
 }
 
 function build_new_api_url(what) {
@@ -392,16 +399,14 @@ function init(){
 			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
 			
 			get_mediainfo_analysis_html(file,function(_fileobj,minfo_html){
-			var dhxwins = new dhtmlXWindows();
-			//dhxwins.attachViewportTo(window.parent.document.body);
-			win_offset = 0;
-			var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/2);
-			win_offset+=30;
-			win.setText("File [" + file.name + "]");
-			win.attachHTMLString(minfo_html);
-			win.showInnerScroll(true);
-                    
-                
+				var dhxwins = new dhtmlXWindows();
+				//dhxwins.attachViewportTo(window.parent.document.body);
+				win_offset = 0;
+				var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/2);
+				win_offset+=30;
+				win.setText("File [" + file.name + "]");
+				win.attachHTMLString(minfo_html);
+				win.showInnerScroll(true);
             });
             return;
         }
@@ -421,7 +426,7 @@ function init(){
 			win_offset+=30;
 			win.setText("File [" + file.name + "]");
 			console.log("Constructed url",encodeURIComponent(fullfilepath))
-			win.attachURL("player/player.html?file=" + encodeURIComponent(fullfilepath));
+			win.attachURL("player/player.html?file=" + encodeURIComponent(fullfilepath) + "&mediainfo_url="+encodeURIComponent(build_new_api_url("/getmediainfo?do_html=false&filepath=" + encodeURIComponent(fullfilepath)))) ;
 			win.showInnerScroll(true);
 			dhxWins.attachEvent("onFocus", function(win){
 				console.log("global event onFocus was called for "+win.getText());
@@ -738,7 +743,7 @@ function on_processorSelected(selectedWorkflow){
             if (m_subForm){
                 m_subForm.unload();//clear existing form items
                 m_subForm = null;
-            }
+            }   
             m_subForm  = new dhtmlXForm("subform");
             m_subForm.attachEvent("onButtonClick", function(name){
                 if(name == "submit"){
@@ -757,8 +762,15 @@ function on_processorSelected(selectedWorkflow){
                     return;
                 }
                 //show user variables
-                m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 0, offsetLeft : 10,list:[]},1);
-           
+                //m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 0, offsetLeft : 10,list:[]},1);
+                var have_webui_vars = false;
+                for (i=0;i<response["user_variables"].length;i++){
+                    var current_var = response["user_variables"][i];
+                    if (current_var.name.indexOf("webui") != -1){
+                        have_webui_vars = true;
+                    }
+                }
+
                 for (i=0;i<response["user_variables"].length;i++){
                     //add uservariables inputs
                     var current_var = response["user_variables"][i];
@@ -766,20 +778,21 @@ function on_processorSelected(selectedWorkflow){
                     if (current_var.name.indexOf("webui") != -1){
                         //detected a variable that interacts with webui (should have JSON default value)
                         try{
+                            console.log("Parsing variable data: ",current_var.data)
                             parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays!
                         }catch(e){
                             console.log("webui variable parsing error",e,"Variable: ",current_var)
-                            dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
-                            
+                            dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.data+"\""); 
                         }
                     }else{
-                        //standard ffastrans variables
-                        var displayName = current_var.name;
-                        displayName = displayName.replace("s_", "");
-                        displayName = displayName.replace("i_", "");
-                        displayName = displayName.replace("f_", "");
-                        m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, offsetLeft:10 });
-                        
+                        if (!have_webui_vars){
+                            //standard ffastrans variables are only shown when there is no webui variable
+                            var displayName = current_var.name;
+                            displayName = displayName.replace("s_", "");
+                            displayName = displayName.replace("i_", "");
+                            displayName = displayName.replace("f_", "");
+                            m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, offsetLeft:10 });
+                        }
                     }
                 }
                 //finally add start job button
@@ -795,19 +808,46 @@ function on_processorSelected(selectedWorkflow){
 
 function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
     var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
-    var_obj = JSON.parse(var_obj);
-    if (var_obj.length == 0){
-        dhtmlx.alert(errormsg)
-    };
+    
+    //parse from string into object
     try{
-        var var_display_name = var_name;
-        var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
-        var options=[];
-        for (y=0;y<var_obj.length;y++){
-            options.push({text:var_obj[y].key,value:var_obj[y].value});
+        var_obj = JSON.parse(var_obj);
+    }catch(ex){
+        try{
+            var_obj = eval("var eval_data = " + var_obj);
+            var_obj = eval_data;
+        }catch(exc){
+            throw new Error(errormsg);
         }
-        var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-        dhxForm.addItem("data", itemData);
+    }
+    if (var_obj.length == 0){
+        throw new Error(errormsg);
+    };
+
+    try{
+        if (var_obj.type){
+            //calendar, multiselect
+            var_obj.name = var_name;
+            var_obj.offsetLeft = 10;
+            dhxForm.addItem(var_obj.type , var_obj);
+            dhxForm.enableLiveValidation(true);
+            return;
+        }
+        else{
+            //simple key value list without type goes into dropdown (legacy)
+            var var_display_name = var_name;
+            var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
+            var options=[];
+            for (y=0;y<var_obj.length;y++){
+                options.push({text:var_obj[y].key,value:var_obj[y].value});
+            }
+            var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
+            dhxForm.addItem("data", itemData);
+
+        }
+        
+
+
     }catch(e){
         dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
     }
@@ -844,9 +884,20 @@ function on_gridWorkflowSelected(wf_name,wf_object){
         var proc_name = proc_name_default;
         options.push({text:proc_name,value:proc_root[i]["id"]});
     }
-    var itemData = {type: "select",name: "start_proc", label: "Start Processor:", width:200,options: options,  offsetLeft:10};   
+    var itemData = {type: "select",name: "start_proc", width:200,options: options,  offsetLeft:10};   
     m_mainForm.addItem("data", itemData, 2);
     m_mainForm.setUserData("start_proc", "workflow_object", wf_object);       //store selected workflow along with start_proc
+
+    //hide whole startproc selection if there is only a single startproc
+    
+    if (options.length == 1){
+        document.getElementById("mainform").style.display = "none";
+    }else{
+        document.getElementById("mainform").style.display = "";
+    }
+    
+
+
     //switch to variables tab
     on_processorSelected(wf_object);                                           //auto select first processor    
     
@@ -913,7 +964,16 @@ function getWorkflows(){
 
 
 function startJobs(){
-//kick off one workflow per file in grid
+
+    //validate form 
+    if (m_subForm){
+        if (!m_subForm.validate()){
+            dhtmlx.alert("Cannot submit because of invalid Form Fields. Please check your inputs.");
+            return;
+        }
+    }
+
+    //kick off one workflow per file in grid
     if (m_selectedFileGrid.getRowsNum() == 0){
         dhtmlx.message("Workflow will be started as soon as files are added (e.g. Upload finished)")
         
@@ -959,7 +1019,12 @@ function startJobs(){
          postBody.variables = [];
          m_subForm.forEachItem(function(name){
             if (m_subForm.getItemValue(name)){
-                postBody.variables.push({"name":name,"data":m_subForm.getItemValue(name)});
+                var itemValue = m_subForm.getItemValue(name);
+                if (typeof(itemValue) != "string"){
+                    //generic dhtmlx form elements can return objects/arrays
+                    itemValue = JSON.stringify(itemValue);
+                }
+                postBody.variables.push({"name":name,"data":itemValue});
             }
         });
          m_selectedFileGrid.cells(id,2).setValue("Submitted");

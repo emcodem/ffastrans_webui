@@ -2,7 +2,8 @@
 
 	<head>
 		<meta charset="UTF-8">
-			
+			<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
+		
 			<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
 
 			<script src="../../dependencies/jquery/jquery.js"></script>
@@ -18,20 +19,40 @@
 
 			} 
 			
+			.noSelect {
+				-webkit-tap-highlight-color: transparent;
+				-webkit-touch-callout: none;
+				-webkit-user-select: none;
+				-khtml-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+
+			.noSelect:focus {
+				outline: none !important;
+			}
+
+			
+			.grayBackgroundOnHover:hover{
+				font-size:2.9em;
+			}
 
 			</style>
 			
 			<script>
 var socket = io(); 
 var player;
+var g_framerate = 0;
 reversePlayInterval = null;
 
 function load(){
 
 			var query_params = new URLSearchParams(window.location.search);
+			//let's kick off mediainfo ajax call first
 			
+			//now initialize the player stuff
 			var buf = [];
-			
 		    player = new JSMpeg.Player(null,//null
 				{
 					source: JSMpegWritableSource,
@@ -56,6 +77,40 @@ function load(){
                 "file":query_params.get("file")
 			})); 
 			
+			socket.on('ffprobe', function (data) {
+					// player analyzes the file before starting vlc/ffmpeg
+					// we use this initial analysis data for display file props on UI
+					console.log("ffprobe",data);
+					var firstVstream = getFirstTrack(data,"video");
+					var _resolution = "0x0";
+					g_framerate = 25;
+					var _interlacing = "";
+
+					if(firstVstream){
+						g_framerate = eval(firstVstream["r_frame_rate"]);
+						_resolution = firstVstream["width"] + "x" + firstVstream["height"] ;
+						if (firstVstream["field_order"]){
+							_interlacing = firstVstream["field_order"];
+						}
+					}
+					document.getElementById("info-interlacing").innerHTML = "Interlaced: " + _interlacing || "";
+					document.getElementById("info-fps").innerHTML = "FPS: " + g_framerate || "";
+					document.getElementById("info-res").innerHTML = _resolution || "";
+
+					var num_audio_tracks = countTracks(data,"audio");
+					document.getElementById("info-atracks").innerHTML = "Audios: " + num_audio_tracks || "";
+
+					//construct select options for changing atrack
+					var selectEle = document.getElementById("changeAudioTrack");
+					if (selectEle.innerHTML == ""){
+						for (var trackNum = 0;trackNum<num_audio_tracks;trackNum++){
+							var myOption = document.createElement("option");
+							myOption.text = trackNum + 1;
+							myOption.value = trackNum;
+							selectEle.add(myOption);
+						}
+					}	
+			});
 			socket.on('binarydata', function (data) {
 				// pretend you are getting data as follows
 					player.source.write(data,function(){});
@@ -63,7 +118,7 @@ function load(){
 			});
 			socket.on('playererror', function (data) {
 				// pretend you are getting data as follows
-					alert(data)
+					dhtmlx.alert("Player Error: " + JSON.stringify(data))
 					
 			});
 			socket.on('setstatus', function (data) {
@@ -71,11 +126,12 @@ function load(){
 				var status = data;	
 				status.root.position //navbar in percent
 				console.log(status)
-
-				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,_framerate));
+				
+				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,g_framerate));
 				document.getElementById("currentTime").value = _timecode;
-				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,_framerate));
+				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,g_framerate));
 				document.getElementById("totalTime").value = _duration;
+				
 				try{
 					if (status.root.rate >= 1){
 						document.getElementById("rate_display").innerHTML = Math.round(status.root.rate);					
@@ -95,19 +151,33 @@ function load(){
 				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.root.state != "playing" );
 				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
 				
-				//info bar
-				var _framerate = getVidPropFromStatus(status,"Frame rate");
-				document.getElementById("info-fps").innerHTML = "FPS: " + _framerate || "";
-				var _resolution = getVidPropFromStatus(status,"Video resolution");
-				document.getElementById("info-res").innerHTML = _resolution || "";
-				var atracks = JSON.stringify(status).split("Sample rate").length - 1;
-				document.getElementById("info-atracks").innerHTML = "Tracks: " + atracks || "";
+
 
 			});
 			
 			//EVENTS
 			attachEvents()
 }
+
+function countTracks(ffprobe,type="audio"){
+	var acount = 0;
+	for (var i=0;i<ffprobe["streams"].length;i++){
+		if (ffprobe["streams"][i]["codec_type"] == type){
+			acount++;
+		}
+	}
+	return acount;
+}
+
+function getFirstTrack(ffprobe,type="video"){
+	for (var i=0;i<ffprobe["streams"].length;i++){
+		if (ffprobe["streams"][i]["codec_type"] == type){
+			return ffprobe["streams"][i];
+		}
+	}
+	return false;
+}
+
 
 function attachEvents(){
 			//slider
@@ -122,19 +192,12 @@ function attachEvents(){
 			//
 }
 
-function getVidPropFromStatus(status,tagname){
-	//we cannot take the framerate from jsmpeg because vlc might play a different source framerate
-	for (var catIdx in status.root.information.category){
-		try{
-			var infoObj = status.root.information.category[catIdx];
-			var infoObj = infoObj.info;
-			//TODO: support audio only?
-			var _framerate = infoObj.find((info) => info["@_name"] == tagname);
-			return _framerate["#text"];
-		}catch(ex){}	
-	}
+function playerChangeAtrackCommand(newTracknum){
+	socket.emit("player", JSON.stringify({
+                "command": "changeAtrack",
+				"value" : newTracknum
+			}));
 }
-	
 
 function simplePlayerCommand(what){
 	socket.emit("player", JSON.stringify({
@@ -239,11 +302,17 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+function changeAudioTrack(option){
+	dhtmlx.alert("Changing Audio track causes reload, you want to proceed?" + option.value);
+	playerChangeAtrackCommand(option.value);
+}
+
+
 </script>
 
 		</head>
 		<body onload="load()">
-		<div style="float:left;width:80%">
+		<div style="float:left;width:75%">
 			<div width="540px" height="500px" style="text-align: center;">
 				<canvas id="myCanvas" width="540px" height="288px" style="width:100%;border-style: inset" class=""></canvas>
 				
@@ -256,14 +325,13 @@ function capitalizeFirstLetter(string) {
 							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
 						</div>
 					</div>
-					<div id="controlButtons" class="vertical-center">
+					<div id="controlButtons" class="vertical-center noSelect">
 						<div class="player-btns">
-						<i style="margin:3px" title="-10s" id="iconStepMinus" 		class="fas fa-step-backward 	fa-3x" onclick="playerCommandSeek('-10s')"></i>
-						<i style="margin:3px" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x" onclick="slower()"></i>
-						<i style="margin:3px" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 					fa-3x" onclick="playPause()"></i>
-						<i style="margin:3px" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x" onclick="faster()"></i>
-						<i style="margin:3px" title="-10s" id="iconStepPlus" 		class="fas fa-step-forward 	 	fa-3x" onclick="playerCommandSeek('+10s')"></i>
-						
+							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('-10s')"></i>
+							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i>
+							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
+							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i>
+							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('+10s')"></i>
 						</div>
 					<!-- </div> -->
 
@@ -271,7 +339,7 @@ function capitalizeFirstLetter(string) {
 				</div>
 			</div><!-- player -->
 			</div><!-- dev -->
-			<div style="float:right;width:18%">
+			<div style="float:right;width:23%">
 				<div style="height:90%" class="gridbox_dhx_skyblue gridbox">
 					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 915px; table-layout: fixed;">
 						<tbody>
@@ -282,17 +350,15 @@ function capitalizeFirstLetter(string) {
 								<td align="left" valign="middle" id="info-fps"></td>
 							</tr>
 							<tr class=" odd_dhx_skyblue">
-								<td align="left" valign="middle" id="info-atracks"></td>
+								<td align="left" valign="middle" id="info-interlacing"></td>
 							</tr>
 							<tr class=" ev_dhx_skyblue">
+								<td align="left" valign="middle" id="info-atracks"></td>
+							</tr>
+							<tr class=" odd_dhx_skyblue">
 								<td align="left" valign="middle">
-									Play Track: <select style="max-width:60px" id="changeAudioTrack" name="changeAudioTrack">
-										<option value="1">1</option>
-										<option value="2">2</option>
-										<option value="3">3</option>
-										<option value="4">4</option>
-									  </select>
-							</td>
+									Select Track: <select style="max-width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
+								</td>
 							</tr>
 						</tbody>
 					</table>

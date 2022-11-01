@@ -23,6 +23,8 @@
     "express-http-proxy": "^1.6.2",
     "express-session": "^1.17.1",
     "fast-xml-parser": "^4.0.9",
+    "ffprobe": "^1.1.2",
+    "ffprobe-static": "^3.1.0",
     "firstline": "^2.0.2",
     "fs-readdir-recursive": "^1.1.0",
     "grunt": "^1.4.0",
@@ -56,7 +58,6 @@
     "winston-console-formatter": "^1.0.0-beta.3",
     "xml2json": "^0.12.0"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
