@@ -1,21 +1,19 @@
 <html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="dependencies/dhtmlx/dhtmlx.js"></script>
+    <link rel="stylesheet" href="dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+    <script src="dependencies/dhtmlx/vault/vault.js"></script>
+    <link rel="stylesheet" href="dependencies/dhtmlx/vault/vault.css" type="text/css"> 
+    <script src="dependencies/jquery/jquery.js"></script>
+    <link rel="icon" href="favicon.ico?v=1.1">
+    <link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
+    <link rel="stylesheet" href="/alternate-server/css/override.css"/>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR"></script>
+</head>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="dependencies/dhtmlx/dhtmlx.js"></script>
-<link rel="stylesheet" href="dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
-<script src="dependencies/dhtmlx/vault/vault.js"></script>
-<link rel="stylesheet" href="dependencies/dhtmlx/vault/vault.css" type="text/css"> 
-<script src="dependencies/jquery/jquery.js"></script>
-<link rel="icon" href="favicon.ico?v=1.1">
-<link rel="stylesheet" href="dependencies/fontawesome/css/all.css"/>
-<link rel="stylesheet" href="/alternate-server/css/override.css"/>
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR"></script>
-<script>
-
-</script>
-
-</script>
 
 
 <style>
@@ -29,11 +27,24 @@
         font: 14px Helvetica, Arial, sans-serif;
         line-height: 18px;
     }
+
+    @media all and (max-width: 800px){
+        .counter_jobs, .helmet {
+            display: none !important;
+        }
+    }
+    @media all and (max-width: 1300px){
+        .counter_jobs {
+            display: none !important;
+        }
+    }
+
     header {
         background: #333;
         border-bottom: 3px solid #aaa;
         height: 80px;
     }
+
     header h1 {
         color: #fff;
         margin: 0 0 3px;
@@ -147,18 +158,18 @@
 	}*/
 
 	.menuitem{
-	max-width:70%;
-	margin-left: 0.5em;
-	margin-top: 0.5em;
-	cursor:pointer;		    
-	background-repeat: no-repeat;
-	background-position: center;
-	transition: background-size 0.2s;
-	transition-timing-function: cubic-bezier(.07,1.41,.82,1.41);
-	display: block;
-	cursor: pointer;
-	overflow: hidden;
-	white-space:nowrap;
+        max-width:70%;
+        margin-left: 0.5em;
+        margin-top: 0.5em;
+        cursor:pointer;		    
+        background-repeat: no-repeat;
+        background-position: center;
+        transition: background-size 0.2s;
+        transition-timing-function: cubic-bezier(.07,1.41,.82,1.41);
+        display: block;
+        cursor: pointer;
+        overflow: hidden;
+        white-space:nowrap;
 
 	}
 

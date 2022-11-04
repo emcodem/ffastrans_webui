@@ -57,7 +57,9 @@
         width: auto;
     }
 
-
+    .dhx_cell_cont_layout {
+        overflow: auto !important;
+    }
 
 </style>
 <script>
@@ -241,7 +243,7 @@ function openVariableSelector(rId,savedVariables){
         //variable loading ajax callback
        
         var m_subForm  = new dhtmlXForm("subform");
-        m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 500, offsetTop : 0, offsetLeft : 10,list:[]},1);
+        //m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 500, offsetTop : 0, offsetLeft : 10,list:[]},1);
         //attach onclick event for save function
         _menu.attachEvent("onClick", function(id, zoneId, cas){
             if (id == "save"){
@@ -249,7 +251,7 @@ function openVariableSelector(rId,savedVariables){
                 var varsToSave = [];
                 m_subForm.forEachItem(function(name){
                     if (m_subForm.getItemValue(name)){
-                        varsToSave.push({"name":name,"data":m_subForm.getItemValue(name)});
+                        varsToSave.push({"name":name,"data":m_subForm.getItemValue(name,true)});
                     }
                 });
                 console.log("Saving variables to userdata",varsToSave);
@@ -261,6 +263,8 @@ function openVariableSelector(rId,savedVariables){
 						m_mainGrid.cells(rId,colidx).setValue(JSON.stringify(varsToSave));//last start
 					}
 				}
+                //store a backup of the whole form
+
                 saveJobGrid();
                 m_variableSelectionWindow.close();
             }
@@ -282,7 +286,10 @@ function openVariableSelector(rId,savedVariables){
                         if (current_var.name.indexOf("webui") != -1){
                             //detected should create a dropdown on webui (should have JSON default value)
                             try{
-                                parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name,saved_data);//special support for key value arrays!
+                                parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays!
+                                if (saved_data != ""){
+                                    m_subForm.setItemValue(current_var.name,saved_data)
+                                }
                             }catch(e){
                                 console.error("webui variable parsing error",e,"Variable: ",current_var)
                                 dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
@@ -300,32 +307,54 @@ function openVariableSelector(rId,savedVariables){
     
 }
 
+function restoreWebUiTypeValue(dhxForm,var_obj,var_name,saved_data){
 
-function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name,saved_data){
+}
+
+function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
     var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
-    var_obj = JSON.parse(var_obj);
-    if (var_obj.length == 0){
-        dhtmlx.alert(errormsg)
-    };
+    
+    //parse from string into object
     try{
-        var var_display_name = var_name;
-        var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
-        var options=[];
-        for (var y=0;y<var_obj.length;y++){
-            var is_sel = false;
-            console.log("compare ",var_obj[y].value,"with",saved_data)
-            if (var_obj[y].value == saved_data){
-                is_sel = true;
-            }
-            options.push({text:var_obj[y].key,value:var_obj[y].value,selected:is_sel});
+        var_obj = JSON.parse(var_obj);
+    }catch(ex){
+        try{
+            var_obj = eval("var eval_data = " + var_obj);
+            var_obj = eval_data;
+        }catch(exc){
+            throw new Error(errormsg);
         }
-        var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-        dhxForm.addItem("data", itemData);
+    }
+    if (var_obj.length == 0){
+        throw new Error(errormsg);
+    };
+
+    try{
+        if (var_obj.type){
+            //calendar, multiselect
+            var_obj.name = var_name;
+            var_obj.offsetLeft = 10;
+            dhxForm.addItem(var_obj.type , var_obj);
+            dhxForm.enableLiveValidation(true);
+            return;
+        }
+        else{
+            //simple key value list without type goes into dropdown (legacy)
+            var var_display_name = var_name;
+            var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
+            var options=[];
+            for (y=0;y<var_obj.length;y++){
+                options.push({text:var_obj[y].key,value:var_obj[y].value});
+            }
+            var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
+            dhxForm.addItem("data", itemData);
+
+        }       
     }catch(e){
-        console.log("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg,e)
         dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
     }
 }
+
 
 
 //#endregion

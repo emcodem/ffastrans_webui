@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1"><!-- responsive :D -->
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
@@ -11,6 +12,15 @@
         margin: 0px;
         overflow: hidden;
     }
+
+    #mainform {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+
 </style>
 <script>
 function inIframe () {
@@ -33,7 +43,7 @@ function init(){
     m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Login", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
     m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10}); 
     m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10}); 
-    m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10}); 
+    m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 100}); 
     m_mainForm.setItemFocus("username");
     m_mainForm.attachEvent("onButtonClick", function(){
         m_mainForm.send("/login","POST",function(response){
@@ -92,6 +102,6 @@ function parse_query_string(query) {
 </script>
 
 <body onload="init()">
-<div id="mainform" height="100%" width="100%">
+<div id="mainform" >
 </body>
     

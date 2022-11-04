@@ -1318,24 +1318,6 @@
             });
 	}
 
-    function delete_jobs(array_of_rows) {
-
-        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function(rId) {
-            var jobObj = runningJobGrid.getUserData(rId, "jobobject");
-            var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue());
-            var postBody = {
-                "action": pause,
-                "split": splitid
-            };
-            socket.emit("pausejob", JSON.stringify({
-                "id": jobObj.job_id,
-                "body": postBody
-            })); //note, custom structure for socket.emit messages
-            dhtmlx.message("Command " + pause + " emitted:" + JSON.stringify(postBody))
-        })
-    }
-
     function saveLayoutSizes(dhxLayout, name) {
         //store layout cells height and with into html5 storage (in percentage of document height)
         var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
@@ -1421,28 +1403,6 @@
                 alert("ERROR getting workflow of job " + job_id + ", possibly FFASTRANS API is offline. ");
             }
         });
-    }
-
-    function pauseResumeJob(pause, httpMethod) {
-        //Emits socket.io comman to webserver (the api request is made on the webserver not the client) pause is set to either pause or resume.
-        if (!runningJobGrid.getSelectedRowId()) {
-            dhtmlx.alert("Please select a Job to " + pause);
-            return;
-        }
-        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function(rId) {
-            var jobObj = runningJobGrid.getUserData(rId, "jobobject");
-            var splitid = parseInt(runningJobGrid.cells(rId, 9).getValue());
-            var postBody = {
-                "action": pause,
-                "split": splitid
-            };
-            socket.emit("pausejob", JSON.stringify({
-                "id": jobObj.job_id,
-                "body": postBody
-            })); //note, custom structure for socket.emit messages
-            dhtmlx.message("Command " + pause + " emitted:" + JSON.stringify(postBody))
-        })
     }
 
     function jobCommand(fancy_node_array, action, value) {

@@ -123,11 +123,27 @@ class Player
 	async startPlay(socket,config){
 
 		var playerInstance = this;
-		var vlcexe = "";
-		var ffmpegexe = "";
+		var vlcexe = path.join(global.approot,"tools","vlc","vlc.exe");
+		var ffmpegexe = path.join(global.approot,"tools","ffmpeg","ffmpeg.exe");
+		var ffprobeexe = path.join(global.approot,"tools\\ffmpeg\\ffprobe.exe");
+
+
+		if (!fs.existsSync(ffprobeexe)){
+			console.error("ffprobe.exe not found in " + ffprobeexe);
+			throw new Error("Installation error, ffprobe not found: " + ffprobeexe);
+		}
+		if (!fs.existsSync(ffmpegexe)){
+			console.error("ffmpeg.exe not found in " + ffmpegexe);
+			throw new Error("Error, ffmpeg exe not found in " + path.join(global.approot,"tools","ffmpeg","ffmpeg.exe"));
+		}
 		
+		if (!fs.existsSync(vlcexe)){
+			console.error("VLC Player not found in " + vlcexe);
+			throw new Error("Error, VLC Media player not found on webinterface server. Please either install it or place in webinterface/tools/vlc or make sure vlc.exe is in PATH");
+		}
+
 		try{
-			var ffprobe = await ffprobeApi(config.file, { path: ffprobeStatic.path });
+			var ffprobe = await ffprobeApi(config.file, { path: ffprobeexe });
 		}catch(ex){
 			throw new Error("Could not analyze the file, is it a valid media file? Path was: " + config.file);
 		}
@@ -135,42 +151,13 @@ class Player
 		if (!probe_streams){
 			var msg = "No streams/tracks found in this file, is it a media file? Path was: " + config.file;
 			console.error(msg);
-			socket.emit("playererror",msg);
 			throw new Error(msg);
 		}
+
 		console.log("Player ffprobe:",JSON.stringify(ffprobe))
 		//emit ffprobe to the client
 		socket.emit("ffprobe",ffprobe);
 
-		const { ext } = path.parse(config.file);
-		
-		vlcexe = path.join(global.approot,"tools","vlc","vlc.exe");
-		try{
-			ffmpegexe = path.join(global["ffastrans-about"].about.general.install_dir,"Processors","ffmpeg","x64","ffmpeg.exe");
-		}catch(ex){}
-		
-		if (!fs.existsSync(vlcexe)){
-			console.error("VLC Player not found in " + vlcexe + ", trying next path");
-			vlcexe = "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe";
-			if (!fs.existsSync(vlcexe)){
-				console.error("VLC Player not found in " + vlcexe + ", using just 'vlc', let us hope it is in the path");
-				if (systemSync("where ffmpeg") == 0){
-					vlcexe = "vlc";
-				}else{
-					socket.emit("playererror","Error, VLC Media player not found on webinterface server. Please either install it or place in webinterface/tools/vlc or make sure vlc.exe is in PATH");
-				}
-			
-			}
-		}
-		if (!fs.existsSync(ffmpegexe)){
-			console.error("ffmpeg.exe not found in " + ffmpegexe + ", using just 'ffmpeg', let us hope it is in the path");
-			// if (systemSync("where ffmpeg") == 0){
-				ffmpegexe = "ffmpeg";
-			// }else{
-				// socket.emit("playererror","Error, ffmpeg not found on webinterface server. Please either make sure it is in path or place here: ",ffmpegexe)
-			// }
-		}
-		
 		//REWRAPPING - we need that in order to compensate "frame bursts" from vlc when loading some source formats e.g. mp4aacavc 
 		//jsmpeg does not have any inbuilt buffer so it will just display the frame bursts and lags that vlc delivers 
 		//ffmpeg -re option to the rescue
@@ -204,11 +191,10 @@ class Player
 							"-"
 							]
 		
-		
+		//assume audio only
 		var selected_args = audio_only_args;
 
 		//check if there is video
-		var has_video = false;
 		probe_streams.forEach(function(str){
 			if (str["codec_type"] == "video"){
 				selected_args = standard_args;

@@ -52,6 +52,8 @@
     .dhxform_control{
         width: auto;
     }
+
+
 </style>
 
 <script>
@@ -1019,7 +1021,7 @@ function startJobs(){
          postBody.variables = [];
          m_subForm.forEachItem(function(name){
             if (m_subForm.getItemValue(name)){
-                var itemValue = m_subForm.getItemValue(name);
+                var itemValue = m_subForm.getItemValue(name,true);
                 if (typeof(itemValue) != "string"){
                     //generic dhtmlx form elements can return objects/arrays
                     itemValue = JSON.stringify(itemValue);
