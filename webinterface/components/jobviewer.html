@@ -567,7 +567,9 @@
         socket.on('msg', function(msg) {
             dhtmlx.message(msg);
         });
-
+        socket.on('alert', function(msg) {
+            dhtmlx.alert(msg);
+        });
         //deprecated!!!
         if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             alert("running in pull mode, this should not happen")

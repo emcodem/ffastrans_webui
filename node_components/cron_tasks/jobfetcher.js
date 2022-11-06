@@ -82,7 +82,9 @@ module.exports = {
             try{
                 jobArray = JSON.parse(body).jobs;
             }catch(exc){
-                console.error("Error occured while parsing active jobs to json: " + exc + body)
+				var msg = "FFAStrans sent out invalid active jobs data. Please contact developers. ";
+				console.error(msg);
+				global.socketio.emit("alert", msg );
             }
             
             for (i=0;i<jobArray.length;i++){
@@ -230,17 +232,21 @@ module.exports = {
 				return;
 			}
 
-			if (global.lasthistory == body){ 
+			if (global.lasthistory == body){
 				console.log("History Jobs did not change since last fetch...")			
 				return;
 			}
 			global.lasthistory = body;
 			
-			var jobArray;		
+			var jobArray;
 			try{
 				jobArray = JSON.parse(body).history;
 			}catch(exc){
-				console.error("Error occured while parsing history jobs to json: " + exc + body)
+				//the statement is not 100% correct because the issue could also be caused by the caching ffastrans does.
+				var msg = "FFAStrans sent out invalid history data. Please locate Processors\\db\\cache\\monitor\\log.txt, send a Copy to the developers and then delete the file and restart FFAStrans service/application. ";
+				console.error(msg);
+				global.socketio.emit("alert", msg );
+				return;
 			}
 			//store history jobs in database
 			var newjobsfound = 0;

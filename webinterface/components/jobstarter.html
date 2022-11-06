@@ -69,7 +69,7 @@ var m_realUploadpath = "";
 /*load config from server*/
 function loadserverconfig(){
    $.ajax({
-        url:  ("/getserverconfig") ,
+        url:  ("/getserverconfig"),
         type: "GET",
         success: function (response) {
             m_serverconfig = JSON.parse(response)
@@ -133,7 +133,7 @@ function init(){
     });
     
     m_mainLayout.setAutoSize("a", "a;b");//make left cell expand on resize
-    
+   
     m_mainLayout.cells("a").setMinWidth(50);
     m_mainLayout.cells("b").setMinWidth(50);
     m_mainLayout.cells("a").setMinHeight(50);
@@ -161,6 +161,7 @@ function init(){
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size");//the headers of columns  
+    m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
     m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left");       //the alignment of columns   
@@ -169,6 +170,13 @@ function init(){
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
+
+    m_fileBrowserGrid.getCellByName = function(rowId,cellname){
+        //allow access to gridcell using header name, requires setColumnIds
+        var index = m_fileBrowserGrid.getColIndexById(cellname);
+        return m_fileBrowserGrid.cells(rowId,index);
+    }
+
 	//onclick='(arguments[0]||event).cancelBubble = true'
     m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'><input id='nfilter' style='margin-left:10px;margin-right:10px' ></div>\
                                     ,,,\
@@ -205,6 +213,16 @@ function init(){
              m_fileBrowserGrid.dragContext.mode="move"; 
         }else{
              m_fileBrowserGrid.dragContext.mode="copy"; 
+        }
+        return true;
+    });
+
+    m_fileBrowserGrid.attachEvent("onDragIn", function(dId,tId,sObj,tObj){
+        //prevent dropping into empty space, it would create a copy of current row
+        if (sObj == tObj){
+            if (tId === undefined){
+                return false;
+            }
         }
         return true;
     });
@@ -266,15 +284,52 @@ function init(){
 
     m_selectedFileGrid = jobLayout.cells("a").attachGrid();
     m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_selectedFileGrid.setHeader("Source,Path,State");
-    m_selectedFileGrid.setInitWidthsP("0,80,20");
-    m_selectedFileGrid.setColAlign("left,left,left");
-    m_selectedFileGrid.setColTypes("ed,ed,ed");
-    m_selectedFileGrid.setColSorting("str,str,str");   
+    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,State"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
+    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,State");
+    m_selectedFileGrid.setColumnHidden(1,true);
+    m_selectedFileGrid.setColumnHidden(2,true);
+    m_selectedFileGrid.setColumnHidden(6,true);
+    m_selectedFileGrid.setColumnHidden(7,true);
+    m_selectedFileGrid.setInitWidthsP("45,0,0,10,15,15,0,0,15");
+    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");
+    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro");
+    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");   
     m_selectedFileGrid.enableMultiselect(true);
     m_selectedFileGrid.enableDragAndDrop(true);
+    m_selectedFileGrid.enableStableSorting(true);
+    
+    m_selectedFileGrid.getCellByName = function(rowId,cellname){
+        //allow access to gridcell using header name, requires setColumnIds
+        var index = m_selectedFileGrid.getColIndexById(cellname);
+        return m_selectedFileGrid.cells(rowId,index);
+    }
+
+    m_selectedFileGrid.attachEvent("onRowSelect", function(rId){
+        console.log(arguments)
+        //bloody workaround for onKeyPress not fired unless one cell is put into edit mode
+        m_selectedFileGrid.editCell(rId,0);
+        m_selectedFileGrid.editStop(true);
+    })
+
+    m_selectedFileGrid.attachEvent("onKeyPress", function(code,cFlag,sFlag){
+        if (code == 46){ //delete key
+            if (!m_selectedFileGrid.getSelectedRowId()){
+                    dhtmlx.alert("Please select a File to delete");
+                    return;
+            }
+            var current_rowid = m_selectedFileGrid.getSelectedRowId().split(",")[0];
+            var rowIndex = m_selectedFileGrid.getRowIndex(current_rowid);
+            //delete row
+            m_selectedFileGrid.deleteSelectedRows();
+            //select row with same index to allow quick delete
+            m_selectedFileGrid.selectRow(rowIndex);
+            return true;
+        }
+        return true;
+    });
+
     m_selectedFileGrid.init();
-  
+
     m_selectedFileGrid.attachEvent("onDrag",function(sid,tid){
     // copies an item instead of moving it
         //if target id is undefinded, we got something from a different grid. if defined we are in own grid
@@ -285,13 +340,27 @@ function init(){
         }
         return true;
     });
-    m_selectedFileGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
-            //disallow drag&drop rows to self   
-            if (sObj == tObj){
-                //tObj.deleteRow(dId);//row was already pasted, delete it!
-            }
-    })
     
+    m_selectedFileGrid.attachEvent("onDragIn", function(dId,tId,sObj,tObj){
+        //prevent dropping into empty space, it would create a copy of current row
+        if (sObj == tObj){
+            if (tId === undefined){
+                return false;
+            }
+        }
+        return true;
+    });
+
+    m_selectedFileGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
+        //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
+        if (colindex == 3){//sorted by file size
+            m_selectedFileGrid.sortRows(6,"int",dir);
+            m_selectedFileGrid.setSortImgState(true,3,dir);//this is important to let the js grid know how it is sorted (not just the user)
+            return false;//do not allow grid to apply default sorting
+        }
+        return true ;
+    });  
+
     m_fileBrowserGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
         //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
         if (colindex == 3){//sorted by file size
@@ -314,7 +383,17 @@ function init(){
     vault.events.on("UploadComplete", function(files){
         for (i=0;i<files.length;i++){
             var newId = (new Date()).valueOf();
-            m_selectedFileGrid.addRow(newId,["Upload",files[i].name]);
+            var newrowdata = {};
+            newrowdata["Filename"] = files[i].name;
+            newrowdata["Path"] = files[i].name;
+            newrowdata["is_folder"] = false;
+            newrowdata["Modified"] =  new Date(files[i].file.lastModified).toISOString();
+            newrowdata["Created"] = new Date(files[i].file.lastModified).toISOString()
+            newrowdata["original_size"] = files[i].size;
+            newrowdata["Size"] = files[i].size;
+            console.log(files[i])
+            m_selectedFileGrid.addRow(newId,[]);
+            m_selectedFileGrid.setRowData(newId,newrowdata);
         }
     });
     
@@ -381,8 +460,13 @@ function init(){
         if (id == "selectall") {
             m_fileBrowserGrid.forEachRow(function(id){
                 if ( m_fileBrowserGrid.getRowIndex(id) != -1){
-                    if (! m_fileBrowserGrid.cells(id,2).getValue()){
-                        m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
+                    if (! m_fileBrowserGrid.getCellByName(id,"is_folder").getValue()){//is_folder
+                        var newId = Math.random();
+                        m_selectedFileGrid.addRow(newId,"");
+                        var data_to_copy = m_fileBrowserGrid.getRowData(id);
+                        m_selectedFileGrid.setRowData(newId,data_to_copy);
+                        
+                        //m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
                     }else{
                         console.log("AddAll Excluded ", m_fileBrowserGrid.cells(id,1).getValue(), "because it is a folder")
                     }
@@ -463,11 +547,13 @@ function init(){
     })
     
     m_mainLayout.attachEvent("onPanelResizeFinish", function(){
+        console.log("m_mainLayout onPanelResizeFinish");
         saveLayoutSizes(jobLayout,"jobLayout");
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
     
     jobLayout.attachEvent("onPanelResizeFinish", function(){
+        console.log("jobLayout onPanelResizeFinish");
         saveLayoutSizes(jobLayout,"jobLayout");
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
@@ -600,7 +686,10 @@ function selectFileToProcess(){
     //transfer selected file to processing grid
     //for (rowId in m_fileBrowserGrid.getSelectedRowId().split(',')){
     for (i = 0; i < m_fileBrowserGrid.getSelectedRowId().split(',').length; i++) {
-        m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(m_fileBrowserGrid.getSelectedRowId().split(',')[i],1).getValue()]);
+        var newId = Math.random();
+        m_selectedFileGrid.addRow(newId,"");
+        var data_to_copy = m_fileBrowserGrid.getRowData(m_fileBrowserGrid.getSelectedRowId().split(',')[i]);
+        m_selectedFileGrid.setRowData(newId,data_to_copy);
     }
 }
 
@@ -718,11 +807,6 @@ function getBrowseLocations(){
    }
 }
 
-function buildVariablesForm(ele_id,varArray){
-    
-
-}
-
 
 function on_processorSelected(selectedWorkflow){
     /*
@@ -746,7 +830,13 @@ function on_processorSelected(selectedWorkflow){
                 m_subForm.unload();//clear existing form items
                 m_subForm = null;
             }   
-            m_subForm  = new dhtmlXForm("subform");
+            m_subForm  = new dhtmlXForm("subform"); //html element id subform already exists in mainform body
+
+            //add workflow description to UI display
+            var wf_description = selectedWorkflow["description"] || "";
+            wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
+            m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10}),
+
             m_subForm.attachEvent("onButtonClick", function(name){
                 if(name == "submit"){
                     startJobs();
@@ -828,7 +918,7 @@ function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
 
     try{
         if (var_obj.type){
-            //calendar, multiselect
+            //calendar, multiselect, any native dhtmlx form control
             var_obj.name = var_name;
             var_obj.offsetLeft = 10;
             dhxForm.addItem(var_obj.type , var_obj);
@@ -865,7 +955,7 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
     var options = [];
     m_mainForm.removeItem("start_proc");
-    //var selected_wf = m_workflowSelectorGrid.getUserData(wf_name,"workflow_object");
+    
     
     m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
     console.log(wf_object)
@@ -897,15 +987,11 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     }else{
         document.getElementById("mainform").style.display = "";
     }
-    
-
 
     //switch to variables tab
     on_processorSelected(wf_object);                                           //auto select first processor    
     
 }
-
-
 
 function getWorkflows(){
 
@@ -975,10 +1061,17 @@ function startJobs(){
         }
     }
 
+    var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
+
     //kick off one workflow per file in grid
     if (m_selectedFileGrid.getRowsNum() == 0){
-        dhtmlx.message("Workflow will be started as soon as files are added (e.g. Upload finished)")
         
+        if (selectedWorkflow.description.indexOf("webui_stitch") != -1){
+            dhtmlx.alert("The selected workflow supports multiple input files, please add files to the list before starting.");
+            return;
+        }
+
+        dhtmlx.message("Workflow will be started as soon as files are added (e.g. Upload finished)")
         m_subForm.disableItem("submit");
         //m_subForm.getInput("submit");
         m_subForm.setItemLabel("submit", "Waiting for new Files...");
@@ -997,57 +1090,90 @@ function startJobs(){
         });
         return;
     }
-    m_selectedFileGrid.forEachRow(function(id){
-        
-        var source = m_selectedFileGrid.cells(id,0).getValue();
-        var _filepath = (m_selectedFileGrid.cells(id,1).getValue());
-        var _state = m_selectedFileGrid.cells(id,2).getValue();
-        if (_state){
-            //row was already submitted
-            return;
-        }
-        if (source == "Upload"){
-            _filepath = m_realUploadpath + _filepath;
-        }
-        
-         var postBody = {}; //the JSON STructure for start job api
-         var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
-         
-         postBody.wf_id = selectedWorkflow.wf_id;
-         var selectedStartProc = m_mainForm.getSelect("start_proc").selectedOptions[0].value;
 
-         postBody.start_proc = selectedStartProc;
-         postBody.inputfile = _filepath.replace(/&amp;/g, '&'); 
-         postBody.variables = [];
-         m_subForm.forEachItem(function(name){
-            if (m_subForm.getItemValue(name)){
-                var itemValue = m_subForm.getItemValue(name,true);
-                if (typeof(itemValue) != "string"){
-                    //generic dhtmlx form elements can return objects/arrays
-                    itemValue = JSON.stringify(itemValue);
-                }
-                postBody.variables.push({"name":name,"data":itemValue});
+    //construct submit job POST Body template
+    var postBody = {}; //the JSON Structure for start job api
+    postBody.wf_id = selectedWorkflow.wf_id;
+    var selectedStartProc = m_mainForm.getSelect("start_proc").selectedOptions[0].value;
+    postBody.start_proc = selectedStartProc;
+    postBody.variables = [];
+    m_subForm.forEachItem(function(name){
+        //collect user_variables
+        if (m_subForm.getItemValue(name)){
+            var itemValue = m_subForm.getItemValue(name,true);
+            if (typeof(itemValue) != "string"){
+                //generic dhtmlx form elements can return objects/arrays
+                itemValue = JSON.stringify(itemValue);
             }
+            postBody.variables.push({"name":name,"data":itemValue});
+        }else{
+            //default value is empty
+            postBody.variables.push({"name":name,"data":""});
+        }
+    });
+
+    if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){
+        //stitch mode, submit all files as array!
+        var all_files = [];
+        var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+        for (var i = 0; i<gridrows_sorted.length;i++){
+            var id = gridrows_sorted[i];
+            var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
+            var _state = m_selectedFileGrid.getCellByName(id,"State").getValue();
+            var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
+            
+            if (source == "Upload"){
+                _filepath = m_realUploadpath + _filepath;
+            }
+            all_files.push(_filepath);
+            m_selectedFileGrid.getCellByName(id,"State").setValue("Submitted");
+        }//foreach gridrow
+        //start one job for all files
+        postBody.inputfile = JSON.stringify(all_files); 
+        startJobApiCall(postBody);
+    }else{
+        alert(selectedWorkflow["description"])
+        //one job per file mode
+        m_selectedFileGrid.forEachRow(function(id){
+            var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
+            var _state = m_selectedFileGrid.getCellByName(id,"State").getValue();
+            var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
+            if (_state){
+                //row was already submitted
+                dhtmlx.message("Already submitted " + _filepath);
+                return;
+            }
+            if (source == "Upload"){
+                _filepath = m_realUploadpath + _filepath;
+            }
+            //in foreach file mode, we create a copy of postbody otherwise foobar will happen
+            var postBody_clone = JSON.stringify(postBody);
+            postBody_clone = JSON.parse(postBody_clone);
+            postBody_clone.inputfile = _filepath.replace(/&amp;/g, '&');
+            
+            m_selectedFileGrid.getCellByName(id,"State").setValue("Submitted");
+            //start one job per file
+            startJobApiCall(postBody_clone);
         });
-         m_selectedFileGrid.cells(id,2).setValue("Submitted");
-         $.ajax({
+    }
+
+}
+
+function startJobApiCall(postBody){
+    $.ajax({
             url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
             type: "POST",
             crossDomain: true,
             contentType: "application/json; charset=UTF-8",
             data: JSON.stringify(postBody),
             success: function (response) {
-                dhtmlx.message(_filepath + " was submitted")
+                dhtmlx.message("Success submitting job")
             },
             error: function (xhr, status) {
-                dhtmlx.alert("Error submitting workflow: " + xhr.responseText);
+                dhtmlx.alert("Error submitting job: " + xhr.responseText);
             }
         });
-    
-    });
-
 }
-
 
 function saveRestoreUserState(tabbarId){
 //stores/restores some user settings
