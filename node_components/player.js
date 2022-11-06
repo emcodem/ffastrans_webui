@@ -6,15 +6,14 @@ var path = require("path")
 var os = require("os");
 var portfinder = require("portfinder");
 const tail = require('tail').Tail;
-const ffprobeApi = require("ffprobe")
-const ffprobeStatic = require('ffprobe-static');;
+const ffprobeApi = require("ffprobe");
 
 /* Player is initated via socket commands in server.js initSocketIo */
 class Player
 {
     constructor()
     {
-		this.port = 3200;
+		this.port = 8000;
 		this.vlc = null;
 		this.ffrewrap = null;
 		this.selectedAudioTrack = 0;
@@ -31,11 +30,16 @@ class Player
 		console.log("PLAYER INITATE", config);
 		try{
 			console.log("PLAYER INITIAL PORT: ",playerInstance.port)
-			playerInstance.port = await getFreePort(playerInstance.port);
+			playerInstance.port = await getFreePort(playerInstance.port)
+		}catch(ex){
+			socket.emit("playererror", "Could not get free player slot, most likely too many vlc.exe players are open on the server. Contact System Administrator. Error Message: " + ex.message);
+			return;
+		}
+		try{
 			console.log("port for vlc",playerInstance.port)
 			await playerInstance.startPlay(socket,config); //throws!
 			console.log("Player initiate success. ", playerInstance.vlc)
-
+			
 		}catch(e){
 			socket.emit("playererror",e.message);
 			return;
@@ -312,6 +316,8 @@ async function systemSync(cmd){
   }).on('exit', code => console.log('final exit code is', code))
 }
 
-async function getFreePort(){
-	return await portfinder.getPortPromise();
+async function getFreePort(initport){
+
+	return await portfinder.getPortPromise({stopPort: initport + 2});
+
 }

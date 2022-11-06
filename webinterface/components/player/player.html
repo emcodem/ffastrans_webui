@@ -94,7 +94,7 @@ function load(){
 						}
 					}
 					document.getElementById("info-interlacing").innerHTML = "Interlaced: " + _interlacing || "";
-					document.getElementById("info-fps").innerHTML = "FPS: " + g_framerate || "";
+					document.getElementById("info-fps").innerHTML = "FPS: " + parseFloat(g_framerate.toFixed(2)) || "";
 					document.getElementById("info-res").innerHTML = _resolution || "";
 
 					var num_audio_tracks = countTracks(data,"audio");
@@ -312,59 +312,64 @@ function changeAudioTrack(option){
 
 		</head>
 		<body onload="load()">
-		<div style="float:left;width:75%">
-			<div width="540px" height="500px" style="text-align: center;">
-				<canvas id="myCanvas" width="540px" height="288px" style="width:100%;border-style: inset" class=""></canvas>
-				
-				<div id="controlTable" class="controltable">
-					<div id="seekContainer">
-						<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
-						<div style="display:inline">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
-						<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
-						<div class="slidecontainer">
-							<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
+			<div style="display: flex;">
+			<div style="flex: 1;">
+				<div width="540px" height="300px" style="text-align: center;">
+					<canvas id="myCanvas" width="540px" height="288px" style="width:100%;border-style: inset" class=""></canvas>
+					
+					<div id="controlTable" class="controltable">
+						<div id="seekContainer">
+							<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+							<div style="display:inline">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
+							<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+							<div class="slidecontainer">
+								<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
+							</div>
 						</div>
-					</div>
-					<div id="controlButtons" class="vertical-center noSelect">
-						<div class="player-btns">
-							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('-10s')"></i>
-							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i>
-							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
-							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i>
-							<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('+10s')"></i>
-						</div>
-					<!-- </div> -->
+						<div id="controlButtons" class="vertical-center noSelect">
+							<div class="player-btns">
+								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('-10s')"></i>
+								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i>
+								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
+								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i>
+								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('+10s')"></i>
+							</div>
+						<!-- </div> -->
 
+						</div>
 					</div>
-				</div>
-			</div><!-- player -->
-			</div><!-- dev -->
-			<div style="float:right;width:23%">
-				<div style="height:90%" class="gridbox_dhx_skyblue gridbox">
-					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 915px; table-layout: fixed;">
-						<tbody>
-							<tr class=" odd_dhx_skyblue">
-								<td align="left" valign="middle" id="info-res"></td>
-							</tr>
-							<tr class=" ev_dhx_skyblue">
-								<td align="left" valign="middle" id="info-fps"></td>
-							</tr>
-							<tr class=" odd_dhx_skyblue">
-								<td align="left" valign="middle" id="info-interlacing"></td>
-							</tr>
-							<tr class=" ev_dhx_skyblue">
-								<td align="left" valign="middle" id="info-atracks"></td>
-							</tr>
-							<tr class=" odd_dhx_skyblue">
-								<td align="left" valign="middle">
-									Select Track: <select style="max-width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-				<div style="height:10%;position:relative;">
-					<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
+				</div><!-- player -->
+
+
+				
+				</div><!-- dev -->
+				<div style="flex: 0 0 120px;margin-left: 10px;">
+					<div style="" class="gridbox_dhx_skyblue gridbox">
+						<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">
+							<tbody>
+								<tr class=" odd_dhx_skyblue">
+									<td align="left" valign="middle" id="info-res"></td>
+								</tr>
+								<tr class=" ev_dhx_skyblue">
+									<td align="left" valign="middle" id="info-fps"></td>
+								</tr>
+								<tr class=" odd_dhx_skyblue">
+									<td align="left" valign="middle" id="info-interlacing"></td>
+								</tr>
+								<tr class=" ev_dhx_skyblue">
+									<td align="left" valign="middle" id="info-atracks"></td>
+								</tr>
+								<tr class=" odd_dhx_skyblue">
+									<td align="left" valign="middle">
+										Select Track: <select style="max-width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<!-- <div style="height:10%;position:relative;">
+						<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
+					</div> -->
 				</div>
 			</div>
 			</body>
