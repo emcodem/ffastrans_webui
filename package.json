@@ -24,7 +24,6 @@
     "express-session": "^1.17.1",
     "fast-xml-parser": "^4.0.9",
     "ffprobe": "^1.1.2",
-    "ffprobe-static": "^3.1.0",
     "firstline": "^2.0.2",
     "fs-readdir-recursive": "^1.1.0",
     "grunt": "^1.4.0",
