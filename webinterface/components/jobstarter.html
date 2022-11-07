@@ -1125,14 +1125,14 @@ function startJobs(){
             if (source == "Upload"){
                 _filepath = m_realUploadpath + _filepath;
             }
-            all_files.push(_filepath);
+            all_files.push(_filepath.replace(/&amp;/g, '&'));
             m_selectedFileGrid.getCellByName(id,"State").setValue("Submitted");
         }//foreach gridrow
         //start one job for all files
         postBody.inputfile = JSON.stringify(all_files); 
         startJobApiCall(postBody);
     }else{
-        alert(selectedWorkflow["description"])
+        
         //one job per file mode
         m_selectedFileGrid.forEachRow(function(id){
             var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
