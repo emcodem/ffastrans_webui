@@ -48,7 +48,7 @@ module.exports = {
         global.config.STATIC_API_TIMEOUT = parseInt(global.config.STATIC_API_TIMEOUT)
     }
     
-    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, function (error, response, body)  {
+    Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
 			if(error) {
 				try{
 					/* take care about alert email */
@@ -257,7 +257,7 @@ module.exports = {
 			for (i = 0; i < jobArray.length; i++){
 					//only jobguid plus split makes each job entry unique
 					jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
-					
+
 					//data for client display
 					jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
 					jobArray[i].guid = jobArray[i]["guid"]

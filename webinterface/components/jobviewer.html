@@ -1232,7 +1232,6 @@
 
         //delete filter imgs
         $('img[title=\"delete filters\"]').bind("click", function(e){
-           
             $('input[name=search]').val("");
             e.stopPropagation()
             if (this.previousElementSibling.placeholder == "Workflow"){
@@ -1240,7 +1239,7 @@
                 tree.selectAll(false);
                 dhtmlx.message("Workflow Filters Cleared")
             }
-
+            search_history_grid();
         });
 
         $("input[name=search]").keyup(function(e) {
@@ -1297,7 +1296,8 @@
 	}
 	
 	function search_history_grid(btn_event){
-		 var search_obj = {};
+		
+        var search_obj = {};
             for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 match = $.trim(input.value);
