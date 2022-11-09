@@ -135,6 +135,16 @@ function showConfigWindow(win_text,win_url){
 <body onload="init()">
 <div id="documentation" style="font-family:tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 
+<b>Data Purging</b>
+Soft delete all jobs. This action only applies to webinterface but not to FFAStrans. 
+For example, you can keep all jobs in the FFAStrans log but delete from being displayed here.
+If you want to re-import deleted jobs from FFAStrans, please stop webinterface service and delete database/jobs file. 
+
+<b>STATIC_SEND_EMAIL_ALERTS</b>
+Sends out an email "FFAStrans is down" in case the running jobs cannot be fetched from FFAStrans.
+Also sends out an email "FFAStrans is running again" when the error was recovered.
+Note that you have to configure smtp server details in FFAStrans.
+
 <b>STATIC_WEBUI_HEADER_NAME</b>
 This is for the case when you have multiple instances of ffastrans and webserver running.
 What you input here will show on the main page top left, it is used to let users quickly identify to which instance of ffastrans the webinterface is conntected.
@@ -193,6 +203,12 @@ FFAStrans API port, typically 65445
 
 <b>STATIC_API_TIMEOUT</b>
 Milliseconds after calls to the API Host will Timeout and show a corresponding error Message on the Interface to users
+
+<b>STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT</b>
+Initial grid column width percentage. Deprecated as we restore the last width anyways.
+
+<b>STATIC_MAX_HISTORY_JOB_COUNT</b>
+How many jobs to keep in webinterface jobs database. Does not have influence on the FFAStrans internal job history.
 
 <b>Important Informations: </b>
 Database:
