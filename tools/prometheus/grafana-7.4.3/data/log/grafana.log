@@ -1,17 +1,1 @@
-t=2022-11-09T01:33:25+0100 lvl=info msg="Shutdown started" logger=server reason="System signal: terminated"
-t=2022-11-09T01:34:10+0100 lvl=info msg="Starting Grafana" logger=server version=7.4.3 commit=010f20c1c8 branch=HEAD compiled=2021-02-24T11:29:10+0100
-t=2022-11-09T01:34:10+0100 lvl=info msg="Config loaded from" logger=settings file=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3/conf/defaults.ini
-t=2022-11-09T01:34:10+0100 lvl=info msg="Config loaded from" logger=settings file=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\conf\\custom.ini
-t=2022-11-09T01:34:10+0100 lvl=info msg="Path Home" logger=settings path=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3
-t=2022-11-09T01:34:10+0100 lvl=info msg="Path Data" logger=settings path=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\data
-t=2022-11-09T01:34:10+0100 lvl=info msg="Path Logs" logger=settings path=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\data\\log
-t=2022-11-09T01:34:10+0100 lvl=info msg="Path Plugins" logger=settings path=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\data\\plugins
-t=2022-11-09T01:34:10+0100 lvl=info msg="Path Provisioning" logger=settings path=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\conf\\provisioning
-t=2022-11-09T01:34:10+0100 lvl=info msg="App mode production" logger=settings
-t=2022-11-09T01:34:10+0100 lvl=info msg="Connecting to DB" logger=sqlstore dbtype=sqlite3
-t=2022-11-09T01:34:10+0100 lvl=warn msg="SQLite database file has broader permissions than it should" logger=sqlstore path=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\data\\grafana.db mode=-rw-rw-rw- expected=-rw-r-----
-t=2022-11-09T01:34:10+0100 lvl=info msg="Starting DB migrations" logger=migrator
-t=2022-11-09T01:34:10+0100 lvl=info msg="Starting plugin search" logger=plugins
-t=2022-11-09T01:34:10+0100 lvl=warn msg="Plugin file's signature has been modified versus manifest" logger=plugins plugin=input filename=C:\\dev\\ffastrans_webui\\tools\\prometheus\\grafana-7.4.3\\plugins-bundled\\internal\\input-datasource\\README.md
-t=2022-11-09T01:34:10+0100 lvl=info msg="Registering plugin" logger=plugins id=input
-t=2022-11-09T01:34:10+0100 lvl=info msg="HTTP Server Listen" logger=http.server address=[::]:3004 protocol=http subUrl= socket=
+t=2022-11-18T02:05:52+0100 lvl=eror msg="Failed to send usage stats" logger=metrics err="Post \"https://stats.grafana.org/grafana-usage-report\": dial tcp: lookup stats.grafana.org: no such host"

@@ -16,12 +16,13 @@ process.env.UV_THREADPOOL_SIZE = 128;
 
 module.exports = {
     fetchjobs: async function () {
-    
+		
     //delete old jobs
 
     //inform clients about current job count
     var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
     //inform the client about current count in DB
+	console.log("Countjobs start")
     global.db.jobs.count({ "state": "Success", "deleted": { $exists: false } }, function (err, success_count) {
         //console.log("successcount", success_count)
         countObj.successjobcount = success_count;
@@ -30,11 +31,12 @@ module.exports = {
             global.db.jobs.count({ "state": "Cancelled", "deleted": { $exists: false } }, function (err, cancelled_count) {
                 countObj.cancelledjobcount = cancelled_count;
                 //push data to client
-                global.socketio.emit("historyjobcount", countObj);
+				console.log("Countjobs end")
+				global.socketio.emit("historyjobcount", countObj);
             })
         })
     })//end of counting
-
+	
     //fetch running jobs from api
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
@@ -92,7 +94,7 @@ module.exports = {
                 var idx = jobArray[i]["guid"].split("~");
                 //data for client display
                 jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
-                jobArray[i].guid = jobArray[i]["guid"]
+                //jobArray[i].guid = jobArray[i]["guid"]
                 jobArray[i]._id = jobArray[i].guid;
                 jobArray[i].state = "Active";
                 jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
@@ -220,7 +222,7 @@ module.exports = {
     });
     
 //fetch HISTORY jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=50"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
 		try{
 			console.log("Finished fetching history jobs from " + buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL));
 			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -256,18 +258,20 @@ module.exports = {
 			
 			for (i = 0; i < jobArray.length; i++){
 					//only jobguid plus split makes each job entry unique
-					jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
-
+					jobArray[i]["_id"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
+					
 					//data for client display
-					jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
-					jobArray[i].guid = jobArray[i]["guid"]
-					jobArray[i]._id = jobArray[i].guid;
+
 					jobArray[i].state = m_jobStates[jobArray[i]["state"]];
-					jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-					jobArray[i].file = jobArray[i]["source"]
+					//jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
+					//jobArray[i].file = jobArray[i]["source"]
 					jobArray[i].outcome = jobArray[i]["result"]
+					jobArray[i] = objectWithoutKey("result",jobArray[i])
+					//todo: don't store result (we store as outcome)
+
 					jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
 					jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
+					//todo: remvoe start_time and end_time
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
 					
@@ -310,7 +314,15 @@ module.exports = {
 			for (i=0;i<jobArray.length;i++){
 				(function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
 					//NEDB BUG HERE: upsert didnt work conistently, so we switched to update
-					global.db.jobs.update({"_id":jobArray[i]["guid"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
+					// global.db.jobs.update({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
+					// 	if(docs > 0 ){
+					// 			console.log("New History Job: " , job_to_insert["source"]);
+					// 			global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
+					// 	}else{
+							
+					// 	}
+					// })//job update
+					global.db.jobs.updateOne({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},{$set: jobArray[i]},{upsert:true},function(err, docs){
 						if(docs > 0 ){
 								console.log("New History Job: " , job_to_insert["source"]);
 								global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
@@ -333,6 +345,10 @@ module.exports = {
 
 /* HELPERS */
 
+function objectWithoutKey(key,obj){
+	var { [key]: val, ...rest } = obj;
+	return rest;
+}
 async function getFancyTreeArray(jobArray){
 
         //find out all parents
@@ -345,9 +361,9 @@ async function getFancyTreeArray(jobArray){
         //find out all subjobs of same id
         for (var i in godfathers){
             var godfather = godfathers[i]; 
-            var current_family_name = godfather["sort_family_name"]; //family_name is actually jobguid
+            var current_family_name = godfather["job_id"]; //family_name is actually jobguid
             var family = jobArray.filter(function (el) {
-                return el["sort_family_name"] === current_family_name;
+                return el["job_id"] === current_family_name;
              });
             
              godfather["sort_family_member_count"] = family.length;

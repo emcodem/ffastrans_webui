@@ -8,7 +8,7 @@ function _defaultClick (data){
             data.node.toggleSelected();
         }
 }
-console.log("Selectfunc",selectFunction)
+
     var finalTreeObj = {
         source:[],
         checkbox:true,

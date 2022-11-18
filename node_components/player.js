@@ -38,7 +38,7 @@ class Player
 		try{
 			console.log("port for vlc",playerInstance.port)
 			await playerInstance.startPlay(socket,config); //throws!
-			console.log("Player initiate success. ", playerInstance.vlc)
+			console.log("Player initiate success.")
 			
 		}catch(e){
 			socket.emit("playererror",e.message);
@@ -186,7 +186,8 @@ class Player
 							"-i","-", 
 							"-filter_complex","[0:a]ebur128=:video=1:meter=9:size=hd480[v]",
 							"-f","mpegts",
-							"-c:v", "mpeg1video", "-g", "1",
+							"-c:v", "mpeg1video", 
+							"-g", "1",
 							"-c:a","mp2",
 							"-map", "[v]" , "-map", "0:a",
 							"-s","512x288",
@@ -240,11 +241,13 @@ class Player
 		console.log("Writing vlc logs to ",tempfile);
 		console.log("Spawning VLC",vlcexe,"port",this.port);
 		var vlcopts = [	
+						config.file,	
 						"-I","http", 
-						"-vv",
-						"--file-logging",
-						"--logfile",tempfile,
-						config.file,
+						//"-vv",
+						
+						//"--file-logging",
+						//"--logfile",tempfile,
+						
 						"--no-sout-all",	//prevent downmix all channels
 
 						"--play-and-pause", //pause at last frame 
@@ -254,7 +257,8 @@ class Player
 						"--sout-avcodec-keyint=1",// I frame only
 						"--http-host" ,"127.0.0.1",
 						"--http-port", this.port,
-						'--http-pass','vlc',					
+						'--http-pass','vlc',
+										
 						]
 		console.log("VLC Opts: [" + vlcopts.join(' ') + "]");
 		this.vlc = spawn(vlcexe, vlcopts,{windowsHide: true},
@@ -262,7 +266,7 @@ class Player
 						); 
 						
 		
-						this.vlc.stdout.pipe(this.ffrewrap.stdin);
+		this.vlc.stdout.pipe(this.ffrewrap.stdin);
 		
 		// vlc.stderr.on('data', data => {
 			//this does not work, for some reason we get only truncated output her

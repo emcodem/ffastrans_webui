@@ -33,8 +33,10 @@
 <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
 
+<!-- pagination -->
+<script src="../dependencies/pagination/pagination.min.js"></script>
+<link rel="stylesheet" href="../dependencies/pagination/pagination.css" type="text/css"> 
 
- 
 <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
 <link rel="stylesheet"
       href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
@@ -165,12 +167,12 @@
 	
 	/*keeps sort icon on top*/
 	i[id^='history-']{
-		//display:block;
+		
 		margin-top:3px;
 	}
 	/*keeps sort icon on top*/
 	i[id^='active-']{
-		//display:block;
+		
 		margin-top:3px;
 	}
 	
@@ -202,6 +204,11 @@
 		border-top: solid 7px #BBB;
 	}
 	
+    .history_div{
+        display:grid;
+        height:100%;
+        grid:'table_container' minmax(0,1fr);
+    }
 </style>
 
 
@@ -219,11 +226,11 @@
     var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
-	var m_max_history_gridrows = 1000;
+	var m_max_history_gridrows = 100;
     var m_query = {}; //url parameters
     /*load config from server*/
     function loadserverconfig() {
-        
+
         $.ajax({
             url: ("/getuserpermissions" + "?" + Math.random()),
             type: "GET",
@@ -253,16 +260,7 @@
 
     }
 
-    /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
-    function forcejobloading() {
 
-        $.ajax({
-            url: ("/getactivejobsajax_treegrid"),
-            type: "GET",
-            success: function(response) {},
-            error: function(xhr, status) {}
-        });
-    }
     
     
     function toggleJobControl(id,selected_is_on){
@@ -334,6 +332,7 @@
             _appendtext('c', b_details + b_resubmit + b_delsel);
         }
         function _appendtext (cellid, to_append){//helper
+            //appends text to mainLayout.cells("b") and mainLayout.cells("c")
             mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
         }
 
@@ -491,7 +490,12 @@
         //    mainLayout.cells("b").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
-           
+            //check if we are showing the first page
+            if ($("#treetable_history").fancytree('getTree').mystuff.page != 1){
+                return;
+            }
+
+
             if (applyWorkflowFilter(msg) == false) {
             //apply user permissions
 				return;
@@ -600,7 +604,7 @@
 		attachColResizeable("#treetable_active")
 		attachColResizeable("#treetable_history")
 
-        forcejobloading();
+        //forcejobloading();
         //sort grids
 		console.log("Sortying history by ",m_lastsortelementid["treetable_history"],m_lastsortdir["treetable_history"])
         //history grid is sorted in buildHistoryGrid
@@ -655,7 +659,11 @@
                     //finally build workflow tree
                     parseWorkflows(m_workflowArray,{"selectMode":2,"dom_id":"workflowtree","extensions":["filter","multi","persist"]},on_treeWorkflowSelected,function(){/*no click evt*/});
                     var sel = $("#workflowtree").fancytree('getTree').getSelectedNodes();
-                    applyWorkflowSearch(sel);
+
+                    if (sel.length != 0){
+                        //on initial page load, don't apply the filter if empty
+                        applyWorkflowSearch(sel);
+                    }
                     
                 }
             },
@@ -667,18 +675,18 @@
     }
 
     function applyWorkflowSearch(selectednodes){
-        var a = [];
+        var searchpatterns = [];
         selectednodes.forEach(function(n){           
             if (n.folder){
                 //unselect folders
                 console.log("unselecting folder",n.title)
                 n.setSelected(false)
             }else{
-                a.push(n.title);
+                searchpatterns.push(n.title);
             }
         })
-     
-     applyFilter("workflow",a.join("|"));
+        console.log("Applying filter search from applyWorkflowSearch",searchpatterns)
+        applyFilter("workflow",searchpatterns.join("|"));
     }
     
     
@@ -686,6 +694,7 @@
         //user selected a workflow, modify workflowfilter
         
         var s = data.tree.getSelectedNodes();
+        console.log("on_treeWorkflowSelected");
         applyWorkflowSearch(s);
     }
 
@@ -758,7 +767,7 @@
 				dhtmlx.message("Sorry, no details to show for queued jobs available");
 				return;
 			}
-            var jobid = (selected[0].data["job_id"]); //active_jobs dont have a sort_family_name
+            var jobid = (selected[0].data["job_id"]); 
             var url = "logviewer.html?job_id=" + jobid;
             window.open(url, '_blank');
         }
@@ -807,7 +816,7 @@
                 dhtmlx.alert("Please select row to show details");
                 return;
             }
-            var jobid = (selected[0].data["job_id"]); //jobid contains splitid, sort_family_name is the id of mother job without splitd
+            var jobid = (selected[0].data["job_id"]); 
             var url = "logviewer.html?job_id=" + jobid;
             window.open(url, '_blank');
         }
@@ -941,6 +950,7 @@
             postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
+                
                 data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
 				
             },
@@ -983,7 +993,7 @@
                             return;
                         }
                         if (action == "details") {
-                            var jobid = (node.data["job_id"]); //jobid contains splitid, sort_family_name is the id of mother job without splitd
+                            var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared between multiple jobs
                             var url = "logviewer.html?job_id=" + jobid;
                             window.open(url, '_blank');
                         }
@@ -1062,6 +1072,58 @@
         }
     }
     
+    function buildPagination(config)
+    {
+        var total = config.total;
+        var tree = $('#treetable_history').fancytree('getTree');
+        if (tree.mystuff.page != 1){
+            //skip rebuilding pagination if we show another page than first
+            
+            return;
+        }
+        //history grid pagination
+        $('#pagination-container').pagination({
+            totalNumber: total,
+            pageSize: m_max_history_gridrows,
+            showGoInput: true,
+            showGoButton: true,
+            dataSource: function(done){
+                        //this is mandatory but pretty useless, we can store custom data in the pagination object. we just store the row indexes
+                        var result = [];
+                        for (var i = 1; i < this.totalNumber; i++) {
+                            result.push(i);
+                        }
+                        done(result);
+                    },
+            callback: function(data, pagination) {
+                console.log("pagination data:",data,"paganation",pagination);
+                if (pagination.pageNumber != tree.mystuff.page){
+                    //another page was selected, reload tree
+                    console.log("another page");
+                    var start = (pagination.pageNumber-1) * m_max_history_gridrows;
+                    var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+JSON.stringify(tree.mystuff["filterobj"]);
+                    tree.mystuff.page = pagination.pageNumber;
+                    tree.reload({
+                        url: sourceUrl,
+                        cache: false
+                    });
+                    
+                    if (pagination.pageNumber != 1){
+                        mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished <span style="color:orange">(Page ' +pagination.pageNumber+ ')</span></span>');
+                        addMenuButtons()
+                    }else{
+                        mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
+                        addMenuButtons()
+                    }
+                }
+
+                var html = "<span></span>";
+                $('#data-container').html(html);
+                
+            }
+        })
+    }
+
     function buildHistoryGrid() {
         
         var filterobj = {};
@@ -1076,10 +1138,10 @@
                 }
             }
         
-        
-        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count=200&filterobj="+JSON.stringify(filterobj);
+        var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj="+JSON.stringify(filterobj);
         //var sourceUrl = "testdata.xml";
-        $("#treetable_history").fancytree({
+        var histTree = $("#treetable_history").fancytree({
+            
             extensions: ["contextMenu", "table", "gridnav", "multi"],
             checkbox: false,
             titlesTabbable: false, // Add all node titles to TAB chain
@@ -1110,10 +1172,9 @@
             },
 
             renderColumns: function(event, data) {
-                
-                
+
                 var node = data.node;
-                
+
                 if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
                     if (data.node.getIndex() % 2 == 0) {
                         //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
@@ -1164,11 +1225,28 @@
                 attachColResizeable("#treetable_history");
             },
             postProcess: function(event, data) {
-				console.log("History grid postproc")
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
+                
+                //transform from db object to tree compatible //set key
+                for (var i=0;i<data.response.data.length;i++){
+                    var c = data.response.data[i];
+                    if (c._id){
+                        c.key = c._id;
+                    }
+                    c.title = c.state;
+                    c.file = c.source;
+                }
+                
+                
                 data["result"] = filterHistoryList(data["response"]["data"]) //setting data["result"] means override the originally loaded data
 				sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
+                console.log("POSTPROC event",event,"data", data)
+
+                var tc = data.response.total_count;
+                buildPagination({total:tc});
+                
+                
             },
             table: {
                 indentation: 15,
@@ -1209,7 +1287,7 @@
                          $.extend(selected,node);
                          console.log(action,selected)
                         if (action.indexOf( "details") != -1) {
-                            var jobid = (node.data["job_id"]); //jobid contains splitid, sort_family_name is the id of mother job without splitd
+                            var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared by multiple jobs
                             var url = "logviewer.html?job_id=" + jobid;
                             window.open(url, '_blank');
                         }
@@ -1227,11 +1305,15 @@
             
         })
 
+        //extend tree by custom stuff, used mainly to build the paging
+        $("#treetable_history").fancytree('getTree').mystuff = {"maxrows":100,"filterobj":{},"page":1}
+    
         //search btn
         $('input[name=search]').bind("enterKey", search_history_grid);
 
         //delete filter imgs
         $('img[title=\"delete filters\"]').bind("click", function(e){
+           
             $('input[name=search]').val("");
             e.stopPropagation()
             if (this.previousElementSibling.placeholder == "Workflow"){
@@ -1239,7 +1321,7 @@
                 tree.selectAll(false);
                 dhtmlx.message("Workflow Filters Cleared")
             }
-            search_history_grid();
+
         });
 
         $("input[name=search]").keyup(function(e) {
@@ -1296,8 +1378,7 @@
 	}
 	
 	function search_history_grid(btn_event){
-		
-        var search_obj = {};
+		 var search_obj = {};
             for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 match = $.trim(input.value);
@@ -1314,10 +1395,16 @@
                 }
             }
             var tree = $('#treetable_history').fancytree('getTree');
+            tree.mystuff["filterobj"] = search_obj;
+            tree.mystuff.page = 1;
             tree.reload({
                 url: "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(search_obj),
                 cache: false
             });
+            console.log("Current history filter: ", search_obj);
+
+            var activetree = $('#treetable_active').fancytree('getTree');
+            activetree.clear(); //remove all nodes from active tree, filtered ones will be added at next iteration
 	}
 
     function saveLayoutSizes(dhxLayout, name) {
@@ -1463,26 +1550,7 @@
         }) //foreachjob
     }
 
-    function getQueuedJobs(targetGridObj) {
-
-        $.ajax({
-            url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
-            type: "GET",
-            crossDomain: true,
-            dataType: "json",
-            context: this,
-            success: function(response) {
-                mainLayout.cells("b").progressOff();
-            },
-            error: function(xhr, status) {
-                dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
-            }
-        });
-    }
-
     function applyWorkflowFilter(o_job) {
-        
-        
         //returns true or false based on userpermission job filter
         for (i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
             if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
@@ -1538,7 +1606,7 @@
 						}					
 					}
 				}catch(ex){
-					console.log("Error updating children" , ex)
+					console.log("Error updating children","jobarray",jobArray ,"message", ex)
 				}
                 if (needrender){
                     existing.renderTitle(); //forces reload of node
@@ -1621,6 +1689,34 @@
     }
 
     /* NO PROXY MODE */
+    /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
+    function forcejobloading() {
+        getActiveJobs/* deprecated  ?!*/
+        $.ajax({
+            url: ("/getactivejobsajax_treegrid"),
+            type: "GET",
+            success: function(response) {},
+            error: function(xhr, status) {}
+        });
+    }
+
+    function getQueuedJobs(targetGridObj) {
+        //deprecated; still there for "no proxy mode"
+        $.ajax({
+            url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json",
+            context: this,
+            success: function(response) {
+                mainLayout.cells("b").progressOff();
+            },
+            error: function(xhr, status) {
+                dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+            }
+        });
+    }
+
     function getQueuedJobs(targetGridObj) {
         $.ajax({
             url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
@@ -1639,6 +1735,7 @@
     }
 
     function getActiveJobs(targetGridObj) {
+        //deprecated; still there for "no proxy mode"
         $.ajax({
             url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
             type: "GET",
@@ -1656,7 +1753,7 @@
     }
 
     function getFinishedJobs(targetGridObj) {
-
+        //deprecated; still there for "no proxy mode"
         $.ajax({
             url: buildUrl(m_serverconfig['STATIC_GET_FINISHED_JOBS_URL']),
             type: "GET",
@@ -1828,33 +1925,38 @@
 
 
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
-        <div id="history_div" style="" class="gridbox_dhx_skyblue gridbox">
-            <table id="treetable_history" class="obj">
-                <colgroup id="colgroup_history">
-                    <col width="5%"></col>
-                    <col width="10%"></col>
-                    <col width="10%"></col>
-                    <col width="10%"></col>
-                    <col width="10%"></col>
-                    <col width="30%"></col>
-                    <col width="30%"></col>
-                </colgroup>
-                <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
-                    <tr id="tr_treetable_history">
-                        <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">    		<div style="display:flex;margin-left:10px"><div id="history-state-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div>  <i id="history-state-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="State" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search"  incremental autocomplete="off" />                     <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                        <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-wf_name-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px;margin-right:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /><img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                        <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir=""> 	<div style="display:flex;margin-left:10px"><div id="history-job_start-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_start-sorticon" name="treetable_history-sorticon"></i>      <input placeholder="Start" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                        <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <div style="display:flex;margin-left:10px"><div id="history-duration-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off">		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                        <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-job_end-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />			            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                        <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <div style="display:flex;margin-left:10px"><div id="history-file-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /> 		                <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                        <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-outcome-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                    </tr>
-                </thead>
-            </table>
+        <div id="history_div" class="history_div" >
+            <div id="table_container" style="overflow-y:scroll;" class="gridbox_dhx_skyblue gridbox">
+                <table id="treetable_history" class="obj">
+                    <colgroup id="colgroup_history">
+                        <col width="5%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="30%"></col>
+                        <col width="30%"></col>
+                    </colgroup>
+                    <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="position: sticky;top: 0;border:none">
+                        <tr id="tr_treetable_history">
+                            <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">    		<div style="display:flex;margin-left:10px"><div id="history-state-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div>  <i id="history-state-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="State" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search"  incremental autocomplete="off" />                     <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-wf_name-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px;margin-right:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /><img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir=""> 	<div style="display:flex;margin-left:10px"><div id="history-job_start-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_start-sorticon" name="treetable_history-sorticon"></i>      <input placeholder="Start" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <div style="display:flex;margin-left:10px"><div id="history-duration-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off">		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-job_end-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />			            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <div style="display:flex;margin-left:10px"><div id="history-file-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /> 		                <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-outcome-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div id="pagination" style="flex: 0 0 250px;">
+                <div id="data-container"></div>
+                <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
+            </div>
         </div>
-        
          <!-- WORKFLOW FILTER TEMPLATE -->
-        <div id="workflow_filter_menu" class="workflow_filter_background" style="">
+        <div id="workflow_filter_menu" class="workflow_filter_background" >
             <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='width:100% ;height:40px;white-space:nowrap'>
                 <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
                 <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->

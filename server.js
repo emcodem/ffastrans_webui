@@ -5,7 +5,7 @@ const util = require('util');
 const bodyParser = require('body-parser');
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
-const Datastore = require('nedb');
+const  AsyncNedb  = require('@seald-io/nedb');
 const passport = require('passport');
 const flash    = require('connect-flash');
 const session      = require('express-session');
@@ -61,12 +61,16 @@ var jobcontrol = require("./node_components/jobcontrol_socketio");
  
 //init DB
 global.db={};
-global.db.jobs = new Datastore({ filename: global.approot  + "/database/jobs" });
+
+
+
+global.db.jobs = new AsyncNedb({ filename: global.approot  + "/database/jobs" });
 global.db.jobs.loadDatabase(function (err) {    //database is vacuumed at startup
   assert.equal(null, err);
+
 });
 
-global.db.config = new Datastore({ filename: global.approot  + "/database/config" });
+global.db.config = new AsyncNedb({ filename: global.approot  + "/database/config" });
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
   assert.equal(null, err);
 });
@@ -76,6 +80,36 @@ configmgr.get(init);
 
 
 async function init(conf){
+    var MongoClient = require('mongodb').MongoClient;
+    var url = "mongodb://localhost:27017/jobs";
+    var mongoclient = await MongoClient.connect(url)
+    //var dbo = mongoclient.db("webinterface");
+    const db = mongoclient.db("webinterface");
+    global.db.jobs = db.collection('jobs');
+    
+
+    try{
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'deleted' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'state' });  
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'guid' });
+        
+        //await global.db.jobs.ensureIndexAsync({ fieldName: 'start_time' });
+        //await global.db.jobs.ensureIndexAsync({ fieldName: 'end_time' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'job_start' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'job_end' });
+
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'workflow' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'sort_family_name' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'sort_family_index' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'job_id' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'split_id' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: 'key' });
+        await global.db.jobs.ensureIndexAsync({ fieldName: '_id' });
+        
+      }catch(ex){
+        console.error("ensureIndex Failed",ex)
+      }  
+
     //callback for global config get method, initializes rest of server
     
     global.config = conf;
@@ -202,14 +236,15 @@ async function init(conf){
 
     cron.schedule("*/5 * * * * *", async function() {
         //DELETE OLD JOBS
-        try{
-        dbManager.deleteOldRecords();
-        }catch(ex){
-            console.error("Error deleting old records from DB: ",ex)
-        }
+
         //GET LATEST JOBS FROM FFASTRANS API     
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;
+            try{
+                await dbManager.deleteOldRecords();
+            }catch(ex){
+                console.error("Error deleting old records from DB: ",ex)
+            }
             try{
                 await jobfetcher.fetchjobs();
             }catch (ex){

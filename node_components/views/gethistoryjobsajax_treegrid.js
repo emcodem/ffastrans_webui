@@ -1,10 +1,10 @@
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
-var configServer = require(global.approot  + '/node_components/server_config');
+
 	app.get('/gethistoryjobsajax_treegrid', (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
-                var start = req.query.posStart||0;
+                var start = req.query.start||0;
                 start = JSON.parse(start)
                 var count = req.query.count||1000;
                 count = JSON.parse(count)
@@ -55,6 +55,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
 
                                         for (i=0;i<cursor.length;i++){
                                             cursor[i].id = hashCode(JSON.stringify(cursor[i]))
+                                            //convert from db format to tree format
                                             jobArray.push(cursor[i])
                                             //console.log(cursor[i]["job_end"])
                                         }

@@ -46,12 +46,19 @@
 <script>
 
 $(document).ready(function(){
+    var m_subForm  = new dhtmlXForm("subform");
+    m_subForm.addItem("data", {type: "input", name: "rows_per_page", label: "Rows per Page",  offsetLeft:10 });
+    
 
-    $("#savebtn").click(function(e) {
-        //we rely here on the fact that even if we are an iframe, the main page will benefit from the stuff in localstorage that we set here.
+    m_subForm.attachEvent("onButtonClick", function(name){
         var checked = document.getElementById("showRowColorsCheckbox").checked;
         localStorage.setItem("jobviewer_showrowcolors_history",checked)
         parent.window.location.reload();
+    }); 
+
+    $("#savebtn").click(function(e) {
+        //we rely here on the fact that even if we are an iframe, the main page will benefit from the stuff in localstorage that we set here.
+
     });
    
    if (localStorage.getItem("jobviewer_showrowcolors_history")){
@@ -68,29 +75,34 @@ $(document).ready(function(){
 </head>
 
 <body>
-
-<div class="dhxform_base">
+    <div id="optsform">
+<!-- <div class="dhxform_base">
     <form class="dhxform_obj_dhx_skyblue" style="width:90%" >
         <div class="fs_dhxform_item_label_top" style="padding-left: 20px !important; padding-top: 20px !important; ">
             <fieldset class="dhxform_fs" style="padding-left:20px">
                 <legend class="fs_legend" >Style</legend>
-            
+                <div class="dhxform_item_label_left" style="padding-left: 10px !important;">
                 <div class="form-group form-check">
                     <input type="checkbox" class="form-check-input active" id="showRowColorsCheckbox" >
                     <label class="form-check-label" for="showRowColorsCheckbox">Enable Row Colors for Job Status</label>
                 </div>
-                  
-                <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
-                     <div id="savebtn" style="cursor:pointer !important;" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
-                    
-                </div>               
-                  
+                <div class="dhxform_control" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                    <input id="" class="dhxform_textarea"  type="TEXT" ></input>
+               </div>             
+               
+               
+                    <div class="dhxform_label dhxform_label_align_left" title="Enter some filename"><label for="savebtn">Output Filename:</label></div>
+                    <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                        <div id="savebtn" style="cursor:pointer !important;" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
+                    </div>               
+                </div> 
             </fieldset>
             
         </div>
 
     </form>
-</div>
+</div> -->
+</div> 
 </body>
 
 </html>
