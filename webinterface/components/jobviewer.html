@@ -490,6 +490,7 @@
         //    mainLayout.cells("b").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
+            
             //check if we are showing the first page
             if ($("#treetable_history").fancytree('getTree').mystuff.page != 1){
                 return;
@@ -526,7 +527,7 @@
             }
 
 			//cleanup too many nodes to support running the webinterface for indefinite time
-			while(rootNode.countChildren() > m_max_history_gridrows){
+			while(rootNode.countChildren(false) > m_max_history_gridrows){
 				rootNode.getLastChild().remove();
 			}
             
@@ -769,7 +770,13 @@
 			}
             var jobid = (selected[0].data["job_id"]); 
             var url = "logviewer.html?job_id=" + jobid;
-            window.open(url, '_blank');
+            var dhxwins = new dhtmlXWindows();
+            //dhxwins.attachViewportTo(window.parent.document.body);
+            var win = dhxwins.createWindow("Job Details", 10, 10, 600, 200);
+            win.setText("Job Details");
+            win.attachURL(url);
+            
+            //window.open(url, '_blank');
         }
         if (id == "a_abort") {
             jobCommand(selected, "abort");
@@ -817,8 +824,13 @@
                 return;
             }
             var jobid = (selected[0].data["job_id"]); 
-            var url = "logviewer.html?job_id=" + jobid;
-            window.open(url, '_blank');
+            var url = "/webinterface/components/logviewer.html?job_id=" + jobid;
+            var dhxwins = new dhtmlXWindows();
+            var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
+            win.setText("Job Details");
+            win.attachURL(url);
+
+            //window.open(url, '_blank');
         }
         if (id == "b_delsel") {
             //delete selected jobs
@@ -919,9 +931,9 @@
 
                 $tdList = $(node.tr).find(">td");
 				
-				var filename_to_display = node.data.file;
+				var filename_to_display = node.data.source;
 				try{
-					filename_to_display = (node.data.file.split("\\").pop());
+					filename_to_display = (node.data.source.split("\\").pop());
 					
 				}catch(ex){
 					alert(ex)
@@ -1078,7 +1090,6 @@
         var tree = $('#treetable_history').fancytree('getTree');
         if (tree.mystuff.page != 1){
             //skip rebuilding pagination if we show another page than first
-            
             return;
         }
         //history grid pagination
@@ -1096,10 +1107,9 @@
                         done(result);
                     },
             callback: function(data, pagination) {
-                console.log("pagination data:",data,"paganation",pagination);
+                //click on some page number
                 if (pagination.pageNumber != tree.mystuff.page){
-                    //another page was selected, reload tree
-                    console.log("another page");
+                    //a new  page was selected, reload tree
                     var start = (pagination.pageNumber-1) * m_max_history_gridrows;
                     var sourceUrl = "/gethistoryjobsajax_treegrid?filtercol=job_end&direction=des&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+JSON.stringify(tree.mystuff["filterobj"]);
                     tree.mystuff.page = pagination.pageNumber;
@@ -1199,12 +1209,19 @@
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
-                $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.file + "</bdi></div>");
+                $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.source + "</bdi></div>");
                 
-                var outcome = node.data.outcome.substring(0, 1000);
-                
+                var outcome;
+                if (node.children){
+                    outcome = JSON.stringify(JSON.stringify(node.children[0].data))
+                    //outcome = node.data._id
+                }else{
+
+                    outcome = node.data.outcome.substring(0, 1000);
+                    outcome = node.data._id
+                }
                 if (outcome.length == 10000) {
-                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nFile: " + node.data.file + " \nDate Start: " + node.data.job_start);
+                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
                 
@@ -1235,7 +1252,9 @@
                         c.key = c._id;
                     }
                     c.title = c.state;
-                    c.file = c.source;
+                    for (var c_idx =0;c_idx<c.children.length;c_idx++){
+                        c.children[c_idx]["title"] = c.children[c_idx]["state"];
+                    }
                 }
                 
                 
@@ -1244,9 +1263,21 @@
                 console.log("POSTPROC event",event,"data", data)
 
                 var tc = data.response.total_count;
-                buildPagination({total:tc});
-                
-                
+                //get total count separately because it takes lots of time, note adding the count parameter in url
+                var tree = $('#treetable_history').fancytree('getTree');
+                var _url = "/gethistoryjobsajax_treegrid?getcount=1&filterobj="+JSON.stringify(tree.mystuff["filterobj"]);
+                $.ajax({
+                    url: _url,
+                    type: "GET",
+                    contentType: "application/JSON",
+                    crossDomain: true,
+                    success: function(response) {
+                        buildPagination({total:response["total_count"]});
+                    },
+                    error: function(response){
+                        console.log("error counting",response)
+                    }
+                })
             },
             table: {
                 indentation: 15,

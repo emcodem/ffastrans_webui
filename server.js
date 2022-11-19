@@ -6,17 +6,21 @@ const bodyParser = require('body-parser');
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
 const  AsyncNedb  = require('@seald-io/nedb');
+const Mongod = require("./node_components/mongodb_server/mongod");
+const portfinder = require("portfinder");
 const passport = require('passport');
 const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
-const fs = require('fs');
+const fs = require('fs-extra');
 const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const ffastrans_new_rest_api = require("./rest_service");
 const configmgr = require( './node_components/server_config')
 const dbManager = require( './node_components/common/database_controller')
 const { Player } = require( './node_components/player')
+const logfactory = require("./node_components/common/logger")
+
 // const blocked = require('blocked-at')
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
@@ -46,7 +50,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 //needed for running as nexe - access to local files (database) is different 
 global.approot  = path.dirname(process.execPath);
-if (fs.existsSync(global.approot + "/database/")) {
+if (fs.existsSync(path.join(global.approot, "/database/"))) {
     console.log("Running as compiled file")
 }else{
     global.approot  = __dirname;
@@ -55,7 +59,15 @@ if (fs.existsSync(global.approot + "/database/")) {
         console.error("Database does not exist, please create it:" + global.approot + "/database/config");
     }
 }
-        
+
+//fire up logger, overrides console log
+var logger = logfactory.getLogger("webint");
+console.log = (...args) => logger.info.call(logger, ...args);
+console.info = (...args) => logger.info.call(logger, ...args);
+console.warn = (...args) => logger.warn.call(logger, ...args);
+console.error = (...args) => logger.error.call(logger, ...args);
+console.debug = (...args) => logger.debug.call(logger, ...args);
+
 //Before DB init, we need socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
  
@@ -64,11 +76,11 @@ global.db={};
 
 
 
-global.db.jobs = new AsyncNedb({ filename: global.approot  + "/database/jobs" });
-global.db.jobs.loadDatabase(function (err) {    //database is vacuumed at startup
-  assert.equal(null, err);
+// global.db.jobs = new AsyncNedb({ filename: global.approot  + "/database/jobs" });
+// global.db.jobs.loadDatabase(function (err) {    //database is vacuumed at startup
+//   assert.equal(null, err);
 
-});
+// });
 
 global.db.config = new AsyncNedb({ filename: global.approot  + "/database/config" });
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
@@ -80,14 +92,29 @@ configmgr.get(init);
 
 
 async function init(conf){
-    var Mongod = require("./node_components/mongodb_server/mongod");
-    Mongod = new Mongod();
-    Mongod.start();
+    //fire up database
+    var dbpath = path.join(global.approot, "/database/job_db");
+    await fs.ensureDir(dbpath);
+    var dbPort = await portfinder.getPortPromise({port: 8000, stopPort: 8010});
+    console.log("Database port: " + dbPort);
+    global.db.mongod = new Mongod(dbpath);
+    global.db.mongod.port = dbPort;
+    global.db.mongod.start();
+    var dblogger = logfactory.getLogger("database");
+    dblogger.info("Database port: ",dbPort);
+    global.db.mongod.onStdOut = function(data){
+        dblogger.info(data.toString());
+    }
+    global.db.mongod.onStdErr = function(data){
+        dblogger.info(data.toString());
+    }
+    global.db.mongod.onExit = function(data){
+        dblogger.info("database process exited, code: ",data);
+    }
 
+    //connect to database
     var MongoClient = require('mongodb').MongoClient;
-
-    var url = "mongodb://localhost:27017/jobs";
-
+    var url = "mongodb://localhost:"+dbPort+"/jobs";
     var mongoclient = await MongoClient.connect(url)
     
     const db = mongoclient.db("webinterface");
@@ -99,18 +126,17 @@ async function init(conf){
     try{await global.db.jobs.createIndex({ job_end:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
+    try{await global.db.jobs.createIndex({ state:       1 });}catch(ex){}
     //callback for global config get method, initializes rest of server
-    
     global.config = conf;
-	
     require("./node_components/metrics_control.js")(app);
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
-    app.use(session({ 
-                        secret: 'you_will_never_guess_the_secret' ,    
-                        resave: true,
-                        saveUninitialized: true,
-						cookie: { maxAge: farFuture }
+    app.use(session({
+                        secret:             'you_will_never_guess_the_secret' ,    
+                        resave:             true,
+                        saveUninitialized:  true,
+						cookie:             { maxAge: farFuture }
         }));
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
@@ -158,7 +184,7 @@ async function init(conf){
 			}
 			//startup our own rest API
 			console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
-			var api_root = path.join(__dirname, 'rest_service');
+			
 			ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
 			
 		})

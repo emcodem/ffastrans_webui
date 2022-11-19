@@ -28,6 +28,7 @@
   },
   "scripts": {
     "start": "node app.js",
-    "test": "swagger project test"
+    "test": "swagger project test",
+	"build": "browserify --node --ignore-missing app.js | terser > bundle.js"
   }
 }

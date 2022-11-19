@@ -322,6 +322,6 @@ async function systemSync(cmd){
 
 async function getFreePort(initport){
 
-	return await portfinder.getPortPromise({stopPort: initport + 2});
+	return await portfinder.getPortPromise({port: 8000, stopPort: 8010});
 
 }

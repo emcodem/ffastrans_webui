@@ -37,11 +37,16 @@ module.exports = function(app, express){
                 // params: start,count,filtercol,direction
                 var total_count = 0;
                 
-                if (start == 0){
-                    total_count = await global.db.jobs.countDocuments(filterobj,{_id:1});
+                if (req.query.getcount){
+                    console.log("Found " +  total_count + " Jobs in Db, filter: " , filterobj)
+                    var total_count = await global.db.jobs.countDocuments(filterobj,{_id:1});
+                    res.writeHead(200,{"Content-Type" : "application/json"});
+                    res.write(JSON.stringify({"total_count":total_count}));//output json object
+                    res.end();
+                    return;
                 }
                 
-                console.log("Found " +  total_count + " Jobs in Db, filter: " , filterobj)
+                
                 var sorting = {};
                 sorting[filtercol] = direction;
                 console.log(sorting)
@@ -62,7 +67,7 @@ module.exports = function(app, express){
                     }
                     
                     res.writeHead(200,{"Content-Type" : "application/JSON"});
-                    res.write(JSON.stringify({"total_count":total_count,"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
+                    res.write(JSON.stringify({"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
                     res.end();
                 }else{
                     res.writeHead(500,{"Content-Type" : "text/html"});

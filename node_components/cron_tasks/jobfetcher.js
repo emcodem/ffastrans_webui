@@ -10,6 +10,7 @@ var alert_sent = false;
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 process.env.UV_THREADPOOL_SIZE = 128;
 
+var executioncount = 0;
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
@@ -17,26 +18,21 @@ process.env.UV_THREADPOOL_SIZE = 128;
 module.exports = {
     fetchjobs: async function () {
 		
-    //delete old jobs
-
+	executioncount++
     //inform clients about current job count
-    var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
-    //inform the client about current count in DB
-	console.log("Countjobs start")
-    global.db.jobs.count({ "state": "Success", "deleted": { $exists: false } }, function (err, success_count) {
-        //console.log("successcount", success_count)
-        countObj.successjobcount = success_count;
-        global.db.jobs.count({ "state": "Error", "deleted": { $exists: false } }, function (err, error_count) {
-            countObj.errorjobcount = error_count;
-            global.db.jobs.count({ "state": "Cancelled", "deleted": { $exists: false } }, function (err, cancelled_count) {
-                countObj.cancelledjobcount = cancelled_count;
-                //push data to client
-				console.log("Countjobs end")
-				global.socketio.emit("historyjobcount", countObj);
-            })
-        })
-    })//end of counting
-	
+
+	if (executioncount % 5 == 0){//counting is a pretty expensive operation, don't do it too often. Alternative todo: store the count in global variable when doing inserts
+		var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
+		//inform the client about current count in DB
+		console.log("Countjobs start")
+		var count_success 			= await global.db.jobs.countDocuments({state:"Success"}		,{_id:1});
+		countObj.successjobcount 	= count_success;
+		var count_error 			= await global.db.jobs.countDocuments({state:"Error"}		,{_id:1});
+		countObj.errorjobcount 		= count_error;
+		var total_cancelled 		= await global.db.jobs.countDocuments({state:"Cancelled"}	,{_id:1});
+		countObj.cancelledjobcount 	= total_cancelled;
+		global.socketio.emit("historyjobcount", countObj);
+	}
     //fetch running jobs from api
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
@@ -98,7 +94,7 @@ module.exports = {
                 jobArray[i]._id = jobArray[i].guid;
                 jobArray[i].state = "Active";
                 jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-                jobArray[i].file = jobArray[i]["source"]
+                //jobArray[i].source = jobArray[i]["source"]
                 jobArray[i].outcome = jobArray[i]["status"]
                 try{
                     jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
@@ -146,9 +142,9 @@ module.exports = {
 							q_obj[i]["workflow"] = q_obj[i]["workflow"]; //todo: implement workflow in ffastrans tickets api for pending jobs
 							if ("sources" in q_obj[i]){
 								if ("sources" in q_obj[i]){
-									q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
+									q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
 								}else if ("source" in q_obj[i]){
-									q_obj[i]["file"] = path.basename(q_obj[i]["source"]);
+									q_obj[i]["source"] = path.basename(q_obj[i]["source"]);
 								}
 								
 							}
@@ -193,7 +189,7 @@ module.exports = {
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
 							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; 
-							q_obj[i]["file"] = path.basename(q_obj[i]["sources"]["current_file"]);
+							q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
 							q_obj[i]["status"] = "Incoming";
 							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
 							q_obj[i]["proc"] = "Watchfolder";
@@ -312,7 +308,7 @@ module.exports = {
 			jobArray = await getFancyTreeArray(jobArray);
 	//END OF Family sorting
 			for (i=0;i<jobArray.length;i++){
-				(function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
+				//(function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
 					//NEDB BUG HERE: upsert didnt work conistently, so we switched to update
 					// global.db.jobs.update({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
 					// 	if(docs > 0 ){
@@ -322,15 +318,13 @@ module.exports = {
 							
 					// 	}
 					// })//job update
-					global.db.jobs.updateOne({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},{$set: jobArray[i]},{upsert:true},function(err, docs){
-						if(docs > 0 ){
-								console.log("New History Job: " , job_to_insert["source"]);
-								global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
-						}else{
-							
-						}
-					})//job update
-				})(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
+				var docs = await global.db.jobs.updateOne({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},{$set: jobArray[i]},{upsert:true});
+				if(docs){
+						console.log("New History Job: " , job_to_insert["source"]);
+						global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
+				}
+					
+				//})(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
 				continue;            
 			}//for
 		}
