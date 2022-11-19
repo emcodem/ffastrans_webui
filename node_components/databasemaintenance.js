@@ -90,9 +90,9 @@ module.exports = function(app, express){
 
             var date_start = new Date("2020/12/31 16:32:15");
             //2022-02-20T23:44:56.317+01:00
-            for (i=0;i<100;i++){
+            for (i=0;i<10;i++){
                 var jobArray =[];
-                for (x=0;x<1000;x++){ 
+                for (x=0;x<500000;x++){ 
                     date_start.setSeconds(date_start.getSeconds() + 10);
                     var dts = moment.tz(date_start, "Asia/Taipei").format("YYYY-MM-DD HH:mm:ss");//2022-06-28T08:42:30.780+02:00
                     date_start.setSeconds(date_start.getSeconds() + 10);
@@ -108,7 +108,7 @@ module.exports = function(app, express){
             }
             
             res.writeHead(200,{"Content-Type" : "text/html"});
-            res.write("generated 100.000 jobs");//output json array to client
+            res.write("generated 1.000.000 jobs");//output json array to client
             res.end();
         }catch(ex){
             res.writeHead(500,{"Content-Type" : "text/html"});

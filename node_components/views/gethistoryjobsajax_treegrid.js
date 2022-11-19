@@ -1,7 +1,7 @@
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
 
-	app.get('/gethistoryjobsajax_treegrid', (req, res) => {
+	app.get('/gethistoryjobsajax_treegrid', async (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                 var start = req.query.start||0;
@@ -35,39 +35,65 @@ module.exports = function(app, express){
                 }
                 //basic fieldset, parent of all inputs
                 // params: start,count,filtercol,direction
+                var total_count = 0;
                 
-                    var allitemscount = global.db.jobs.count(filterobj,function(err,total_count){
-                            if (err){
-                                throw err
-                            }       
-                            console.log("Found " +  total_count + " Jobs in Db, filter: " , filterobj)
-                            var sorting = {};
-                            sorting[filtercol] = direction;
-                            console.log(sorting)
-                            global.db.jobs.find(filterobj).sort(sorting).skip(start).limit(count).exec( function(err, cursor) {
-                                    if (err){            
-                                        console.error("Error serving history jobs..." + err)
-                                        throw err;
-                                    }
-                                    if ((cursor)){
-                                        var numResults = 0;
-                                        var jobArray =[];
+                if (start == 0){
+                    total_count = await global.db.jobs.countDocuments(filterobj,{_id:1});
+                }
+                
+                console.log("Found " +  total_count + " Jobs in Db, filter: " , filterobj)
+                var sorting = {};
+                sorting[filtercol] = direction;
+                console.log(sorting)
 
-                                        for (i=0;i<cursor.length;i++){
-                                            cursor[i].id = hashCode(JSON.stringify(cursor[i]))
-                                            //convert from db format to tree format
-                                            jobArray.push(cursor[i])
-                                            //console.log(cursor[i]["job_end"])
-                                        }
+                var cursor = await global.db.jobs.find(filterobj).sort(sorting).skip(start).limit(count);
+                var overallcount = await cursor.count();
+                cursor = await cursor.toArray()
+                
+                if ((cursor)){
+                    var numResults = 0;
+                    var jobArray =[];
+
+                    for (i=0;i<cursor.length;i++){
+                        //cursor[i].id = hashCode(JSON.stringify(cursor[i]))
+                        //convert from db format to tree format
+                        jobArray.push(cursor[i])
+                        //console.log(cursor[i]["job_end"])
+                    }
+                    
+                    res.writeHead(200,{"Content-Type" : "application/JSON"});
+                    res.write(JSON.stringify({"total_count":total_count,"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
+                    res.end();
+                }else{
+                    res.writeHead(500,{"Content-Type" : "text/html"});
+                    res.write("error, did not get cursor from db");//output json array to client
+                    res.end();
+                }
+                            
+                            // global.db.jobs.find(filterobj).sort(sorting).skip(start).limit(count).exec( function(err, cursor) {
+                            //         if (err){            
+                            //             console.error("Error serving history jobs..." + err)
+                            //             throw err;
+                            //         }
+                            //         if ((cursor)){
+                            //             var numResults = 0;
+                            //             var jobArray =[];
+
+                            //             for (i=0;i<cursor.length;i++){
+                            //                 cursor[i].id = hashCode(JSON.stringify(cursor[i]))
+                            //                 //convert from db format to tree format
+                            //                 jobArray.push(cursor[i])
+                            //                 //console.log(cursor[i]["job_end"])
+                            //             }
                                        
-                                        res.writeHead(200,{"Content-Type" : "application/JSON"});
-                                        res.write(JSON.stringify({"total_count":total_count,"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
-                                        res.end();
-                                    }else{
+                            //             res.writeHead(200,{"Content-Type" : "application/JSON"});
+                            //             res.write(JSON.stringify({"total_count":total_count,"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
+                            //             res.end();
+                            //         }else{
                                         
-                                    }
-                                });                   
-                    })
+                            //         }
+                            //     });                   
+                  
                   }
             }
 		catch (ex){

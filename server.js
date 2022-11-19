@@ -80,36 +80,25 @@ configmgr.get(init);
 
 
 async function init(conf){
+    var Mongod = require("./node_components/mongodb_server/mongod");
+    Mongod = new Mongod();
+    Mongod.start();
+
     var MongoClient = require('mongodb').MongoClient;
+
     var url = "mongodb://localhost:27017/jobs";
+
     var mongoclient = await MongoClient.connect(url)
-    //var dbo = mongoclient.db("webinterface");
+    
     const db = mongoclient.db("webinterface");
     global.db.jobs = db.collection('jobs');
     
-
-    try{
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'deleted' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'state' });  
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'guid' });
-        
-        //await global.db.jobs.ensureIndexAsync({ fieldName: 'start_time' });
-        //await global.db.jobs.ensureIndexAsync({ fieldName: 'end_time' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'job_start' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'job_end' });
-
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'workflow' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'sort_family_name' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'sort_family_index' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'job_id' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'split_id' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: 'key' });
-        await global.db.jobs.ensureIndexAsync({ fieldName: '_id' });
-        
-      }catch(ex){
-        console.error("ensureIndex Failed",ex)
-      }  
-
+    //ensure db indexes
+    try{await global.db.jobs.createIndex({ outcome: "text"}, { default_language: "english" });}catch(ex){};
+    try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
+    try{await global.db.jobs.createIndex({ job_end:     1 });}catch(ex){}
+    try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
+    try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
     //callback for global config get method, initializes rest of server
     
     global.config = conf;
