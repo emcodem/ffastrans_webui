@@ -218,7 +218,7 @@ module.exports = {
     });
     
 //fetch HISTORY jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=50"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=1"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
 		try{
 			console.log("Finished fetching history jobs from " + buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL));
 			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -273,7 +273,7 @@ module.exports = {
 					
 					//internal data for sorting
 					jobArray[i]["sort_family_name"] = jobArray[i]["job_id"];
-											
+								
 					//workaround splitid does not allow us to parse family tree
 					//get out if the lowest splitid of all jobs in array with this jobids
 					var a_family = jobArray.filter(function (el) {
@@ -305,8 +305,13 @@ module.exports = {
 					}
 			}
 			
-			jobArray = await getFancyTreeArray(jobArray);
+			//jobArray = await getFancyTreeArray(jobArray);
 	//END OF Family sorting
+			var lastTenThousand = await global.db.jobs.find({},{projection:{job_id:1}});
+			lastTenThousand = await lastTenThousand.toArray();
+			var existingJobIds = lastTenThousand.map((my) => my.job_id);
+			var existingInternalIds = lastTenThousand.map((my) => my._id);
+
 			for (i=0;i<jobArray.length;i++){
 				//(function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
 					//NEDB BUG HERE: upsert didnt work conistently, so we switched to update
@@ -318,10 +323,27 @@ module.exports = {
 							
 					// 	}
 					// })//job update
-				var docs = await global.db.jobs.updateOne({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},{$set: jobArray[i]},{upsert:true});
-				if(docs){
-						console.log("New History Job: " , job_to_insert["source"]);
-						global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
+				var existingIndex = existingJobIds.indexOf(jobArray[i].job_id);
+				var insertedDoc;
+				if (existingIndex != -1){
+					//todo: insert a main document that contains statistics and all jobs as children
+					var maindoc = JSON.parse(JSON.stringify(jobArray[i]));//todo: build correct maindoc
+					maindoc.result = "multiple jobs"; //todo: get better stats
+					maindoc.children = [];
+					maindoc.children.push(jobArray[i]);
+					maindoc._id = existingIndex;
+					//todo: push other children
+
+					//update existing doc
+					insertedDoc = await global.db.jobs.updateOne({_id:existingIndex},{$set: maindoc},{upsert:true});
+				}else{
+					//insert new doc
+					jobArray[i].children = [];	
+					insertedDoc = await global.db.jobs.insertOne(jobArray[i]);
+				}
+				if(insertedDoc){
+						console.log("New History Job: " , jobArray[i]);
+						global.socketio.emit("newhistoryjob", jobArray[i]);//inform clients about the current num of history job
 				}
 					
 				//})(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
