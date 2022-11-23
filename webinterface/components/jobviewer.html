@@ -490,12 +490,15 @@
         //    mainLayout.cells("b").progressOn();
 
         socket.on('newhistoryjob', function(msg) {
-            
+            console.log("newhistoryjob",msg)
             //check if we are showing the first page
             if ($("#treetable_history").fancytree('getTree').mystuff.page != 1){
                 return;
             }
 
+            //legacy jobs field mapping, need for update from <1.3.9
+            msg.title = msg.state;
+            msg.key = msg._id;
 
             if (applyWorkflowFilter(msg) == false) {
             //apply user permissions
@@ -1211,15 +1214,16 @@
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
                 $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.source + "</bdi></div>");
                 
-                var outcome;
-                if (node.children){
-                    outcome = JSON.stringify(JSON.stringify(node.children[0].data))
+                var outcome = node.data.result || node.data.outcome;
+                // if (node.children){
+                    //outcome = JSON.stringify(JSON.stringify(node.children[0].data))
                     //outcome = node.data._id
-                }else{
+                //outcome = node.data._id
+                // }else{
 
-                    outcome = node.data.outcome.substring(0, 1000);
-                    outcome = node.data._id
-                }
+                //     outcome = node.data.outcome.substring(0, 1000);
+                //     outcome = node.data._id
+                // }
                 if (outcome.length == 10000) {
                     dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "

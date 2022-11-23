@@ -218,7 +218,7 @@ module.exports = {
     });
     
 //fetch HISTORY jobs from api
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=1"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
+    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=100"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
 		try{
 			console.log("Finished fetching history jobs from " + buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL));
 			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -271,82 +271,83 @@ module.exports = {
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
 					
-					//internal data for sorting
-					jobArray[i]["sort_family_name"] = jobArray[i]["job_id"];
-								
-					//workaround splitid does not allow us to parse family tree
-					//get out if the lowest splitid of all jobs in array with this jobids
-					var a_family = jobArray.filter(function (el) {
-						return el["job_id"] === jobArray[i]["job_id"];
-					});
-
-					var oldest_job = jobArray[i];
-					
-					for (x=0;x<a_family.length;x++){
-						if (getDate(a_family[x]["end_time"]) < getDate(oldest_job["end_time"]) ){
-							oldest_job = a_family[x];
-						}
-					}
-					//mark oldest job a grandfather job
-					if (jobArray[i] == oldest_job){
-						jobArray[i]["sort_family_index"] = 0;//its a grandfather
-						jobArray[i]["sort_generation"] = 0;
-						//Reset other's family status, there can be only one grandfather
-						a_family.forEach(function(_cur){
-							if (_cur["split_id"] != jobArray[i]["split_id"]){
-								_cur["sort_family_index"] = 1;
-								_cur["sort_generation"] = 1;//its a childjob
-							}
-						})
-						
-					}else{
-						jobArray[i]["sort_family_index"] = 1;
-						jobArray[i]["sort_generation"] = 1;//its a childjob
-					}
 			}
 			
-			//jobArray = await getFancyTreeArray(jobArray);
-	//END OF Family sorting
-			var lastTenThousand = await global.db.jobs.find({},{projection:{job_id:1}});
-			lastTenThousand = await lastTenThousand.toArray();
+
+			//get last 10k jobids from DB - child jobs need to finish within that period to be grouped correctly;-)
+			var lastTenThousand 	= await global.db.jobs.find({},{projection:{job_id:1,"children._id":1}}).limit(1000);
+			lastTenThousand 		= await lastTenThousand.toArray();
+			//make list of all _id's / traverse children and main objects
+			var existingInternalIds 		= [];
+			for (const _job of lastTenThousand) {
+				existingInternalIds.push(_job._id);
+				for (const _child of _job.children) {
+					existingInternalIds.push(_child._id);
+				}
+			}
+			//make list of job_ids (those can be shared by multiple "jobs" )
 			var existingJobIds = lastTenThousand.map((my) => my.job_id);
-			var existingInternalIds = lastTenThousand.map((my) => my._id);
 
 			for (i=0;i<jobArray.length;i++){
-				//(function(job_to_insert){   //this syntax is used to pass current job to asnyc function so we can emit it
-					//NEDB BUG HERE: upsert didnt work conistently, so we switched to update
-					// global.db.jobs.update({"_id":jobArray[i]["_id"],"sort_family_member_count": { $lt: jobArray[i]["sort_family_member_count"]}},jobArray[i],{upsert:true},function(err, docs){
-					// 	if(docs > 0 ){
-					// 			console.log("New History Job: " , job_to_insert["source"]);
-					// 			global.socketio.emit("newhistoryjob", job_to_insert);//inform clients about the current num of history job
-					// 	}else{
-							
-					// 	}
-					// })//job update
+				//todo: check if this job_id exists in children OR mainjobs, need to aggregate children jobids above
+				if (existingInternalIds.indexOf(jobArray[i]._id) != -1){
+					//job already in db
+					continue;
+				}
+
+				//this is a new job
 				var existingIndex = existingJobIds.indexOf(jobArray[i].job_id);
 				var insertedDoc;
-				if (existingIndex != -1){
-					//todo: insert a main document that contains statistics and all jobs as children
-					var maindoc = JSON.parse(JSON.stringify(jobArray[i]));//todo: build correct maindoc
-					maindoc.result = "multiple jobs"; //todo: get better stats
-					maindoc.children = [];
-					maindoc.children.push(jobArray[i]);
-					maindoc._id = existingIndex;
-					//todo: push other children
 
-					//update existing doc
-					insertedDoc = await global.db.jobs.updateOne({_id:existingIndex},{$set: maindoc},{upsert:true});
-				}else{
-					//insert new doc
+				if (existingIndex == -1){
+					//insert complete new job, need to modify _id here because it might be turned ito mainjob if other jobs with same job_id join later on
 					jobArray[i].children = [];	
+					jobArray[i]._id += "_main";
 					insertedDoc = await global.db.jobs.insertOne(jobArray[i]);
+					existingJobIds.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
+				}else{
+					//the job_id already exists in DB, check if this very job is already there
+					
+					//job is not there, check if mainjob obj already exists
+					var mainjob = await global.db.jobs.findOne({job_id:jobArray[i].job_id});
+					//if existingDoc is not a container, transform it into container
+
+					if (mainjob.children.length == 0){
+						//transform existing job into mainjob, need to change _id for the copy
+						var copyOfFirstJob = JSON.parse(JSON.stringify(mainjob));
+						copyOfFirstJob._id = copyOfFirstJob._id.replace("_main","");
+						mainjob.children = [copyOfFirstJob];
+						mainjob.children.push(jobArray[i]);
+						
+					}else{
+						//just pushes a new child into existing child
+						var existingChildIds = mainjob.children.map((child) => child._id);
+						if (existingChildIds.indexOf(jobArray[i]._id) != -1){
+							mainjob.children.push(jobArray[i]);
+						}
+					}
+					
+					//update mainjob infos
+					mainjob.result = "Children: " + mainjob.children.length;
+
+					// var youngest_start = mainjob.children.reduce(function(prev, current) {
+					// 	return (prev.start_time < current.start_time) ? prev : current
+					// }).start_time;
+
+					// //var oldest_end = Math.max(...mainjob.children.map(o => o.end_time));
+					// var  oldest_end = mainjob.children.reduce(function(prev, current) {
+					// 	return (prev.end_time > current.end_time) ? prev : current
+					// }).end_time;
+
+					insertedDoc = await global.db.jobs.updateOne({job_id:jobArray[i].job_id},{$set: mainjob},{upsert:true});
+					existingJobIds.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
 				}
+
 				if(insertedDoc){
-						console.log("New History Job: " , jobArray[i]);
-						global.socketio.emit("newhistoryjob", jobArray[i]);//inform clients about the current num of history job
+					console.log("New History Job: " , jobArray[i]);
+					global.socketio.emit("newhistoryjob", jobArray[i]);//inform clients about the current num of history job
 				}
 					
-				//})(jobArray[i]);//pass current job as job_to_insert param to store it in scope of update function
 				continue;            
 			}//for
 		}
@@ -365,66 +366,7 @@ function objectWithoutKey(key,obj){
 	var { [key]: val, ...rest } = obj;
 	return rest;
 }
-async function getFancyTreeArray(jobArray){
 
-        //find out all parents
-        var godfathers = jobArray.filter(function (el) {
-            return el["sort_generation"] === 0;
-        });
-        
-
-        console.log("New History data, Number of Jobs ", godfathers.length, "Number of splits", jobArray.length);
-        //find out all subjobs of same id
-        for (var i in godfathers){
-            var godfather = godfathers[i]; 
-            var current_family_name = godfather["job_id"]; //family_name is actually jobguid
-            var family = jobArray.filter(function (el) {
-                return el["job_id"] === current_family_name;
-             });
-            
-             godfather["sort_family_member_count"] = family.length;
-              //array of families now contains all family members but flat only
-             
-             //build family tree             
-             var generation_count = 1;
-             if (family.length > 1){
-                //it is family with childs, get out how many generations we have
-                generation_count = Math.max.apply(Math, family.map(function(o) { return o["sort_generation"]; }))  
-             }
-
-            //foreach generation
-            var generations = []
-            //for (genidx=0;genidx<generation_count;genidx++){
-                //foreach parent in this generation
-                //_parents = family.filter(function (el) {return el["sort_generation"] == 1})
-                
-                //find children of current parent in current generation
-                godfather["children"] = family.filter(function (el) {
-                    if (el["state"] != "Error" && el["state"] != "Cancelled"){
-                        //change godfather state to success if any subsequent node succeeded
-                        godfather["state"] = "Success";
-                        godfather["title"] = "Success";
-                    }
-                    if (el["state"] == "Error"){
-                        godfather["state"] = "Error";
-                        godfather["outcome"] += ", Branch [" + el["split_id"]+"]: " + el["outcome"];
-                        //todo: change error state also in DB
-                    }
-                    if (el["title"] == "Cancelled"){
-                        //change godfather state to success if any subsequent node succeeded
-                        godfather["state"] = "Cancelled";
-                        godfather["title"] = "Cancelled";
-                    }
-                    
-                    return (el["sort_generation"] == 1) ;
-                });
-                           
-            }
-            //godfather now contains full family tree
-
-        return godfathers;
-    
-}
 
 async function countJobsAsync(countobj) {
     let count = await new Promise((resolve, reject) => {
