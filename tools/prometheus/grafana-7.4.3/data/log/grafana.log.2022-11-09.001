@@ -1,1 +1,0 @@
-t=2022-11-08T02:21:13+0100 lvl=eror msg="Failed to send usage stats" logger=metrics err="Post \"https://stats.grafana.org/grafana-usage-report\": dial tcp: lookup stats.grafana.org: getaddrinfow: The requested name is valid, but no data of the requested type was found."
