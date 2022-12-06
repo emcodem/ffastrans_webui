@@ -22,27 +22,49 @@ module.exports = function(app, passport){
         }//else
 	});
 
+	app.get('/getuserpermissionsasync', async function(req, res) { 
+		console.log("/getuserpermissionsasync")
+       	passport.authenticate('local-login');//fills req.user with infos from cookie
+		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+			res.write("[]")
+			res.status(200);//Send error response here
+			res.end(); 
+		}else{
+			var data = await userpermissions.getpermissionlistAsync (req.user.local.username);
+			//as we now have all userpermissions, finish web request, 
+			try{
+				res.write(JSON.stringify(data))
+				res.status(200);//Send error response here
+				res.end();   
+			}catch (ex){
+				console.log(ex);
+				res.status(500);//Send error response here
+				res.end();
+			}            
+		}//else
+	});
+
 	app.get('/getuserpermissions', function(req, res) { 
 		console.log("Login called from getuserpermissions")
-       passport.authenticate('local-login');//fills req.user with infos from cookie
-       if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
-            res.write("[]")
-            res.status(200);//Send error response here
-            res.end(); 
-       }else{
-                userpermissions.getpermissionlist (req.user.local.username,function(data){
-                //as we now have all userpermissions, finish web request, 
-                try{
-                    res.write(JSON.stringify(data))
-                    res.status(200);//Send error response here
-                    res.end();   
-                }catch (ex){
-                        console.log("ERROR: unxepected error in index.js: " + ex);
-                        res.status(500);//Send error response here
-                        res.end();
-                }            
-           })
-        }//else
+       	passport.authenticate('local-login');//fills req.user with infos from cookie
+		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+				res.write("[]")
+				res.status(200);//Send error response here
+				res.end(); 
+		}else{
+					userpermissions.getpermissionlist (req.user.local.username,function(data){
+					//as we now have all userpermissions, finish web request, 
+					try{
+						res.write(JSON.stringify(data))
+						res.status(200);//Send error response here
+						res.end();   
+					}catch (ex){
+							console.log("ERROR: unxepected error in index.js: " + ex);
+							res.status(500);//Send error response here
+							res.end();
+					}            
+			})
+			}//else
 	});
 
 }

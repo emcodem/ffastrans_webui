@@ -1,5 +1,6 @@
 var moment = require('moment-timezone');
 const { uuid } = require('uuidv4');
+var axios = require("axios")
 
 module.exports = function(app, express){
 
@@ -82,13 +83,19 @@ module.exports = function(app, express){
         "children": []
     }
 
-//insert test records into job DB   
+
+	function buildApiUrl(what){
+		return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
+	}
+	//insert test records into job DB   
 	app.get('/generatetestjobs', async (req, res) => {
             try{
             console.log("generatetestjobs inserter called, inserting 10000 test jobs");
             var m_jobStates = ["Error","Success","Cancelled","Unknown"];
-
-            var date_start = new Date("2020/12/31 16:32:15");
+			var workflowResponse = await axios.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000,agent: false, maxSockets: Infinity});
+            var a_workflows = workflowResponse.data.workflows;//wf_name
+			var date_start = new Date();
+			date_start.setFullYear(date_start.getFullYear() - 1);
             //2022-02-20T23:44:56.317+01:00
             for (i=0;i<10;i++){
                 var jobArray =[];
@@ -97,11 +104,22 @@ module.exports = function(app, express){
                     var dts = moment.tz(date_start, "Asia/Taipei").format("YYYY-MM-DD HH:mm:ss");//2022-06-28T08:42:30.780+02:00
                     date_start.setSeconds(date_start.getSeconds() + 10);
                     var dte = moment.tz(date_start, "Asia/Taipei").format("YYYY-MM-DD HH:mm:ss");
-                    var jobstate = m_jobStates[getRandomInt()];
                     var duration = "00:00:0" + Math.floor(Math.random() * 10); //0-9
                     var jobname= '255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=';
                     var outcome = jobname + jobname + jobname + jobname + jobname + jobname + jobname  + jobname;
-                    jobArray.push({"_id":uuid() + "~1-0-0","state":"Success","workflow":"Generated_Test_Data","start_time":dts,"end_time":dte,"job_start":dts,"job_end":dte,"file":jobname + i + x,"outcome":outcome,"duration":duration});
+                    var wf_name = a_workflows[Math.floor(Math.random()*a_workflows.length)].wf_name;
+					jobArray.push({
+						"_id": uuid() + "~1-0-0",
+						"state": m_jobStates[getRandomInt()],
+						"workflow": wf_name,
+						"start_time": dts,
+						"end_time": dte,
+						"job_start": dts,
+						"job_end": dte,
+						"file": jobname + i + x,
+						"outcome": outcome,
+						"duration": duration
+					});
                 }
                 console.log("Inserting 1000 jobs")
                 await global.db.jobs.insert(jobArray);

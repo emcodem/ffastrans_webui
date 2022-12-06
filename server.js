@@ -5,22 +5,31 @@ const util = require('util');
 const bodyParser = require('body-parser');
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
-const  AsyncNedb  = require('@seald-io/nedb');
+const AsyncNedb  = require('@seald-io/nedb');
+
 const Mongod = require("./node_components/mongodb_server/mongod");
+
 const portfinder = require("portfinder");
 const passport = require('passport');
 const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
 const fs = require('fs-extra');
+
 const socket = require('socket.io');
+console.log("after include");
 const socketwildcard = require('socketio-wildcard');
+
 const ffastrans_new_rest_api = require("./rest_service");
+
 const configmgr = require( './node_components/server_config')
+	
 const dbManager = require( './node_components/common/database_controller')
 const { Player } = require( './node_components/player')
-const logfactory = require("./node_components/common/logger")
 
+const logfactory = require("./node_components/common/logger")
+const dns = require('node:dns');
+dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 // const blocked = require('blocked-at')
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
@@ -90,12 +99,12 @@ global.db.config.loadDatabase(function (err) {    //database is vacuumed at star
 //get global config
 configmgr.get(init);
 
+async function connectDb(){
 
-async function init(conf){
-    //fire up database
+    //fire up database process
     var dbpath = path.join(global.approot, "/database/job_db");
     await fs.ensureDir(dbpath);
-    var dbPort = await portfinder.getPortPromise({port: 8000, stopPort: 8010});
+    var dbPort = await portfinder.getPortPromise({port: 8010, stopPort: 8020});
     console.log("Database port: " + dbPort);
     global.db.mongod = new Mongod(dbpath);
     global.db.mongod.port = dbPort;
@@ -112,23 +121,37 @@ async function init(conf){
         dblogger.info("database process exited, code: ",data);
     }
 
-    //connect to database
+    //connect to database, store connection in global object
     var MongoClient = require('mongodb').MongoClient;
-    var url = "mongodb://localhost:"+dbPort+"/jobs";
-    var mongoclient = await MongoClient.connect(url)
+    var url = "mongodb://localhost:"+dbPort+"/";//jobs
+    var mongoclient;
+	try{ 
+		mongoclient = await MongoClient.connect(url)
+	}catch(ex){
+		setInterval(function(){
+			//show errormsg forever as we do not attempt to reconnect
+			global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
+		}, 3000);
+	}
     
     const db = mongoclient.db("webinterface");
     global.db.jobs = db.collection('jobs');
     
     //ensure db indexes
-    try{await global.db.jobs.createIndex({ outcome: "text"}, { default_language: "english" });}catch(ex){};
     try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
+	try{await global.db.jobs.createIndex({ workflow:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
     try{await global.db.jobs.createIndex({ job_end:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ state:       1 });}catch(ex){}
-    //callback for global config get method, initializes rest of server
-    global.config = conf;
+
+}
+
+async function init(conf){
+	global.config = conf;
+
+	connectDb(); //async startup and connect to db, it fires messages to userinterface on it's own in case of error
+
     require("./node_components/metrics_control.js")(app);
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
@@ -363,7 +386,6 @@ async function init(conf){
 			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT);
 			initSocketIo(http);	
 		}).on('error', handleListenError);
-		
     }
     
 }

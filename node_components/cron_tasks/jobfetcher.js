@@ -16,8 +16,8 @@ var executioncount = 0;
 // })
 
 module.exports = {
-    fetchjobs: async function () {
-		
+    fetchjobs: async function () {	
+	
 	executioncount++
     //inform clients about current job count
 

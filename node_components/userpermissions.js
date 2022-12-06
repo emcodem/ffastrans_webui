@@ -1,5 +1,6 @@
 //Here we also keep the list of possible user rights
 
+
 module.exports = {
     //set object to config obj
     getuser: (username,callback) => {
@@ -18,8 +19,68 @@ module.exports = {
             }
         });
     },
+
+	checkworkflowpermission:async function(username,wf_name){
+		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+			return true;
+		}
+
+		let allpermissions = [];
+		let userprops = await global.db.config.findOneAsync({"local.username":username});
+		let cursor = await global.db.config.findAsync({ "local.usergroup.name": {$in: userprops.local.groups }})
+		for (let i in cursor){
+			allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
+		}
+		
+		for (x in allpermissions){
+			//get list of allowed workflows//TODO: fetch workflow group from somewhere
+				// if (allpermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
+				// 	var filter = allpermissions[x]["value"]["filter"];
+				// 	for (var i in workflowlist["workflows"]){
+				// 		var wf = workflowlist["workflows"][i];
+				// 		if (wf["wf_folder"].toLowerCase().match(filter.toLowerCase())){
+				// 			return true;
+				// 		}else{
+				// 			//console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " NOT MATCHES filter "+ filter); 
+				// 		}
+				// 	};
+				// }
+				if (allpermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
+					var filter = allpermissions[x]["value"]["filter"];
+					if (wf_name.toLowerCase().match(filter.toLowerCase())){
+						//console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
+						return true;
+					}
+					
+				}
+		}//for allpermissions
+		return false;
+	},
+
+	getpermissionlistAsync:async (username) => {
+		try{
+			var data = await global.db.config.findOne({"local.username":username});
+			//{ "local.usergroup.name": { data.local.groups }}
+			var cursor = await global.db.config.find({ "local.usergroup.name": {$in: data.local.groups }});
+			var allpermissions = [];
+			for (let i in cursor){
+				if (typeof(cursor[i]) == "function"){
+					continue;
+				}
+				//concat all permission arrays from all groups
+				console.log(cursor[i])
+				allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
+			}
+			return (allpermissions);
+		}catch(ex){
+			console.error("Fatal error getting userpermissions for username: ",username);
+			return [];
+		}
+	},
+
     //collects all permissions of all groups the username is memberof in array
-    getpermissionlist:(username,callback) => {
+     getpermissionlist:  (username,callback) => {
+		
         global.db.config.findOne({"local.username":username}, function(err, data) {//get all groups from user
             if (err){
                 throw err;

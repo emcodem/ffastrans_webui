@@ -1,16 +1,34 @@
+var userpermissions = require("../userpermissions");
+
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
+
 
 	app.get('/gethistoryjobsajax_treegrid', async (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
-                var start = req.query.start||0;
-                start = JSON.parse(start)
+                
+				var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
+				var allWorkflows = await global.db.jobs.distinct("workflow");
+				//serve only workflows the user has rights for
+				var allowedWorkflows = [];
+				for (let _wf of allWorkflows){
+					if (await userpermissions.checkworkflowpermission(req.user.local.username,_wf)){
+						allowedWorkflows.push(_wf);
+					}
+				}
+
+
+
+				//start count
+				var start = req.query.start||0;
+                start = JSON.parse(start);
                 var count = req.query.count||1000;
                 count = JSON.parse(count)
                 count = count + 0;
-                var filterobj = req.query.filterobj||"{}";
+				var filterobj = req.query.filterobj||"{}";
                 filterobj = JSON.parse(filterobj);
+
                 console.log("New search in job history, filterobj:")
                 console.log(filterobj)
                 if (Object.keys(filterobj).length  != 0){
@@ -21,11 +39,12 @@ module.exports = function(app, express){
                     filterobj = newfilter;
                 }
                 filterobj["deleted"] =  { $exists: false } ; //always only show non deleted jobs
-                console.log("added filter deleted")
-                var filtercol = req.query.filtercol;
-                console.log(filtercol)
-                if (typeof filtercol == 'undefined' || filtercol == null){
-                    filtercol = 'job_end'
+                var sortcol = req.query.sortcol;
+				if (sortcol == "wf_name"){
+					sortcol = "workflow";
+				}
+                if (typeof sortcol == 'undefined' || sortcol == null){
+                    sortcol = 'job_end'
                 }
                 var direction = req.query.direction;
                 if (direction == "asc"){
@@ -46,60 +65,57 @@ module.exports = function(app, express){
                     return;
                 }
                 
-                
                 var sorting = {};
-                sorting[filtercol] = direction;
+                sorting[sortcol] = direction;
                 console.log(sorting)
 
-                var cursor = await global.db.jobs.find(filterobj).sort(sorting).skip(start).limit(count);
+				//add workflow permission stuff to filterobj
+
+				var final_filterobj = {"$and":[
+												{workflow:{"$in":allowedWorkflows}},
+												filterobj
+											]}
+
+				// let res = await global.db.jobs.aggregate([
+				// 	{"$match":final_filterobj},
+				// 	{
+				// 		$facet: {
+				// 		paginatedResults: [{ $skip: start }, { $limit: count }],
+				// 		totalCount: [
+				// 			{
+				// 			$count: 'count'
+				// 			}
+				// 		]
+				// 		}
+				// 	}
+				// 	]);
+				// let resArr = await res.toArray();
+
+                var cursor = await global.db.jobs.find(final_filterobj).sort(sorting).skip(start).limit(count);
                 var overallcount = await cursor.count();
                 cursor = await cursor.toArray()
-                
-                if ((cursor)){
-                    var numResults = 0;
-                    var jobArray =[];
+					
+					if ((cursor)){
+						var numResults = 0;
+						var jobArray =[];
 
-                    for (i=0;i<cursor.length;i++){
-                        //cursor[i].id = hashCode(JSON.stringify(cursor[i]))
-                        //convert from db format to tree format
-                        jobArray.push(cursor[i])
-                        //console.log(cursor[i]["job_end"])
-                    }
-                    
-                    res.writeHead(200,{"Content-Type" : "application/JSON"});
-                    res.write(JSON.stringify({"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
-                    res.end();
-                }else{
-                    res.writeHead(500,{"Content-Type" : "text/html"});
-                    res.write("error, did not get cursor from db");//output json array to client
-                    res.end();
-                }
-                            
-                            // global.db.jobs.find(filterobj).sort(sorting).skip(start).limit(count).exec( function(err, cursor) {
-                            //         if (err){            
-                            //             console.error("Error serving history jobs..." + err)
-                            //             throw err;
-                            //         }
-                            //         if ((cursor)){
-                            //             var numResults = 0;
-                            //             var jobArray =[];
+						for (i=0;i<cursor.length;i++){
+							//cursor[i].id = hashCode(JSON.stringify(cursor[i]))
+							//convert from db format to tree format
+							jobArray.push(cursor[i])
+							//console.log(cursor[i]["job_end"])
+						}
+						
+						res.writeHead(200,{"Content-Type" : "application/JSON"});
+						res.write(JSON.stringify({"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
+						res.end();
+					}else{
+						res.writeHead(500,{"Content-Type" : "text/html"});
+						res.write("error, did not get cursor from db");//output json array to client
+						res.end();
+					}
 
-                            //             for (i=0;i<cursor.length;i++){
-                            //                 cursor[i].id = hashCode(JSON.stringify(cursor[i]))
-                            //                 //convert from db format to tree format
-                            //                 jobArray.push(cursor[i])
-                            //                 //console.log(cursor[i]["job_end"])
-                            //             }
-                                       
-                            //             res.writeHead(200,{"Content-Type" : "application/JSON"});
-                            //             res.write(JSON.stringify({"total_count":total_count,"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
-                            //             res.end();
-                            //         }else{
-                                        
-                            //         }
-                            //     });                   
-                  
-                  }
+				}
             }
 		catch (ex){
 				console.log("ERROR: unxepected error in gethistoryjobs: " + ex);

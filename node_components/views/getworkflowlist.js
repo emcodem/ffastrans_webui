@@ -10,7 +10,7 @@ module.exports = async function(app, passport){
 		try{
 			
 			if (req.method === 'GET' || req.method === 'POST') {
-               passport.authenticate('local-login');//fills req.user with infos from cookie
+               	passport.authenticate('local-login');//fills req.user with infos from cookie
                 
                 console.log("Calling " + buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL))
                //download workflowlist from ffastrans server
@@ -34,35 +34,6 @@ module.exports = async function(app, passport){
                        try{
                            for (x in allpermissions){
                                
-                       //FILTER VARIABLES - this needs to be done in a to be generated getworkflow.js file and webui needs to use this url instead of proxy
-                                // try{
-                                       // if (allpermissions[x]["key"] == "FILTER_WORKFLOW_VARIABLES"){
-                                           // var filter = allpermissions[x]["value"]["filter"];
-                                           // console.log("VARIABLE FILTER ACTIVE: " + filter)
-                                           // for (var i in workflowlist["workflows"]){
-                                               // console.log(workflowlist["workflows"][i]["user_variables"]);
-                                               // for (var user_var_index in (workflowlist["workflows"][i]["user_variables"])){
-                                                   
-                                                   // var user_var = (workflowlist["workflows"][i]["user_variables"][user_var_index])
-                                                        // if (user_var["name"].toLowerCase().match(filter.toLowerCase())){
-                                                             // //allow
-                                                             // console.log("Matched allowed User variable: " + user_var["name"])
-                                                        // }else{
-                                                            // console.log("Hiding User variable due to filter settings: " + user_var["name"])
-                                                            // workflowlist["workflows"][i]["user_variables"] = [];
-                                                            // console.log(workflowlist["workflows"][i]["user_variables"])
-                                                            
-                                                        // }
-                                                   // }
-                                               // }
-                                           // }
-                                   // }
-                                   // catch(exec){
-                                       // console.error("Error parsing user variables from workflows (contact developer): " + exec);
-                                   // }
-                               
-                       
-                       
                         //FILTER WORFKLOWS
                                if (allpermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
                                    var filter = allpermissions[x]["value"]["filter"];
