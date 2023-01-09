@@ -95,7 +95,7 @@ module.exports = function(app, express){
 			var workflowResponse = await axios.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000,agent: false, maxSockets: Infinity});
             var a_workflows = workflowResponse.data.workflows;//wf_name
 			var date_start = new Date();
-			date_start.setFullYear(date_start.getFullYear() - 1);
+			date_start.setFullYear(date_start.getFullYear() - 4);
             //2022-02-20T23:44:56.317+01:00
             for (i=0;i<10;i++){
                 var jobArray =[];
@@ -119,6 +119,7 @@ module.exports = function(app, express){
 						"file": jobname + i + x,
 						"outcome": outcome,
 						"duration": duration
+						
 					});
                 }
                 console.log("Inserting 1000 jobs")

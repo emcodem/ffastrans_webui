@@ -8,16 +8,20 @@ module.exports = function(app, express){
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                 
-				var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
-				var allWorkflows = await global.db.jobs.distinct("workflow");
-				//serve only workflows the user has rights for
 				var allowedWorkflows = [];
-				for (let _wf of allWorkflows){
-					if (await userpermissions.checkworkflowpermission(req.user.local.username,_wf)){
-						allowedWorkflows.push(_wf);
+				var allWorkflows = await global.db.jobs.distinct("workflow");
+				if (req.user){
+					var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
+					//serve only workflows the user has rights for
+					
+					for (let _wf of allWorkflows){
+						if (await userpermissions.checkworkflowpermission(req.user.local.username,_wf)){
+							allowedWorkflows.push(_wf);
+						}
 					}
+				}else{
+					allowedWorkflows = allWorkflows;
 				}
-
 
 
 				//start count

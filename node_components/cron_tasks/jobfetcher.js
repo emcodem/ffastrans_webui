@@ -281,8 +281,10 @@ module.exports = {
 			var existingInternalIds 		= [];
 			for (const _job of lastTenThousand) {
 				existingInternalIds.push(_job._id);
-				for (const _child of _job.children) {
-					existingInternalIds.push(_child._id);
+				if (_job.children){
+					for (const _child of _job.children) {
+						existingInternalIds.push(_child._id);
+					}
 				}
 			}
 			//make list of job_ids (those can be shared by multiple "jobs" )

@@ -50,7 +50,7 @@
     "request": "^2.88.0",
     "resumablejs": "^1.1.0",
     "retry-request": "^4.1.3",
-    "socket.io": "^4.4.0",
+    "socket.io": "^4.5.4",
     "socketio-wildcard": "^2.0.0",
     "strip-bom": "^5.0.0",
     "tableify": "^1.1.0",
@@ -64,7 +64,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-	"build": "browserify --node --ignore-missing server.js | terser > bundle.js"
+    "build": "browserify --node --ignore-missing server.js | terser > bundle.js"
   },
   "repository": {
     "type": "git",

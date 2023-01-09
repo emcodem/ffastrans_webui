@@ -138,12 +138,12 @@ async function connectDb(){
     global.db.jobs = db.collection('jobs');
     
     //ensure db indexes
-    try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
+    //try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
 	try{await global.db.jobs.createIndex({ workflow:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
     try{await global.db.jobs.createIndex({ job_end:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ state:       1 });}catch(ex){}
+    try{await global.db.jobs.createIndex({ state:       -1 });}catch(ex){}
 
 }
 
