@@ -1257,13 +1257,20 @@
                         c.key = c._id;
                     }
                     c.title = c.state;
-					if (c.children){
+                    if (c.children){
 						for (var c_idx =0;c_idx<c.children.length;c_idx++){
 							c.children[c_idx]["title"] = c.children[c_idx]["state"];
+                            
 						}
+
 					}else{
 						c.children = [];
 					}
+                    if (c.children.length == 1){
+                        //if only 1 child, show as single job
+                        data.response.data[i] = JSON.parse(JSON.stringify(c.children[0]));
+                    }
+
 					}catch(ex){
 						console.error("Error postprocessing line ",c,ex)
 					}

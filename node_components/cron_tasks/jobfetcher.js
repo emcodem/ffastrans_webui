@@ -263,11 +263,11 @@ module.exports = {
 					//jobArray[i].file = jobArray[i]["source"]
 					jobArray[i].outcome = jobArray[i]["result"]
 					jobArray[i] = objectWithoutKey("result",jobArray[i])
-					//todo: don't store result (we store as outcome)
+					//don't store result (we store as outcome)
 
 					jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
 					jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
-					//todo: remvoe start_time and end_time
+					//todo: remvoe start_time and end_time, we store as job_start and job_end
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
 					
@@ -288,62 +288,65 @@ module.exports = {
 				}
 			}
 			//make list of job_ids (those can be shared by multiple "jobs" )
-			var existingJobIds = lastTenThousand.map((my) => my.job_id);
+			var existingMainJob_job_ids = lastTenThousand.map((my) => my.job_id);//this only gets job_id's of mainjobs (not _id's)
 
 			for (i=0;i<jobArray.length;i++){
 				//todo: check if this job_id exists in children OR mainjobs, need to aggregate children jobids above
-				if (existingInternalIds.indexOf(jobArray[i]._id) != -1){
+				if (existingInternalIds.indexOf(jobArray[i]._id) != -1 && existingMainJob_job_ids.indexOf(jobArray[i].job_id) != -1){
 					//job already in db
 					continue;
 				}
 
 				//this is a new job
-				var existingIndex = existingJobIds.indexOf(jobArray[i].job_id);
+				var existingIndex = existingMainJob_job_ids.indexOf(jobArray[i].job_id) ;
 				var insertedDoc;
 
 				if (existingIndex == -1){
-					//insert complete new job, need to modify _id here because it might be turned ito mainjob if other jobs with same job_id join later on
+					//insert new mainjob
 					jobArray[i].children = [];	
-					jobArray[i]._id += "_main";
+					jobArray[i]._id = jobArray[i].job_id + "_main"; //internal database id for mainjob, just for the db, not for use in code!
+					
+
+
 					insertedDoc = await global.db.jobs.insertOne(jobArray[i]);
-					existingJobIds.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
-				}else{
-					//the job_id already exists in DB, check if this very job is already there
-					
-					//job is not there, check if mainjob obj already exists
-					var mainjob = await global.db.jobs.findOne({job_id:jobArray[i].job_id});
-					//if existingDoc is not a container, transform it into container
-
-					if (mainjob.children.length == 0){
-						//transform existing job into mainjob, need to change _id for the copy
-						var copyOfFirstJob = JSON.parse(JSON.stringify(mainjob));
-						copyOfFirstJob._id = copyOfFirstJob._id.replace("_main","");
-						mainjob.children = [copyOfFirstJob];
-						mainjob.children.push(jobArray[i]);
-						
-					}else{
-						//just pushes a new child into existing child
-						var existingChildIds = mainjob.children.map((child) => child._id);
-						if (existingChildIds.indexOf(jobArray[i]._id) != -1){
-							mainjob.children.push(jobArray[i]);
-						}
-					}
-					
-					//update mainjob infos
-					mainjob.result = "Children: " + mainjob.children.length;
-
-					// var youngest_start = mainjob.children.reduce(function(prev, current) {
-					// 	return (prev.start_time < current.start_time) ? prev : current
-					// }).start_time;
-
-					// //var oldest_end = Math.max(...mainjob.children.map(o => o.end_time));
-					// var  oldest_end = mainjob.children.reduce(function(prev, current) {
-					// 	return (prev.end_time > current.end_time) ? prev : current
-					// }).end_time;
-
-					insertedDoc = await global.db.jobs.updateOne({job_id:jobArray[i].job_id},{$set: mainjob},{upsert:true});
-					existingJobIds.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
+					existingMainJob_job_ids.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
 				}
+				
+				//get mainjob from db and insert child
+
+				var mainjob = await global.db.jobs.findOne({job_id:jobArray[i].job_id});
+				//if existingDoc is not a container, transform it into container
+
+				if (mainjob.children.length == 0){
+					//transform existing job into mainjob, need to change _id for the copy
+					//var copyOfFirstJob = JSON.parse(JSON.stringify(mainjob));
+					jobArray[i]._id = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
+					//mainjob.children = [copyOfFirstJob];
+					mainjob.children.push(jobArray[i]);
+					
+				}else{
+					//just pushes a new child into existing child
+					var existingChildIds = mainjob.children.map((child) => child._id);
+					if (existingChildIds.indexOf(jobArray[i]._id) == -1){
+						mainjob.children.push(jobArray[i]);
+					}
+				}
+				
+				//update mainjob infos
+				mainjob.result = "Children: " + mainjob.children.length;
+
+				// var youngest_start = mainjob.children.reduce(function(prev, current) {
+				// 	return (prev.start_time < current.start_time) ? prev : current
+				// }).start_time;
+
+				// //var oldest_end = Math.max(...mainjob.children.map(o => o.end_time));
+				// var  oldest_end = mainjob.children.reduce(function(prev, current) {
+				// 	return (prev.end_time > current.end_time) ? prev : current
+				// }).end_time;
+
+				insertedDoc = await global.db.jobs.updateOne({job_id:jobArray[i].job_id},{$set: mainjob},{upsert:true});
+				//existingJobIds.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
+			
 
 				if(insertedDoc){
 					console.log("New History Job: " , jobArray[i]);
