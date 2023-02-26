@@ -13,6 +13,7 @@
     "express-openapi": "^6.0.0",
     "ffprobe": "^1.1.2",
     "fs-readdir-recursive": "^1.1.0",
+    "js-md2": "^0.2.2",
     "jsdom": "^16.2.2",
     "json.human": "0.0.1",
     "mediainfo-wrapper": "^1.2.0",
@@ -29,6 +30,6 @@
   "scripts": {
     "start": "node app.js",
     "test": "swagger project test",
-	"build": "browserify --node --ignore-missing app.js | terser > bundle.js"
+    "build": "browserify --node --ignore-missing app.js | terser > bundle.js"
   }
 }

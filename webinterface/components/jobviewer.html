@@ -489,7 +489,7 @@
 		
         //    mainLayout.cells("b").progressOn();
 
-        socket.on('newhistoryjob', function(msg) {
+        socket.on('newhistoryjob', async function(msg) {
             console.log("newhistoryjob",msg)
             //check if we are showing the first page
             if ($("#treetable_history").fancytree('getTree').mystuff.page != 1){
@@ -538,8 +538,9 @@
             var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
             //take care about grid sorting
             
-            sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
-			
+            //save grid selection
+            await sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
+			//restore grid selection
 			
         });
 
@@ -614,7 +615,6 @@
         //history grid is sorted in buildHistoryGrid
         sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
 		
-
 		//workaround grips getting lost after resize: as fancytree takes a while to resize on window resize, we delay the resizing of colresizeable plugin
 		window.onresize = function(){
 			window.setTimeout(function(){
@@ -818,7 +818,7 @@
         }
         if (id == "b_resubmit") {
             selected.forEach(function(node) {
-                resubmit_job(node["data"]["guid"]);
+                resubmit_job(node["data"]["guid"]||node["data"]["job_id"]);
             })
         }
         if (id == "b_details") {
@@ -844,7 +844,7 @@
             var array_to_delete = [];
             for (i = 0; i < selected.length; i++) {}
             selected.forEach(function(node) {
-                array_to_delete.push(node.data["guid"]);
+                array_to_delete.push(node.data["job_id"]);
                 node.remove();
             });
             socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
@@ -1150,7 +1150,14 @@
                 
                 }
             }
-        
+    
+        if (document.getElementById("history-job_end-sorticon-dis")){
+			$("div[id$='sorticon-dis']").attr('hidden', false);
+			//hide only the sorticon of interest
+			$('div[id$="'+"history-job_end-sorticon-dis"+'"]').attr('hidden', true);
+			console.log("disable","history-job_end-sorticon-dis");
+		}
+        $('i[id="history-job_end-sorticon"]').addClass("down-arrow");
         var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj="+JSON.stringify(filterobj);
         //var sourceUrl = "testdata.xml";
         var histTree = $("#treetable_history").fancytree({
@@ -1260,7 +1267,7 @@
                     if (c.children){
 						for (var c_idx =0;c_idx<c.children.length;c_idx++){
 							c.children[c_idx]["title"] = c.children[c_idx]["state"];
-                            
+                            c.result += c.children[c_idx].outcome + " ";
 						}
 
 					}else{
@@ -1360,7 +1367,8 @@
 
         //extend tree by custom stuff, used mainly to build the paging
         $("#treetable_history").fancytree('getTree').mystuff = {"maxrows":100,"filterobj":{},"page":1,"sortcol":"job_end","sortdir":"des"}
-    
+        //todo: display sort icon on job_end col
+
         //search btn
         $('input[name=search]').bind("enterKey", search_history_grid);
 
@@ -1430,6 +1438,8 @@
 			return searchCount;
 	}
 	
+
+
 	function search_history_grid(btn_event){
 		 var search_obj = {};
             for (i = 0; i < $("input[name=search]").length; i++) {
@@ -1829,7 +1839,8 @@
         if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             return "/new_proxy" + what;
         } else {
-            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+            var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
             return _url;
         }
     }
@@ -1838,15 +1849,15 @@
 
 	}
 
-    function sortGrid(whichGrid, src_element_id, force_order) {
-		let e = new Error();
-        console.log("sortgrid",e.stack)
+    async function sortGrid(whichGrid, src_element_id, force_order) {
+		// let e = new Error();
+        // console.log("sortgrid",e.stack)
         src_element = document.getElementById(src_element_id);
         src_element_sorticon = document.getElementById(src_element_id + "-sorticon");
         //remove sort icons from all
         $('i[name="'+whichGrid+"-sorticon"+'"]').removeClass("up-arrow");
         $('i[name="'+whichGrid+"-sorticon"+'"]').removeClass("down-arrow");
-       
+        
 	   //re-enable all disabled sorticons
 	    if (document.getElementById(src_element_id+"-sorticon-dis")){
 			$("div[id$='sorticon-dis']").attr('hidden', false);
@@ -1862,6 +1873,8 @@
         var tree = $('#treetable_active').fancytree('getTree');
         if (whichGrid != "treetable_active") {
             tree = $('#treetable_history').fancytree('getTree');
+        }else{
+            var breakhere = 1;
         }
 
         if (!force_order) {
@@ -1900,13 +1913,21 @@
 		}else{
 			//need to reload history grid from db
 			var tree = $('#treetable_history').fancytree('getTree');
+            var sorting_changed = tree.mystuff.sortcol != whichColumn || tree.mystuff.sortdir != src_element.dataset["sort_dir"];
 			tree.mystuff.sortcol = whichColumn;
 			tree.mystuff.sortdir = src_element.dataset["sort_dir"];
 
-            tree.reload({
-                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(tree.mystuff.filterobj),
-                cache: false
-            });
+            //complete reload should only be done in certain cases as it destroys current userinteraction e.g. selectedrow
+            if (sorting_changed){ 
+                console.log("sorting detected new sort config:",
+                    {"whichCol":whichColumn,"tree.mystuff":tree.mystuff, "src_element.dataset":src_element.dataset}
+                )
+                await tree.reload({
+                    url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(tree.mystuff.filterobj),
+                    cache: false
+                });
+                console.log("tree was reloaded");
+            }
 		}
         
         //console.log("storing localstorage",JSON.stringify(m_lastsortelementid))

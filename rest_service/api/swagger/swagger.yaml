@@ -57,6 +57,37 @@ paths:
           description: Success
         default:
           description: Error
+  /jobs:
+    x-swagger-router-controller: jobs
+    post:
+      description: ""
+      operationId: jobs
+      requestBody:
+        content:
+          application/json:
+            schema:      # Request body contents
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+              example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /review:
+    x-swagger-router-controller: review
+    get:
+      description: Gets review queue
+      operationId: review
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /tickets:
     x-swagger-router-controller: tickets
     get:

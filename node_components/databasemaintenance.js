@@ -85,6 +85,7 @@ module.exports = function(app, express){
 
 
 	function buildApiUrl(what){
+        
 		return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
 	}
 	//insert test records into job DB   

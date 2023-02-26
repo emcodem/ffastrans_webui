@@ -191,6 +191,7 @@ var m_mainSidebar,mainLayout,initialMenuItem;
 var m_permissionUrls = {
     "GROUPRIGHT_MENU_VIEW_JOB_STATUS" : "components/jobviewer.html",
     "GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS": "components/jobstarter.html",
+    "GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE": "components/reviewqueue.html",
     "GROUPRIGHT_MENU_VIEW_ADMIN_USERS": "admin/usermanager.html",
     "GROUPRIGHT_MENU_VIEW_ADMIN": "admin/index.html",
     "GROUPRIGHT_MENU_VIEW_SCHEDULER": "components/scheduler.html",
@@ -206,7 +207,7 @@ function loadserverconfig(){
   gtag('config', 'G-4FCDW4WBMR',{ 'anonymize_ip': true });
 
    $.ajax({
-        url:  ("/getserverconfig") ,
+        url:  ("/getserverconfig"),
         type: "GET",
         success: function (response) {
             m_serverconfig = JSON.parse(response)

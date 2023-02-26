@@ -115,7 +115,14 @@ module.exports = {
     });
     
     //fetch queued jobs from api
-    Request.get("http://localhost:3003/tickets", {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {   
+	function build_new_api_url(what){
+		var host = global.config["STATIC_API_HOST"];
+		var port = global.config["STATIC_API_NEW_PORT"];
+		var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+		return protocol + host + ":" + port + what;  
+	}
+
+    Request.get(build_new_api_url("/tickets"), {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {   
         
         //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -123,8 +130,8 @@ module.exports = {
             return;
         }
         if(error) {
-            console.log('Internal Error getting Queued Jobs,  ' + "http://localhost:3003/tickets", error)
-            global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + "http://localhost:3003/tickets");
+            console.log('Internal Error getting Queued Jobs,  ' + build_new_api_url("/tickets"), error)
+            global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + build_new_api_url("/tickets"));
             return;
         }
 		try{
@@ -219,8 +226,8 @@ module.exports = {
     
 //fetch HISTORY jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=100"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
+		
 		try{
-			console.log("Finished fetching history jobs from " + buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL));
 			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
 				return;
 			}
@@ -252,7 +259,7 @@ module.exports = {
 			
 			//restructure array from ffastrans,build famliy tree
 			
-			for (i = 0; i < jobArray.length; i++){
+			for (let i = 0; i < jobArray.length; i++){
 					//only jobguid plus split makes each job entry unique
 					jobArray[i]["_id"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
 					
@@ -287,66 +294,58 @@ module.exports = {
 					}
 				}
 			}
-			//make list of job_ids (those can be shared by multiple "jobs" )
+			//mainjob and children share the same job_id
 			var existingMainJob_job_ids = lastTenThousand.map((my) => my.job_id);//this only gets job_id's of mainjobs (not _id's)
 
-			for (i=0;i<jobArray.length;i++){
-				//todo: check if this job_id exists in children OR mainjobs, need to aggregate children jobids above
+			for (let i=0;i<jobArray.length;i++){
 				if (existingInternalIds.indexOf(jobArray[i]._id) != -1 && existingMainJob_job_ids.indexOf(jobArray[i].job_id) != -1){
 					//job already in db
 					continue;
 				}
+				var all 	= await global.db.jobs.find({}).limit(1000);
+				all 		= await all.toArray();
 
 				//this is a new job
 				var existingIndex = existingMainJob_job_ids.indexOf(jobArray[i].job_id) ;
 				var insertedDoc;
 
 				if (existingIndex == -1){
-					//insert new mainjob
-					jobArray[i].children = [];	
-					jobArray[i]._id = jobArray[i].job_id + "_main"; //internal database id for mainjob, just for the db, not for use in code!
+					//insert new mainjob if needed
+					var newmainjob = JSON.stringify(jobArray[i]);
+					newmainjob = JSON.parse(newmainjob);
+					newmainjob.children = [];	
+					newmainjob._id = jobArray[i].job_id + "_main"; //internal database id for mainjob, just for the db, not for use in code!
+					newmainjob.result = ""; //we delete result as only childs contain it.
+					insertedDoc = await global.db.jobs.insertOne(newmainjob);
+					existingMainJob_job_ids.push(newmainjob.job_id); //supports multiple branches finished in single fetcher run
 					
-
-
-					insertedDoc = await global.db.jobs.insertOne(jobArray[i]);
-					existingMainJob_job_ids.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
 				}
 				
 				//get mainjob from db and insert child
-
 				var mainjob = await global.db.jobs.findOne({job_id:jobArray[i].job_id});
-				//if existingDoc is not a container, transform it into container
 
 				if (mainjob.children.length == 0){
-					//transform existing job into mainjob, need to change _id for the copy
-					//var copyOfFirstJob = JSON.parse(JSON.stringify(mainjob));
+					//we inserted a new mainjob, add first child
 					jobArray[i]._id = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
-					//mainjob.children = [copyOfFirstJob];
 					mainjob.children.push(jobArray[i]);
 					
 				}else{
-					//just pushes a new child into existing child
+					//udpate existing mainjob
 					var existingChildIds = mainjob.children.map((child) => child._id);
 					if (existingChildIds.indexOf(jobArray[i]._id) == -1){
 						mainjob.children.push(jobArray[i]);
+						//get data start and end of mainjob
+						mainjob.job_start = getYoungestJobStart(mainjob.children);
+						mainjob.job_end = getOldestJobEnd(mainjob.children);
+						mainjob.duration = (getDurationStringFromDates(mainjob.job_start, mainjob.job_end )+"");
+						mainjob.state = getJobstate(mainjob.children);
+						mainjob.result = "";
 					}
 				}
 				
-				//update mainjob infos
-				mainjob.result = "Children: " + mainjob.children.length;
-
-				// var youngest_start = mainjob.children.reduce(function(prev, current) {
-				// 	return (prev.start_time < current.start_time) ? prev : current
-				// }).start_time;
-
-				// //var oldest_end = Math.max(...mainjob.children.map(o => o.end_time));
-				// var  oldest_end = mainjob.children.reduce(function(prev, current) {
-				// 	return (prev.end_time > current.end_time) ? prev : current
-				// }).end_time;
-
+				//update mainjob, inserts additional children
+				
 				insertedDoc = await global.db.jobs.updateOne({job_id:jobArray[i].job_id},{$set: mainjob},{upsert:true});
-				//existingJobIds.push(jobArray[i].job_id); //supports multiple branches finished in single fetcher run
-			
 
 				if(insertedDoc){
 					console.log("New History Job: " , jobArray[i]);
@@ -357,7 +356,7 @@ module.exports = {
 			}//for
 		}
 		catch(ex){
-			console.log(ex);
+			console.log(ex.stack);
 		
 		}
         
@@ -372,6 +371,39 @@ function objectWithoutKey(key,obj){
 	return rest;
 }
 
+function getJobstate(a_children){
+	var state = "Error";
+	for (let i=0;i<a_children.length;i++){
+		var _job = a_children[i];
+		if (_job.state == "Success"){
+			state = "Success";
+		}
+		if (_job.state == "Cancelled"){
+			state = "Cancelled";
+		}
+	}
+	return state;
+}
+
+function getYoungestJobStart(a_children){
+	var youngest_start = a_children[0].job_start;
+	for (let i=0;i<a_children.length;i++){
+		var _job = a_children[i];
+		if (_job.job_start < youngest_start)
+			youngest_start = _job.job_start;
+	}
+	return youngest_start;
+}
+
+function getOldestJobEnd(a_children){
+	var oldest_end = a_children[0].job_end;
+	for (let i=0;i<a_children.length;i++){
+		var _job = a_children[i];
+		if (_job.job_end > oldest_end)
+			oldest_end = _job.job_end;
+	}
+	return oldest_end;
+}
 
 async function countJobsAsync(countobj) {
     let count = await new Promise((resolve, reject) => {
@@ -448,7 +480,8 @@ function buildApiUrl(what){
 }
 
 function buildNewApiUrl(){
-    return "http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + "/tickets"
+	var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+    return protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + "/tickets"
 }
 
 /* STRUCTS */

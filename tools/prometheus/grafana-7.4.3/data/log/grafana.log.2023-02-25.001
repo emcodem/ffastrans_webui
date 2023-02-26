@@ -1,0 +1,1 @@
+t=2023-02-24T02:10:08+0100 lvl=eror msg="Failed to send usage stats" logger=metrics err="Post \"https://stats.grafana.org/grafana-usage-report\": dial tcp: lookup stats.grafana.org: no such host"

@@ -11,10 +11,10 @@
 /* todo: when running standalone, get port and approot from some config or so  */
 /* DO NOT USE global objects of webserver here!!! */
 const path = require("path");
-const request = require("request")
-//logging
-
-//require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
+const request = require("request");
+const fs = require("fs");
+const dns = require('node:dns');
+dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 
 //start_server(3003,"C:\\dev\\ffastrans_webui\\rest_service","C:\\dev\\FFAStrans\\");
 exports.init = function (_host, _hostport, _listenport) {
@@ -61,10 +61,16 @@ async function renewInstallInfo(about_url){
             console.log("Detected move of FFAStrans installation, resetting paths");
             global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
             global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
+            global.api_config["s_SYS_CONFIGS_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/configs/";
             global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
             global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
         }
     }
+}
+
+function handleListenError(err){
+	console.log(err)//prevents the program keeps running when port is in use
+			
 }
 
 async function start_server(_host, _hostport, _listenport){
@@ -90,13 +96,46 @@ async function start_server(_host, _hostport, _listenport){
     
     //set global config
     global.api_config = { };
-    global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
-    global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
-    global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
-    global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
+    global.api_config["s_SYS_DIR"]              = install_info["about"]["general"]["install_dir"] + "/";
+    global.api_config["s_SYS_CACHE_DIR"]        = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
+    global.api_config["s_SYS_CONFIGS_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/configs/";
+    global.api_config["s_SYS_JOB_DIR"]          = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
+    global.api_config["s_SYS_WORKFLOW_DIR"]     = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
 
 	//API WEBSERVER
-    const app = require('express')();
+    //const app = require('express').();
+    const express = require('express');
+    const app = express();
+    const bodyParser = require('body-parser');
+    app.use(bodyParser.json());
+    //startup server
+    console.log('\x1b[32mNew API starting up...') 
+	var path_to_privkey = global.approot  	+ '/cert/key.pem';
+	var path_to_cert = global.approot  		+ '/cert/cert.pem';
+	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
+	if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+		const https = require('https');
+		const httpsServer = https.createServer({
+		  key: fs.readFileSync(path_to_privkey),
+		  cert: fs.readFileSync(path_to_cert),
+		  passphrase: key_password
+		}, app);
+		
+		httpsServer.listen(_listenport, () => {
+			console.log('HTTPS Server running on port',_listenport);
+			//initSocketIo(httpsServer);
+		});
+		
+		
+	}else{
+		const http = require('http').Server(app);
+		
+		http.listen(_listenport, () => {
+			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + _listenport);
+			//initSocketIo(http);	
+		}).on('error', handleListenError);
+    }
+
     let { initialize } = require('express-openapi');
     
     console.log("Approt: ", _approot);
@@ -112,15 +151,17 @@ async function start_server(_host, _hostport, _listenport){
 			tickets: require(_approot + "/api/controllers/tickets").get,
             machines: require(_approot + "/api/controllers/machines").get,
             metrics: require(_approot + "/api/controllers/metrics").get,
+            review: require(_approot + "/api/controllers/review").get,
+            jobs: require(_approot + "/api/controllers/jobs").get,
         }
 	};
 
     initialize(swag_config);
 
 
-	var port = _listenport || 65446;
-	app.listen(port);
-    console.log('Web API Server started, check out http://127.0.0.1:' + port + '/docs');
+	//var port = _listenport || 65446;
+	//app.listen(port);
+    console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
     /*
     //UNHANDLED EXCEPTIONS KEEP THE SERVER RUNNING - todo: reactivate when running as standalone module
     process.on('uncaughtException', function (err) {

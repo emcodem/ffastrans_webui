@@ -22,21 +22,25 @@ module.exports = {
         return x * y;
     },
     //delete job by _id int array, called from client using socket.io
-    deletejob: (id_array_string) => {
+    deletejob: async (id_array_string) =>  {
         id_array=JSON.parse(id_array_string);
         console.log("Deleting job array:");
-        console.log(id_array_string)
-        global.db.jobs.find({ _id: { $in: id_array }}).exec( function(err,cursor){
-                      console.log("Found Job to delete:" + cursor.length )
-                        // Set an existing field's value
-                         global.db.jobs.update({ _id: { $in: id_array } }, { $set: { deleted: true } }, { multi: true }, function (err, numReplaced) {
-                            if (err){
-                                console.log("Error deleting job from DB: " + err);
-                            }
-                            console.log("Deleted " +numReplaced + " Jobs from DB")
-                        });
+        console.log(id_array_string);
+        
+        var cursor = await global.db.jobs.find({ "job_id": { $in: id_array }});
+        cursor = await cursor.toArray();
+        console.log("Found Job to delete:" + cursor.length )
+        // Set an existing field's value
+        var deleteresult = await global.db.jobs.deleteMany({ "job_id": { $in: id_array } });
+        console.log("deleteresult",deleteresult)
+        //     global.db.jobs.update({ _id: { $in: id_array } }, { $set: { deleted: true } }, { multi: true }, function (err, numReplaced) {
+        //     if (err){
+        //         console.log("Error deleting job from DB: " + err);
+        //     }
+        //     console.log("Deleted " +numReplaced + " Jobs from DB")
+        // });
 
-        })
+       
         return;
     },
     

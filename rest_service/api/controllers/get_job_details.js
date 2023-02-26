@@ -134,7 +134,8 @@ async function start(req, res) {
 
 async function get_job_from_tickets(lookfor_jobid){
     // if we have no running job, serve ticket from db/tickets folder
-    var url = 'http://localhost:'+global.config['STATIC_API_NEW_PORT'] + "/tickets";
+    var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+    var url = protocol + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets" ;
     const resp = await axios.get(url);
 
     var found_ticket = false;

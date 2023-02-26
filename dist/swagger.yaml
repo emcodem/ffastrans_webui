@@ -1,0 +1,160 @@
+openapi: 3.0.0
+info:
+  version: 3.0.0
+  title: FFAStrans REST API Version 3.0
+paths:
+  /hello:
+    x-swagger-router-controller: hello_world
+    get:
+      description: Returns 'Hello' to the caller
+      operationId: hello
+      parameters:
+        - name: name
+          in: query
+          description: The name of the person to whom to say hello
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HelloWorldResponse"
+        default:
+          description: Error
+          content:  # Response body
+            application/json:  # Media type
+              schema:          # Must-have
+                type: object   # Data 
+                properties: 
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  fullTime: 
+                    type: boolean
+                example:       # Sample data
+                    id: 1
+                    name: Jessica Right
+                    fullTime: true
+  /getjoblog:
+    x-swagger-router-controller: get_job_log
+    get:
+      description: Gets an existing jobs log file contents
+      operationId: get_job_log
+      parameters:
+        - name: jobid
+          in: query
+          description: A JobId, currently all branches of a job share the same jobid,
+            getjoblog cannot determine which log line belongs to which branch
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /review:
+    x-swagger-router-controller: review
+    get:
+      description: Gets review queue
+      operationId: review
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /tickets:
+    x-swagger-router-controller: tickets
+    get:
+      description: Gets active and pending jobs
+      parameters:
+        - name: nodetails
+          in: query
+          description: Reduces performance impact on database significally, only returns currently active jobid's. Excluded incoming (those are complex to get)
+          required: false
+          schema:
+            type: boolean
+      operationId: tickets
+      responses:
+        "200":
+          description: List of Jobs
+        default:
+          description: Error
+  /machines:
+    x-swagger-router-controller: machines
+    get:
+      description: Gets List of Farm Machines
+      operationId: machines
+      responses:
+        "200":
+          description: List of Machines and config
+        default:
+          description: Error   
+  /metrics:
+    x-swagger-router-controller: metrics
+    get:
+      description: Gets Prometheus compatible Farm metrics
+      operationId: metrics
+      responses:
+        "200":
+          description: List of metrics
+        default:
+          description: Error 
+  /getjobdetails:
+    x-swagger-router-controller: get_job_details
+    get:
+      description: Get all available details about an existing job
+      operationId: get_job_details
+      parameters:
+        - name: jobid
+          in: query
+          description: A JobId, currently all branches of a job share the same jobid,
+            getjoblog cannot determine which log line belongs to which branch
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /getmediainfo:
+    x-swagger-router-controller: get_mediainfo
+    get:
+      description: Get mediainfo about a file 
+      operationId: get_mediainfo
+      parameters:
+        - name: filepath
+          in: query
+          description: The path to a file from perspective of the API server
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /swagger:
+    x-swagger-pipe: swagger_raw
+servers:
+  - url: /
+
+components:
+  schemas:
+    HelloWorldResponse:
+      required:
+        - message
+      properties:
+        message:
+          type: string
+    ErrorResponse:
+      required:
+        - message
+      properties:
+        message:
+          type: string

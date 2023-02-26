@@ -32,8 +32,17 @@ module.exports = function(app, express){
                 count = count + 0;
 				var filterobj = req.query.filterobj||"{}";
                 filterobj = JSON.parse(filterobj);
-
-                console.log("New search in job history, filterobj:")
+				//since change to mongodb, we search only children
+				if (filterobj.outcome){
+					filterobj["children.outcome"] = filterobj.outcome;
+					filterobj = objectWithoutKey("outcome",filterobj);
+				}
+				if (filterobj.file){
+					filterobj["source"] = filterobj.file;
+					filterobj = objectWithoutKey("file",filterobj);
+				}
+				
+				console.log("New search in job history, filterobj:")
                 console.log(filterobj)
                 if (Object.keys(filterobj).length  != 0){
                     newfilter = {};
@@ -42,7 +51,7 @@ module.exports = function(app, express){
                     }
                     filterobj = newfilter;
                 }
-                filterobj["deleted"] =  { $exists: false } ; //always only show non deleted jobs
+                //filterobj["deleted"] =  { $exists: false } ; //always only show non deleted jobs
                 var sortcol = req.query.sortcol;
 				if (sortcol == "wf_name"){
 					sortcol = "workflow";
@@ -56,7 +65,15 @@ module.exports = function(app, express){
                 }else{
                     direction = -1;
                 }
-                //basic fieldset, parent of all inputs
+                //since mongo we sort on children 
+				 if (sortcol == "file"){
+				 	sortcol = "source";
+				 }
+				// if (sortcol == "outcome"){
+				// 	sortcol = "children.outcome";
+				// }
+				
+				//basic fieldset, parent of all inputs
                 // params: start,count,filtercol,direction
                 var total_count = 0;
                 
@@ -80,24 +97,29 @@ module.exports = function(app, express){
 												filterobj
 											]}
 
-				// let res = await global.db.jobs.aggregate([
-				// 	{"$match":final_filterobj},
-				// 	{
-				// 		$facet: {
-				// 		paginatedResults: [{ $skip: start }, { $limit: count }],
-				// 		totalCount: [
-				// 			{
-				// 			$count: 'count'
-				// 			}
-				// 		]
-				// 		}
-				// 	}
-				// 	]);
-				// let resArr = await res.toArray();
+				
+				 
 
-                var cursor = await global.db.jobs.find(final_filterobj).sort(sorting).skip(start).limit(count);
+				//  var sort = {"$sort":{}};
+				//  sort["$sort"][sortcol] = direction;
+				//  var cursor = await global.db.jobs.aggregate(
+
+				// 	[
+				// 		{
+				// 			"$match": final_filterobj
+				// 		},
+				// 		{
+				// 			"$unwind": "$children"
+				// 		},
+				// 		sort
+				// 	] 
+					
+					
+				// )
+
+                var cursor = await global.db.jobs.find(final_filterobj,{sort:sorting}).skip(start).limit(count);
                 var overallcount = await cursor.count();
-                cursor = await cursor.toArray()
+                cursor = await cursor.toArray();
 					
 					if ((cursor)){
 						var numResults = 0;
@@ -129,8 +151,17 @@ module.exports = function(app, express){
 	});
 }
 
+function objectWithoutKey(key,obj){
+	var { [key]: val, ...rest } = obj;
+	return rest;
+}
+
 function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()[\]\\]/g, '\\$&'); // $& means the whole matched string -- | is not escaped in order to support multiple conditions
+
+  var escaped = string.replace(/[.+?^${}()[\]\\]/g, '\\$&'); // $& means the whole matched string -- | is not escaped in order to support multiple conditions
+	escaped = escaped.replace("*",".*?");
+	escaped = escaped.replace(" ",".*?");
+  return escaped;
 }
 
 function hashCode (string) {

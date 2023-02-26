@@ -231,7 +231,8 @@
         if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             return "/new_proxy" + what;
         } else {
-            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+            var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
             return _url;
         }
     }

@@ -62,7 +62,8 @@ module.exports = {
 function build_new_api_url(what){
     var host = global.config["STATIC_API_HOST"];
     var port = global.config["STATIC_API_NEW_PORT"];
-    return "http://" + host + ":" + port + what;  
+    var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+    return protocol + host + ":" + port + what;  
 }
 function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  

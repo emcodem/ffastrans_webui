@@ -20,16 +20,17 @@ const socket = require('socket.io');
 console.log("after include");
 const socketwildcard = require('socketio-wildcard');
 
+const configmgr = require( './node_components/server_config')
+
 const ffastrans_new_rest_api = require("./rest_service");
 
-const configmgr = require( './node_components/server_config')
-	
 const dbManager = require( './node_components/common/database_controller')
 const { Player } = require( './node_components/player')
 
 const logfactory = require("./node_components/common/logger")
 const dns = require('node:dns');
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0; //as we have a self-signed example cert, we allow self-signed
 // const blocked = require('blocked-at')
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
@@ -112,10 +113,10 @@ async function connectDb(){
     var dblogger = logfactory.getLogger("database");
     dblogger.info("Database port: ",dbPort);
     global.db.mongod.onStdOut = function(data){
-        dblogger.info(data.toString());
+        //dblogger.info(data.toString());
     }
     global.db.mongod.onStdErr = function(data){
-        dblogger.info(data.toString());
+        //dblogger.info(data.toString());
     }
     global.db.mongod.onExit = function(data){
         dblogger.info("database process exited, code: ",data);
@@ -144,7 +145,8 @@ async function connectDb(){
     try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ state:       -1 });}catch(ex){}
-
+    try{await global.db.jobs.createIndex({ job_id:      -1 });}catch(ex){}
+    try{await global.db.jobs.createIndex({ job_id:       1 });}catch(ex){}
 }
 
 async function init(conf){
@@ -230,7 +232,8 @@ async function init(conf){
     }));
 
     //PROXY, forward to new api, port 3003 default
-    app.use('/new_proxy', proxy("http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
+    var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+    app.use('/new_proxy', proxy(protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
         logLevel: "info",
         proxyTimeout: 1000,
         onProxyReq: function (proxyReq, req, res) {

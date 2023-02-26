@@ -309,7 +309,8 @@ async function needsExecution(current_job){
             if (current_job["last_job_id"] != ""){  
                 updateScheduledJob(current_job["id"],"last_message","Detected last Jobid exists, checking if Jobid is active");
                 console.log("checking if job is still runing");
-                var url = 'http://' + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets?nodetails=true" ;
+                var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+                var url = protocol + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets?nodetails=true" ;
                 
                 console.log("calling,",url)
                 try{
