@@ -53,7 +53,7 @@
     "socket.io": "^4.5.4",
     "socketio-wildcard": "^2.0.0",
     "strip-bom": "^5.0.0",
-    "tableify": "^1.1.0",
+    "tableify": "^1.1.1",
     "tail": "^2.2.4",
     "tmp": "^0.2.1",
     "uuidv4": "^6.2.13",
