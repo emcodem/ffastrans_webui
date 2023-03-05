@@ -25,8 +25,6 @@ exports.init = function (_host, _hostport, _listenport) {
     renewInstallInfo(about_url);
 }
 
-
-
 function doRequest(url) {
   return new Promise(function (resolve, reject) {
     request(url, function (error, res, body) {
@@ -103,11 +101,23 @@ async function start_server(_host, _hostport, _listenport){
     global.api_config["s_SYS_WORKFLOW_DIR"]     = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
 
 	//API WEBSERVER
-    //const app = require('express').();
     const express = require('express');
     const app = express();
     const bodyParser = require('body-parser');
-    app.use(bodyParser.json());
+
+    app.use((req, res, next) => {
+        if (['PATCH', 'POST', 'PUT'].includes(req.method) && !req.is('application/json')) {
+            //we didnt quickly find out how to make bodyParser support any content-type so we need application/json for POST
+            res.status(400);
+            res.json({"message":"you must set content-type:application/json"})
+            res.end();
+        } else {
+            next();
+        }
+    });
+
+    app.use(bodyParser.json())
+
     //startup server
     console.log('\x1b[32mNew API starting up...') 
 	var path_to_privkey = global.approot  	+ '/cert/key.pem';
@@ -123,16 +133,12 @@ async function start_server(_host, _hostport, _listenport){
 		
 		httpsServer.listen(_listenport, () => {
 			console.log('HTTPS Server running on port',_listenport);
-			//initSocketIo(httpsServer);
 		});
-		
 		
 	}else{
 		const http = require('http').Server(app);
-		
 		http.listen(_listenport, () => {
 			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + _listenport);
-			//initSocketIo(http);	
 		}).on('error', handleListenError);
     }
 
@@ -142,7 +148,6 @@ async function start_server(_host, _hostport, _listenport){
     var swag_config = {
         app,
         apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
-        //paths: path.resolve(__dirname, 'api/controllers'),
         operations: {
             hello: require(_approot + "/api/controllers/hello_world").get,
             get_job_log: require(_approot + "/api/controllers/get_job_log").get,
@@ -152,35 +157,16 @@ async function start_server(_host, _hostport, _listenport){
             machines: require(_approot + "/api/controllers/machines").get,
             metrics: require(_approot + "/api/controllers/metrics").get,
             review: require(_approot + "/api/controllers/review").get,
+            review_delete: require(_approot + "/api/controllers/review").do_delete,
             jobs: require(_approot + "/api/controllers/jobs").get,
+            ["api/v2/jobs"] :require(_approot + "/api/controllers/jobs").get,
         }
 	};
 
     initialize(swag_config);
 
-
-	//var port = _listenport || 65446;
-	//app.listen(port);
     console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
-    /*
-    //UNHANDLED EXCEPTIONS KEEP THE SERVER RUNNING - todo: reactivate when running as standalone module
-    process.on('uncaughtException', function (err) {
-        console.trace('Global unexpected error: ' + err);
-        if (err.stack) {
-            console.error(err.stack);
-        }
-        if (err.name === 'AssertionError') {
-            // handle the assertion here or just ignore it..
-            console.log("HERE WE GO, MEDIAINFO FOOLED US");
-        }
-    });
-    process.on('unhandledRejection', (reason, promise) => {
-        console.trace('Global unexpected error: ' + err);
-        if (err.stack) {
-            console.error(err.stack);
-        }
-    })
- */
+  
 	//API DOCS and testing page
 	const swaggerUi = require('swagger-ui-express');
     const YAML = require('yamljs');

@@ -44,13 +44,23 @@ module.exports = function(app, express){
 				
 				console.log("New search in job history, filterobj:")
                 console.log(filterobj)
+				//make regex for text fields
                 if (Object.keys(filterobj).length  != 0){
                     newfilter = {};
                     for (key in filterobj){
+						if (key == "workflow"){
+							newfilter.workflow = filterobj[key];
+							continue;
+						}
                         newfilter[key] = {$regex: new RegExp(escapeRegExp(filterobj[key]),"i")}
                     }
                     filterobj = newfilter;
                 }
+
+				//workflow search special attention
+				var workflowFilter = await getFilteredWorkflows(allWorkflows,filterobj)}
+				filterobj = objectWithoutKey("workflow",filterobj);
+				
                 //filterobj["deleted"] =  { $exists: false } ; //always only show non deleted jobs
                 var sortcol = req.query.sortcol;
 				if (sortcol == "wf_name"){
@@ -77,14 +87,9 @@ module.exports = function(app, express){
                 // params: start,count,filtercol,direction
                 var total_count = 0;
                 
-                if (req.query.getcount){
-                    console.log("Found " +  total_count + " Jobs in Db, filter: " , filterobj)
-                    var total_count = await global.db.jobs.countDocuments(filterobj,{_id:1});
-                    res.writeHead(200,{"Content-Type" : "application/json"});
-                    res.write(JSON.stringify({"total_count":total_count}));//output json object
-                    res.end();
-                    return;
-                }
+
+
+
                 
                 var sorting = {};
                 sorting[sortcol] = direction;
@@ -94,11 +99,19 @@ module.exports = function(app, express){
 
 				var final_filterobj = {"$and":[
 												{workflow:{"$in":allowedWorkflows}},
+												{workflow:{"$in":workflowFilter}},
 												filterobj
 											]}
 
 				
-				 
+				if (req.query.getcount){
+					console.log("Found " +  total_count + " Jobs in Db, filter: " , final_filterobj)
+					var total_count = await global.db.jobs.countDocuments(final_filterobj,{_id:1});
+					res.writeHead(200,{"Content-Type" : "application/json"});
+					res.write(JSON.stringify({"total_count":total_count}));//output json object
+					res.end();
+					return;
+				}
 
 				//  var sort = {"$sort":{}};
 				//  sort["$sort"][sortcol] = direction;
@@ -118,7 +131,7 @@ module.exports = function(app, express){
 				// )
 
                 var cursor = await global.db.jobs.find(final_filterobj,{sort:sorting}).skip(start).limit(count);
-                var overallcount = await cursor.count();
+                //var overallcount = await cursor.count();
                 cursor = await cursor.toArray();
 					
 					if ((cursor)){
@@ -136,19 +149,41 @@ module.exports = function(app, express){
 						res.write(JSON.stringify({"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
 						res.end();
 					}else{
-						res.writeHead(500,{"Content-Type" : "text/html"});
+						
 						res.write("error, did not get cursor from db");//output json array to client
+						res.writeHead(500,{"Content-Type" : "text/html"});
+						
 						res.end();
 					}
 
 				}
-            }
+            
 		catch (ex){
 				console.log("ERROR: unxepected error in gethistoryjobs: " + ex);
                 res.status(500);//Send error response here
                 res.end();
 		}
 	});
+}
+
+async function getFilteredWorkflows(allWorkflows,filterObj){
+	//manually apply regex on workflow names because mongo cant use text index
+	var search_for = allWorkflows;
+	if (filterObj.workflow){
+		search_for = [];
+		allWorkflows.forEach(function(_wf){
+			var rgx = new RegExp(escapeRegExp(filterObj.workflow),"i");
+			if (_wf.match(rgx)){
+				search_for.push(_wf)
+			}
+		})
+	}else{
+		return allWorkflows;
+	}
+
+	//remove wf from original filterobj
+	
+	return search_for;
 }
 
 function objectWithoutKey(key,obj){

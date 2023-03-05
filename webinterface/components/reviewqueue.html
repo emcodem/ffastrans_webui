@@ -144,15 +144,15 @@ async function init(){
     //GRID
     m_maingrid = new dhx.Grid("grid", {
         columns: [
-            { width: 200, id: "wf_name", header: [{ text: "Workflow" }] },
-            { width: 200, id: "q_name", header: [{ text: "Queue" }] },
-            { width: 300, id: "source", header: [{ text: "Source" }] },
-            { width: 200, id: "date", header: [{ text: "Date" }] }
+            { width: 200, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
+            { width: 200, id: "q_name", header: [{ text: "Queue" }, { content: "inputFilter" }] },
+            { width: 300, id: "source", header: [{ text: "Source" }, { content: "inputFilter" }] },
+            { width: 200, id: "date", header: [{ text: "Date" }, { content: "inputFilter" }] }
         ],
         autoWidth: true,
         resizable: true,//allow manual resize
         selection:"row",
-        multiselection: true,
+        multiselection: false,
         htmlEnable: true
     });
 
@@ -166,10 +166,20 @@ async function init(){
 
 
     //init grid data loading
-    window.setInterval(async function(){
+    window.setInterval(async function(){        
+        var selected = getSelectedGridRows();
+        var selectedids = [];
+        selected.forEach(function(row){
+            //parses ids from gridrows
+            selectedids.push(row.row.id)
+        })
         var q = await loadqueue();
         updateGrid(q);
-    },300000)
+        
+        selectedids.forEach(function(id){
+            m_maingrid.selection.setCell(id, m_maingrid.config.columns[0],true, false);
+        });
+    },3000)
     var q = await loadqueue();
     updateGrid(q);
 
@@ -204,6 +214,8 @@ async function afterRowSelect(row){
     //reset current dataview
     document.getElementById("dataview_container").innerHTML = "";
 
+    m_mainLayout.getCell("right").config.header = selcel[0].row.ticket.job.sources.pretty_name;
+    m_mainLayout.getCell("right").paint()
     const template = ({name, description }) => (`
         <div>
             <h3 style='margin: 0'>${name}</h3>
@@ -212,8 +224,6 @@ async function afterRowSelect(row){
     `);
     
     var is_there = m_mainLayout.getCell("right").getWidget();
-    console.log("is_there",is_there);
-
 
     const dataview = new dhx.DataView("dataview_container", {
                 itemsInRow: 1,
@@ -253,6 +263,8 @@ async function parseWorkflowVariables(wf_id){
                         try{
                             var_obj = eval("var eval_data = " + var_obj);
                             var_obj = eval_data;
+                            //var_obj.id = _cur.name;
+                            var_obj.name = _cur.name;
                         }catch(exc){
                             throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + errormsg);
                         }
@@ -318,6 +330,8 @@ async function afterStage1Select(outbound){
             console.log("formrows",form_rows);
             //add submit btn
             form_rows.push({view:"link",circle:true,full:true,type: "button",name: "button",text: "Send",view: "flat",color: "primary"});
+
+            //form_rows.push({type: "combo",data: [{"value":"test","id":"\\\\server\\share\\folder"},{"value":"test1","id":"testid1"}]});
             //init form
             const form = new dhx.Form(null, {
                 css: "dhx_widget--bordered",
@@ -326,13 +340,38 @@ async function afterStage1Select(outbound){
             //store config with button
             form.getItem("button")["outbound"] = outbound;
             //form events
-            form.getItem("button").events.on("click", function(events) {
-                //TODO:
-                console.log("btnclickevt",events)
+            form.getItem("button").events.on("click", async function(events) {
+                //SUBMIT THE JOB(s)
+                collectVariables(form);
+                
                 var outbound = form.getItem("button")["outbound"];
-
+                var api_job = {
+                    "wf_id": "<workflow id>",
+                    "inputfile": "<full path to file>",
+                    "start_proc": "<processor node id>",
+                    "variables": [
+                        // {
+                        // "name": "<s_string>",
+                        // "data": "<string>"
+                        // }
+                    ]
+                    }
+                api_job.wf_id       = outbound.ticket.workflow.wf_id;
+                api_job.start_proc  = outbound.id;
+                api_job.inputfile   = outbound.ticket.job.sources.current_file;
+                try{
+                    //todo: add variables from form
+                    submitJob(api_job,outbound);
+                    dhxWindow.destructor();
+                    var q = await loadqueue();
+                    updateGrid(q);
+                    document.getElementById("dataview_container").innerHTML = "";
+                }catch(ex){
+                    alert("Error deleting review ticket, contact developer. "+ ex);
+                    console.log("Error deleting",outbound,ex)
+                }
             });
-            console.log("formbtn",form.getItem("button").outbound)
+
             try{
                 dhxWindow.attach(form);
                 dhxWindow.show();
@@ -341,7 +380,26 @@ async function afterStage1Select(outbound){
             }
 }
 
+function collectVariables(form){
+    console.log("form values",form.getValue());
+}
 
+async function submitJob(apiJob,outbound){
+        var url = build_new_api_url("/api/json/v2/jobs");
+        var result = await $.ajax({
+            url: build_new_api_url("/api/json/v2/jobs"),
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(apiJob)
+        });
+        var del_url = build_new_api_url("/review/?filename=" + outbound.ticket["review_file"])
+        var delres = await $.ajax({
+            url: del_url,
+            type: "DELETE"
+        });
+        return result;
+}
 
 function displayVariables(m_subForm){
     m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10});
@@ -396,12 +454,21 @@ function displayVariables(m_subForm){
 
 function updateGrid(q){
     var gridData = []
-
+    //Save selection
+    var selected = getSelectedGridRows();
+    var sorting = m_maingrid.getSortingState(); 
+    var selectedids = [];
+    selected.forEach(function(row){
+        //parses ids from gridrows
+        selectedids.push(row.row.id)
+    })
+    
+    //update rows
     q.forEach(function(ticket){
         try{
             ticket = JSON.parse(ticket);
             var s_source = "<span class='celltext_rtl'>" + ticket.job.sources.current_file + "</span>"
-            var row = {"wf_name":ticket.workflow.wf_name,"q_name":"default","source":s_source,"date":ticket.job.submit.time,"ticket":ticket};
+            var row = {"id":ticket.review_file,"wf_name":ticket.workflow.wf_name,"q_name":"default","source":s_source,"date":ticket.job.submit.time,"ticket":ticket};
             gridData.push(row)
         }catch(e){
             alert("Could not parse q ticket, see console.");
@@ -410,11 +477,21 @@ function updateGrid(q){
         }
     });
     
-    var selectedRows = getSelectedGridRows();
-    
+    //load new data
     m_maingrid.data.parse(gridData);
-    m_maingrid.selection.setCell(selectedRows);
-    //m_maingrid.parse(gridData,"js");
+    //restore selection
+    selectedids.forEach(function(id){
+            m_maingrid.selection.setCell(id, m_maingrid.config.columns[0],true, false);
+    });
+
+    //restore sorting
+    if (!sorting.dir){
+        m_maingrid.data.sort({dir: 'desc', by: 'date'});
+    }else{
+        m_maingrid.data.sort(sorting);
+    }
+    
+    
 }
 
 function saveLayoutSizes(dhxLayout,name){
@@ -446,7 +523,7 @@ function restoreLayoutSizes(dhxLayout,name){
 async function getWorkflows(){
 
     $.ajax({
-        url:  "/getworkflowlist",//buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
+        url:  "/getworkflowlist",
         type: "GET",
         crossDomain: true,
         dataType: "json",

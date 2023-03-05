@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-			"outputCapture": "std",
+            "outputCapture": "std",
             "type": "pwa-node",
             "request": "launch",
             "name": "Launch URL Shortener",
@@ -10,6 +10,12 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/server.js"
+        },
+        {
+            "type": "chrome",
+            "name": "http://localhost:3002/webinterface/components/reviewqueue.html",
+            "request": "launch",
+            "url": "http://localhost:3002/webinterface/components/reviewqueue.html"
         }
     ]
 }

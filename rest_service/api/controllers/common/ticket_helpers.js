@@ -43,17 +43,17 @@ class JobTicket {
         this.nodes.next.slots = 		$o_workflow.nodes[$i_index].slots || 1
 		this.nodes.next.hosts_group =	$o_workflow.nodes[$i_index].hosts_group ||  0
         this.nodes.next.type = 		$o_workflow.nodes[$i_index].type
-        this.nodes.start     = 	    ""
-        this.nodes.last      = 	    ""
+        this.nodes.start     = 	    {}
+        this.nodes.last      = 	    {}
         this.submit.method   =       'api'
 		this.submit.system   =       'webui'
 		this.submit.user     =       "WebUI_RestService"
 		this.submit.client   =       "WebUI_RestService"
 		this.submit.time     =       _GetNow()
-        this.finished        = 		""
+        this.finished        = 		{}
         this.sources         = 		{}
         this.sources.sets    = 	    []
-        this.retries         = 		""
+        this.retries         = 		{}
         
         this.sources.current_file    = 	""
 		this.sources.original_file   = 	""

@@ -6,7 +6,10 @@
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
 <link href="../../dependencies/bootstrap/bootstrap-4.6.0-dist/css/bootstrap.min.css" rel="stylesheet" >
 <script src="../../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
+
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
+<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
+
 <script src="../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 
@@ -44,16 +47,37 @@
 
 
 <script>
-
+/* stores jobviewer config in localStorage, reloads page on change */
 $(document).ready(function(){
-    var m_subForm  = new dhtmlXForm("subform");
-    m_subForm.addItem("data", {type: "input", name: "rows_per_page", label: "Rows per Page",  offsetLeft:10 });
-    
-
+    var m_subForm  = new dhtmlXForm("optsform");
+    m_subForm.addItem("data", {type: "input", width:40,name: "jobviewer_rows_per_page", label: "Rows per Page:",  offsetLeft:10, value: localStorage.getItem("jobviewer_rows_per_page") || 100});
+    m_subForm.addItem("data", {type: "checkbox", name: "jobviewer_showrowcolors_history", label: "Row Colors:",  offsetLeft:10,checked:localStorage.getItem("jobviewer_showrowcolors_history") });
+    m_subForm.addItem("data", {type: "button", value:"Save",offsetLeft:10 });
+      
     m_subForm.attachEvent("onButtonClick", function(name){
-        var checked = document.getElementById("showRowColorsCheckbox").checked;
-        localStorage.setItem("jobviewer_showrowcolors_history",checked)
-        parent.window.location.reload();
+        var is_valid = true;
+        m_subForm.forEachItem(function(name){
+        //collect user_variables
+            var value = m_subForm.getItemValue(name);
+            if (name == "jobviewer_showrowcolors_history"){
+                localStorage.setItem(name,value);
+            }
+            if (name == "jobviewer_rows_per_page"){
+                if (!value.match(/^\d+$/) || value == "0" ){
+                    alert("Enter a valid number in rows per page");
+                    is_valid = false;
+                    return;
+                }
+                if (value > 1000){
+                    alert("Value for rows per page is too large, max is 1000");
+                }
+                localStorage.setItem(name,value);
+                
+            }
+            
+        })
+        if(is_valid)
+            parent.window.location.reload();
     }); 
 
     $("#savebtn").click(function(e) {
@@ -61,12 +85,9 @@ $(document).ready(function(){
 
     });
    
-   if (localStorage.getItem("jobviewer_showrowcolors_history")){
-        $("#showRowColorsCheckbox").attr("checked", localStorage.getItem("jobviewer_showrowcolors_history") == "true")
-    }else{
-         $("#showRowColorsCheckbox").attr("checked",  true)
-    }
+
 });
+
 
 
 

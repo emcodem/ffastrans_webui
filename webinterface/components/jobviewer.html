@@ -226,7 +226,7 @@
     var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
-	var m_max_history_gridrows = 100;
+	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
     var m_query = {}; //url parameters
     /*load config from server*/
     function loadserverconfig() {
@@ -388,8 +388,8 @@
             pattern: "3L",
             cells: [
 					{id: "a", text: "Workflow Filter", collapsed_text: "<span id='workflow_filter_header_collaped' style='display:flex;cursor:pointer'><b>Workflows</b></span>"},
-					{id: "b", text: "Running"},
-					{id: "c", text: "Finished"}
+					{id: "b", text: ""},
+					{id: "c", text: ""}
 				]
         });
 
@@ -408,7 +408,7 @@
 			mainLayout.cells("a").hideArrow();
 		}
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
-        mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
+        mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px" >Finished</span>');
 
         
         //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
@@ -1122,11 +1122,11 @@
                     });
                     
                     if (pagination.pageNumber != 1){
-                        mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished <span style="color:orange">(Page ' +pagination.pageNumber+ ')</span></span>');
-                        addMenuButtons()
+                        document.getElementById("span_text_finished").innerHTML = 'Finished <span style="color:orange">(Page ' +pagination.pageNumber+ ')</span>'
+                        //addMenuButtons()
                     }else{
-                        mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Finished</span>');
-                        addMenuButtons()
+                        document.getElementById("span_text_finished").innerHTML = 'Finished</span>'
+                        //addMenuButtons()
                     }
                 }
 
@@ -1206,7 +1206,7 @@
                 }
                 
                 node.addClass("hist_row"); //for context menu
-                if (localStorage.getItem("jobviewer_showrowcolors_history") != "false"){
+                if (localStorage.getItem("jobviewer_showrowcolors_history") == "1"){
                     node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
                 }
                 

@@ -35,6 +35,7 @@ defaultConfig.STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,20%,10%,10%";
 defaultConfig.STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,5%,10%,20%";
 
 defaultConfig.STATIC_MAX_HISTORY_JOB_COUNT = 20000;
+defaultConfig.STATIC_HEADER_JOB_COUNT_DAYS = 30;
 
 defaultConfig.STATIC_METRICS_METRICS_HOST = "localhost"; //who serves prometheus and grafana?
 

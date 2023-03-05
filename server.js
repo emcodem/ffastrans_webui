@@ -137,16 +137,20 @@ async function connectDb(){
     
     const db = mongoclient.db("webinterface");
     global.db.jobs = db.collection('jobs');
-    
+    global.db.deleted_jobs = db.collection('deleted_jobs');
+
     //ensure db indexes
     //try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
-	try{await global.db.jobs.createIndex({ workflow:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
+	try{await global.db.deleted_jobs.createIndex({ job_id:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
+    try{await global.db.jobs.createIndex({ workflow:     "text" });}catch(ex){} 
+    //try{await global.db.jobs.createIndex({ workflow:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
     try{await global.db.jobs.createIndex({ job_end:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ state:       -1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_id:      -1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_id:       1 });}catch(ex){}
+    try{await global.db.jobs.createIndex({ state:       1,job_start:   1 });}catch(ex){}
 }
 
 async function init(conf){
@@ -234,20 +238,26 @@ async function init(conf){
     //PROXY, forward to new api, port 3003 default
     var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
     app.use('/new_proxy', proxy(protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
+        limit: '100mb',
         logLevel: "info",
         proxyTimeout: 1000,
         onProxyReq: function (proxyReq, req, res) {
-                                    console.log(proxyReq) 
+                                    console.log("proxying request to:",protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT) 
                                 },
-        parseReqBody: false,
+        parseReqBody: true,
         reqBodyEncoding: null,
         reqAsBuffer: true,
         proxyReqBodyDecorator: function (bodyContent, srcReq) {
             //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
             //we actually want the body to be forwarded unmodified
-            console.debug("Proxying API call, request url: " , srcReq.url)
-            bodyContent = ("" + srcReq.body);
-			console.debug("Body:",srcReq.body)
+            console.debug("Proxying API call, request to url: " , protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT)
+            if (typeof(srcReq.body) == "object"){
+                bodyContent = ("" + JSON.stringify(srcReq.body));
+            }else{
+                bodyContent = ("" + srcReq.body);
+                console.debug("Body:",srcReq.body)
+            }
+
             return bodyContent;
         }
     }));

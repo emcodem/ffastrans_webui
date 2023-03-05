@@ -57,7 +57,7 @@ paths:
           description: Success
         default:
           description: Error
-  /jobs:
+  /api/json/v2/jobs:
     x-swagger-router-controller: jobs
     post:
       description: ""
@@ -83,6 +83,21 @@ paths:
     get:
       description: Gets review queue
       operationId: review
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+    delete:
+      description: Deletes tickets from review queue
+      parameters:
+        - name: filename
+          in: query
+          description: File in review queue folder 
+          required: true
+          schema:
+            type: string
+      operationId: review_delete
       responses:
         "200":
           description: Success

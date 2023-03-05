@@ -68,9 +68,6 @@ module.exports = {
 		console.debug(err);
 		return res.status(500).json({message:err.toString(),description: err});
 	}
-    
-
-    
 }
 
 // //HELPERS

@@ -11,28 +11,43 @@ var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 process.env.UV_THREADPOOL_SIZE = 128;
 
 var executioncount = 0;
+var count_running = false;
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
 
-module.exports = {
-    fetchjobs: async function () {	
-	
-	executioncount++
-    //inform clients about current job count
-
-	if (executioncount % 5 == 0){//counting is a pretty expensive operation, don't do it too often. Alternative todo: store the count in global variable when doing inserts
+async function countJobs(){
+	return;
+	count_running = true;
+	try{
 		var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
+		var offset = global.config.STATIC_HEADER_JOB_COUNT_DAYS;
+		var targetDate = moment(new Date()).subtract(offset, 'day').format("YYYY-MM-DD 00:00:00"); // date object
+	
 		//inform the client about current count in DB
 		console.log("Countjobs start")
-		var count_success 			= await global.db.jobs.countDocuments({state:"Success"}		,{_id:1});
+		var count_success 			= await global.db.jobs.countDocuments({state:"Success","job_start":{$gte:targetDate}}	,{_id:1});
 		countObj.successjobcount 	= count_success;
-		var count_error 			= await global.db.jobs.countDocuments({state:"Error"}		,{_id:1});
+		var count_error 			= await global.db.jobs.countDocuments({state:"Error","job_start":{$gte:targetDate}}		,{_id:1});
 		countObj.errorjobcount 		= count_error;
-		var total_cancelled 		= await global.db.jobs.countDocuments({state:"Cancelled"}	,{_id:1});
+		var total_cancelled 		= await global.db.jobs.countDocuments({state:"Cancelled","job_start":{$gte:targetDate}}	,{_id:1});
 		countObj.cancelledjobcount 	= total_cancelled;
 		global.socketio.emit("historyjobcount", countObj);
+	}catch(ex){
+		console.error("Fatal Countjobs error",ex)
+	}finally{
+		count_running = false;
 	}
+}
+
+module.exports = {
+    fetchjobs: async function () {	
+
+	//kick off global countjobs (sends current job count to all clients)
+	if (!count_running){
+		countJobs();
+	}
+
     //fetch running jobs from api
     if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
         return;
@@ -257,29 +272,37 @@ module.exports = {
 			var newjobsfound = 0;
 	//TRY GET CHILDS FOR TREEGRID        
 			
+			//filter deleted
+			var job_id_array = jobArray.map(job=> job.job_id)
+			var deleted_ids = await global.db.deleted_jobs.find({ "job_id": { "$in": job_id_array}});
+			deleted_ids = await deleted_ids.toArray();
+			deleted_ids = deleted_ids.map(doc=>doc.job_id);//mongo docs to string array
 			//restructure array from ffastrans,build famliy tree
-			
+			var non_deleted_jobs = []
 			for (let i = 0; i < jobArray.length; i++){
 					//only jobguid plus split makes each job entry unique
 					jobArray[i]["_id"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
 					
 					//data for client display
-
 					jobArray[i].state = m_jobStates[jobArray[i]["state"]];
-					//jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-					//jobArray[i].file = jobArray[i]["source"]
 					jobArray[i].outcome = jobArray[i]["result"]
-					jobArray[i] = objectWithoutKey("result",jobArray[i])
 					//don't store result (we store as outcome)
-
+					jobArray[i] = objectWithoutKey("result",jobArray[i])
 					jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
 					jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
 					//todo: remvoe start_time and end_time, we store as job_start and job_end
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
+
+					//filter deleted jobs from new joblist
+					if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1){
+						non_deleted_jobs.push(jobArray[i]);
+					}else{
+						continue;
+					}
 					
 			}
-			
+			jobArray = non_deleted_jobs;//go on only with non deleted jobs
 
 			//get last 10k jobids from DB - child jobs need to finish within that period to be grouped correctly;-)
 			var lastTenThousand 	= await global.db.jobs.find({},{projection:{job_id:1,"children._id":1}}).limit(1000);
@@ -310,6 +333,8 @@ module.exports = {
 				var insertedDoc;
 
 				if (existingIndex == -1){
+					//check if deleted
+
 					//insert new mainjob if needed
 					var newmainjob = JSON.stringify(jobArray[i]);
 					newmainjob = JSON.parse(newmainjob);
@@ -419,19 +444,19 @@ function getDate(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
 	
 	try{
-    var re = new RegExp(".....$");
-    var tz = str.match(/.(\d\d)$/);
-	if (tz){
-		tz = tz[1];
-	}else{
-		tz = "00";
-		str = str.replace("Z","+00:00");//incoming jobs have wrong date format, this attempts to correct it
-	}
-	if (tz == "50") //translate between momentjs and ffastrans timezone
-		tz = "30"
-	var to_parse = str.replace(/...$/,":" + tz);
-    var parsed = moment.parseZone(to_parse)
-    return parsed.format("YYYY-MM-DD HH:mm:ss");
+		var re = new RegExp(".....$");
+		var tz = str.match(/.(\d\d)$/);
+		if (tz){
+			tz = tz[1];
+		}else{
+			tz = "00";
+			str = str.replace("Z","+00:00");//incoming jobs have wrong date format, this attempts to correct it
+		}
+		if (tz == "50") //translate between momentjs and ffastrans timezone
+			tz = "30"
+		var to_parse = str.replace(/...$/,":" + tz);
+		var parsed = moment.parseZone(to_parse)
+		return parsed.format("YYYY-MM-DD HH:mm:ss");
     }catch(ex){
 		
 		console.error("Error getDate: " +str);

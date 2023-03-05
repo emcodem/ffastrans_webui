@@ -47,7 +47,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         var disabled = false;
                         //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
-                        if (key.indexOf("STATIC_API_NEW_PORT")!=-1){disabled=true;height:0}
+                        
                         if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;height:0}
 						if (key.indexOf("alternate-server")!=-1){disabled=true;height:0}
                         if (key.indexOf("prometheus_targets")!=-1){disabled=true;height:0}

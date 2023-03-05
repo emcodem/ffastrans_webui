@@ -7,7 +7,8 @@ const path = require('path');
 const axios = require('axios');
 
 module.exports = {
-    get: get
+    get: get,
+    do_delete:do_delete
 };
 
 /*
@@ -18,18 +19,19 @@ module.exports = {
  */
 async function get(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-    var jobid = req.query.jobid;
     var s_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"review","queue"),"");
-    console.debug("get_job_details called for: " + jobid);
+    console.debug("get review called for: ");
 	var returnjson = [];
 	try {
         var allfiles = await fsPromises.readdir(s_path, { withFileTypes: false });
         
         for (var _idx in allfiles){
             try{
-                var contents = await fsPromises.readFile(path.join(s_path,allfiles[_idx]), 'utf8');
+                var contents = await common.readfile_cached(path.join(s_path,allfiles[_idx]), 'utf8');
                 contents = contents.replace(/^\uFEFF/, '');
-                returnjson.push(contents);
+                var _j = JSON.parse(contents);
+                _j["review_file"] = allfiles[_idx];
+                returnjson.push(JSON.stringify(_j));
             }catch(ex){}
         }
         
@@ -44,3 +46,20 @@ async function get(req, res) {
 		return res.status(500).json({description: err.stack});
 	}
 }
+
+async function do_delete(req, res) {
+    // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
+    try{
+      var filename = req.query.filename;
+      var s_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"review","queue"),"");
+      var to_delete = path.join(s_path,filename);
+      console.info("Deleting review ticket file: ", to_delete)
+      fs.unlinkSync(to_delete);
+      res.json({});
+      res.end();
+    }catch(err) {
+        
+		console.error(err);
+		return res.status(500).json({description: err.stack});
+	}
+  }

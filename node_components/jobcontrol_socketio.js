@@ -31,6 +31,8 @@ module.exports = {
         cursor = await cursor.toArray();
         console.log("Found Job to delete:" + cursor.length )
         // Set an existing field's value
+        var del_array = id_array.map(id=>{ return{"job_id":id}})
+        var insertedDoc = await global.db.deleted_jobs.insertMany(del_array);
         var deleteresult = await global.db.jobs.deleteMany({ "job_id": { $in: id_array } });
         console.log("deleteresult",deleteresult)
         //     global.db.jobs.update({ _id: { $in: id_array } }, { $set: { deleted: true } }, { multi: true }, function (err, numReplaced) {
