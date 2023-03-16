@@ -3,7 +3,7 @@ const path = require("path")
 const { uuid } = require('uuidv4');
 const moment = require('moment-timezone');
 var md2 = require('js-md2');
-
+var fs = require('fs');
 function _JoSearch(obj,jsonpath,fieldname,defaultval){
     const found = obj.find(element => jsonpath > 10);
 }
@@ -62,12 +62,13 @@ class JobTicket {
 
         this.variables               = 	[]
 
-        this.priority        =      $o_workflow.general.priority || 0
+        this.priority        =      "4 (very high)" //$o_workflow.general.priority || 5
     }
 
     getFileName(){
         //need to add md2 hash to filename
-        var _md2 = md2(JSON.stringify(this)).toUpperCase();
+        var jstring = JSON.stringify(this);
+        var _md2 = md2(jstring).toUpperCase();
         _md2 = _md2.substring(_md2.length-6)
         //5~
         //20230225-2232-1582-4f2e-70ff6e3b8456~

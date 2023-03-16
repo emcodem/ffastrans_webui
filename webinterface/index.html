@@ -14,8 +14,6 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR"></script>
 </head>
 
-
-
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -121,10 +119,14 @@
     .div_cancel_jobs {
         margin-left:850px;
     }
-    .div_logged_in_users {
+    .div_time_selector {
         margin-left:950px;
+    }
+    .div_logged_in_users {
+        margin-left:1050px;
         visibility:hidden;
     }
+
     .itemrowtopright {
         float:right;
         margin-right:0;
@@ -289,6 +291,8 @@ function init(permissions){
     '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
     '<div class="counter_jobs div_logged_in_users">&nbsp Online Users  <div class="header_counter_number" id="loggedinusercount">0</div></div>'+
+    '<input class="div_time_selector style="width:30px" type="submit"/>'+
+    
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
     '<img src="images/viking_helmet_white.png" class="helmet steinar itemrowtopright" title="steinar"></div>'+
     '<img src="images/emcodem_helmet_white.png" class="helmet emcodem itemrowtopright" title="emcodem">' + 
@@ -366,9 +370,9 @@ function init(permissions){
       
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 
-        document.getElementById("cancelledjobcount").innerHTML = msg.cancelledjobcount;
-        document.getElementById("successjobcount").innerHTML = msg.successjobcount;
-        document.getElementById("errorjobcount").innerHTML = msg.errorjobcount;
+        document.getElementById("cancelledjobcount").innerHTML = msg.sys.Cancelled;
+        document.getElementById("successjobcount").innerHTML = msg.sys.Success;
+        document.getElementById("errorjobcount").innerHTML = msg.sys.Error;
     });
     socket.on('activejobcount', function(msg){
         //server should inform us periodically by cron job 

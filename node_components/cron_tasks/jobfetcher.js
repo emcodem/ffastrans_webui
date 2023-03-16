@@ -17,21 +17,36 @@ var count_running = false;
 // })
 
 async function countJobs(){
-	return;
+	/* 
+		sends job count to UI if there are connected clients
+	    this could potentially waste huge db cpu resources but it looks ok since we got indexes for everything
+	*/
+	
 	count_running = true;
 	try{
-		var countObj = { errorjobcount: 0, successjobcount: 0, cancelledjobcount: 0 };
-		var offset = global.config.STATIC_HEADER_JOB_COUNT_DAYS;
-		var targetDate = moment(new Date()).subtract(offset, 'day').format("YYYY-MM-DD 00:00:00"); // date object
-	
+		if (global.socketio.sockets.sockets.size == 0) //no clients connected, no need to count
+			return
+		async function countDocs(_state,since_days){
+			var targetDate = moment(new Date()).subtract(since_days, 'day').format("YYYY-MM-DD 00:00:00"); // date object
+			var daCount = await global.db.jobs.countDocuments({state:_state,job_start:{$gte:targetDate}},{_id:1})
+			return daCount;
+		}
+
+		var countObj 	= {sys:{},day:{},week:{},month:{}};
 		//inform the client about current count in DB
 		console.log("Countjobs start")
-		var count_success 			= await global.db.jobs.countDocuments({state:"Success","job_start":{$gte:targetDate}}	,{_id:1});
-		countObj.successjobcount 	= count_success;
-		var count_error 			= await global.db.jobs.countDocuments({state:"Error","job_start":{$gte:targetDate}}		,{_id:1});
-		countObj.errorjobcount 		= count_error;
-		var total_cancelled 		= await global.db.jobs.countDocuments({state:"Cancelled","job_start":{$gte:targetDate}}	,{_id:1});
-		countObj.cancelledjobcount 	= total_cancelled;
+		countObj.sys 	= {};
+		countObj.day 	= {};
+		countObj.week 	= {};
+		countObj.month 	= {};
+
+		for(var _state of ["Success","Error","Cancelled"]){
+			countObj.sys[_state] 	= await countDocs(_state,global.config.STATIC_HEADER_JOB_COUNT_DAYS);
+			countObj.day[_state] 	= await countDocs(_state,1);
+			countObj.week[_state] 	= await countDocs(_state,7);
+			countObj.month[_state] 	= await countDocs(_state,30);
+		}
+
 		global.socketio.emit("historyjobcount", countObj);
 	}catch(ex){
 		console.error("Fatal Countjobs error",ex)
@@ -112,7 +127,7 @@ module.exports = {
                 //jobArray[i].source = jobArray[i]["source"]
                 jobArray[i].outcome = jobArray[i]["status"]
                 try{
-                    jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
+                    jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
                 }catch(exc){
                     console.log("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
                 }
@@ -173,7 +188,7 @@ module.exports = {
 							q_obj[i]["host"] = "Queued";
 							q_obj[i]["status"] = "Queued";
                             try{
-							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
+							q_obj[i]["job_start"] = getDateStr(q_obj[i]["submit"]["time"]);
                             }catch(ex){
                                 console.log("getdate failed on:" ,q_obj[i])
                             }
@@ -213,7 +228,7 @@ module.exports = {
 							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; 
 							q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
 							q_obj[i]["status"] = "Incoming";
-							q_obj[i]["job_start"] = getDate(q_obj[i]["submit"]["time"]);
+							q_obj[i]["job_start"] = getDateStr(q_obj[i]["submit"]["time"]);
 							q_obj[i]["proc"] = "Watchfolder";
 				}
 			}
@@ -285,12 +300,15 @@ module.exports = {
 					
 					//data for client display
 					jobArray[i].state = m_jobStates[jobArray[i]["state"]];
-					jobArray[i].outcome = jobArray[i]["result"]
+					jobArray[i].outcome = jobArray[i]["result"];
 					//don't store result (we store as outcome)
-					jobArray[i] = objectWithoutKey("result",jobArray[i])
-					jobArray[i].job_start = getDate(jobArray[i]["start_time"]);
-					jobArray[i].job_end = getDate(jobArray[i]["end_time"]);
-					//todo: remvoe start_time and end_time, we store as job_start and job_end
+					jobArray[i] = objectWithoutKey("result",jobArray[i]);
+					jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
+					jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
+					//jobArray[i].o_job_start = getDateObj(jobArray[i]["start_time"]);
+					//jobArray[i].o_job_end = getDateObj(jobArray[i]["end_time"]);
+					
+					//todo: remove start_time and end_time, we store as job_start and job_end
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
 
@@ -440,9 +458,13 @@ async function countJobsAsync(countobj) {
     return count ;
 }
 
-function getDate(str){
+function getDateObj(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
-	
+	return moment(str).toDate();
+}
+
+function getDateStr(str){
+    //ffastrans date:2019-10-14T21:22:35.046-01.00
 	try{
 		var re = new RegExp(".....$");
 		var tz = str.match(/.(\d\d)$/);

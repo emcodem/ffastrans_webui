@@ -144,9 +144,8 @@ async function init(){
     //GRID
     m_maingrid = new dhx.Grid("grid", {
         columns: [
-            { width: 200, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
-            { width: 200, id: "q_name", header: [{ text: "Queue" }, { content: "inputFilter" }] },
-            { width: 300, id: "source", header: [{ text: "Source" }, { content: "inputFilter" }] },
+            { width: 400, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
+            { width: 400, id: "info", header: [{ text: "Info" }, { content: "inputFilter" }] },
             { width: 200, id: "date", header: [{ text: "Date" }, { content: "inputFilter" }] }
         ],
         autoWidth: true,
@@ -214,7 +213,7 @@ async function afterRowSelect(row){
     //reset current dataview
     document.getElementById("dataview_container").innerHTML = "";
 
-    m_mainLayout.getCell("right").config.header = selcel[0].row.ticket.job.sources.pretty_name;
+    m_mainLayout.getCell("right").config.header = getReviewProcessorInput(selcel[0].row.ticket,"info")
     m_mainLayout.getCell("right").paint()
     const template = ({name, description }) => (`
         <div>
@@ -259,6 +258,8 @@ async function parseWorkflowVariables(wf_id){
                     var var_obj = _cur.data;
                     try{
                         var_obj = JSON.parse(var_obj);
+                        var_obj.name = _cur.name;
+                        dhx8_form_rows.push(var_obj);
                     }catch(ex){
                         try{
                             var_obj = eval("var eval_data = " + var_obj);
@@ -283,26 +284,79 @@ async function parseWorkflowVariables(wf_id){
     }
 }
 
+function getReviewProcessorConfig(outbound){
+    //match 
+    var configured_opts = outbound.ticket.job.proc_data.outputs;
+    for(var i=0;i<configured_opts.length;i++){
+        if (configured_opts[i].value == outbound.name){
+            return configured_opts[i+1].value;
+        }
+    }
+}
+
+function getReviewProcessorInput(ticket,id){
+    //gets input from UI of ffastrans processor
+    var configured_opts = ticket.job.proc_data.inputs;
+    for(var i=0;i<configured_opts.length;i++){
+        if (configured_opts[i].id == id){
+            return configured_opts[i].value;
+        }
+    }
+}
+
 async function afterStage1Select(outbound){
         //attaches dhtmlx5 form for variable display, backward compatibility to jobstarter
         var html = 'Error, please check browser console';
-        var form_rows = [];
+        var configured_variables = []; //the list of finally rendered dhtmlx form items
+        var final_layout_config = {
+                        type: "none",//"line" | "wide" | "space" | "none";
+                        rows: [
+                                    
+                                   
+                                ]
+                    };
         try{
-            //tests if next processor is a populate vars proc 
-            var num_vars = outbound.properties.variables.length;
-            if(!num_vars)
-                html = "No options to display.";
-            else{
-                form_rows = await parseWorkflowVariables(outbound.ticket.workflow.wf_id)
-                html = num_vars
+            /* Find Selected option corresponding processor config
+                If there are webui_ variables, render them as dhtmlx form fields
+                the rest is rendered as html
+            */
+
+            //get config for the selected outbound from review processor list of configs
+            outbound.gui_config = getReviewProcessorConfig(outbound);
+            //manual step processorvariables
+            
+            //gets list of all configured webui_ workflow variables
+            var all_variables = await parseWorkflowVariables(outbound.ticket.workflow.wf_id);
+
+            for (var i=0;i<all_variables.length;i++){
+                var current_var_name = "%" + all_variables[i].name + "%";
+                //iterate all variables in processor config
+                const regexp = /(%.+?%)/g;
+                const matches = outbound.gui_config.matchAll(regexp);
+                for (const match of matches) {
+                    //if (match[1] != ""){
+  
+                    if (match[1] == current_var_name){
+                        configured_variables.push(all_variables[i])
+                        outbound.gui_config = outbound.gui_config.replace(current_var_name,""); //remove this var from proc config so only possible html stays 
+                    }
+                }
             }
+            //if anything is left at the end, add as text/html
+            if (outbound.gui_config != ""){
+                final_layout_config.rows.push( {
+                                        height: "auto",
+                                        cols: [{id: i,resizable:false,html:outbound.gui_config }]
+                                    })
+            }
+
         }catch(ex){
             html = "No options to display.";
         }
         console.log("winding up window",outbound);
             const dhxWindow = new dhx.Window({
                 header: true,
-                title: outbound.ticket.job.sources.pretty_name,
+                title: getReviewProcessorInput(outbound.ticket,"info"),
                 modal: false,
                 movable: true,
                 closable:true,
@@ -327,45 +381,41 @@ async function afterStage1Select(outbound){
             //     }
             // });
 
-            console.log("formrows",form_rows);
+            console.log("formrows",configured_variables);
             //add submit btn
-            form_rows.push({view:"link",circle:true,full:true,type: "button",name: "button",text: "Send",view: "flat",color: "primary"});
-
-            //form_rows.push({type: "combo",data: [{"value":"test","id":"\\\\server\\share\\folder"},{"value":"test1","id":"testid1"}]});
+            configured_variables.push({view:"link",circle:true,full:true,type: "button",name: "button",text: "Send",view: "flat",color: "primary"});
+            
             //init form
             const form = new dhx.Form(null, {
                 css: "dhx_widget--bordered",
-                rows: form_rows
+                rows: configured_variables
             });
             //store config with button
             form.getItem("button")["outbound"] = outbound;
             //form events
             form.getItem("button").events.on("click", async function(events) {
                 //SUBMIT THE JOB(s)
-                collectVariables(form);
-                
+                var final_vars_to_submit = collectVariables(form);
+                console.log("final vars:",final_vars_to_submit)
                 var outbound = form.getItem("button")["outbound"];
                 var api_job = {
                     "wf_id": "<workflow id>",
                     "inputfile": "<full path to file>",
                     "start_proc": "<processor node id>",
-                    "variables": [
-                        // {
-                        // "name": "<s_string>",
-                        // "data": "<string>"
-                        // }
-                    ]
+                    "variables": final_vars_to_submit
                     }
                 api_job.wf_id       = outbound.ticket.workflow.wf_id;
                 api_job.start_proc  = outbound.id;
                 api_job.inputfile   = outbound.ticket.job.sources.current_file;
                 try{
-                    //todo: add variables from form
+                    //todo: parse and add variables from form
                     submitJob(api_job,outbound);
                     dhxWindow.destructor();
                     var q = await loadqueue();
                     updateGrid(q);
                     document.getElementById("dataview_container").innerHTML = "";
+                    m_mainLayout.getCell("right").config.header = "";
+                    m_mainLayout.getCell("right").paint()
                 }catch(ex){
                     alert("Error deleting review ticket, contact developer. "+ ex);
                     console.log("Error deleting",outbound,ex)
@@ -373,7 +423,17 @@ async function afterStage1Select(outbound){
             });
 
             try{
-                dhxWindow.attach(form);
+
+
+                //LAYOUT
+                final_layout_config.rows.push( {
+                                        height: "auto",
+                                        cols: [{id: "form",resizable:false}]
+                                    })
+                var _layout = new dhx.Layout(null, final_layout_config);
+                //_layout.getCell("top").attachHTML("<div style='background-color:black;height:3000px;width:300px'/>"); 
+                _layout.getCell("form").attach(form);
+                dhxWindow.attach(_layout);
                 dhxWindow.show();
             }catch(exc){
                 alert("Unexpected error parsing form items, check your variable descriptions ")
@@ -381,7 +441,14 @@ async function afterStage1Select(outbound){
 }
 
 function collectVariables(form){
-    console.log("form values",form.getValue());
+    var formvars = form.getValue();
+    var keys = Object.keys(formvars);
+    var ffasvars = [];
+    console.log("form values",);
+    for (var i=0;i<keys.length;i++){
+        ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+    }
+    return ffasvars;
 }
 
 async function submitJob(apiJob,outbound){
@@ -468,7 +535,7 @@ function updateGrid(q){
         try{
             ticket = JSON.parse(ticket);
             var s_source = "<span class='celltext_rtl'>" + ticket.job.sources.current_file + "</span>"
-            var row = {"id":ticket.review_file,"wf_name":ticket.workflow.wf_name,"q_name":"default","source":s_source,"date":ticket.job.submit.time,"ticket":ticket};
+            var row = {"id":ticket.review_file,"wf_name":ticket.workflow.wf_name,"info":getReviewProcessorInput(ticket,"info"),"date":ticket.job.submit.time,"ticket":ticket};
             gridData.push(row)
         }catch(e){
             alert("Could not parse q ticket, see console.");
