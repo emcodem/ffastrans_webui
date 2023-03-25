@@ -830,14 +830,14 @@ function on_processorSelected(selectedWorkflow){
             if (m_subForm){
                 m_subForm.unload();//clear existing form items
                 m_subForm = null;
-            }   
+            }
             m_subForm  = new dhtmlXForm("subform"); //html element id subform already exists in mainform body
 
             //add workflow description to UI display
             var wf_description = selectedWorkflow["description"] || "";
             wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
             m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10}),
-
+            m_subForm.enableLiveValidation(true);
             m_subForm.attachEvent("onButtonClick", function(name){
                 if(name == "submit"){
                     startJobs();
@@ -854,43 +854,21 @@ function on_processorSelected(selectedWorkflow){
 					m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);                
                     return;
                 }
-                //show user variables
-                //m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 350, offsetTop : 0, offsetLeft : 10,list:[]},1);
-                var have_webui_vars = false;
-                for (i=0;i<response["user_variables"].length;i++){
-                    var current_var = response["user_variables"][i];
-                    if (current_var.name.indexOf("webui") != -1){
-                        have_webui_vars = true;
-                    }
-                }
+                console.log("user_vars response: ",response["user_variables"])
+                try{
 
-                for (i=0;i<response["user_variables"].length;i++){
-                    //add uservariables inputs
-                    var current_var = response["user_variables"][i];
-                    var desc = current_var.description  == "" ? current_var.name : current_var.description;
-                    if (current_var.name.indexOf("webui") != -1){
-                        //detected a variable that interacts with webui (should have JSON default value)
-                        try{
-                            console.log("Parsing variable data: ",current_var.data)
-                            parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays!
-                        }catch(e){
-                            console.log("webui variable parsing error",e,"Variable: ",current_var)
-                            dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.data+"\""); 
-                        }
-                    }else{
-                        if (!have_webui_vars){
-                            //standard ffastrans variables are only shown when there is no webui variable
-                            var displayName = current_var.name;
-                            displayName = displayName.replace("s_", "");
-                            displayName = displayName.replace("i_", "");
-                            displayName = displayName.replace("f_", "");
-                            m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, offsetLeft:10 });
-                        }
-                    }
+                }catch(ex){
+                    console.log("Error parsing user_Variables,",ex);
+                    alert("Contact Administrator, Error parsing user_variables of the selected workflow.\n" + ex)
                 }
-                //finally add start job button
+                var dhxform_items = processWebUiVars(response["user_variables"]);
+                console.log("parsed user vars",dhxform_items)
+                for (var i=0;i<dhxform_items.length;i++){
+                    m_subForm.addItem(null,dhxform_items[i]);
+                }
                 m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"});
             }
+              
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR in getworkflowdetails for " +selectedWorkflow.wf_id );
@@ -899,51 +877,97 @@ function on_processorSelected(selectedWorkflow){
     });
 }
 
-function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
-    var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
-    
-    //parse from string into object
+
+function processWebUiVars(user_variables){
+		/* takes raw ffastrans api response for wf_user vars and returns an array of dhtmlx form components */
+		var transformed_vars = [];
+		
+		//webui_* named variables?
+		for (var i=0;i<user_variables.length;i++){
+			var current_var = user_variables[i];
+			if (current_var.name.indexOf("webui") != -1){
+				try{
+					user_variables[i]["data"] 	= resolveWebUiVarData(user_variables[i]["data"]);
+					user_variables[i] 			= postProcessDhtmlxFormItem(user_variables[i])
+                    transformed_vars.push(user_variables[i]);
+				}catch(ex){
+					console.log("Error parsing webui var data:",user_variables[i],ex);
+					alert("Error, contact Administrator. Variable description is not valid JSON:" + user_variables[i]);
+				}
+			}
+		}
+
+		//we have webui_ type variables, Sort and return them
+		if (transformed_vars.length != 0){
+            console.log("sort and return webui_ variables")
+			transformed_vars.sort((a, b) => {
+					//merit is a special custom field the user can use for forced sorting
+					if (a.merit && !b.merit)
+						return -1
+					if (!a.merit && b.merit)
+						return 1
+					return a.merit - b.merit ;
+				});
+			return transformed_vars;
+		}
+        console.log("no webui_ variables in workflow, parsing other vars")
+		//the workflow does not contain webui_ type user vars, we just display all user_vars as text input
+		for (var i=0;i<user_variables.length;i++){
+			var current_var = user_variables[i];
+			var desc = current_var.description  == "" ? current_var.name : current_var.description;
+			var displayName = current_var.name;
+			displayName = displayName.replace(/s_|i_|f_/, "");
+			var virtual_var = {name:current_var.name , data:{type: "input", name: current_var.name, label: displayName, tooltip:desc }};
+            virtual_var = postProcessDhtmlxFormItem(virtual_var)
+			transformed_vars.push(virtual_var)
+		}
+		
+		return transformed_vars;
+}
+
+function resolveWebUiVarData(datastr,name){
+    //ffastrans var description contains a string json, this is parsed into object here
+    //throws if not possible
+    var data_obj = {};
     try{
-        var_obj = JSON.parse(var_obj);
+        eval("var eval_data = " + datastr);
+        data_obj = eval_data;
     }catch(ex){
-        try{
-            var_obj = eval("var eval_data = " + var_obj);
-            var_obj = eval_data;
-        }catch(exc){
-            throw new Error(errormsg);
-        }
+        data_obj = JSON.parse(a.data)
     }
+    return data_obj;
+}
+
+
+function postProcessDhtmlxFormItem(ffastransvar){
+	//add various transformations to the dhtmlx form object e.g. default values like offsetLeft
+    var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+" to contain a valid JSON key value array";
+    var var_obj = ffastransvar.data;
+    var var_name = ffastransvar.name;
     if (var_obj.length == 0){
         throw new Error(errormsg);
     };
 
-    try{
-        if (var_obj.type){
-            //calendar, multiselect, any native dhtmlx form control
-            var_obj.name = var_name;
-            var_obj.offsetLeft = 10;
-            dhxForm.addItem(var_obj.type , var_obj);
-            dhxForm.enableLiveValidation(true);
-            return;
-        }
-        else{
-            //simple key value list without type goes into dropdown (legacy)
-            var var_display_name = var_name;
-            var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
-            var options=[];
-            for (y=0;y<var_obj.length;y++){
-                options.push({text:var_obj[y].key,value:var_obj[y].value});
-            }
-            var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-            dhxForm.addItem("data", itemData);
+	if (var_obj.type){
+		//calendar, multiselect, any native dhtmlx form control
+		var_obj.name = var_name; //need to override the name of dhtmlx form component and set variable name instead
+		if (!var_obj.offsetLeft)
+			var_obj.offsetLeft = 15;
+		return var_obj;
+	}
+	else{
+		//simple key value list without type goes into dropdown (legacy)
+		var var_display_name = var_name;
+		var_display_name = var_display_name.replace("s_webui_", "");
+		var options=[];
+		for (var y=0;y<var_obj.length;y++){
+			options.push({text:var_obj[y].key,value:var_obj[y].value});
+		}
+		var select_item = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:15};
+		return select_item;
+	}
 
-        }
-        
-    }catch(e){
-        dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
-    }
 }
-
 
 function on_gridWorkflowSelected(wf_name,wf_object){
 

@@ -3,7 +3,7 @@
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require("path");
-const common = require("./common/ticket_helpers.js");
+const common = require("./common/helpers.js");
 // const DEBUG_MODE_ON = true;
 // if (!DEBUG_MODE_ON) {
     // console = console || {};
@@ -17,7 +17,7 @@ module.exports = {
 
 async function get_running(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_running = await common.jsonfiles_to_array(path.join(s_tick_path,"running"));
+    var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"));
    
     //as we dont want to show both at the same time, we ignore the running tickets from mon_folder to prevent showing the same file twice
     var keys_to_ignore = []; 
@@ -128,7 +128,7 @@ async function get_incoming(returnarray){
 
 async function get_pending(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_pending = await common.jsonfiles_to_array(path.join(s_tick_path,"pending"));
+    var a_pending = await common.ticket_files_to_array(path.join(s_tick_path,"pending"));
    
 	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
     //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 
@@ -184,11 +184,11 @@ async function start(req, res) {
             o_return["tickets"]["queued"] = await fsPromises.readdir(path.join(s_tick_path,"pending"), { withFileTypes: false });
 
         }else{
-  
+            
             //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
             //the real queued folder is more like a temp folder for tickets between pending and running
             o_return["tickets"]["queued"] = await get_pending(); 
-            //o_return["tickets"]["queue"] = common.jsonfiles_to_array(path.join(s_tick_path,"queue"));
+            //o_return["tickets"]["queue"] = common.ticket_files_to_array(path.join(s_tick_path,"queue"));
             o_return["tickets"]["incoming"] = await get_incoming();
             o_return["tickets"]["running"] = await get_running();
         }

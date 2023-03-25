@@ -1,7 +1,11 @@
-//Here we also keep the list of possible user rights
+//this also keep the list of all possible user rights, need to be modified when a new right is added
+var ffastransapi = require("./ffastransapi")
 
 
 module.exports = {
+    checkworkflowpermission: checkworkflowpermission, 
+
+    /* this is old style, we should not use inline functions in exports */
     //set object to config obj
     getuser: (username,callback) => {
         //callback with userobject
@@ -20,45 +24,12 @@ module.exports = {
         });
     },
 
-	checkworkflowpermission:async function(username,wf_name){
-		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
-			return true;
-		}
-
-		let allpermissions = [];
-		let userprops = await global.db.config.findOneAsync({"local.username":username});
-		let cursor = await global.db.config.findAsync({ "local.usergroup.name": {$in: userprops.local.groups }})
-		for (let i in cursor){
-			allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
-		}
-		
-		for (x in allpermissions){
-			//get list of allowed workflows//TODO: fetch workflow group from somewhere
-				// if (allpermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
-				// 	var filter = allpermissions[x]["value"]["filter"];
-				// 	for (var i in workflowlist["workflows"]){
-				// 		var wf = workflowlist["workflows"][i];
-				// 		if (wf["wf_folder"].toLowerCase().match(filter.toLowerCase())){
-				// 			return true;
-				// 		}else{
-				// 			//console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " NOT MATCHES filter "+ filter); 
-				// 		}
-				// 	};
-				// }
-				if (allpermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
-					var filter = allpermissions[x]["value"]["filter"];
-					if (wf_name.toLowerCase().match(filter.toLowerCase())){
-						//console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
-						return true;
-					}
-					
-				}
-		}//for allpermissions
-		return false;
-	},
+	
 
 	getpermissionlistAsync:async (username) => {
 		try{
+            if (username == "")
+                return []
 			var data = await global.db.config.findOne({"local.username":username});
 			//{ "local.usergroup.name": { data.local.groups }}
 			var cursor = await global.db.config.find({ "local.usergroup.name": {$in: data.local.groups }});
@@ -125,6 +96,7 @@ module.exports = {
             var rights = [
                 {key:"GROUPRIGHT_MENU_VIEW_JOB_STATUS",value:{'description':'Job Monitor'}},//the value can be an object, e.g. filter for workflownames
                 {key:"GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS",value:{'description':'Create new jobs on ffastrans'}},
+                {key:"GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE",value:{'description':'Review Queue'}},
                 {key:"GROUPRIGHT_MENU_VIEW_ADMIN_USERS",value:{'description':'Usermanagement'}},
                 {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu item'}},
                 {key:"GROUPRIGHT_MENU_VIEW_SCHEDULER",value:{'description':'Scheduler menu item'}},
@@ -150,3 +122,49 @@ module.exports = {
             return rights;
     }
 };
+
+async function checkworkflowpermission(username,wf_name){
+    if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+        return true;
+    }
+    let all_workflows = await ffastransapi.getWorkflows();
+    //find wf_obj by name in order to find wf group. reason is because e.g. in history jobs db we dont store wf_group
+    var wf_obj = all_workflows.filter(wf => wf.wf_name == wf_name);
+    var parsed_wf_group = "";
+    if (wf_obj.length>0){
+        parsed_wf_group = wf_obj[0].wf_folder;
+    }
+    let allpermissions = [];
+
+    let userprops = await global.db.config.findOneAsync({"local.username":username});
+    let cursor = await global.db.config.findAsync({ "local.usergroup.name": {$in: userprops.local.groups }})
+    for (let i in cursor){
+        allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
+    }
+    var have_filter = false;
+    for (x in allpermissions){
+
+        //get list of allowed workflows//TODO: fetch workflow group from somewhere
+        
+            if (allpermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
+                have_filter = true;
+                var filter = allpermissions[x]["value"]["filter"];
+                if (parsed_wf_group.toLowerCase().match(filter.toLowerCase())){
+                    return true;
+                }
+            }
+            if (allpermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
+                have_filter = true;
+                var filter = allpermissions[x]["value"]["filter"];
+                if (wf_name.toLowerCase().match(filter.toLowerCase())){
+                    //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
+                    return true;
+                }
+                
+            }
+    }//for allpermissions
+    //if there is no filter, all workflows are allowed
+    if (!have_filter)
+        return true;
+    return false;
+}

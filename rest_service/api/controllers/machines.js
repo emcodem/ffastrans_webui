@@ -26,7 +26,7 @@ async function start(req, res) {
 	    var o_return = {};
         var workflow_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/hosts/");
         
-        o_return["machines"] = await jsonfiles_to_array(workflow_folder);
+        o_return["machines"] = await _jsonfiles_to_array(workflow_folder);
        
 		res.json(o_return);
 		res.end();
@@ -38,7 +38,7 @@ async function start(req, res) {
 
 
 //all files in all directories to array
-async function jsonfiles_to_array(dir) {
+async function _jsonfiles_to_array(dir) {
         //console.time("jsonfiles_to_array " + dir);
 		if (!dir){return}
 		var returnarray=[];

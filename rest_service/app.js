@@ -116,6 +116,7 @@ async function start_server(_host, _hostport, _listenport){
         }
     });
 
+    //must use bodyparser in order to retrieve post messages as req.body
     app.use(bodyParser.json())
 
     //startup server
@@ -141,7 +142,9 @@ async function start_server(_host, _hostport, _listenport){
 			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + _listenport);
 		}).on('error', handleListenError);
     }
+    console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
 
+    /* swagger init */
     let { initialize } = require('express-openapi');
     
     console.log("Approt: ", _approot);
@@ -149,29 +152,29 @@ async function start_server(_host, _hostport, _listenport){
         app,
         apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
         operations: {
-            hello: require(_approot + "/api/controllers/hello_world").get,
-            get_job_log: require(_approot + "/api/controllers/get_job_log").get,
-            get_job_details: require(_approot + "/api/controllers/get_job_details").get,
-            get_mediainfo: require(_approot + "/api/controllers/get_mediainfo").get,
-			tickets: require(_approot + "/api/controllers/tickets").get,
-            machines: require(_approot + "/api/controllers/machines").get,
-            metrics: require(_approot + "/api/controllers/metrics").get,
-            review: require(_approot + "/api/controllers/review").get,
-            review_delete: require(_approot + "/api/controllers/review").do_delete,
-            jobs: require(_approot + "/api/controllers/jobs").get,
-            ["api/v2/jobs"] :require(_approot + "/api/controllers/jobs").get,
+            /* add new methods of swagger.yaml here */
+            hello:              require(_approot + "/api/controllers/hello_world").get,
+            get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
+            get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
+            get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
+			tickets:            require(_approot + "/api/controllers/tickets").get,
+            machines:           require(_approot + "/api/controllers/machines").get,
+            metrics:            require(_approot + "/api/controllers/metrics").get,
+            review:             require(_approot + "/api/controllers/review").get,
+            review_delete:      require(_approot + "/api/controllers/review").do_delete,
+            jobs :              require(_approot + "/api/controllers/jobs").get,
+            workflows :         require(_approot + "/api/controllers/workflows").get,
+            workflows_old :     require(_approot + "/api/controllers/workflows").get,
         }
 	};
 
     initialize(swag_config);
-
-    console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
-  
-	//API DOCS and testing page
+    //still swagger
 	const swaggerUi = require('swagger-ui-express');
     const YAML = require('yamljs');
     var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
 	const swaggerDocument = YAML.load(_yaml_location);
 	app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-	
+
+
 }

@@ -6,25 +6,20 @@ const bodyParser = require('body-parser');
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
 const AsyncNedb  = require('@seald-io/nedb');
-
 const Mongod = require("./node_components/mongodb_server/mongod");
-
 const portfinder = require("portfinder");
 const passport = require('passport');
 const flash    = require('connect-flash');
 const session      = require('express-session');
 const assert = require('assert');
 const fs = require('fs-extra');
-
 const socket = require('socket.io');
 console.log("after include");
 const socketwildcard = require('socketio-wildcard');
-
 const configmgr = require( './node_components/server_config')
-
 const ffastrans_new_rest_api = require("./rest_service");
 
-const dbManager = require( './node_components/common/database_controller')
+const database_controller = require( './node_components/common/database_controller')
 const { Player } = require( './node_components/player')
 
 const logfactory = require("./node_components/common/logger")
@@ -292,7 +287,7 @@ async function init(conf){
         if (!global.dbfetcheractive){
             global.dbfetcheractive = true;
             try{
-                await dbManager.deleteOldRecords();
+                await database_controller.deleteOldRecords();
             }catch(ex){
                 console.error("Error deleting old records from DB: ",ex)
             }
@@ -325,7 +320,7 @@ async function init(conf){
 
     //log all requests
     app.use(function(req, res, next) {
-        console.log("REQUEST: " + "[" + req.originalUrl + "]");
+        console.debug("REQUEST: " + "[" + req.originalUrl + "]");
         next();
     });
 
@@ -418,9 +413,6 @@ function handleListenError(err){
 						console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+ " and close the process")
 						process.exit();
 				   })
-				
-				
-				
 		}
 }
 
@@ -465,8 +457,14 @@ function initSocketIo(created_httpserver){
 				return;
 			}
 			if (cmd == "deletejob"){
-				jobcontrol.deletejob(obj);
-				return;
+				//obj is job_id array
+                try{
+                    obj = JSON.parse(obj);
+				    database_controller.deleteRecords(obj);
+                }catch(ex){
+                    console.log("Error deleting jobs: ",ex);
+                }
+                return;
 			}
 			if (cmd == "deletealljobs"){
 				jobcontrol.deletealljobs();

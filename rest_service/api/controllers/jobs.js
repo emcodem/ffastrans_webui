@@ -2,7 +2,7 @@
 const fs = require('fs-extra');
 const fsPromises = require('fs').promises;
 const path = require("path");
-const common = require("./common/ticket_helpers.js");
+const common = require("./common/helpers.js");
 
 module.exports = {
     get: start
@@ -70,61 +70,9 @@ module.exports = {
 	}
 }
 
-// //HELPERS
-// Func _CreateJob($sBodyPost)
-// 	Local $s_x, $a_x, $a_x_2, $i_x, $i_cnt, $s, $i
-// 	Local $o_json = _JoCode($sBodyPost)
-// 	Local $s_api_workflow = _JoGet($o_json, 'wf_id')
-// 	Local $s_api_proc = _JoGet($o_json, 'start_proc')
-// 	If @error Then $s_api_proc = ''
-// 	Local $o_workflow = _FileToJson($s_SYS_CONFIGS_DIR & '\workflows\' & $s_api_workflow & '.json')
-// 	If @error Then Return SetError(3, 0, $s_api_workflow)
-// 	Local $i_index = _JoSearch($o_workflow, 'nodes', 'id', $s_api_proc)
-// 	If $s_api_proc = '' Or $i_index > -1 Then
-// 		Local $o_new_ticket = _init_ticket($s_api_workflow)
-
-// 		If $o_json.priority < 0 Then $o_json.priority = 0
-// 		If $o_json.priority > 5 Then $o_json.priority = 5
-
-// 		If $s_api_proc = '' Then
-// 			$i_index = _JoSearch($o_workflow, 'nodes', 'start_proc', True)
-// 		EndIf
-// 		$o_new_ticket.split_id = 				'1-' & $i_index & '-' & $i_index
-// 		$o_new_ticket.nodes.next.id = 			_JoGet($o_workflow, 'nodes[' & $i_index & '].id')
-// 		$o_new_ticket.nodes.next.slots = 		_JoGet($o_workflow, 'nodes[' & $i_index & '].slots', 1)
-// 		$o_new_ticket.nodes.next.hosts_group =	_JoGet($o_workflow, 'nodes[' & $i_index & '].hosts_group', 0)
-// 		$o_new_ticket.submit.method = 			'api'
-// 		$o_new_ticket.submit.system = 			_JoGet($o_json, 'system', 'api')
-// 		$o_new_ticket.submit.user = 			_JoGet($o_json, 'user', @UserName)
-// 		$o_new_ticket.submit.client = 			_JoGet($o_json, 'client', @ComputerName)
-// 		$o_new_ticket.submit.time = 			_GetNow()
-// 		$o_new_ticket.nodes.next.type = 		_JoGet($o_workflow, 'nodes[' & $i_index & '].type')
-// 		$s = _JoGet($o_json, 'inputfile')
-// 		$o_new_ticket.sources.current_file = 	_long($s)
-// 		$o_new_ticket.sources.original_file = 	_long($s)
-// 		$o_new_ticket.sources.localized_file = 	_long($s)
-// 		$o_new_ticket.sources.pretty_name = 	_FileProper($s, 2)
-// 		$o_new_ticket.work_dir = 				_JoGet($o_json, 'work_dir')
-// 		$o_new_ticket.variables = 				_JoGet($o_json, 'variables')
-// 		$i = _JoGet($o_new_ticket, 'priority', _JoGet($o_workflow, 'general.priority', 2))
-// 		$i = Number(StringLeft($i, 1))
-// 		$s_x = Json_Encode($o_new_ticket)
-// 		Local $s_hash = StringRight(_Crypt_HashData(StringToBinary($s_x, 4), $CALG_MD2), 6)
-// 		$s = Hex($o_new_ticket.nodes.next.slots, 1)
-// 		$s &= Hex($o_new_ticket.nodes.next.hosts_group, 2)
-// 		$s = StringLower($s)
-// 		$s = $i & '~' & $o_new_ticket.job_id & '~' & _MyGuid($h_OLE32_DLL, false, true, 6) & $s & '~' & $o_new_ticket.split_id & '~' & $s_api_workflow & '~api_submit~' & $s_hash & '.json'
-// 		_MyFileCreate($s_SYS_CACHE_DIR & '\tickets\temp\' & $s, $s_x, 138)
-// 		FileMove($s_SYS_CACHE_DIR & '\tickets\temp\' & $s, $s_SYS_CACHE_DIR & '\tickets\pending\' & $s, 8)
-// 		Return $o_new_ticket.job_id
-// 	Else
-// 		Return SetError(2, 0, $s_api_proc)
-// 	EndIf
-// EndFunc   ;==>_CreateJob
-
 async function get_running(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_running = await common.jsonfiles_to_array(path.join(s_tick_path,"running"));
+    var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"));
    
     //as we dont want to show both at the same time, we ignore the running tickets from mon_folder to prevent showing the same file twice
     var keys_to_ignore = []; 

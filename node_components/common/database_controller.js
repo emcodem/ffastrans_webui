@@ -1,6 +1,21 @@
 
 module.exports = {
-	deleteOldRecords: deleteOldRecords
+	deleteOldRecords: deleteOldRecords,
+    deleteRecords:deleteRecords
+}
+
+async function deleteRecords(id_array){
+    
+    var cursor = await global.db.jobs.find({ "job_id": { $in: id_array }});
+    cursor = await cursor.toArray();
+    console.log("Found Job to delete:" + cursor.length )
+    // Set an existing field's value
+    var del_array = id_array.map(id=>{ return{"job_id":id}})
+    //insert deleted job_ids into deleted_jobs datbase to prevent resync by jobfetcher
+    var insertedDoc = await global.db.deleted_jobs.insertMany(del_array);
+    var deleteresult = await global.db.jobs.deleteMany({ "job_id": { $in: id_array } });
+    console.log("Number of deleted records:",deleteresult);   
+    return;
 }
 
 async function deleteOldRecords(){

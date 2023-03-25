@@ -5,7 +5,7 @@ Metrics collection can be called every second and therefore MUST avoid long-runn
 const fs = require('fs')
 const fsPromises = require('fs').promises;
 const path = require("path")
-const common = require("./common/ticket_helpers.js")
+const common = require("./common/helpers.js")
 const readLastLines = require('read-last-lines')
 
     
@@ -37,15 +37,19 @@ async function start(req, res) {
 	try {
         // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
 	    var o_return = {};
-		res.write("ffas_jobs_incoming_count " + await count_incoming() +"\n");
-        res.write("ffas_jobs_queue_count " + await count_queue_tickets() +"\n");
-		console.log("Metrics found queue tickets: ", await count_queue_tickets() )
+        var incount = await count_incoming()
+		res.write("ffas_jobs_incoming_count " + incount +"\n");
+        var qcount = await count_queue_tickets();
+        res.write("ffas_jobs_queue_count " + qcount +"\n");
         var running = await count_running_tickets()
         res.write("ffas_jobs_running_count " + running[0] + "\n");
         res.write(running[1]);
         res.write(await parse_monitor_log());
         res.write("\n");//last line must-write for prometheus metrics
 		res.end();
+        if (incount != 0 || qcount  != 0 || running[0] != 0)
+            console.log("Metrics counts: incoming: " + incount + " queued:" + qcount + " running:" + running[0])
+            
 	} catch(err) {
 		console.debug(err);
 		res.status(500).write(err.toString());
@@ -115,7 +119,11 @@ async function count_incoming(){
                 var _proc_guids = await fsPromises.readdir(_mons, { withFileTypes: true });
                 try {
                     for (var _proc in _proc_guids){
-                        var _incoming_files = await fsPromises.readdir( _mons+ "\\" +_proc_guids[_proc].name + "\\i", { withFileTypes: false });
+                        var dir = _mons+ "\\" +_proc_guids[_proc].name + "\\i";
+                        if (!fs.existsSync(dir)){
+                            continue;
+                        }
+                        var _incoming_files = await fsPromises.readdir(dir, { withFileTypes: false });
                         //in every proc guid folder, find all files in the /i folder (incoming)
                         for (var _incoming in _incoming_files){
                             try{
@@ -129,7 +137,7 @@ async function count_incoming(){
                         
                     }
                 }catch(ex){
-                    console.warn("Not very critical " + ex);
+                    console.warn("Unable to count incoming tickets " + ex);
                 } 
             }
         }

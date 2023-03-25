@@ -270,6 +270,15 @@ function openVariableSelector(rId,savedVariables){
             }
         });
 
+        //check if we got webui variables, if yes other vars are hidden
+        var have_webui_vars = false;
+                for (i=0;i<response["user_variables"].length;i++){
+                    var current_var = response["user_variables"][i];
+                    if (current_var.name.indexOf("webui") != -1){
+                        have_webui_vars = true;
+                    }
+                }
+
         //parse variables and add them to the form
         for (var i=0;i<response["user_variables"].length;i++){
             /* TODO: this could be merged with jobstarter.js */
@@ -296,11 +305,13 @@ function openVariableSelector(rId,savedVariables){
                             }
                         }else{
                             //standard ffastrans variables
-                            var displayName = current_var.name;
-                            displayName = displayName.replace("s_", "");
-                            displayName = displayName.replace("i_", "");
-                            displayName = displayName.replace("f_", "");
-                            m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, value: saved_data,offsetLeft:10 });
+                            if (!have_webui_vars){
+                                var displayName = current_var.name;
+                                displayName = displayName.replace("s_", "");
+                                displayName = displayName.replace("i_", "");
+                                displayName = displayName.replace("f_", "");
+                                m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, value: saved_data,offsetLeft:10 });
+                            }
                         }
         }
     });

@@ -246,14 +246,15 @@ function reportError(current_job,msg){
 
 async function needsExecution(current_job){  
    
-     //console.log("checking if job needs execution, last PID ",current_job['last_pid'])    
-    //check if job is still running
+    //todo: should we check if job is still running? (which is not that easy ^^)
     if (current_job['enabled'] != 1 || current_job["cron"] == ""){
-        if (current_job["next_start"] != ""){
-               updateScheduledJob(current_job["id"],"next_start","");
-               
-        }
-        updateScheduledJob(current_job["id"],"last_message","Job is disabled or has no crons");
+        if (current_job["next_start"] != "")
+            updateScheduledJob(current_job["id"],"next_start","");
+
+        var msg = "Job is disabled or has no crons";
+        if (current_job.last_message != msg)
+            updateScheduledJob(current_job["id"],"last_message",msg);
+        
         return false;
     }
     
@@ -352,7 +353,7 @@ function updateScheduledJob(id,field,value){
             throw err;
         }
         console.log("updated scheduled job ",id, field, value)
-        global.db.config.persistence.compactDatafile(); //deletes unused stuff from DB file
+        global.db.config.compactDatafile(); //deletes unused stuff from DB file
         
     })
     

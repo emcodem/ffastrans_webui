@@ -119,11 +119,8 @@
     .div_cancel_jobs {
         margin-left:850px;
     }
-    .div_time_selector {
-        margin-left:950px;
-    }
     .div_logged_in_users {
-        margin-left:1050px;
+        margin-left:950px;
         visibility:hidden;
     }
 
@@ -207,7 +204,7 @@ var socket = io();
 
 //global
 
-var m_mainSidebar,mainLayout,initialMenuItem;
+var m_mainSidebar,mainLayout,initialMenuItem,m_serverconfig;
 
 
 var m_permissionUrls = {
@@ -257,6 +254,45 @@ function loadusermenu(){
     });
 }
 
+function updateJobCount(){
+    $.ajax({
+        url:  ("/getworkflowjobcount") ,
+        type: "GET",
+        success: function (msg) {
+            console.log("Workflow job count",msg);
+            document.getElementById("cancelledjobcount").innerHTML  = msg.sys.Cancelled;
+            document.getElementById("successjobcount").innerHTML    = msg.sys.Success;
+            document.getElementById("errorjobcount").innerHTML      = msg.sys.Error;
+            document.getElementById("activejobcount").innerHTML     = msg.sys.Running;  
+            document.getElementById("queuedjobcount").innerHTML     = msg.sys.Queued;
+            document.getElementById("incomingjobcount").innerHTML   = msg.sys.Incoming;
+        },
+        error: function (xhr, status) {
+            console.log("Error updateing jobcount");
+        }
+    });
+}
+window.setInterval(function(){
+    /* update job counters */
+    updateJobCount()
+
+},5000)
+
+// /*load config from server*/
+// function get_workflow_permissions(){
+//    $.ajax({
+//         url:  ("/getusermenue") ,
+//         type: "GET",
+//         success: function (userpermissions) {
+//             init(userpermissions);
+//         },
+//         error: function (xhr, status) {
+//             dhtmlx.message("Fatal error, could not load serverconfig. " );
+//             document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+//         }
+//     });
+// }
+
 function inIframe () {
     try {
         return window.self !== window.top;
@@ -268,7 +304,7 @@ function inIframe () {
 
 /* build basic page layout and init periodic job loading*/
 function init(permissions){
-	
+	updateJobCount();
 	//checks if i am an iframe, if yes, user was most likely logged out and we want to reload
 	if (inIframe()){
 		parent.location.reload()
@@ -291,8 +327,6 @@ function init(permissions){
     '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
     '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
     '<div class="counter_jobs div_logged_in_users">&nbsp Online Users  <div class="header_counter_number" id="loggedinusercount">0</div></div>'+
-    '<input class="div_time_selector style="width:30px" type="submit"/>'+
-    
     '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
     '<img src="images/viking_helmet_white.png" class="helmet steinar itemrowtopright" title="steinar"></div>'+
     '<img src="images/emcodem_helmet_white.png" class="helmet emcodem itemrowtopright" title="emcodem">' + 
@@ -366,10 +400,15 @@ function init(permissions){
 	  localStorage.setItem("selected_start_menu_item",initialMenuItem);
     };
 
-	
-      
+    socket.on('logged_in_users_count', function(msg){
+        //server should inform us periodically by cron job 
+        document.getElementById("loggedinusercount").innerHTML = Math.round(msg/2);
+    });
+    
+    /* socket count notifications is not used in webint, only if external jobfetcher is used */
     socket.on('historyjobcount', function(msg){
         //server should inform us periodically by cron job 
+        console.log("got new historyjobcount",msg)
         document.getElementById("cancelledjobcount").innerHTML = msg.sys.Cancelled;
         document.getElementById("successjobcount").innerHTML = msg.sys.Success;
         document.getElementById("errorjobcount").innerHTML = msg.sys.Error;
@@ -386,11 +425,7 @@ function init(permissions){
         //server should inform us periodically by cron job 
         document.getElementById("incomingjobcount").innerHTML = msg;
     });
-    socket.on('logged_in_users_count', function(msg){
-        //server should inform us periodically by cron job 
-        document.getElementById("loggedinusercount").innerHTML = Math.round(msg/2);
-    });
-    
+
     //load last selected menu item
     restoreUserState();
 }
@@ -418,6 +453,52 @@ function restoreUserState(){
         mainLayout.cells("b").attachURL(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 
     }
 }
+
+function getPermittedWorkflowList(allPermissions,workflowResponse){
+    var workflowlist = workflowResponse["data"];
+    var filteredWorkflowList = [];
+    var alreadyAdded = {};
+    if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
+        //no auth means everyone sees everything
+        return workflowlist.workflows;
+    }
+    for (x in allPermissions){
+                           
+        //FILTER WORFKLOWS
+        if (allPermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
+            var filter = allPermissions[x]["value"]["filter"];
+            for (var i in workflowlist["workflows"]){
+                var wf = workflowlist["workflows"][i];
+                if (wf["wf_folder"].toLowerCase().match(filter.toLowerCase())){
+                    if (!alreadyAdded[wf["wf_name"]]){
+                        console.log("Worfkflow folder  " + wf["wf_folder"] + " matches filter "+ filter);
+                        alreadyAdded[wf["wf_name"]] = 1;
+                        filteredWorkflowList.push(wf);//allow workflow
+                    }
+                }else{
+                    //console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " NOT MATCHES filter "+ filter); 
+                }
+            };
+        }
+        if (allPermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
+            var filter = allPermissions[x]["value"]["filter"];
+            for (var i in workflowlist["workflows"]){
+                var wf = workflowlist["workflows"][i];
+                if (wf["wf_name"].toLowerCase().match(filter.toLowerCase())){
+                    //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
+                    if (!alreadyAdded[wf["wf_name"]]){
+                        alreadyAdded[wf["wf_name"]] = 1;
+                        filteredWorkflowList.push(wf);//allow workflow
+                    }
+                }
+            };
+        }
+    }//for allPermissions
+    
+    //m_serverconfig
+    return filteredWorkflowList;
+}
+  
 
 </script>
 </head><body onload="loadserverconfig()">

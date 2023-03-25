@@ -12,14 +12,21 @@ var configServer = require(global.approot  + '/node_components/server_config');
 				var fieldset_purge = {};
                 fieldset_purge.type = "fieldset";
                 fieldset_purge.name = "purge";
-                fieldset_purge.label = "Data Purging";
+                fieldset_purge.label = "Database";
 				fieldset_purge.inputWidth = 500;
                 fieldset_purge.position = "label-top";
                 fieldset_purge.width= 800;
                 fieldset_purge.offsetTop = 20;
                 fieldset_purge.offsetLeft = 20;
 				fieldset_purge.list =[];
-				fieldset_purge.list.push({type:"button", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:600,label: "<b>Delete All Jobs</b>",value:"Delete All Jobs"})
+				fieldset_purge.list.push(
+                        {type:"button", id:"btn_open_database_maintenance","hidden":false,name: "btn_open_database_maintenance", width:100,label: "",value:"Open Database Manager"},
+                        //{type: "calendar", enableTodayButton:true, name: "db_start_date", label: "Youngest Date", dateFormat: "%Y-%m-%d %H:%i:%s"},
+                        //{type:"button", id:"btn_export_history","hidden":false,name: "btn_export_history", width:100,label: "<b>Export</b>",value:"Export"},
+                        //{type:"button", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:100,label: "<b>Delete</b>",value:"Delete"},
+                        //{type: "newcolumn", offset:20},
+                        //{type: "calendar", name: "db_end_date", label: "Oldest Date", dateFormat: "%Y-%m-%d %H:%i:%s"},   
+                    )
 				
 				//SERVER CONFIGURATION FIELDS
                 var fieldset = {};

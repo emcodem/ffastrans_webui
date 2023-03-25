@@ -57,27 +57,6 @@ paths:
           description: Success
         default:
           description: Error
-  /api/json/v2/jobs:
-    x-swagger-router-controller: jobs
-    post:
-      description: ""
-      operationId: jobs
-      requestBody:
-        content:
-          application/json:
-            schema:      # Request body contents
-              type: object
-              properties:
-                id:
-                  type: integer
-                name:
-                  type: string
-              example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
-      responses:
-        "200":
-          description: Success
-        default:
-          description: Error
   /review:
     x-swagger-router-controller: review
     get:
@@ -175,6 +154,64 @@ paths:
           description: Success
         default:
           description: Error
+  /api/json/v2/jobs:
+    x-swagger-router-controller: jobs
+    post:
+      description: ""
+      operationId: jobs
+      requestBody:
+        content:
+          application/json:
+            schema:      # Request body contents
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+              example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /api/json/v2/workflows/{id}:
+    x-swagger-router-controller: workflows
+    get:
+      description: "DEPRECATED Legacy API call (use /workflows), if /id is not specified returns all. ID is marked as required because the standard requires path parameters to be required but this API it also works without /id parameter"
+      operationId: workflows_old
+      parameters:
+        - name: id
+          in: path
+          description: "optional (even if marked as required)"
+          # problem of the old ffastrans api: parameters as part of url (not get params but url) must be required but ffastrans has optional params
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /workflows:
+    x-swagger-router-controller: workflows
+    get:
+      description: ""
+      operationId: workflows
+      parameters:
+        - name: id
+          in: query
+          description: Workflow ID, if not  specified returns all
+          # problem of the old ffastrans api: parameters as part of url (not get params but url) must be required but ffastrans has optional params
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+
   /swagger:
     x-swagger-pipe: swagger_raw
 servers:

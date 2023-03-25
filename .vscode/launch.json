@@ -16,6 +16,12 @@
             "name": "http://localhost:3002/webinterface/components/reviewqueue.html",
             "request": "launch",
             "url": "http://localhost:3002/webinterface/components/reviewqueue.html"
+        },
+        {
+            "type": "chrome",
+            "name": "http://localhost:3002/webinterface/components/jobstarter.html",
+            "request": "launch",
+            "url": "http://localhost:3002/webinterface/components/jobstarter.html"
         }
     ]
 }

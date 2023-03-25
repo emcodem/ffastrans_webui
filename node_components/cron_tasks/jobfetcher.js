@@ -3,7 +3,8 @@ const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
 const path = require("path");
-var smptMail = require("../common/send_smpt_email")
+var smptMail = require("../common/send_smpt_email");
+var helpers = require("../common/helpers")
 // const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
 
 var alert_sent = false;
@@ -16,58 +17,17 @@ var count_running = false;
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
 
-async function countJobs(){
-	/* 
-		sends job count to UI if there are connected clients
-	    this could potentially waste huge db cpu resources but it looks ok since we got indexes for everything
-	*/
-	
-	count_running = true;
-	try{
-		if (global.socketio.sockets.sockets.size == 0) //no clients connected, no need to count
-			return
-		async function countDocs(_state,since_days){
-			var targetDate = moment(new Date()).subtract(since_days, 'day').format("YYYY-MM-DD 00:00:00"); // date object
-			var daCount = await global.db.jobs.countDocuments({state:_state,job_start:{$gte:targetDate}},{_id:1})
-			return daCount;
-		}
-
-		var countObj 	= {sys:{},day:{},week:{},month:{}};
-		//inform the client about current count in DB
-		console.log("Countjobs start")
-		countObj.sys 	= {};
-		countObj.day 	= {};
-		countObj.week 	= {};
-		countObj.month 	= {};
-
-		for(var _state of ["Success","Error","Cancelled"]){
-			countObj.sys[_state] 	= await countDocs(_state,global.config.STATIC_HEADER_JOB_COUNT_DAYS);
-			countObj.day[_state] 	= await countDocs(_state,1);
-			countObj.week[_state] 	= await countDocs(_state,7);
-			countObj.month[_state] 	= await countDocs(_state,30);
-		}
-
-		global.socketio.emit("historyjobcount", countObj);
-	}catch(ex){
-		console.error("Fatal Countjobs error",ex)
-	}finally{
-		count_running = false;
-	}
-}
 
 module.exports = {
     fetchjobs: async function () {	
 
-	//kick off global countjobs (sends current job count to all clients)
-	if (!count_running){
-		countJobs();
-	}
+	//kick off global countjobs DEPRECATED; REPLACED BY POLLING getworkflowjobcount
+	// if (!count_running){
+	// 	countJobs();
+	// }
 
     //fetch running jobs from api
-    if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
-        return;
-    }
-    
+
     if (!Number.isInteger(parseInt(global.config.STATIC_API_TIMEOUT))){
         var txt = 'ERROR contact admin. Server setting STATIC_API_TIMEOUT is not a number: [' + global.config.STATIC_API_TIMEOUT + ']';
         console.error(txt)
@@ -135,24 +95,18 @@ module.exports = {
                 
             }//for all jobs
                        
-        //send the new jobs to connected clients, todo: only notify clients about new stuff
+        // //send the new jobs to connected clients, todo: only notify clients about new stuff
 		try{
 			global.socketio.emit("activejobs", JSON.stringify(jobArray));
-			global.socketio.emit("activejobcount", jobArray.length);
+			//global.socketio.emit("activejobcount", jobArray.length);
 		}catch(exc){
 			console.error("Error occured while sending activejobs to clients: " + exc + body)
 		}
     });
     
-    //fetch queued jobs from api
-	function build_new_api_url(what){
-		var host = global.config["STATIC_API_HOST"];
-		var port = global.config["STATIC_API_NEW_PORT"];
-		var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
-		return protocol + host + ":" + port + what;  
-	}
+    //fetch queued jobs from new api
 
-    Request.get(build_new_api_url("/tickets"), {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {   
+    Request.get(helpers.build_new_api_url("/tickets"), {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {   
         
         //TODO: merge Active and queued call
         if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
@@ -160,8 +114,8 @@ module.exports = {
             return;
         }
         if(error) {
-            console.log('Internal Error getting Queued Jobs,  ' + build_new_api_url("/tickets"), error)
-            global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + build_new_api_url("/tickets"));
+            console.log('Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"), error)
+            global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"));
             return;
         }
 		try{
@@ -196,15 +150,15 @@ module.exports = {
 				}
 			}
 			
-			//send the new jobs to connected clients, todo: only notify clients about new stuff
+			// //send the new jobs to connected clients, todo: only notify clients about new stuff
 				if (JSON.parse(body)["tickets"]["queued"]){
                     
 					global.socketio.emit("queuedjobs", JSON.stringify(q_obj));
-					global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["queued"].length);                
+					//global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["queued"].length);                
 				}else{
                     console.log("Error, we should not come here, queued")
 					global.socketio.emit("queuedjobs", "[]");
-					global.socketio.emit("queuedjobcount", 0);               
+					//global.socketio.emit("queuedjobcount", 0);               
 				}
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
@@ -219,7 +173,7 @@ module.exports = {
 			if (q_obj !== undefined) {
 				for (i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
-                            
+
 							q_obj[i]["split_id"] = ""
 							q_obj[i]["state"] = "Incoming";
 							q_obj[i]["title"] = "Incoming";
@@ -235,15 +189,15 @@ module.exports = {
 			
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
 			
-				if (JSON.parse(body)["tickets"]["incoming"]){
-                    
-					global.socketio.emit("incomingjobs", JSON.stringify(q_obj));
-					global.socketio.emit("incomingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
-				}else{
-                    console.log("Error, we should not come here, keyword: incoming")
-					global.socketio.emit("incomingjobs", "[]");
-					global.socketio.emit("incomingjobcount", 0);               
-				}
+			if (JSON.parse(body)["tickets"]["incoming"]){
+				
+				global.socketio.emit("incomingjobs", JSON.stringify(q_obj));
+				//global.socketio.emit("incomingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
+			}else{
+				console.log("Error, we should not come here, keyword: incoming")
+				global.socketio.emit("incomingjobs", "[]");
+				global.socketio.emit("incomingjobcount", 0);               
+			}
 		}catch(exc){
 			console.error("Error occured while sending incoming to clients: " + exc )
 			console.error(exc.stack)
@@ -268,7 +222,7 @@ module.exports = {
 			}
 
 			if (global.lasthistory == body){
-				console.log("History Jobs did not change since last fetch...")			
+				//console.log("History Jobs did not change since last fetch...")			
 				return;
 			}
 			global.lasthistory = body;
@@ -285,8 +239,8 @@ module.exports = {
 			}
 			//store history jobs in database
 			var newjobsfound = 0;
-	//TRY GET CHILDS FOR TREEGRID        
 			
+			//TRY GET CHILDS FOR TREEGRID        
 			//filter deleted
 			var job_id_array = jobArray.map(job=> job.job_id)
 			var deleted_ids = await global.db.deleted_jobs.find({ "job_id": { "$in": job_id_array}});
@@ -323,9 +277,9 @@ module.exports = {
 			jobArray = non_deleted_jobs;//go on only with non deleted jobs
 
 			//get last 10k jobids from DB - child jobs need to finish within that period to be grouped correctly;-)
-			var lastTenThousand 	= await global.db.jobs.find({},{projection:{job_id:1,"children._id":1}}).limit(1000);
+			var lastTenThousand 	= await global.db.jobs.find({},{sort:{job_start:-1},projection:{job_start:1,job_id:1,"children._id":1}}).limit(1000);
 			lastTenThousand 		= await lastTenThousand.toArray();
-			//make list of all _id's / traverse children and main objects
+			//make list of all existing _id's / traverse children and main objects
 			var existingInternalIds 		= [];
 			for (const _job of lastTenThousand) {
 				existingInternalIds.push(_job._id);
@@ -343,8 +297,6 @@ module.exports = {
 					//job already in db
 					continue;
 				}
-				var all 	= await global.db.jobs.find({}).limit(1000);
-				all 		= await all.toArray();
 
 				//this is a new job
 				var existingIndex = existingMainJob_job_ids.indexOf(jobArray[i].job_id) ;

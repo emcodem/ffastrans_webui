@@ -260,9 +260,6 @@
 
     }
 
-
-    
-    
     function toggleJobControl(id,selected_is_on){
         //enable/disable menu buttons
         var tree = $(id).fancytree('getTree');
@@ -428,15 +425,11 @@
                 localStorage.setItem("mainLayout_c_collapsed", "false");
         });
         
-  
-        
         mainLayout.cells("c").setWidth($(document).width() / 3);
         //mainLayout.cells("c").setText("Finished");
         mainLayout.cells("b").setHeight($(document).height() / 3.5);
         restoreLayoutSizes(mainLayout, "mainLayout");
 
-
-        
         //attach grids
         mainLayout.cells("c").attachObject("history_div");
         mainLayout.cells("c").showInnerScroll();
@@ -490,11 +483,17 @@
         //    mainLayout.cells("b").progressOn();
 
         socket.on('newhistoryjob', async function(msg) {
-            console.log("newhistoryjob",msg)
+            var tree = $("#treetable_history").fancytree('getTree');
+            console.log("got newhistoryjob event",msg);
             //check if we are showing the first page
-            if ($("#treetable_history").fancytree('getTree').mystuff.page != 1){
+            if (tree.mystuff.page != 1){
+                console.log("loading of new history job suppressed because page is not 1")
                 return;
             }
+            tree.getNewData();
+            return;
+
+
 
             //legacy jobs field mapping, need for update from <1.3.9
             msg.title = msg.state;
@@ -520,7 +519,7 @@
                 return;
             }
 			
-            firstnode = rootNode.findFirst("")
+            firstnode = rootNode.findFirst("");
             if (firstnode) {
                 if (firstnode.extraClasses == "odd_dhx_skyblue") {
                     msg.extraClasses = "ev_dhx_skyblue";
@@ -550,7 +549,7 @@
                 var q_obj = (JSON.parse(msg));
                 for (i=0;i<q_obj.length;i++){
                     //convert file time to time of user perspective
-                    console.log(new Date(q_obj[i]["job_start"]  ))//TODO: Date dont work in FF und IE
+                    //console.log(new Date(q_obj[i]["job_start"]  ))//TODO: Date dont work in FF und IE
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" );//if do not do this, time will be off from timezone
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" ).toISOString().replace("T"," ").replace(/\..*/,""); 
                 }
@@ -1039,8 +1038,11 @@
     }
 
     function filterHistoryList(the_list) {
-        
+        /* DEPRECATED */
         var filtered = the_list;
+        return filtered
+        //TESTING FILTER ON SERVER
+
         for (i = 0; i < m_userpermissions.length; i++) {
             if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
                 if (filtered == the_list) {
@@ -1255,44 +1257,13 @@
             postProcess: function(event, data) {
                 // transform gethistoryjobsajax result into tree compatible
                 // data is a treegrid specific object
-                
+                console.log("history grid postprocessing",data.response.data.length)
                 //transform from db object to tree compatible //set key
-                for (var i=0;i<data.response.data.length;i++){
-					try{
-                    var c = data.response.data[i];
-                    if (c._id){
-                        c.key = c._id;
-                    }
-                    c.title = c.state;
-                    if (c.children){
-						for (var c_idx =0;c_idx<c.children.length;c_idx++){
-							c.children[c_idx]["title"] = c.children[c_idx]["state"];
-                            c.result += c.children[c_idx].outcome + " ";
-						}
-
-					}else{
-						c.children = [];
-					}
-                    if (c.children.length == 1){
-                        //if only 1 child, show as single job
-                        data.response.data[i] = JSON.parse(JSON.stringify(c.children[0]));
-                    }
-
-					}catch(ex){
-						console.error("Error postprocessing line ",c,ex)
-					}
-                }
+                var joblist = data.response.data;
                 
-                
-                data["result"] = filterHistoryList(data["response"]["data"]) //setting data["result"] means override the originally loaded data
+                data["result"] = translateJobs(joblist) //setting data["result"] means override the originally loaded data
 
-				//client sorting disabled since we have mongodb
-				//sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
-
-                console.log("POSTPROC event",event,"data", data)
-
-                var tc = data.response.total_count;
-                //get total count separately because it takes lots of time, note adding the count parameter in url
+                //get total count separately because it takes lots of time, note that we add the getcount parameter in url
                 var tree = $('#treetable_history').fancytree('getTree');
                 var _url = "/gethistoryjobsajax_treegrid?getcount=1&filterobj="+JSON.stringify(tree.mystuff["filterobj"]);
                 $.ajax({
@@ -1367,6 +1338,52 @@
 
         //extend tree by custom stuff, used mainly to build the paging
         $("#treetable_history").fancytree('getTree').mystuff = {"maxrows":100,"filterobj":{},"page":1,"sortcol":"job_end","sortdir":"des"}
+
+        //custom tree functions
+        $("#treetable_history").fancytree('getTree').getNewData = async function(){
+            /* 
+               update grid data from server
+               in the past jobfetcher pushed new jobs via sockets to the clients but this means
+               that clients receive jobs they should dont even have permission to and filtering was done on the client
+            */
+
+            var tree = $('#treetable_history').fancytree('getTree');
+            var rootNode = $("#treetable_history").fancytree("getRootNode");
+            //load data from server
+            var response = await $.ajax({
+                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(tree.mystuff.filterobj),
+                type: 'GET',
+            });
+            var joblist = JSON.parse(response).data;
+            joblist = translateJobs(joblist);
+            
+            //check if there is anything new, if yes append only the new rows in order to prevent disturbing ongoing user interaction
+            for (var i=0;i<joblist.length;i++){
+                var exists = tree.getNodeByKey(joblist[i].key);
+                if (!exists){
+                    var at_index = i;
+                    if (at_index == joblist.length-1)
+                        exists = rootNode.addChildren(joblist[i]);//insert as last node
+                    else
+                        exists = rootNode.addChildren(joblist[i],i);//insert 
+                    console.log("Added treenode",exists)
+                }else{
+                    //check if we have new finished branches
+                    if (joblist[i].children){
+                        if (!exists.children || (exists.children.length != joblist[i].children.length)){
+                            console.log("Detected need to patch existing treenode, childcount changed.")
+                            exists.applyPatch(joblist[i]);
+                        }
+                    }
+
+                }
+            }
+            //cleanup too many nodes to support running the webinterface for indefinite time
+			while(rootNode.countChildren(false) > m_max_history_gridrows){
+				rootNode.getLastChild().remove();
+			}
+        } 
+
         //todo: display sort icon on job_end col
 
         //search btn
@@ -1392,6 +1409,36 @@
         });
 
     } //buildhistorygrid
+
+    function translateJobs(joblist){
+        /* modifies list of database jobs into tree compatible */
+        for (var i=0;i<joblist.length;i++){
+            try{
+                var c = joblist[i];
+                if (c._id){
+                    joblist[i].key = c._id;
+                }
+                c.title = c.state;
+                if (c.children){
+                    for (var c_idx =0;c_idx<c.children.length;c_idx++){
+                        c.children[c_idx]["title"] = c.children[c_idx]["state"];
+                        c.result += c.children[c_idx].outcome + " ";
+                    }
+                }else{
+                    c.children = [];
+                }
+                if (c.children.length == 1){
+                    //if only 1 child, show as single job
+                    joblist[i] = JSON.parse(JSON.stringify(c.children[0]));
+                    joblist[i].key = c._id;
+                }
+
+            }catch(ex){
+                console.error("Error postprocessing line ",c,ex)
+            }
+        }
+        return joblist;
+    }
 
 	function search_history_check_new_row(new_row){
            
@@ -1614,13 +1661,16 @@
     }
 
     function applyWorkflowFilter(o_job) {
+        /* DEPRECATED */
         //returns true or false based on userpermission job filter
+        //TESTING WORKFLOW FILTER DISABLED, INSTEAD UPDATE HISTORY GRID WHEN NEW HISTORY JOB ARRIVES
+        return true;
+        //todo: add wf group filter
         for (i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
             if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
 
                 var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
                 if (o_job["workflow"].match(regex)) {
-
                     return true;
                 } else {
                     return false;
@@ -1641,6 +1691,7 @@
                 continue;
             }
             if (applyWorkflowFilter(jobArray[y]) == false) {
+                console.log("workflow filtered")
                 continue;
             }
 
@@ -1669,7 +1720,7 @@
 						}					
 					}
 				}catch(ex){
-					console.log("Error updating children","jobarray",jobArray ,"message", ex)
+					//console.log("Error updating children","jobarray",jobArray ,"message", ex)
 				}
                 if (needrender){
                     existing.renderTitle(); //forces reload of node
@@ -1834,7 +1885,7 @@
             }
         });
     }
-    /* /NO PROXY MODE */
+    
     function build_new_api_url(what) {
         if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             return "/new_proxy" + what;
@@ -1926,7 +1977,7 @@
                     url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(tree.mystuff.filterobj),
                     cache: false
                 });
-                console.log("tree was reloaded");
+                console.log("tree was reloaded because sorting changed");
             }
 		}
         
