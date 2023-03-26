@@ -7,4 +7,6 @@ database/
 server.exe
 alternate-server/
 alternate-server.old/
-.log
+*.log
+*.zip
+*.db

@@ -1,5 +1,6 @@
 const fs = require('fs');
-var path = require('path');
+const path = require('path');
+const { spawn,execSync } = require('child_process');
 
 function regexEscape(string) {
 	if (typeof string !== 'string') {
@@ -26,6 +27,12 @@ Date.prototype.toMysqlFormat = function() {//todo: move this to server.js?
 
 module.exports = function(app, express){
 /* presents files from filesystem based on allowed directories in config and post/get params*/
+    app.get('/extractpreview1', async (req, res) => {
+        res.writeHead(200,{"Content-Type" : "application/JSON"});
+        res.write(JSON.stringify({}));//output dhtmlx compatible json
+        res.end();
+    })
+
 	app.get('/filebrowser', (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
@@ -82,7 +89,65 @@ module.exports = function(app, express){
                 res.end();
 		}
 	});
-	
+
+
+
+    app.get('/getjpeg', async (req, res) => {
+        return new Promise((resolve,reject) => {
+            var standard_args = [
+                "-i",req.query.fullpath, 
+                "-vframes","1",
+                "-c:v", "mjpeg","-f","rawvideo",
+                "-"
+                ];
+            
+            var binarydata = Buffer.from("");
+            
+            var ffmpegexe = path.join(global.approot,"tools","ffmpeg","ffmpeg.exe");
+
+            this.ffrewrap = spawn(ffmpegexe, standard_args); 
+                                
+            this.ffrewrap.stdout.on('data', data => {
+                binarydata = Buffer.concat([binarydata,data]);
+            });
+
+            this.ffrewrap.stderr.on('data', data => {
+                //console.log(`preview extraction log: ${data}`);
+            });
+    
+            this.ffrewrap.on('exit', returncode => { 
+                console.log ("ffmpeg image extraction end, returncode: "+returncode);
+                
+                if (returncode != "0"){
+                    console.log("ffmpeg preview extraction failed, return code: ",returncode);
+                    console.error("Error extracting preview image, read logs above");
+                    res.writeHead(500,{"Content-Type" : "text/html"});
+                    res.write("ffmpeg preview extraction failed, return code: " + returncode);
+                    res.end();
+                    reject();
+                    return;
+                }
+                res.writeHead(200,{"Content-Type" : "image/jpeg"});
+                res.write(binarydata);
+                res.end();
+                resolve();
+                return;
+            });
+    
+            /* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
+            this.ffrewrap.on('error', data => {
+                console.error("Error extracting preview image, read logs above");
+                res.writeHead(500,{"Content-Type" : "text/html"});
+                res.write("ffmpeg preview extraction failed, return code: ");
+                res.end();
+                reject();
+                return;
+            });
+            
+
+        })//extractpreview promise
+
+    })
 
     function getReadableFileSizeString(fileSizeInBytes) {
     //helper, translates number of file size bytes into human readable value
@@ -119,4 +184,7 @@ module.exports = function(app, express){
         }
         
     }
+
+
 }
+

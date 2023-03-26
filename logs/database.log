@@ -395,3 +395,113 @@ TypeError: global.db.jobs.find(...).exec is not a function
 2023-03-22 01:09:04: info: [database]: Database port:  [33m8010[39m
 2023-03-22 01:10:19: info: [database]: ------------------------- log database startup -------------------------
 2023-03-22 01:10:19: info: [database]: Database port:  [33m8010[39m
+2023-03-22 12:19:31: info: [database]: ------------------------- log database startup -------------------------
+2023-03-22 12:19:31: info: [database]: Database port:  [33m8010[39m
+2023-03-25 12:57:53: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 12:57:53: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:06:17: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:06:17: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:08:12: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:08:12: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:09:52: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:09:52: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:11:01: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:11:01: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:12:28: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:12:28: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:13:17: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:13:17: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:14:34: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:14:34: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:15:26: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:15:26: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:15:46: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:15:46: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:16:40: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:16:40: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:17:25: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:17:25: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:19:41: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:19:41: info: [database]: Database port:  [33m8010[39m
+2023-03-25 13:23:10: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 13:23:10: info: [database]: Database port:  [33m8010[39m
+2023-03-25 14:44:13: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 14:44:13: info: [database]: Database port:  [33m8010[39m
+2023-03-25 21:40:52: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 21:40:52: info: [database]: Database port:  [33m8010[39m
+2023-03-25 21:40:55: error: [database]: uncaughtException: Cannot read properties of undefined (reading 'emit')
+TypeError: Cannot read properties of undefined (reading 'emit')
+    at Request._callback (C:\dev\ffastrans_webui\node_components\cron_tasks\jobfetcher.js:118:29)
+    at self.callback (C:\dev\ffastrans_webui\node_modules\request\request.js:185:22)
+    at Request.emit (node:events:513:28)
+    at Request.onRequestError (C:\dev\ffastrans_webui\node_modules\request\request.js:881:8)
+    at ClientRequest.emit (node:events:525:35)
+    at Socket.socketErrorListener (node:_http_client:502:9)
+    at Socket.emit (node:events:513:28)
+    at emitErrorNT (node:internal/streams/destroy:151:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:116:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+2023-03-25 21:40:55: error: [database]: uncaughtException: Cannot read properties of undefined (reading 'emit')
+TypeError: Cannot read properties of undefined (reading 'emit')
+    at Request._callback (C:\dev\ffastrans_webui\node_components\cron_tasks\jobfetcher.js:118:29)
+    at self.callback (C:\dev\ffastrans_webui\node_modules\request\request.js:185:22)
+    at Request.emit (node:events:513:28)
+    at Request.onRequestError (C:\dev\ffastrans_webui\node_modules\request\request.js:881:8)
+    at ClientRequest.emit (node:events:525:35)
+    at Socket.socketErrorListener (node:_http_client:502:9)
+    at Socket.emit (node:events:513:28)
+    at emitErrorNT (node:internal/streams/destroy:151:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:116:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+2023-03-25 21:41:09: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 21:41:09: info: [database]: Database port:  [33m8010[39m
+2023-03-25 21:41:14: error: [database]: uncaughtException: Cannot set headers after they are sent to the client
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at new NodeError (node:internal/errors:399:5)
+    at ServerResponse.setHeader (node:_http_outgoing:663:11)
+    at setHeadersFromObject (C:\dev\ffastrans_webui\node_modules\on-headers\index.js:94:16)
+    at ServerResponse.setWriteHeadHeaders (C:\dev\ffastrans_webui\node_modules\on-headers\index.js:122:5)
+    at ServerResponse.writeHead (C:\dev\ffastrans_webui\node_modules\on-headers\index.js:30:36)
+    at ChildProcess.<anonymous> (C:\dev\ffastrans_webui\node_components\filebrowser.js:127:25)
+    at ChildProcess.emit (node:events:513:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:291:12)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+2023-03-25 22:17:06: info: [database]: ------------------------- log database startup -------------------------
+2023-03-25 22:17:06: info: [database]: Database port:  [33m8010[39m
+2023-03-25 22:17:12: error: [database]: uncaughtException: Unknown encoding: 1
+TypeError [ERR_UNKNOWN_ENCODING]: Unknown encoding: 1
+    at new NodeError (node:internal/errors:399:5)
+    at _write (node:internal/streams/writable:296:13)
+    at Writable.write (node:internal/streams/writable:337:10)
+    at ServerResponse._writeRaw (node:_http_outgoing:428:17)
+    at ServerResponse._send (node:_http_outgoing:377:15)
+    at write_ (node:_http_outgoing:905:9)
+    at ServerResponse.write (node:_http_outgoing:827:15)
+    at ChildProcess.<anonymous> (C:\dev\ffastrans_webui\node_components\filebrowser.js:125:25)
+    at ChildProcess.emit (node:events:513:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:291:12)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+2023-03-26 09:16:20: info: [database]: ------------------------- log database startup -------------------------
+2023-03-26 09:16:20: info: [database]: Database port:  [33m8010[39m
+2023-03-26 09:16:26: error: [database]: uncaughtException: Unknown encoding: 1
+TypeError [ERR_UNKNOWN_ENCODING]: Unknown encoding: 1
+    at new NodeError (node:internal/errors:399:5)
+    at _write (node:internal/streams/writable:296:13)
+    at Writable.write (node:internal/streams/writable:337:10)
+    at ServerResponse._writeRaw (node:_http_outgoing:428:17)
+    at ServerResponse._send (node:_http_outgoing:377:15)
+    at write_ (node:_http_outgoing:905:9)
+    at ServerResponse.write (node:_http_outgoing:827:15)
+    at ChildProcess.<anonymous> (C:\dev\ffastrans_webui\node_components\filebrowser.js:125:25)
+    at ChildProcess.emit (node:events:513:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:291:12)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+2023-03-26 09:18:02: info: [database]: ------------------------- log database startup -------------------------
+2023-03-26 09:18:02: info: [database]: Database port:  [33m8010[39m
+2023-03-26 09:18:07: error: [database]: uncaughtException: Cannot read properties of undefined (reading 'stack')
+TypeError: Cannot read properties of undefined (reading 'stack')
+    at process.<anonymous> (C:\dev\ffastrans_webui\server.js:51:16)
+    at process.emit (node:events:513:28)
+    at emit (node:internal/process/promises:149:20)
+    at processPromiseRejections (node:internal/process/promises:283:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:96:32)
