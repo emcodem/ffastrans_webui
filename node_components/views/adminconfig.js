@@ -20,12 +20,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 fieldset_purge.offsetLeft = 20;
 				fieldset_purge.list =[];
 				fieldset_purge.list.push(
-                        {type:"button", id:"btn_open_database_maintenance","hidden":false,name: "btn_open_database_maintenance", width:100,label: "",value:"Open Database Manager"},
-                        //{type: "calendar", enableTodayButton:true, name: "db_start_date", label: "Youngest Date", dateFormat: "%Y-%m-%d %H:%i:%s"},
-                        //{type:"button", id:"btn_export_history","hidden":false,name: "btn_export_history", width:100,label: "<b>Export</b>",value:"Export"},
-                        //{type:"button", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:100,label: "<b>Delete</b>",value:"Delete"},
-                        //{type: "newcolumn", offset:20},
-                        //{type: "calendar", name: "db_end_date", label: "Oldest Date", dateFormat: "%Y-%m-%d %H:%i:%s"},   
+                        {type:"button", id:"btn_open_database_maintenance","hidden":false,name: "btn_open_database_maintenance", width:550,label: "",value:"Open Database Manager"} 
                     )
 				
 				//SERVER CONFIGURATION FIELDS
@@ -58,7 +53,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;height:0}
 						if (key.indexOf("alternate-server")!=-1){disabled=true;height:0}
                         if (key.indexOf("prometheus_targets")!=-1){disabled=true;height:0}
-												//filter special items
+						//filter special items
 						if (key == "email_alert_config"){disabled=true;}
 						if (key.indexOf("STATIC_SEND_EMAIL_ALERTS")!=-1){
 							fieldset.list.push( {type: "fieldset", width:600,"hidden":disabled, label: "Email Alerts", list: [
@@ -81,11 +76,22 @@ var configServer = require(global.approot  + '/node_components/server_config');
                                     {text: "Disable", value: "false",	selected:(false==JSON.parse(outputConfig[key]))},
                                 ]},
 								{type:"button", id:"btn_adconfig", "hidden":disabled,name: "btn_adconfig", width:550,label: "<b>1</b>",value:"Activedirectory Configuration"}
-							]} );//add spacer
+							]});//add spacer
 							continue;
-							
 						}
-						
+
+                        //add special btn for browselocation config
+                        if (key == "STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES"){//hide because next if shows the corresponding control for both
+							continue;
+						}
+                        if (key == "STATIC_ALLOWED_BROWSE_LOCATIONS"){
+                            fieldset.list.push(
+                                {type: "fieldset", width:600,"hidden":disabled, label: "Browse Locations", list: [
+                                    {type:"button", id:"btn_browse_locations", name: "btn_browse_locations", width:550,label: "<b>1</b>",value:"Browse Location Configuration"}//add spacer
+                                ]});
+                            continue;
+                        }
+
                         //decide type of userinput
 						if (typeof (outputConfig[key]) == "string"){
                             //bool as string

@@ -18,4 +18,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 res.end();
 		}
 	});
+
+
+
 }

@@ -337,20 +337,20 @@ async function init(conf){
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobsajax_treegrid")(app, express);
     require("./node_components/views/getactivejobsajax_treegrid")(app, express);
-    require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/userlist")(app, express);
     require("./node_components/views/usergrouplist")(app, express);
     require("./node_components/views/usergrouprightslist")(app, express);
     require("./node_components/views/getworkflowlist")(app, passport);
     require("./node_components/views/getworkflowdetails")(app, passport);
     require("./node_components/views/scheduledjobs")(app, passport);
+    require("./node_components/views/browselocations")(app, express);
     require("./node_components/get_userpermissions")(app, passport);
     require("./node_components/resumeable_backend.js")(app, passport);
     require("./node_components/mediainfo.js")(app, passport);
 	require("./node_components/activedirectory_tester.js")(app, passport);
 	require("./node_components/admin_alert_email_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
-    
+    require("./node_components/databasemaintenance")(app, express);
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 

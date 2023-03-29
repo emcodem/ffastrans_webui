@@ -122,7 +122,8 @@ async function init(){
         type: "wide",//"line" | "wide" | "space" | "none";
         rows: [
                     {
-                        cols: [{
+                        cols: [
+                            {
                                 id: "left",
                                 header: "Review Items",
                                 resizable:true,
@@ -133,7 +134,8 @@ async function init(){
                                 header: "Options",
                                 id: "right",
                                 resizable:true
-                            }]
+                            }
+                        ]
                     }
                 ]
     };
@@ -213,6 +215,7 @@ async function afterRowSelect(row){
     //reset current dataview
     document.getElementById("dataview_container").innerHTML = "";
 
+    console.log("configherader",m_mainLayout.getCell("right").config.header)
     m_mainLayout.getCell("right").config.header = getReviewProcessorInput(selcel[0].row.ticket,"info")
     m_mainLayout.getCell("right").paint()
     const template = ({name, description }) => (`

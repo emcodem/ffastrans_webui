@@ -104,7 +104,8 @@ module.exports = {
                 {key:"FILTER_WORKFLOW_GROUP",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}},
                 {key:"FILTER_WORKFLOW_NAME",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}},
                 {key:"FILTER_WORKFLOW_VARIABLES",value:{'description':'Filters user_variables presented to the user',filter:".*?"}},
-                {key:"FILTER_JOBSTATUS_BUTTONS",value:{'description':'Filters what Buttons are available on Jobstatus page',filter:".*?"}}
+                {key:"FILTER_JOBSTATUS_BUTTONS",value:{'description':'Filters what Buttons are available on Jobstatus page',filter:".*?"}},
+                {key:"FILTER_BROWSE_LOCATIONS",value:{'description':'Filters Browse locations by folder name',filter:".*?"}}
             ];
             return rights;
     },

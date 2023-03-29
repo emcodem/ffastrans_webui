@@ -4712,8 +4712,9 @@ div.dhx_popup_dhx_skyblue div.dhx_popup_area td.dhx_popup_td div.dhxtreeview_dhx
   overflow: hidden;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
-.dhxform_obj_dhx_skyblue>button :hover {
-  background-color: #FFFFFF;
+.dhxform_obj_dhx_skyblue>button:hover {
+  background: linear-gradient(#F0F0F0, #d9d9d9);
+  background: -webkit-linear-gradient(#F0F0F0, #d9d9d9);
 
 }
 .dhxform_obj_dhx_skyblue>button  {

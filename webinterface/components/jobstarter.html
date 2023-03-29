@@ -71,7 +71,8 @@ var m_realUploadpath = "";
 
 /*load config from server*/
 function loadserverconfig(){
-   $.ajax({
+    
+    $.ajax({
         url:  ("/getserverconfig"),
         type: "GET",
         success: function (response) {
@@ -83,6 +84,14 @@ function loadserverconfig(){
             document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
         }
     });
+}
+
+async function loadBrowseLocations(){
+    var locations = await  $.ajax({
+        url:  ("/browselocations"),
+        type: "GET"
+    });
+    return locations;
 }
 
 function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
@@ -839,8 +848,7 @@ function addAjaxTooltip(dhxGrid,rowId){
     tippy(name_cell, {
         allowHTML: true,
         delay: [500],
-        
-        followCursor: true,
+        followCursor: false,
         onMount(instance) {
             //instance.hide();
         },
@@ -888,24 +896,35 @@ function addAjaxTooltip(dhxGrid,rowId){
 
 }
 
-function getBrowseLocations(){
+async function getBrowseLocations(){
    //locations from admin config
-   for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
-        m_fileBrowseGridMenu.addNewChild("location", i, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][i], m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES'][i], false,"","");
-   }
-   
-   //restore user locations
-   if (localStorage.getItem("savedbrowselocations")){
-        var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
-        for (i=0;i<_locs.length;i++){
-            m_fileBrowseGridMenu.addNewChild("location", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
+   try{
+        var locations = await loadBrowseLocations();
+        Object.keys(locations).forEach(function(displayname) {
+            var path = locations[displayname];
+            m_fileBrowseGridMenu.addNewChild("location", new Date(), path, displayname, false,"","");
+        });
+
+        // for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
+                
+        // }
+        
+        //restore user locations
+        if (localStorage.getItem("savedbrowselocations")){
+                var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
+                for (i=0;i<_locs.length;i++){
+                    m_fileBrowseGridMenu.addNewChild("location", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
+                }
         }
-   }
-   
-   if (localStorage.getItem("lastVisitedBrowseLocation")){
-        getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
-   }else{
-        getFileList(m_fileBrowserGrid, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][0]);    //load first available location
+        
+        if (localStorage.getItem("lastVisitedBrowseLocation")){
+                getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
+        }else{
+                getFileList(m_fileBrowserGrid, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][0]);    //load first available location
+        }
+   }catch(ex){
+        dhtmlx.alert("There was an error loading allowed Browse locations, contact Administrator");
+        console.error(ex);
    }
 }
 

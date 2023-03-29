@@ -21,10 +21,9 @@
 		color:black;
 		text-transform: none;
 	}
-	.testcss > .dhx_button:hover {
-		background-color: #efefef;
-		color:black;
-		text-transform: none;
+	.dhxform_obj_dhx_skyblue > button :hover {
+		background: linear-gradient(#cb1d1d, #000000);
+		
 	}
 </style>
 
@@ -60,7 +59,9 @@ function buildForm(){
 
     //LAYOUT
     m_mainLayout = new dhx.Layout(document.body, config);
-
+	const today_start = new Date().setHours(0,0,0);
+	const today_end   = new Date();
+	
 	var formconfig = {
     
     // sets alignment for rows
@@ -74,9 +75,8 @@ function buildForm(){
 				align: "center",  // "center", "end", "between", "around", "evenly"
 				rows:[
 					{cols: [
-							{type: "datepicker", enableTodayButton:true, name: "db_start_date", label: "Start Date", dateFormat: "%Y-%m-%d %H:%i:%s"},
-							//{type: "newcolumn", offset:20},
-							{type: "datepicker", name: "db_end_date", label: "End Date", dateFormat: "%Y-%m-%d %H:%i:%s"},   
+							{type: "datepicker", timePicker: true,range: true, value: [today_start], name: "db_start_date", label: "Date Start", dateFormat: "%Y-%m-%d %H:%i:%s"},
+							{type: "datepicker", timePicker: true,range: true, value: [today_end], name: "db_end_date", label: "Date End", dateFormat: "%Y-%m-%d %H:%i:%s"},   
 					]},
 					{cols: [
 							{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_export_history","hidden":false,name: "btn_export_history", width:100,value:"Export"},
@@ -87,8 +87,38 @@ function buildForm(){
 			}
 		]
 	}
-	const form = new dhx.Form(null, formconfig);
-	m_mainLayout.getCell("formcell").attach(form);
+	m_mainForm = new dhx.Form(null, formconfig);
+	m_mainLayout.getCell("formcell").attach(m_mainForm);
+	m_mainForm.events.on("click", function(name,e){
+		if(name == "btn_export_history")
+			do_export();
+		if(name == "btn_purge_history")
+			do_purge();
+	});	
+}
+
+function do_validate(){
+	var values = m_mainForm.getValue()
+	
+	if(values.db_start_date > values.db_end_date){
+		dhx.alert({
+			header:"Date error",
+			text:"Start date must be older than end date",
+			buttons: ["ok"],
+			buttonsAlignment:"center"
+		});
+		return false;
+	}
+	return true;
+}
+function do_export(){
+	var values = m_mainForm.getValue()
+	do_validate();
+}
+
+function do_purge(){
+	var values = m_mainForm.getValue()
+	do_validate();
 	
 }
 

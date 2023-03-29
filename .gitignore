@@ -10,3 +10,4 @@ alternate-server.old/
 *.log
 *.zip
 *.db
+*.log.*

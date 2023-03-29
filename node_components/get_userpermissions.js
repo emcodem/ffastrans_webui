@@ -2,6 +2,7 @@ var userpermissions = require("../node_components/userpermissions");
 
 module.exports = function(app, passport){
 //create navigation menu based on user permissions
+
 	app.get('/getusermenue', function(req, res) { 
 		console.log("Login called from getusermenue")
        passport.authenticate('local-login');//fills req.user with infos from cookie
