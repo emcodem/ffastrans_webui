@@ -1,6 +1,6 @@
 module.exports = function(app, express){
 //just output json array of array whole server config configured in server_config.js
-//TODO: should be renamed to client config, exclude admin config stuff
+//TODO: should be renamed to client config, exclude admin config stuff, move to views folder
 	app.get('/getserverconfig', (req, res) => {
         
 		try{

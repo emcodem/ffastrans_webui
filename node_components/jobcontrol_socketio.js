@@ -1,6 +1,6 @@
 const assert = require('assert');
 const Request = require("request");
-//todo: implement queued jobs
+//todo: delete this file when all was ported to new api
 module.exports = {
     pausejob: (cancelobj) => {
         cancelobj=JSON.parse(cancelobj)

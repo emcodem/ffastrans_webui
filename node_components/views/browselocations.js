@@ -23,28 +23,34 @@ module.exports = async function(app, passport){
 							});
 		}
 
-		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
-			//just add all locations to list
+
+		//loop through all permissions and collect allowed locations
+		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "true"){
+			var perms = await userpermissions.getpermissionlistAsync(req.user.local.username);
+			for (perm of perms){
+				if (perm.key == "FILTER_BROWSE_LOCATIONS"){
+					var matched = easylist.map(function(kv){
+						var filter = perm["value"]["filter"];
+						if (kv.key.toLowerCase().match(filter.toLowerCase())){
+							allowed_locations[kv.key] = kv.value;
+							return true;
+						}
+					});
+
+				}
+			}
+		}
+
+
+		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false" || Object.keys(allowed_locations).length == 0){
+			//just add all locations to list if no auth or no filter
 			easylist.map(function(kv){
 				allowed_locations[kv.key] = kv.value;
 			})
 			res.json(allowed_locations);
 			return;
 		}
-		//loop through all permissions and collect allowed locations
-		var perms = await userpermissions.getpermissionlistAsync(req.user.local.username);
-		for (perm of perms){
-			if (perm.key == "FILTER_BROWSE_LOCATIONS"){
-				var matched = easylist.map(function(kv){
-					var filter = perm["value"]["filter"];
-					if (kv.key.toLowerCase().match(filter.toLowerCase())){
-						allowed_locations[kv.key] = kv.value;
-						return true;
-					}
-				});
 
-			}
-		}
 		res.json(allowed_locations);
 	});
 

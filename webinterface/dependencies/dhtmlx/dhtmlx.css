@@ -1,4 +1,4 @@
-
+ 
 		
 .dhtmlxcalendar_ifr {
   position: absolute;
@@ -3644,8 +3644,8 @@ div.gridbox_dhx_skyblue.gridbox .ftr,
 div.gridbox_dhx_skyblue.gridbox .xhdr {
   color: #000000;
   background-color: #e0e0e0;
-  background: linear-gradient(#e0e0e0, #d9d9d9);
-  background: -webkit-linear-gradient(#e0e0e0, #d9d9d9);
+  /* background: linear-gradient(#e0e0e0, #d9d9d9); */
+  /* background: -webkit-linear-gradient(#e0e0e0, #d9d9d9); */
   filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#e0e0e0, endColorStr=#d9d9d9) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
 }
 div.gridbox_dhx_skyblue.isModern table.hdr tr td {
@@ -8461,9 +8461,39 @@ div.dhx_modal_cover {
 }
 
 div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected {
+ /* Row select for dhx5 grid */
   background-color:  #CCE8FF;
   background: linear-gradient(124deg, rgba(2,0,36,1) 0%, rgba(53,53,138,0.38139005602240894) 0%, rgba(107,157,199,0.6110819327731092) 0%);
+ 
+    
 }
+
+.dhx8_grid_row{
+  /* dhx8 grid row selection */
+    --dhx-color-primary: #8695c0;
+    --dhx-s-grid-selection-background: #0079ffd6;
+}
+
+.dhx8_grid_row_alternate .dhx_grid-row {
+    background: #ffffff;
+}
+
+.dhx8_grid_row_alternate .dhx_grid-row:nth-child(2n) {
+    background: #e5e5e5;
+}
+
+/* .dxi.dxi-dots-vertical:before {
+  /*
+    dhx8 layout by default has just a very little drag area (three dots)
+    F11F are the three dots from original dhtmlx stylesheet, we additionally set 100% height and hide the dots
+    this causes the resize area to work as dhx5, e.g. you can drag anywhere not only on three dots
+  
+    content: "\F11F";
+    height: 100%;
+    opacity:0;
+} */
+
+
 div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td {
  
 }
@@ -8516,4 +8546,23 @@ ul.fancytree-container{/* workflow selection */
 
 .ui-fancytree.fancytree-container.fancytree-plain.fancytree-ext-multi{
      background-color:#fefefe;
+}
+
+/* various dhx8 theme changes, need to delete when using builtin dark theme */
+:root,[data-dhx-theme]{
+  --dhx-s-grid-header-background: #e0e0e0
+}
+:root,[data-dhx-theme]{
+--dhx-font-color-primary:-webkit-linear-gradient(#e0e0e0, #d9d9d9)
+}
+
+/* review right header */
+[data-cell-id="right_header"]{
+ padding-top:3;
+ padding-left:10;
+ white-space: nowrap;
+}
+
+.dhx_navbar-title{
+  color:grey
 }

@@ -3,23 +3,22 @@ var userpermissions = require("../node_components/userpermissions");
 module.exports = function(app, passport){
 //create navigation menu based on user permissions
 
-	app.get('/getusermenue', function(req, res) { 
+	app.get('/getusermenue', async function(req, res) { 
 		console.log("Login called from getusermenue")
-       passport.authenticate('local-login');//fills req.user with infos from cookie
+        passport.authenticate('local-login');//fills req.user with infos from cookie
        if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
            var allperms = userpermissions.getallallpossiblemenupermissions();
            renderUserMenue(req,res,allperms);
        }else{
-           userpermissions.getpermissionlist (req.user.local.username,function(data){
-                //as we now have all userpermissions, finish web request, 
-                try{
-                        renderUserMenue(req, res, data);  
-                }catch (ex){
-                        console.log("ERROR: unxepected error in index.js: " + ex);
-                        res.status(500);//Send error response here
-                        res.end();
-                }            
-           })
+			try{			
+				var data = await (userpermissions.getpermissionlistAsync (req.user.local.username));
+				renderUserMenue(req, res, data);  
+			}catch (ex){
+					console.log("ERROR: unxepected error in index.js: " + ex);
+					res.status(500);//Send error response here
+					res.end();
+			}   
+			
         }//else
 	});
 

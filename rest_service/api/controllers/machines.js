@@ -25,9 +25,10 @@ async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
 	    var o_return = {};
         var workflow_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/hosts/");
-        
         o_return["machines"] = await _jsonfiles_to_array(workflow_folder);
-       
+        o_return["machines"] = o_return["machines"].filter(o=>{
+            return (("last_heartbeat" in o) && o.last_heartbeat != "");//excludes machines that only opened status monitor
+         });
 		res.json(o_return);
 		res.end();
 	} catch(err) {

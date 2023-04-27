@@ -14,9 +14,15 @@ const path = require("path");
 const request = require("request");
 const fs = require("fs");
 const dns = require('node:dns');
+const YAML = require('yamljs');
+const swaggerUi = require('swagger-ui-express');
+/* swagger init */
+const { initialize } = require('express-openapi');
+
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 
-//start_server(3003,"C:\\dev\\ffastrans_webui\\rest_service","C:\\dev\\FFAStrans\\");
+//start_server("localhost",65445,3003);
+
 exports.init = function (_host, _hostport, _listenport) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
 	start_server(_host, _hostport, _listenport);
@@ -68,7 +74,6 @@ async function renewInstallInfo(about_url){
 
 function handleListenError(err){
 	console.log(err)//prevents the program keeps running when port is in use
-			
 }
 
 async function start_server(_host, _hostport, _listenport){
@@ -106,7 +111,7 @@ async function start_server(_host, _hostport, _listenport){
     const bodyParser = require('body-parser');
 
     app.use((req, res, next) => {
-        if (['PATCH', 'POST', 'PUT'].includes(req.method) && !req.is('application/json')) {
+        if (!req.is('application/json') && ['PATCH', 'POST', 'PUT'].includes(req.method)){
             //we didnt quickly find out how to make bodyParser support any content-type so we need application/json for POST
             res.status(400);
             res.json({"message":"you must set content-type:application/json"})
@@ -121,10 +126,12 @@ async function start_server(_host, _hostport, _listenport){
 
     //startup server
     console.log('\x1b[32mNew API starting up...') 
-	var path_to_privkey = global.approot  	+ '/cert/key.pem';
-	var path_to_cert = global.approot  		+ '/cert/cert.pem';
-	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
-	if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+
+	if ("config" in global && global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+		//only when started from webint server.js, global.config exists
+		var path_to_privkey = global.approot  	+ '/cert/key.pem';
+		var path_to_cert = global.approot  		+ '/cert/cert.pem';
+		var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
 		const https = require('https');
 		const httpsServer = https.createServer({
 		  key: fs.readFileSync(path_to_privkey),
@@ -144,37 +151,57 @@ async function start_server(_host, _hostport, _listenport){
     }
     console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
 
-    /* swagger init */
-    let { initialize } = require('express-openapi');
-    
-    console.log("Approt: ", _approot);
+    var all_swag_operations = {
+        /* most or all of our controllers serve v2 and v3, so we just register all operations at once, even if the yamls might not use all of them */
+        /* add new operationids from swagger.yaml here */
+        hello:              require(_approot + "/api/controllers/hello_world").get,
+        get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
+        get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
+        get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
+        tickets:            require(_approot + "/api/controllers/tickets").get,
+        machines:           require(_approot + "/api/controllers/machines").get,
+        metrics:            require(_approot + "/api/controllers/metrics").get,
+        review:             require(_approot + "/api/controllers/review").get,
+        review_delete:      require(_approot + "/api/controllers/review").do_delete,
+        jobs :              require(_approot + "/api/controllers/jobs").get,
+        workflow_post :     require(_approot + "/api/controllers/workflows").post,
+        workflows :         require(_approot + "/api/controllers/workflows").get,
+        workflows_v2 :      require(_approot + "/api/controllers/workflows").get,
+        variables :         require(_approot + "/api/controllers/variables").get,
+        variables_post :    require(_approot + "/api/controllers/variables").post,
+        variables_delete :  require(_approot + "/api/controllers/variables").delete
+    }
+
     var swag_config = {
         app,
         apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
-        operations: {
-            /* add new methods of swagger.yaml here */
-            hello:              require(_approot + "/api/controllers/hello_world").get,
-            get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
-            get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
-            get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
-			tickets:            require(_approot + "/api/controllers/tickets").get,
-            machines:           require(_approot + "/api/controllers/machines").get,
-            metrics:            require(_approot + "/api/controllers/metrics").get,
-            review:             require(_approot + "/api/controllers/review").get,
-            review_delete:      require(_approot + "/api/controllers/review").do_delete,
-            jobs :              require(_approot + "/api/controllers/jobs").get,
-            workflows :         require(_approot + "/api/controllers/workflows").get,
-            workflows_old :     require(_approot + "/api/controllers/workflows").get,
-        }
+        operations: all_swag_operations
 	};
 
     initialize(swag_config);
-    //still swagger
-	const swaggerUi = require('swagger-ui-express');
-    const YAML = require('yamljs');
+
+    var swag_config_v2_api = {
+        app,
+        apiDoc: _approot + "/api/swagger/swagger_v2_api.yaml", // required config
+        operations: {
+            /* add new methods of swagger.yaml here */   
+            operations: all_swag_operations
+        }
+	};
+
+    //initialize(swag_config_v2_api);
+
+    //finally, initalize swagger UI by loading the yaml files (which point to the operations)
+	
+    
+    //v2 api
+    //TODO:find out why v2 dont work
+    var _v2_yaml_location = path.join(__dirname, '/api/swagger/swagger_v2_api.yaml');
+    const v2swaggerDocument = YAML.load(_v2_yaml_location);
+    app.use('/api', swaggerUi.serve, swaggerUi.setup(v2swaggerDocument));
+    //v3 api
     var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
 	const swaggerDocument = YAML.load(_yaml_location);
 	app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
 
 }

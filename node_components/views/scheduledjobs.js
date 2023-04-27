@@ -58,20 +58,19 @@ module.exports = function(app, passport){
                         res.write(JSON.stringify("{'success':'true'}"));//output json array to client
                         res.end();
                     })
-            }) 
-           
+            })
     })
     
     //start job NOW
-	app.post('/immediateexecute', (req, res) => {
+	app.post('/immediateexecute', async (req, res) => {
 		try{
             console.log("start: " + req.body.jobid + " from client: " + req.body.socketid)
-            global.jobScheduler.executeImmediate(req.body.jobid,req.body.socketid,function(pid){
-                res.writeHead(200,{"Content-Type" : "application/JSON"});
-                res.write(JSON.stringify({'pid':pid}));//output json array to client
-                res.end();
-                return;                
-            });
+            var pid = await global.jobScheduler.executeImmediate(req.body.jobid,req.body.socketid)
+            res.writeHead(200,{"Content-Type" : "application/JSON"});
+            res.write(JSON.stringify({'success':req.body.socketid,"pid":pid}));//output json array to client
+            res.end();
+            return;                
+        
 		}catch (ex){
 				console.log("ERROR: unxepected error in schedulejobs.js: " + ex);
                 res.status(500);//Send error response here

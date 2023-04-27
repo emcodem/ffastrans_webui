@@ -3,6 +3,7 @@ var path = require('path');
 const mediainfo = require('node-mediainfo');
 
 module.exports = function(app, express){
+    //todo:move to views folder
     app.get('/mediainfohtml',  async  (req, res) => {
             try{
                 var baseFolder;

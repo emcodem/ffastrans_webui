@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
- <script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
+<script src="common/webuiVariables.js"></script> 
 
  <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
 
@@ -67,6 +67,15 @@
 		margin-right: 6px;
         display:block;
     }
+    .dhx_grid-cell{
+        font-family: Tahoma !important;
+        font-size: 12px !important;
+    }
+    .dhx_grid-footer-cell, .dhx_grid-header-cell {
+        font-family: Tahoma !important;
+        font-size: 12px !important;
+    }
+
 
 </style>
 
@@ -78,6 +87,8 @@ var socket = io();
 //dhtmlx ui
 var m_serverconfig,m_mainLayout,m_maingrid;
 var m_realUploadpath = "";
+var m_lastResponse = "";
+
 
 
 /*load config from server*/
@@ -99,9 +110,10 @@ function loadserverconfig(){
 /*load review queue server*/
 async function loadqueue(){
     const result = await $.ajax({
-        url: build_new_api_url("/review"),
+        url: "/review",
         type: 'GET',
     });
+    
     return result;
 }
 
@@ -118,37 +130,57 @@ function build_new_api_url(what) {
 /* build basic page layout and init periodic job loading*/
 async function init(){
     //main layout
-    const config = {
-        type: "wide",//"line" | "wide" | "space" | "none";
-        rows: [
-                    {
-                        cols: [
-                            {
-                                id: "left",
-                                header: "Review Items",
-                                resizable:true,
-                                width:"50%",
-                                css:"dhxlayout_base_dhx_skyblue dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr"
-                            },
-                            {
-                                header: "Options",
-                                id: "right",
-                                resizable:true
-                            }
-                        ]
-                    }
-                ]
-    };
+    m_mainLayout = new dhx.Layout(document.body, {
+    type: "space",
+        cols: [
+            {
+                id: "left",
+                resizable:true,
+                
+                width:"50%"
+            },
+            {
+                
+                id: "right",
+            },
+        ]
+    });
 
-    //LAYOUT
-    m_mainLayout = new dhx.Layout(document.body, config);
+    m_layout_left = new dhx.Layout(null, {
+        type: "line",
+        rows: [
+            {
+                id: "left_content",
+                html: "2",
+            },
+        ]
+    });
+
+    m_layout_right = new dhx.Layout(null, {
+        type: "line",
+        rows: [
+            {
+                id: "right_header",
+                height:40,
+                css:"displayflex dhxlayout_base_dhx_skyblue dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr",
+            },
+            {
+                id: "right_content",
+            },
+        ]
+    });
+
+    m_mainLayout.getCell("left").attach(m_layout_left);
+    m_mainLayout.getCell("right").attach(m_layout_right);
 
     //GRID
     m_maingrid = new dhx.Grid("grid", {
+        css: "dhx8_grid_row_alternate dhx8_grid_row",
         columns: [
-            { width: 400, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
-            { width: 400, id: "info", header: [{ text: "Info" }, { content: "inputFilter" }] },
-            { width: 200, id: "date", header: [{ text: "Date" }, { content: "inputFilter" }] }
+            { width: getGridSize("date",150),resize: true, align: "left", id: "date", type:"date",format: "%Y-%m-%d %H:%i:%s",header: [{ text: "Date" }, { content: "inputFilter" }] },
+            { width: getGridSize("wf_name",250),resize: true, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
+            { resize: true, id: "info", header: [{ text: "Info" }, { content: "inputFilter" }] },
+            
         ],
         autoWidth: true,
         resizable: true,//allow manual resize
@@ -156,10 +188,24 @@ async function init(){
         multiselection: false,
         htmlEnable: true
     });
+    m_maingrid.events.on("resize", function(col,e){
+        return
+        console.log("Saving grid size ",col.id,col.width )
+        localStorage.setItem("review_mgrid_" + col.id,col.width);
+    });
+
+    function getGridSize(id,_default){
+        var value = localStorage.getItem("review_mgrid_" + id);
+        console.log("Restoring gridsize ",id,value)
+        if (value)
+            return value;
+        return _default;
+        
+    }
 
     //attaches content to cells
-    m_mainLayout.getCell("left").attach(m_maingrid);
-    m_mainLayout.getCell("right").attachHTML('<div id="dataview_container"  style="height: 600px; margin: 20px;"></div>');
+    m_layout_left.getCell("left_content").attach(m_maingrid);
+    m_layout_right.getCell("right_content").attachHTML('<div id="dataview_container"  style="height: 600px; margin: 20px;"></div>');
 
     m_maingrid.selection.events.on("AfterSelect", function(row, col){
         afterRowSelect(row)
@@ -182,10 +228,24 @@ async function init(){
         });
     },3000)
     var q = await loadqueue();
+    //load grid data
     updateGrid(q);
 
-    return ;
+    /* global keypress handler */
+    function KeyPress(e) {
+                var evtobj = window.event ? event : e
+                //Do action on SHIFT + DELEETE
+                if (evtobj.keyCode == 46 && evtobj.shiftKey) {
+                    var selected = getSelectedGridRows();
+                    console.log("Deleting selected row",selected)
+                    //deleteReviewJob(selected[0].row.ticket.review_file);
+                    m_maingrid.hideRow(selected[0].row.id);
+                    //alert("Shift + Delete Pressed");
+                }
+            }
+    document.onkeydown = KeyPress;
 
+    return ;
 }
 
 function getSelectedGridRows(){
@@ -202,6 +262,7 @@ function getSelectedGridRows(){
         return []
 }
 
+
 async function afterRowSelect(row){
     //GRID ROW SELECT, paint state1 view (processor outbounds)
     //in short: each outbound is a dataview item and when clicked, we use it's (node) id and the ticket
@@ -214,18 +275,17 @@ async function afterRowSelect(row){
 
     //reset current dataview
     document.getElementById("dataview_container").innerHTML = "";
-
-    console.log("configherader",m_mainLayout.getCell("right").config.header)
-    m_mainLayout.getCell("right").config.header = getReviewProcessorInput(selcel[0].row.ticket,"info")
-    m_mainLayout.getCell("right").paint()
+    
+    m_layout_right.getCell("right_header").attachHTML("<div style='display:flex;width:100%;padding:2px'>" + getReviewProcessorInput(selcel[0].row.ticket,"info") + "</div>");
+    m_layout_right.getCell("right_content").paint()
     const template = ({name, description }) => (`
         <div>
             <h3 style='margin: 0'>${name}</h3>
-            <p style='margin: 4px'>${description}</p>
+            <p style='margin: 4px'>${description || ''}</p>
         </div>
     `);
     
-    var is_there = m_mainLayout.getCell("right").getWidget();
+    var is_there = m_layout_right.getCell("right_content").getWidget();
 
     const dataview = new dhx.DataView("dataview_container", {
                 itemsInRow: 1,
@@ -268,24 +328,28 @@ async function parseWorkflowVariables(wf_id){
                             var_obj = eval("var eval_data = " + var_obj);
                             var_obj = eval_data;
                             //var_obj.id = _cur.name;
-                            var_obj.name = _cur.name;
+                            var_obj.name = _cur.name; //puts the actual ffastrans variable name to form name for later name-value mapping
+                            
                         }catch(exc){
-                            throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + errormsg);
+                            throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
                         }
                         console.log("form input: ",var_obj)
                         //FINALLY push the stuff into form rows
                         dhx8_form_rows.push(var_obj);
                     }
                 }catch(exc){
-                    throw new Error("#2 Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + errormsg);
+                    throw new Error("#2 Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
                 }
             }
         }
         return dhx8_form_rows;
     }catch(ex){
-        alert("there was an error getting workflow variables for wf_id " +wf_id + " Error: "+ ex)
+        alert("there was an error getting workflow variables for wf_id " +wf_id + " Error: "+ ex.stack)
     }
 }
+
+
+
 
 function getReviewProcessorConfig(outbound){
     //match 
@@ -337,11 +401,9 @@ async function afterStage1Select(outbound){
                 const regexp = /(%.+?%)/g;
                 const matches = outbound.gui_config.matchAll(regexp);
                 for (const match of matches) {
-                    //if (match[1] != ""){
-  
                     if (match[1] == current_var_name){
-                        configured_variables.push(all_variables[i])
-                        outbound.gui_config = outbound.gui_config.replace(current_var_name,""); //remove this var from proc config so only possible html stays 
+                        configured_variables.push(translateDhx5To8Vars(all_variables[i]))
+                        outbound.gui_config = outbound.gui_config.replace(current_var_name,""); //remove this var name from gui_config string so the remaining stuff can be displayed as text/html(if any)
                     }
                 }
             }
@@ -356,10 +418,11 @@ async function afterStage1Select(outbound){
         }catch(ex){
             html = "No options to display.";
         }
+        console.log("selected outpboud",outbound)
         console.log("winding up window",outbound);
             const dhxWindow = new dhx.Window({
                 header: true,
-                title: getReviewProcessorInput(outbound.ticket,"info"),
+                title: outbound.name,
                 modal: false,
                 movable: true,
                 closable:true,
@@ -367,36 +430,37 @@ async function afterStage1Select(outbound){
                 resizable:true,
                 customFullScreen:false
             });
-            dhxWindow.header.data.add({icon: "mdi mdi-fullscreen", id: "fullscreen"}, 2);
+            //window dimensions
+            //dhxWindow.setSize(window.innerWidth/100*80, window.innerHeight/100*80);
+            //dhxWindow.header.data.add({icon: "mdi mdi-fullscreen", id: "fullscreen"}, 2);
             
-            //window event fullscreen
-            // dhxWindow.header.events.on("click", function (id) {
-            //     if (id === "fullscreen") {
-            //         if (dhxWindow.customFullScreen) {
-            //             dhxWindow.unsetFullScreen();
-            //             dhxWindow.customFullScreen = false;
-            //         } else {
-            //             dhxWindow.setFullScreen();
-            //             dhxWindow.setFullScreen();
-            //             dhxWindow.customFullScreen = true;
-            //         }
-                    
-            //     }
-            // });
-
             console.log("formrows",configured_variables);
+
             //add submit btn
             configured_variables.push({view:"link",circle:true,full:true,type: "button",name: "button",text: "Send",view: "flat",color: "primary"});
             
             //init form
-            const form = new dhx.Form(null, {
-                css: "dhx_widget--bordered",
-                rows: configured_variables
-            });
+            var form = null;
+            try{
+                form = new dhx.Form(null, {
+                    css: "dhx_widget--bordered",
+                    rows: configured_variables
+                });
+            }catch(ex){
+                alert("Error, contact Administrator. Message: Error initializing form, are your variable definitions ok? Check console for more info.")
+                console.error(ex);
+                return;
+            }
             //store config with button
             form.getItem("button")["outbound"] = outbound;
             //form events
-            form.getItem("button").events.on("click", async function(events) {
+            form.getItem("button").events.on("click", async function(events){
+                //validate form 
+                const result = form.validate(true); 
+                if (!result){
+                    alert("Error, please check Form fields");
+                    return;
+                }
                 //SUBMIT THE JOB(s)
                 var final_vars_to_submit = collectVariables(form);
                 console.log("final vars:",final_vars_to_submit)
@@ -412,13 +476,15 @@ async function afterStage1Select(outbound){
                 api_job.inputfile   = outbound.ticket.job.sources.current_file;
                 try{
                     //todo: parse and add variables from form
-                    submitJob(api_job,outbound);
+                    await submitJob(api_job,outbound);
                     dhxWindow.destructor();
                     var q = await loadqueue();
                     updateGrid(q);
                     document.getElementById("dataview_container").innerHTML = "";
-                    m_mainLayout.getCell("right").config.header = "";
-                    m_mainLayout.getCell("right").paint()
+                    //clear right header
+                    m_layout_right.getCell("right_header").attachHTML("");
+                    m_layout_right.getCell("right_header").paint();
+
                 }catch(ex){
                     alert("Error deleting review ticket, contact developer. "+ ex);
                     console.log("Error deleting",outbound,ex)
@@ -454,6 +520,14 @@ function collectVariables(form){
     return ffasvars;
 }
 
+async function deleteReviewJob(file){
+        var del_url = build_new_api_url("/review/?filename=" + encodeURIComponent(file));
+        var delres = await $.ajax({
+            url: del_url,
+            type: "DELETE"
+        });
+}
+
 async function submitJob(apiJob,outbound){
         var url = build_new_api_url("/api/json/v2/jobs");
         var result = await $.ajax({
@@ -463,11 +537,7 @@ async function submitJob(apiJob,outbound){
             dataType: "json",
             data: JSON.stringify(apiJob)
         });
-        var del_url = build_new_api_url("/review/?filename=" + outbound.ticket["review_file"])
-        var delres = await $.ajax({
-            url: del_url,
-            type: "DELETE"
-        });
+        await deleteReviewJob(outbound.ticket["review_file"])
         return result;
 }
 
@@ -523,7 +593,18 @@ function displayVariables(m_subForm){
 }
 
 function updateGrid(q){
-    var gridData = []
+    try{
+        var a = JSON.stringify(m_lastResponse);
+        var b = JSON.stringify(q)
+    
+        if (a == b)
+            return
+    }catch(ex){
+        console.log(ex,m_lastResponse);
+    }
+
+    m_lastResponse = q;
+    var gridData = [];
     //Save selection
     var selected = getSelectedGridRows();
     var sorting = m_maingrid.getSortingState(); 
@@ -536,9 +617,9 @@ function updateGrid(q){
     //update rows
     q.forEach(function(ticket){
         try{
-            ticket = JSON.parse(ticket);
-            var s_source = "<span class='celltext_rtl'>" + ticket.job.sources.current_file + "</span>"
-            var row = {"id":ticket.review_file,"wf_name":ticket.workflow.wf_name,"info":getReviewProcessorInput(ticket,"info"),"date":ticket.job.submit.time,"ticket":ticket};
+            var s_source = "<span class='celltext_rtl'>" + ticket.job.sources.current_file + "</span>";
+
+            var row = {height:30,"id":ticket.review_file,"wf_name":ticket.workflow.wf_name,"info":getReviewProcessorInput(ticket,"info"),"date":new Date(ticket.job.submit.time),"ticket":ticket};
             gridData.push(row)
         }catch(e){
             alert("Could not parse q ticket, see console.");
@@ -556,8 +637,10 @@ function updateGrid(q){
 
     //restore sorting
     if (!sorting.dir){
+        console.log("sorting dir not defined, sorcing asc date")
         m_maingrid.data.sort({dir: 'desc', by: 'date'});
     }else{
+        console.log("Sorting was defined, restoring ",sorting)
         m_maingrid.data.sort(sorting);
     }
     
@@ -641,7 +724,7 @@ async function getWorkflows(){
         },
         error: function (xhr, status) {
             m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you have an invalid expression in filter regex");
         }
     });
 }

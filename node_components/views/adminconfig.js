@@ -3,6 +3,7 @@ module.exports = function(app, express){
 var configServer = require(global.approot  + '/node_components/server_config');
 
 	app.get('/adminconfig', (req, res) => {
+        return false; //not needed anymore
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                 //basic fieldset, parent of all inputs
@@ -15,7 +16,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 fieldset_purge.label = "Database";
 				fieldset_purge.inputWidth = 500;
                 fieldset_purge.position = "label-top";
-                fieldset_purge.width= 800;
+                fieldset_purge.width= 650;
                 fieldset_purge.offsetTop = 20;
                 fieldset_purge.offsetLeft = 20;
 				fieldset_purge.list =[];
@@ -30,7 +31,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
                 fieldset.label = "Server Configuration";
                 fieldset.inputWidth = 500;
                 fieldset.position = "label-top";
-                fieldset.width= 800;
+                fieldset.width= 650;
                 fieldset.offsetTop = 20;
                 fieldset.offsetLeft = 20;
                 fieldset.list =[];//all inputs are pushed to this list
@@ -49,8 +50,9 @@ var configServer = require(global.approot  + '/node_components/server_config');
                         var disabled = false;
                         //hide some items
                         if (key.indexOf("_URL")!=-1){disabled=true;}
-                        
                         if (key.indexOf("STATIC_USE_PROXY_URL")!=-1){disabled=true;height:0}
+                        if (key.indexOf("STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT")!=-1){disabled=true;height:0}
+                        if (key.indexOf("STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT")!=-1){disabled=true;height:0}
 						if (key.indexOf("alternate-server")!=-1){disabled=true;height:0}
                         if (key.indexOf("prometheus_targets")!=-1){disabled=true;height:0}
 						//filter special items
@@ -82,11 +84,13 @@ var configServer = require(global.approot  + '/node_components/server_config');
 
                         //add special btn for browselocation config
                         if (key == "STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES"){//hide because next if shows the corresponding control for both
-							continue;
+							disabled=true;
+                            continue;
 						}
                         if (key == "STATIC_ALLOWED_BROWSE_LOCATIONS"){
+                            disabled=true;
                             fieldset.list.push(
-                                {type: "fieldset", width:600,"hidden":disabled, label: "Browse Locations", list: [
+                                {type: "fieldset", width:600, label: "Browse Locations", list: [
                                     {type:"button", id:"btn_browse_locations", name: "btn_browse_locations", width:550,label: "<b>1</b>",value:"Browse Location Configuration"}//add spacer
                                 ]});
                             continue;
@@ -138,9 +142,20 @@ var configServer = require(global.approot  + '/node_components/server_config');
     
     //SAVE back to database
     app.post('/adminconfig', (req, res) => {
-        console.log("Saving admin config in database");
+       console.log("Saving admin config in database");
        var data = req.body;
        var toSave = {};
+       if (("STATIC_USE_WEB_AUTHENTIFICATION" in data) && !data["STATIC_USE_WEB_AUTHENTIFICATION"].match("true|false")){
+            res.write("WEB_AUTHENTIFICATION must be \"true\" or \"false\"");
+            res.status(500);
+            res.end();
+        }
+
+       if (!("STATIC_ALLOWED_BROWSE_LOCATIONS" in data)){
+            //browselocations are configured in window, the standard admin page does not have those fields anymore so they would be kicked out if we dont restore them here
+            data.STATIC_ALLOWED_BROWSE_LOCATIONS                = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS;
+            data.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES  = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES;
+       }
        for (const key in data) {
           if (key.indexOf("csv_")!=-1){
               var newName = key.replace("csv__","");

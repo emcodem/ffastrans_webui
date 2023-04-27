@@ -40,32 +40,37 @@
         border:none;
     }
 
-    @media all and (max-width: 1000px){
-        .div_cancel_jobs{
+    @media all and (max-width: 1100px){
+        .div_logged_in_users{
             display: none !important;
         }
     }
     @media all and (max-width: 900px){
-        .div_error_jobs{
+        .div_cancel_jobs{
             display: none !important;
         }
     }
     @media all and (max-width: 800px){
-        .div_success_jobs{
+        .div_error_jobs{
             display: none !important;
         }
     }
     @media all and (max-width: 700px){
-        .div_queued_jobs{
+        .div_success_jobs{
             display: none !important;
         }
     }
     @media all and (max-width: 600px){
+        .div_queued_jobs{
+            display: none !important;
+        }
+    }
+    @media all and (max-width: 500px){
         .div_incoming_jobs{
             display: none !important;
         }
     }
-    @media all and (max-width: 1200px){
+    @media all and (max-width: 950px){
         .helmet {
             display: none !important;
         }
@@ -74,7 +79,8 @@
     header {
         background: #333;
         border-bottom: 3px solid #aaa;
-        height: 80px;
+        height: 57px;
+        /*background: linear-gradient(50deg, rgba(85,85,85,1) 0%, rgba(51,51,51,1) 48%, rgba(17,17,17,1) 100%);*/
     }
 
     header h1 {
@@ -93,20 +99,23 @@
     .counter_jobs {
       color: #ccc;
       border-radius: 5px;
-      border: 2px solid #ccc;
-      width: 80px;
-      height: 60px;
+      border: 1.5px solid #ccc;
+      width: 53px;
+      height: 40px;
       background-color: #333;
       font-size:20px;
       font-family:"Times New Roman";
       display:inline;
       margin-bottom: 0;
       position: absolute;
-      display: block;
-      font-size:12px;
+      display: table;
+      font-size: 10px;
       font-family:arial;
       margin-top: 8px;
-
+      text-align:center;
+      padding-top: 1px;
+      position: relative;
+      float: left;
     }
     .vertical-center {
       margin: 0;
@@ -116,25 +125,25 @@
     }
 
     .div_active_jobs {
-        margin-left:350px;
+        margin-left: 0px;
     }
     .div_incoming_jobs {
-        margin-left:450px;
+        margin-left: 10px;
     }
     .div_queued_jobs {
-        margin-left:550px;
+        margin-left: 10px;
     }
     .div_success_jobs {
-        margin-left:650px;
+        margin-left: 10px;
     }
     .div_error_jobs {
-        margin-left:750px;
+        margin-left: 10px;
     }
     .div_cancel_jobs {
-        margin-left:850px;
+        margin-left: 10px;
     }
     .div_logged_in_users {
-        margin-left:950px;
+        margin-left: 10px;
         visibility:hidden;
     }
 
@@ -145,51 +154,63 @@
         margin-right:10px;
         height: 50px;
         color:white;
+        position: relative;
     }
+
+    .counter_container{
+        display:flex;
+        position: absolute;
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+    }
+
     .header_counter_number{
       margin: auto;
-      height: 60%;
+      /* height: 60%; */
       text-align: center;
       vertical-align: middle;
-      line-height: 30px;
-      font-size: 20px;
+      /* line-height: 30px; */
+      font-size: 14px;
       display: block;
-      margin-top: 3px;
-
+      margin-top: 2px;
       }
     .steinar {
         height: 30%;
         margin-top: 16px;
     }
-    .emcodem{
-
-		height:40%;
-		margin-top: 10px;
-    }
+    .emcodem{height:40%;margin-top: 12px;}
     .benjamin{
         height: 30%;
         margin-top: 16px;
     }
     .brand_image{
-        margin-top:16px;
+        margin-top: 6px;
         position:relative;
     }
 
     .ffastransheadertext{
        display: inline-block;
        position:relative;
-       font-size:30px;
+       font-size: 20px;
        margin-left:3px;
        opacity:0.97;
        text-shadow:1px 1px #888;
     }
     .instancename{
        display: inline-block;
-       margin-left:20px;
+       margin-left: 5px;
        margin-top:-4px;
-       font-size:22px;
+       font-size: 18px;
     }
- 
+    .webint_version{
+        color:white;
+        font-size: 8;
+        position: fixed;
+        right: 0;
+        margin-top: 2;
+        height:10px;
+    }
 	/*.dhxlayout_base_material div.dhx_cell_layout {
 	  background-color: #333;
 	}
@@ -210,13 +231,36 @@
         cursor: pointer;
         overflow: hidden;
         white-space:nowrap;
-
+        text-decoration:none;
+        position:relative;
 	}
 
 	.menuitem:hover {
 	  /*opacity: 0.8;*/
 	  transform: scale(1.1); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
 	}
+
+    .reviewcount {
+        visibility:hidden;
+        content: attr(data-count);
+        width: 15px;
+        height: 15px;
+        text-align: center;
+        display: block;
+        border-radius: 20%;
+        background: #FF9727;
+        border: 1px solid #FFF;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        color: #FFF;
+        font-size: 10;
+        line-height: 15px;
+        text-decoration: none;
+        margin-top: 4px;
+        margin-left: 30px;
+        position: fixed;
+        z-index:1;
+    }
+
 </style>
 
 <script>
@@ -280,24 +324,26 @@ function updateJobCount(){
         url:  ("/getworkflowjobcount") ,
         type: "GET",
         success: function (msg) {
-            console.log("Workflow job count",msg);
+
             document.getElementById("cancelledjobcount").innerHTML  = msg.sys.Cancelled;
             document.getElementById("successjobcount").innerHTML    = msg.sys.Success;
             document.getElementById("errorjobcount").innerHTML      = msg.sys.Error;
             document.getElementById("activejobcount").innerHTML     = msg.sys.Running;  
             document.getElementById("queuedjobcount").innerHTML     = msg.sys.Queued;
             document.getElementById("incomingjobcount").innerHTML   = msg.sys.Incoming;
+            document.getElementById("GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE").innerHTML = msg.sys.Review < 100 ? msg.sys.Review : 99;
+            if (msg.sys.Review != 0){
+                document.getElementById("GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE").style.visibility = "visible";
+            }else{
+                console.log("Review count is zero, hiding notifier")
+            }       
         },
         error: function (xhr, status) {
             console.log("Error updateing jobcount");
         }
     });
 }
-window.setInterval(function(){
-    /* update job counters */
-    updateJobCount()
 
-},5000)
 
 
 function inIframe () {
@@ -308,10 +354,22 @@ function inIframe () {
     }
 }
 
+function hideHeader(){
+    document.querySelector('[data-cell-id="top"]').style.height = 0;
+}
 
+function showHeader(){
+    document.querySelector('[data-cell-id="top"]').style.height = "57px";
+}
+
+async function setVersion(){
+    var version = await fetch("/webinterface/version.txt");
+    version = await version.text();
+    document.getElementById("webint_version").innerHTML = "Version " +version;
+}
 /* build basic page layout and init periodic job loading*/
 async function init(permissions){
-	updateJobCount();
+
 	//checks if i am an iframe, if yes, user was most likely logged out and we want to reload
 	if (inIframe()){
 		parent.location.reload()
@@ -322,14 +380,7 @@ async function init(permissions){
     } else {
         dhtmlx.message("ERROR, no html5 store support, cannot save view state")
     }
-    // headerLayout = new dhtmlXLayoutObject({
-    //     parent: document.body,  
-    //     pattern: "2E"   ,
-    //     cells:[
-    //         {id:"a"},
-    //         {id:"b" }
-    //     ]        
-    // });
+    
     const configa = {
         type: "none",//"line" | "wide" | "space" | "none";
         rows: [
@@ -337,7 +388,7 @@ async function init(permissions){
                                 id: "top",
                                 resizable:false,
                                 width:"100%",
-                                height:80,
+                                height:57,
                                 css:"dhxlayout_base_dhx_skyblue dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr"
                             },
                             {
@@ -353,14 +404,18 @@ async function init(permissions){
 
 
     await headerLayout.getCell("top").attachHTML('<header id="ffastrans_header"   >'+
-    '<div class="counter_jobs div_active_jobs">&nbsp Running                    <div class="header_counter_number" id="activejobcount">0</div></div>'+
-    '<div class="counter_jobs div_incoming_jobs">&nbsp Incoming     <div class="header_counter_number" id="incomingjobcount">0</div></div>'+
-    '<div class="counter_jobs div_queued_jobs">&nbsp Queued     <div class="header_counter_number" id="queuedjobcount">0</div></div>'+
-    '<div class="counter_jobs div_success_jobs">&nbsp Success   <div class="header_counter_number" id="successjobcount">0</div></div>'+
-    '<div class="counter_jobs div_error_jobs">&nbsp Error       <div class="header_counter_number" id="errorjobcount">0</div></div>'+
-    '<div class="counter_jobs div_cancel_jobs">&nbsp Cancelled  <div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
-    '<div class="counter_jobs div_logged_in_users">Online Users<div class="header_counter_number" id="loggedinusercount">0</div></div>'+
-    '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>'+ 
+    '<div class="counter_container">' + 
+    '<div class="counter_jobs div_active_jobs">Running<div class="header_counter_number" id="activejobcount">0</div></div>'+
+    '<div class="counter_jobs div_incoming_jobs">Incoming<div class="header_counter_number" id="incomingjobcount">0</div></div>'+
+    '<div class="counter_jobs div_queued_jobs">Queued<div class="header_counter_number" id="queuedjobcount">0</div></div>'+
+    '<div class="counter_jobs div_success_jobs">Success<div class="header_counter_number" id="successjobcount">0</div></div>'+
+    '<div class="counter_jobs div_error_jobs">Error<div class="header_counter_number" id="errorjobcount">0</div></div>'+
+    '<div class="counter_jobs div_cancel_jobs">Cancelled<div class="header_counter_number" id="cancelledjobcount">0</div></div>'+
+    '<div class="counter_jobs div_logged_in_users">Users<div class="header_counter_number" id="loggedinusercount">0</div></div>'+
+    '</div>' + 
+    ''+
+    '<a href="/logout" style="cursor:pointer" id="logout" class="itemrowtopright">Logout</a>' + 
+    '<div id="webint_version" class="webint_version itemrowtopright"></div>'+ 
     '<img src="images/viking_helmet_white.png" class="helmet steinar itemrowtopright" title="steinar"></div>'+
     '<img src="images/emcodem_helmet_white.png" class="helmet emcodem itemrowtopright" title="emcodem">' + 
     '<img src="images/ben_helmet.png" class="helmet benjamin itemrowtopright" title="momocampo">'+ 
@@ -379,7 +434,6 @@ async function init(permissions){
     document.getElementById("STATIC_WEBUI_HEADER_NAME").innerHTML = m_serverconfig['STATIC_WEBUI_HEADER_NAME'];
     document.title =  document.getElementById("STATIC_WEBUI_HEADER_NAME").innerText ||  document.getElementById("STATIC_WEBUI_HEADER_NAME").textContent;
     //show logged in username
-    
     try{
         var _perm = JSON.parse(permissions);
         document.getElementById("logout").innerHTML = "Logout <br/>" + _perm['userdata']["logged_in_user"];
@@ -409,7 +463,7 @@ async function init(permissions){
     };
 
     mainLayout = new dhx.Layout(null, configb);
-    headerLayout.getCell("bottom").attach(mainLayout)
+    headerLayout.getCell("bottom").attach(mainLayout);
 
          
     //create nav menue        
@@ -422,12 +476,24 @@ async function init(permissions){
     var menu = document.getElementById("navmenue");
    
     var _perm = JSON.parse(permissions);
-    console.log(_perm)
+    var firstMenuPermissionUrl = "GROUPRIGHT_MENU_VIEW_JOB_STATUS";
+    console.log(_perm);
     for (i=0;i<_perm["items"].length;i++){
+        if (i==0)
+            firstMenuPermissionUrl = _perm["items"][i]["id"]
+        if (_perm["items"][i].id == 'GROUPRIGHT_MENU_VIEW_ADMIN_USERS'){
+            continue; //this item is legacy, moved to admin settings
+        }
         
+
         var title = _perm["items"][i]["text"].replace("GROUPRIGHT_MENU_VIEW_","");
         title = title.replace("_", " ");
-         menu.innerHTML += "<a href='' class='menuitem' title='"+title+"' style=\"height:35px;width:35px; background-repeat: no-repeat;background-size: cover;background-image: url('images/"+_perm["items"][i].icon+"')\" id='"+_perm["items"][i].id+"'/>";  
+        var extradiv = "";
+        if (title.indexOf("REVIEW") != -1){
+            extradiv = "<div data-count='0' id='GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE' class='reviewcount'></div>";
+        }
+        
+        menu.innerHTML += extradiv + "<a href='' id='"+_perm["items"][i]["text"]+"'' class='menuitem' title='"+title+"' style=\"height:35px; opacity:0.75;background-repeat: no-repeat;background-size: cover;background-image: url('images/"+_perm["items"][i].icon+"')\" id='"+_perm["items"][i].id+"'/>";  
     }
     
     //onclick menu item
@@ -475,18 +541,33 @@ async function init(permissions){
         //server should inform us periodically by cron job 
         document.getElementById("incomingjobcount").innerHTML = msg;
     });
-
+    socket.on('databaseerror', function(msg){
+        //server should inform us periodically by cron job 
+        dhx.message({ expire: 3000, text: "Fatal Error with job database: " + msg, icon: "dxi-close" });
+       
+    });
     //load last selected menu item
-    restoreUserState();
+    restoreUserState(firstMenuPermissionUrl);
+
+    //kick off jobcount interval
+    updateJobCount();
+    window.setInterval(function(){
+        /* update job counters */
+        updateJobCount()
+
+    },5000)
+
+    setVersion();
+
 }
 
 function showPage(url){
     mainframe.src=url;
 }
 
-function restoreUserState(){
-    console.log("restoring user state , " +localStorage.getItem("selected_start_menu_item"))
-//stores some layout properties in html5 local store
+function restoreUserState(defaulturl = "/webinterface"){
+    console.log("restoring user state , " + localStorage.getItem("selected_start_menu_item"))
+    //stores some layout properties in html5 local store
 
     // if (localStorage.getItem("selected_start_menu_item")){
     //     //first load, choose job status
@@ -494,13 +575,14 @@ function restoreUserState(){
     //     return;
     // }
     var selectedid = (localStorage.getItem("selected_start_menu_item"));
-    if (localStorage.getItem("selected_start_menu_item")){
+    if (localStorage.getItem("selected_start_menu_item") && localStorage.getItem("selected_start_menu_item")  != "undefined"){
 		try{
-            showPage(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]); 
+            showPage(m_permissionUrls[localStorage.getItem("selected_start_menu_item")]);
 			initialMenuItem = localStorage.getItem("selected_start_menu_item");
 		}catch(e){}
     }else{
-        showPage(m_permissionUrls["GROUPRIGHT_MENU_VIEW_JOB_STATUS"]); 
+        console.log("Showing default page",defaulturl)
+        showPage(m_permissionUrls[defaulturl]); 
     }
 }
 

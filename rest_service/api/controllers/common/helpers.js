@@ -125,7 +125,7 @@ async function json_files_to_array_cached(dir) {
             var newitem = (JSON.parse(await readfile_cached(fullpath)))//removes BOM	;
             returnarray.push(newitem)
         }catch(ex){
-            console.log("Could not parse Json from file:",path.join(dir,allfiles[_idx]),ex,await readfile_cached(path.join(dir,allfiles[_idx]), 'utf8'))
+            console.log("Could not parse Json from file:",path.join(dir,allfiles[_idx]),ex)
         }
     }
     
@@ -161,7 +161,9 @@ async function ticket_files_to_array(dir) {
                 //push to cache
                 var fullpath = path.join(dir,allfiles[_idx]);
                 global.filecache.tickets[fullpath] = {};
-                global.filecache.tickets[fullpath]["birth"] = new Date()
+                global.filecache.tickets[fullpath]["birth"] = new Date();
+                
+//                global.filecache.tickets[fullpath]["mt"] = ;
                 global.filecache.tickets[fullpath]["content"] = JSON.stringify(newitem);
                 returnarray.push(newitem)
             }catch(ex){
@@ -182,39 +184,44 @@ async function readfile_cached(fullpath){
 	}
     
     for (key in global.filecache.tickets){
-        //delete older files than 10 seconds
+        //delete from cache older files than 10 seconds
         var now = new Date( );
         var birth = new Date(global.filecache.tickets[key]["birth"]);
         var birth_plus_ten = new Date(birth.getTime() + 10000);
         if( birth_plus_ten < now){
-            console.debug("Removed file from global cache ",key)
             delete global.filecache.tickets[key]
         }
     }
         
     if (Object.keys(global.filecache.tickets).length > 500){
-        cache_cleaner();
+        cache_cleaner(); //deletes non existing files from cache
     }
-	//delete non existing files in global cache
+
+    var stats;
+    stats = await fsPromises.stat(fullpath);
 
 	if (fullpath in global.filecache.tickets){
-		//serve cached file
+		//serve cached file    
 		if (!global.filecache.tickets[fullpath]["content"]){
             console.error("File is in cache but content emtpy, ",global.filecache.tickets[fullpath])
-            console.trace("")
+            console.trace("") //just for debugging
         }
-        return global.filecache.tickets[fullpath]["content"];
-	}else{
-		//read file, store globally and return content
-		
-            var contents = await fsPromises.readFile(fullpath, 'utf8');
-            contents = contents.replace(/^\uFEFF/, '');
-            global.filecache.tickets[fullpath] = {};
-            global.filecache.tickets[fullpath]["birth"] = new Date()
-			global.filecache.tickets[fullpath]["content"] = contents;
-            
-			return global.filecache.tickets[fullpath]["content"] ;
+        if (stats.mtimeMs != global.filecache.tickets[fullpath].mtimeMs) 
+            delete global.filecache.tickets[fullpath] //file changed, needs re-read from disk
+        else 
+            return global.filecache.tickets[fullpath]["content"]; //File is served from cache
 	}
+
+    //File is not in cache, read from disk.
+    var contents = await fsPromises.readFile(fullpath, 'utf8');
+    contents = contents.replace(/^\uFEFF/, '');
+    global.filecache.tickets[fullpath] = {};
+    global.filecache.tickets[fullpath]["mtimeMs"] = stats.mtimeMs;
+    global.filecache.tickets[fullpath]["birth"] = new Date();
+    global.filecache.tickets[fullpath]["content"] = contents;
+    
+    return global.filecache.tickets[fullpath]["content"] ;
+	
 }
 
 

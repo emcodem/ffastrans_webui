@@ -24,14 +24,18 @@ async function get(req, res) {
 	var returnjson = [];
 	try {
         var allfiles = await fsPromises.readdir(s_path, { withFileTypes: false });
-        
+        var max_count = 100; //limit to 100 entries
+        var actual_count = 0;
         for (var _idx in allfiles){
             try{
+                if (actual_count > max_count)
+                  continue;
                 var contents = await common.readfile_cached(path.join(s_path,allfiles[_idx]), 'utf8');
                 contents = contents.replace(/^\uFEFF/, '');
                 var _j = JSON.parse(contents);
                 _j["review_file"] = allfiles[_idx];
-                returnjson.push(JSON.stringify(_j));
+                returnjson.push(_j);
+                actual_count++;
             }catch(ex){}
         }
         

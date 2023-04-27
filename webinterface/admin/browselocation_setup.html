@@ -39,7 +39,7 @@ function init(){
 
 function buildLayout(){
     //LAYOUT
-    const config = {
+    const layout_config = {
         //type: "wide",//"line" | "wide" | "space" | "none";
 		width:"100%", height:"100%",rows:
 		[   { id: "toolbar", height: "content" },
@@ -47,7 +47,7 @@ function buildLayout(){
 				cols: [
                     
 					{
-                        header:"Locations",
+                        header:"Browse Locations for Job Submitter (doubleclick to edit)",
 						id: "main",
 						resizable:false,
 						padding: "0px",  
@@ -57,7 +57,7 @@ function buildLayout(){
 		]
 	}
         
-    var layout = new dhx.Layout("layout", config);
+    var layout = new dhx.Layout("layout", layout_config);
 
     //GRID
     m_maingrid = new dhx.Grid("grid", {
@@ -81,6 +81,7 @@ function buildLayout(){
             icon: "dxi dxi-content-save",
             size: "small",
             color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
         },
         {
         type:"separator"
@@ -92,6 +93,7 @@ function buildLayout(){
             icon: "dxi dxi-plus",
             size: "small",
             color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
         },{
             id: "btndel",
             type: "button",
@@ -99,10 +101,11 @@ function buildLayout(){
             icon: "dxi dxi-close",
             size: "small",
             color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
         }
     
     ]
-    const toolbar = new dhx.Toolbar("toolbar", {
+    const toolbar = new dhx.Toolbar(null, {
         css:"dhx_widget--bordered"
         });
     toolbar.data.add(cfg);
@@ -128,6 +131,7 @@ async function saveGridData(){
 
 async function loadGridData(){
     var locations = await(loadBrowseLocations());
+    console.log("result of loadBrowselocations:",locations)
     if (JSON.stringify(locations) != m_last_data){
         m_last_data = JSON.stringify(locations);
     }else{

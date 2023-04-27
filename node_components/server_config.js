@@ -37,6 +37,13 @@ module.exports = {
     save: (configobj,callbacksuccess=false,callbackerror=false) => {
         //updates config in database
 		/* modules should call this whenever they change global.config. TODO: implement setter */
+
+        //restore values that are set in sub-windows
+        if (!"STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES" in configobj){
+            configobj.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES;
+            configobj.STATIC_ALLOWED_BROWSE_LOCATIONS = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS;
+        }
+
         global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true}, function (err, newDoc) {
             if (err){
 				if (callbackerror){

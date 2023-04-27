@@ -36,7 +36,7 @@ function init(){
 	if (inIframe()){
 		parent.location.reload()
 	}
-
+    
     var query = window.location.search.substring(1);
 	query = parse_query_string(query);
     m_mainForm  = new dhtmlXForm("mainform");
@@ -46,9 +46,13 @@ function init(){
     m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 100}); 
     m_mainForm.setItemFocus("username");
     m_mainForm.attachEvent("onButtonClick", function(){
-        m_mainForm.send("/login","POST",function(response){
+        m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
                                             if (response.xmlDoc.status == 200){
-                                                window.location.replace("/");
+                                                //login says ok, redirect to referrer or /
+                                                if (document.referrer)
+                                                    window.location.href = document.referrer;
+                                                else
+                                                    window.location.replace("/");
                                             }else{
                                                 dhtmlx.message(response.xmlDoc.responseText)
                                             }
@@ -68,9 +72,13 @@ function init(){
 }
 
 function submitForm(){
-        m_mainForm.send("/login","POST",function(response){
+        m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
                                             if (response.xmlDoc.status == 200){
-                                                window.location.replace("/");
+                                                //login says ok, redirect to referrer or /
+                                                if (document.referrer)
+                                                    window.location.href = document.referrer;
+                                                else
+                                                    window.location.replace("/");
                                             }else{
                                                 console.log(response.xmlDoc.responseText)
                                                 dhtmlx.message(response.xmlDoc.responseText)

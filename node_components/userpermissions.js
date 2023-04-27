@@ -39,7 +39,7 @@ module.exports = {
 					continue;
 				}
 				//concat all permission arrays from all groups
-				console.log(cursor[i])
+				//console.log(cursor[i])
 				allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
 			}
 			return (allpermissions);

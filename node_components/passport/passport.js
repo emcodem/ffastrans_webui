@@ -34,21 +34,20 @@ passport.deserializeUser(function(user, done) {
    passport.use('local-login', new LocalStrategy({
         usernameField : 'username',
         passwordField : 'password',
-        passReqToCallback : true // allows us to pass back the entire request to the callback
+        passReqToCallback : true // passes original request the callback
     },
-    async function(req, username, password, done) { // callback with email and password from our form
-        //await ActiveDirectoryLogin(username, password);
-    
+    async function(req, username, password, done) { // callback with uname and password from our form
+        
         console.log("trying local-login",username);
         // find a user whose username is the same as the forms username
         // we are checking to see if the user trying to login already exists
         var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username });
         if (!existing){
-			console.log("Username not found, trying AD login")
+			console.log("Username "+username+" not found, trying AD login")
 			ActiveDirectoryLogin(req, username, password, done);
 		}
         if (existing["local"]["password"] == "aduser"){
-			console.log("Local user does not exist, trying AD login")
+			console.log(username+" is known AD user, trying AD auth.");
             ActiveDirectoryLogin(req, username, password, done);
 			
         }else{
@@ -75,7 +74,7 @@ passport.deserializeUser(function(user, done) {
                 // if the user is found but the password is wrong
                 if (!newUser.validPassword(password)){
                     console.log("Local Login attempt for user "+username+" failed, wrong password ");
-                        return done(null, false, req.flash('loginMessage', 'Wrong password.')); // create the loginMessage and save it to session as flashdata
+                        return done('Wrong password.'); // create the loginMessage and save it to session as flashdata
                     }
                 // all is well, return successful user
                 console.log("local-login User "+ newUser.local.username + " login success");

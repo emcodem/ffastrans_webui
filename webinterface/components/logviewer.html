@@ -222,6 +222,11 @@
                 box-shadow: 0 0 10px 5px #a21a1a;
             }
         }
+
+        .sticky{
+            position:sticky;
+            top:0;
+        }
     </style>
 
 
@@ -596,6 +601,7 @@
 
                 graph.addListener(mxEvent.CLICK, function (sender, evt) {
                     //load log for seelcted cell
+                    console.log("detected mouseclick on cell")
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell != null) {
                         var search = cell["ffastransobj"]["id"].toUpperCase();
@@ -605,6 +611,8 @@
                                 if (node["data"]["node"]["id"].toUpperCase().match(search)) {
                                     //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
                                     return true;
+                                }else{
+                                    return false;
                                 }
                             }
                         }, {
@@ -910,7 +918,7 @@ function asyncsleep(time) {
         function buildLogGridGrid() {
 
             $("#treetable_log").fancytree({
-                extensions: [ "table", "filter", "gridnav", "multi"],
+                extensions: [ "filter","table",  "gridnav", "multi"],
                 quicksearch: true,
                 filter: {
                     autoExpand: true, // Expand all branches that contain matches while filtered
@@ -1275,6 +1283,10 @@ function asyncsleep(time) {
                         var copy = JSON.stringify(response);
                         copy = JSON.parse(copy); //copy the whole object to be able to delete wf_object for display in general_div
                         delete copy["wf_object"]; 
+                        delete copy["nodes"];
+                        delete copy["workflows"];
+                        delete copy["variables"];
+                        delete copy["finished"];
                         //sort
                         
                         var table = (JsonHuman.format(copy));
@@ -1330,7 +1342,7 @@ function asyncsleep(time) {
 
         }
         function restoreLayoutSizes(dhxLayout, name, ignore_width) {
-            
+            return; //TODO: disabled because usually the resize ended up in foobar
             if (localStorage.getItem(name + "_aw")) {
                 console.log("restoring layout sizes, all stored values: ",localStorage)
                 var aw = localStorage.getItem(name + "_aw");
@@ -1387,12 +1399,12 @@ function asyncsleep(time) {
             </colgroup>
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
                 <tr class="">
-                    <th style="font-weight:normal">Node</th>
-                    <th style="font-weight:normal">Time</th>
-                    <th style="font-weight:normal">Host</th>
-                    <th style="font-weight:normal">Branch</th>
-                    <th style="font-weight:normal">Event</th>
-                    <th style="font-weight:normal">Data</th>
+                    <th class="sticky" style="font-weight:normal">Node</th>
+                    <th class="sticky" style="font-weight:normal">Time</th>
+                    <th class="sticky" style="font-weight:normal">Host</th>
+                    <th class="sticky" style="font-weight:normal">Branch</th>
+                    <th class="sticky" style="font-weight:normal">Event</th>
+                    <th class="sticky" style="font-weight:normal">Data</th>
                 </tr>
             </thead>
         </table>

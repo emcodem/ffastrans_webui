@@ -1,13 +1,20 @@
 <html>
 <!-- CONFIG is done in  node_components\views\adminconfig.js -->
 <head>
-<script src="/socket.io/socket.io.js"></script>
+<!-- <script src="/socket.io/socket.io.js"></script> -->
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/>
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/>
+<script src="../dependencies/dhtmlx/8.0.0/suite.js"></script>
+
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+
+
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -17,6 +24,14 @@
         overflow: hidden;
     }
 
+    .documentation{
+        font-family:Tahoma;
+        font-size:12px;
+        margin-left:20px;
+        white-space: pre-wrap;
+        height:100%;
+        overflow:auto;
+    }
 </style>
 
 <script>
@@ -24,23 +39,95 @@
 /* GLOBALS */
 var m_mainLayout,m_mainForm;
 var m_needreload = false; //iframe can signal us to reload
+var m_sidebar;
 
 
-
-var socket = io();
+//var socket = io();
 /* build basic page layout and init periodic job loading*/
 function init(){
-    socket.on('admin', function(msg){
-     dhtmlx.message(msg);
+    // socket.on('admin', function(msg){
+    //     //todo: do we really need to use socket here?
+    //     dhtmlx.message(msg);
+    // });
+    const layout = new dhx.Layout(document.body, {
+        type: "line",
+        cols: [
+            {
+                id: "sidebar",
+                width:  "content"
+            },
+            {
+                id: "content",
+            }
+        ]
     });
+
+    const sidebarconfig = [
+        {
+            id: "/webinterface/admin/webui_setup.html",
+            value: "WebUI",
+            icon: "mdi mdi-view-dashboard"
+        },
+        {
+            id: "/webinterface/admin/usermanager.html",
+            value: "Users",
+            icon: "mdi mdi-account-group"
+        },
+        {
+            id: "/webinterface/admin/browselocation_setup.html",
+            value: "Locations",
+            icon: "mdi mdi-folder-eye"
+        },
+        {
+            id: "/webinterface/admin/network_setup.html",
+            value: "Network",
+            icon: "mdi mdi-access-point-network"
+        },
+        {
+            id: "/webinterface/admin/ffastrans/user_variables.html",
+            value: "Variables",
+            icon: "mdi mdi-variable"
+        },
+        {
+            id: "/webinterface/admin/ffastrans/monitors.html",
+            value: "Monitors",
+            icon: "mdi mdi-folder-cog"
+        }
+    ]
+    const sidebar = new dhx.Sidebar(null, {
+        css: "dhx_widget--border_right",
+        collapsed: false
+    });
+    sidebar.data.parse(sidebarconfig);
+    m_sidebar = sidebar;
+    //sidebar.collapse();
     
+    if (localStorage.getItem("admin_sidebar_item")){
+        sidebar.select(localStorage.getItem("admin_sidebar_item"));
+        layout.getCell("content").attachHTML('<iframe height="100%" width="100%" style="border:none" src="'+localStorage.getItem("admin_sidebar_item")+'"></iframe>');
+    }
+
+    sidebar.events.on("click", function(id,e){
+        sidebar.select(id);
+        layout.getCell("content").attachHTML('<iframe height="100%" width="100%" style="border:none" src="'+id+'"></iframe>');
+        localStorage.setItem("admin_sidebar_item",id)
+    });
+
+    layout.getCell("sidebar").attach(sidebar);
+
+    function loadTabUrl(id){
+        m_mainTabBar.tabs(id).attachURL(id);
+    }
+
+    return;
+
     m_mainLayout = new dhtmlXLayoutObject({
-        parent: document.body,  
-        pattern: "2U"           
+        parent: document.body,
+        pattern: "2U"
     });
     m_mainLayout.cells("b").setText("Documentation");
     m_mainLayout.cells("b").attachObject("documentation");
-    m_mainLayout.cells("b").showInnerScroll();
+
     //m_mainLayout.cells("a").setWidth();
     var m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
         mode:               "top",
@@ -50,34 +137,46 @@ function init(){
         onload:             function(){},
         arrows_mode:        "auto" ,
         tabs: [ // tabs config
-            {
-                id:"serverconfig",text:"Server Configuration",width:null,index:0,active:true,enabled: true,close:false
-            },
+            {id:"serverconfig",text:"Server Configuration",width:null,index:0,active:true,enabled: true,close:false,},
+            {id:"/webinterface/admin/usermanager.html",text:"Users",width:null,index:1,active:false,enabled: true,close:false},
+            {id:"/webinterface/admin/browselocation_setup.html",text:"Locations",width:null,index:2,active:false,enabled: true,close:false},
             /*{
                 id:"upload",text:"Upload",width:null,index:1,active:false,enabled: true,close:false
             },*/
         ]
     });
-	
-	m_fileBrowseGridMenu = m_mainTabBar.tabs("serverconfig").attachMenu({                                               
+
+    m_mainTabBar.attachEvent("onSelect", function(id, lastId){
+        // your code here
+        if (id == "serverconfig")
+            buildServerConfigTab(m_mainTabBar);
+        else
+            loadTabUrl(id);
+
+        return true;
+    });
+
+    function loadTabUrl(id){
+        m_mainTabBar.tabs(id).attachURL(id);
+    }
+
+}
+
+function buildServerConfigTab(m_mainTabBar){
+    m_mainTabBar.tabs("serverconfig").detachMenu();
+	var m_fileBrowseGridMenu = m_mainTabBar.tabs("serverconfig").attachMenu({
 		items:[
             {id:"save", text:"<i class='fas fa-save'></i>Save"},
 			//{id:"default", text:"<i class='fas fa-backspace'></i>Load Default Config"},
 		]
 	});
-	
-    //mainform 
+
+    //mainform
     m_mainForm  = m_mainTabBar.tabs("serverconfig").attachForm();
 
     // json/xml from server with callback
     m_mainForm.loadStruct("/adminconfig", function(){ });
-    //workflow and start proc selected event
-    m_mainForm.attachEvent("onChange", function (name, value, state){
-            if (name == 'start_proc'){
-                //waarn page reload without save
-            }
-    });
-		
+
 	m_mainForm.attachEvent("onButtonClick", function(name){
 		console.log("mainform button click" + name);
 		if (name == "btn_adconfig"){
@@ -108,7 +207,7 @@ function init(){
         //btn_purge_history
 
 	});
-	
+
     m_fileBrowseGridMenu.attachEvent("onClick", function (name, value, state){
             if (name == 'save'){
                 m_mainForm.send("/adminconfig", function(loader, response){
@@ -118,9 +217,9 @@ function init(){
                 });
             }
             if (name == 'default'){
-                
+
             }
-    });   
+    });
 
 	window.setInterval(function(){
 		if (m_needreload){m_fileBrowseGridMenu.setItemDisabled("save");}
@@ -131,23 +230,29 @@ function showConfigWindow(win_text,win_url){
 	var myWins = new dhtmlXWindows();
 	w1 = myWins.createWindow("w1",100,100,800,600);
 	w1.setText(win_text)
-	w1.attachURL(win_url); 
+	w1.attachURL(win_url);
 	myWins.attachEvent("onClose", function(win){
 		//we reload to get the updated config from ad window
 		window.location.reload();
-		
+
 	});
 }
 </script>
 
 </head>
 <body onload="init()">
-<div id="documentation" style="font-family:tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap;overflow:scroll">
+    <!-- <div style="width: 100%; overflow: hidden;">
+        <div style="height: 100%;width:150px;float:left" id="sidebar"></div>
+        <iframe style="margin-left: 620px;width:100%;height:100%" src="/webinterface/admin/usermanager.html"></iframe>
+   </div> -->
+
+
+<div style="display:none" id="documentation" class="documentation">
 
 <b>Data Purging</b>
-Soft delete all jobs. This action only applies to webinterface but not to FFAStrans. 
+Soft delete all jobs. This action only applies to webinterface but not to FFAStrans.
 For example, you can keep all jobs in the FFAStrans log but delete from being displayed here.
-If you want to re-import deleted jobs from FFAStrans, please stop webinterface service and delete database/jobs file. 
+If you want to re-import deleted jobs from FFAStrans, please stop webinterface service and delete database/jobs file.
 
 <b>STATIC_SEND_EMAIL_ALERTS</b>
 Sends out an email "FFAStrans is down" in case the running jobs cannot be fetched from FFAStrans.
@@ -157,7 +262,7 @@ Note that you have to configure smtp server details in FFAStrans.
 <b>STATIC_WEBUI_HEADER_NAME</b>
 This is for the case when you have multiple instances of ffastrans and webserver running.
 What you input here will show on the main page top left, it is used to let users quickly identify to which instance of ffastrans the webinterface is conntected.
-For example, if you have one TEST, Pre-prod, and Production instance, you would enter those names here. 
+For example, if you have one TEST, Pre-prod, and Production instance, you would enter those names here.
 After changing, if the vaule top left does not refresh, press CTRL+R to reload your page and override browser cache.
 
 <b>STATIC_WEBSERVER_LISTEN_PORT</b>
@@ -167,7 +272,7 @@ Webserver restart required after change
 
 <b>STATIC_WEBSERVER_ENABLE_HTTPS</b>
 Disables HTTP and enables HTTPS. You will need to provide certificate and private key pem files, see /webserver/certs/how-to.txt
-Note, after enabling this, you must enter https://localhost:3002 
+Note, after enabling this, you must enter https://localhost:3002
 
 <b>STATIC_WEBSERVER_HTTPS_PK_PASSWORD</b>
 When using HTTPS and your own certificate, the Privatekey password goes here.
@@ -198,8 +303,8 @@ Example2: FIRSTVALUE,SecondValue
 
 <b>STATIC_ALLOWED_BROWSE_LOCATIONS</b>
 Make sure that all paths end with a backslash!
-See above, please make sure there are the same number of display_names and browse_locations configured. 
-This is a list of comma-separated locations. 
+See above, please make sure there are the same number of display_names and browse_locations configured.
+This is a list of comma-separated locations.
 
 Example1: D:\
 Example2: \\FIRSTServer\share\folder\,\\SecondServer\share\

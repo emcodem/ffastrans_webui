@@ -3,19 +3,19 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
-<script src="../dependencies/dhtmlx/vault/vault.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
+
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<script src="../dependencies/dhtmlx/8.0.0/suite.js"></script>
+
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 
 <script type="text/javascript" src="../dependencies/shawnchin-jquery-cron-78118ba/cron/jquery-cron.js"></script>
 <link type="text/css" href="../dependencies/shawnchin-jquery-cron-78118ba/cron/jquery-cron.css" rel="stylesheet" />
 
-
 <link rel="stylesheet" href="../dependencies/codemirror/codemirror.css">
 <script src="../dependencies/codemirror/codemirror.js"></script>
 <script src="../dependencies/codemirror/mode/javascript/javascript.js"></script>
-
 
 <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
 <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
@@ -27,18 +27,13 @@
 <script src="../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
 
 <script src="common/buildWorkflowTree.js"></script>
+<script src="common/webuiVariables.js"></script> 
 
 <style>
-    /* it's important to set width/height to 100% for full-screen init */
-    html, body {
-        width: 100%;
-        height: 100%;
-        margin: 0px;
-        overflow: hidden;
-    }
+   
     .CodeMirror { height: 100%; }
 
-    div#workflow_selector_template {
+    div #workflow_selector_template {
         position: relative;
         width: 100%;
         height: 100%;
@@ -61,12 +56,25 @@
         overflow: auto !important;
     }
 
+    html, body {
+        width: "100%";
+        height: "100%";
+        margin: "0px";
+        overflow: hidden;
+    }
+
+    pre {
+       overflow: unset;
+    }
 </style>
 <script>
 // #region Helpers 
 
-/* init SOCKET.IO */
 var socket = io(); 
+socket.on('socketid', function(msg){
+    m_socketId = msg;
+});
+    
 
 function twoDigits(d) {
     if(0 <= d && d < 10) return "0" + d.toString();
@@ -77,7 +85,6 @@ function twoDigits(d) {
 Date.prototype.toMysqlFormat = function() {
     return this.getFullYear() + "-" + twoDigits(1 + this.getMonth()) + "-" + twoDigits(this.getDate()) + " " + twoDigits(this.getHours()) + ":" + twoDigits(this.getMinutes()) + ":" + twoDigits(this.getSeconds());
 };
-
 
 function renderCron(_id,_initial){
     if (!_initial){
@@ -101,9 +108,11 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
         //eXcell_ed.call(this); //uses methods of the "ed" type
     }
     this.edit = function(){
-        //open cron editor
+        //open cron editor - yes i know i should not have done this in a dhtmlx eXcell, i promise to never do it again
         var myWins= new dhtmlXWindows();
-        var win = myWins.createWindow(Math.random(),window.innerWidth/6, window.innerHeight/7, 400, 400);
+        var winId = Math.random();
+        var win = myWins.createWindow(winId,window.innerWidth/6, window.innerHeight/7, 400, 400);
+        win.setModal(true);
         win.setText("Frequency");
      
         var _menu = win.attachMenu({
@@ -128,22 +137,27 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
             //render existing cron entries
             for (i in existing){
                 var _id = _crongrid.uid();
+                //adds div with a special id in grid row, renderCron will transform the div into cron selector
                 _crongrid.addRow(_id,("<div id='sched"+_id+"'></div>"));
                 renderCron(_id,existing[i]);
             }
-            //TODO: load existing schedules from row userdata
+
             _menu.attachEvent("onClick", function(id, zoneId, cas){
                    if (id == "add"){
-                        var _id = _crongrid.uid();
-                        _crongrid.addRow(_id,("<div id='sched"+_id+"'></div>"));
-                       renderCron(_id);
+                       var _id = _crongrid.uid();
+                        //adds div with a special id in grid row, renderCron will transform the div into cron selector
+                       _crongrid.addRow(_id,("<div id='sched"+_id+"'></div>"));
+                        
+                       renderCron(_id,localStorage.getItem("scheduler_last_saved_cron"));
                    }
                   if (id == "save"){
                         var cronArray = [];
                         _crongrid.forEachRow(function(rid){
-                            cronArray.push($("#sched"+rid+"").cron("value"));
+                            var real_cron = $("#sched"+rid+"").cron("value")
+                            cronArray.push(real_cron);
+                            localStorage.setItem("scheduler_last_saved_cron",real_cron);
                         });
-                        _this.setCValue(cronArray,"foobar");  
+                        _this.setCValue(cronArray,"foobar");  //i dont think this line is needed
                         win.close();
                         saveJobGrid();
                         return;
@@ -153,9 +167,8 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
                    }
                    
             });
-        //this.setCValue("Such dir eine Frau","");  
-
     }
+
     this.setValue=function(val){
         /* actual data processing */
         this.setCValue(val,val);                                      
@@ -191,34 +204,17 @@ function loadserverconfig(){
 // #endregion
 
 //#region variableselector
-function loadVariables(wf_id,success_cb){
-//adds options to workflow select combo
-    //get currently selected workflow
-    $.ajax({
-        url:  "/getworkflowdetails?workflowid="+wf_id,
-        type: "GET",
-        dataType: "json",
-        context: this,
-        success: function (response) {
-            success_cb(response);
-        },
-        error: function (xhr, status) {
-            m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR getting variables, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
-        }
-    });
-}
 
-function openVariableSelector(rId,savedVariables){
-            //restore values from saved vals
+async function openVariableSelector(rId,savedVariables){
+    //open variable editor window, load variables and show form
     var savedvars = m_mainGrid.getUserData(rId,"variables");
     try{
         savedvars = JSON.parse(savedvars);
     }catch(ex){
-        console.error("Could not parse variables:",ex);
+        console.error("Could not parse saved variables:",ex);
         savedvars = [];
     }
-    //seekme
+    //WINDOW
     var dhxwins = new dhtmlXWindows();
     var wf_id;
     try{
@@ -229,153 +225,109 @@ function openVariableSelector(rId,savedVariables){
     }
     console.log(wf_id)
     var m_variableSelectionWindow = dhxwins.createWindow("Variable Selection", window.innerWidth/6, window.innerHeight/7, 800, 600);
+    m_variableSelectionWindow.setModal(true);
     m_variableSelectionWindow.setText("Variables");
-    m_variableSelectionWindow.attachHTMLString("<div id='subform'></div>")
+    m_variableSelectionWindow.attachHTMLString("<div id='subform'></div>");
+    
+    var layout = new dhx.Layout("subform", {
+                                        type: "space",
+                                        rows: [
+                                            {id: "top"},
+                                        ]
+                                    });
+            
     var _menu = m_variableSelectionWindow.attachMenu({
             icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
             items:[
                 {id:"save", text:'<i class="fas fa-save"></i>OK'}
             ]
         });
-
-
-    loadVariables(wf_id,function(response){
-        //variable loading ajax callback
-       
-        var m_subForm  = new dhtmlXForm("subform");
-        //m_subForm.addItem(null, {type : "fieldset", name : "data", label : "User Variables", inputWidth : 180, position : "label-top", width: 500, offsetTop : 0, offsetLeft : 10,list:[]},1);
-        //attach onclick event for save function
-        _menu.attachEvent("onClick", function(id, zoneId, cas){
-            if (id == "save"){
-                //check if user chose a workflow and startproc
-                var varsToSave = [];
-                m_subForm.forEachItem(function(name){
-                    if (m_subForm.getItemValue(name)){
-                        varsToSave.push({"name":name,"data":m_subForm.getItemValue(name,true)});
-                    }
-                });
-                console.log("Saving variables to userdata",varsToSave);
-                //store in userdata of gridrow
-                m_mainGrid.setUserData(rId,"variables",JSON.stringify(varsToSave));
-				for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
-					var colName = m_mainGrid.getColumnId(colidx);
-					if (colName == "variables_display"){
-						m_mainGrid.cells(rId,colidx).setValue(JSON.stringify(varsToSave));//last start
-					}
-				}
-                //store a backup of the whole form
-
-                saveJobGrid();
-                m_variableSelectionWindow.close();
-            }
+    
+    //variable loading ajax callback
+    var workflowdetails;
+    try{
+        workflowdetails =  await $.ajax({
+            url:  ("/getworkflowdetails" + "?workflowid=" + wf_id ),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json"
         });
+    }catch(ex){
+        alert("Error in ajax getworkflowdetails, see console",ex);
+    }
 
-        //check if we got webui variables, if yes other vars are hidden
-        var have_webui_vars = false;
-                for (i=0;i<response["user_variables"].length;i++){
-                    var current_var = response["user_variables"][i];
-                    if (current_var.name.indexOf("webui") != -1){
-                        have_webui_vars = true;
-                    }
+    var vars_form;
+    var have_webui_vars = false;
+    for (i=0;i<workflowdetails["user_variables"].length;i++){
+        var current_var = workflowdetails["user_variables"][i];
+        if (current_var.name.indexOf("webui") != -1){
+            have_webui_vars = true;
+        }
+    }
+    
+    //attach onclick event for save function
+    _menu.attachEvent("onClick", function(id, zoneId, cas){
+        if (id == "save"){
+            //check if user chose a workflow and startproc
+            var varsToSave = [];
+            var allFormItems = vars_form.getValue();
+            console.log("Formitems for saving:",allFormItems);
+            for (const [key, value] of Object.entries(allFormItems)) {
+                varsToSave.push({"name":key,"data":value});
+            }
+            
+            console.log("Saving variables to userdata",varsToSave);
+            //store in userdata of gridrow
+            m_mainGrid.setUserData(rId,"variables",JSON.stringify(varsToSave));
+            for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                var colName = m_mainGrid.getColumnId(colidx);
+                if (colName == "variables_display"){
+                    m_mainGrid.cells(rId,colidx).setValue(JSON.stringify(varsToSave));
                 }
+            }
 
-        //parse variables and add them to the form
-        for (var i=0;i<response["user_variables"].length;i++){
-            /* TODO: this could be merged with jobstarter.js */
-                        //add uservariables inputs 
-                        var current_var = response["user_variables"][i];
-                        var saved_data = "";
-                        for (var y=0;y<savedvars.length;y++){
-                            if (savedvars[y].name == current_var.name){
-                                console.log("Restoring var value for ",current_var.name);
-                                saved_data = savedvars[y].data;
-                            }
-                        }
-                        var desc = current_var.description  == "" ? current_var.name : current_var.description;
-                        if (current_var.name.indexOf("webui") != -1){
-                            //detected should create a dropdown on webui (should have JSON default value)
-                            try{
-                                parseWebUiTypeUserVariable(m_subForm,current_var.data,current_var.name);//special support for key value arrays!
-                                if (saved_data != ""){
-                                    m_subForm.setItemValue(current_var.name,saved_data)
-                                }
-                            }catch(e){
-                                console.error("webui variable parsing error",e,"Variable: ",current_var)
-                                dhtmlx.alert("Workflow config error, user variables with \"webui\" in their names must have a valid JSON description. Actual description was: <br/>\""+current_var.description+"\"");
-                            }
-                        }else{
-                            //standard ffastrans variables
-                            if (!have_webui_vars){
-                                var displayName = current_var.name;
-                                displayName = displayName.replace("s_", "");
-                                displayName = displayName.replace("i_", "");
-                                displayName = displayName.replace("f_", "");
-                                m_subForm.addItem("data", {type: "input", name: current_var.name, label: displayName, tooltip:desc, value: saved_data,offsetLeft:10 });
-                            }
-                        }
+            saveJobGrid();
+            m_variableSelectionWindow.close();
         }
     });
-    
-}
 
-function restoreWebUiTypeValue(dhxForm,var_obj,var_name,saved_data){
 
-}
+    console.log("user_vars original",workflowdetails.user_variables);
+    var formItems = webuiVariables_processVariables(workflowdetails.user_variables);
+    console.log("user vars transformed for dhtmlx grid",formItems);
+                        
+    vars_form = new dhx.Form(null, {
+            css: "dhx_widget--bordered",
+            rows: [ 
+                    ...formItems
+                ]
+        });
 
-function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
-    var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
-    
-    //parse from string into object
-    try{
-        var_obj = JSON.parse(var_obj);
-    }catch(ex){
-        try{
-            var_obj = eval("var eval_data = " + var_obj);
-            var_obj = eval_data;
-        }catch(exc){
-            throw new Error(errormsg);
-        }
+
+    layout.getCell("top").attach(vars_form); 
+    //restore saved values
+    console.log("saved variables:",savedvars)
+    for (var y=0;y<savedvars.length;y++){
+                try{
+                    var current_var = savedvars[y];
+                    console.log("Restoring var value for ",current_var,"vars form:",vars_form);
+                    vars_form.getItem(current_var.name).setValue(current_var.data);
+                }catch(ex){
+                    console.log("Could not restore value for saved var ",current_var,ex)
+                }
     }
-    if (var_obj.length == 0){
-        throw new Error(errormsg);
-    };
+                                    
+    return;
 
-    try{
-        if (var_obj.type){
-            //calendar, multiselect
-            var_obj.name = var_name;
-            var_obj.offsetLeft = 10;
-            dhxForm.addItem(var_obj.type , var_obj);
-            dhxForm.enableLiveValidation(true);
-            return;
-        }
-        else{
-            //simple key value list without type goes into dropdown (legacy)
-            var var_display_name = var_name;
-            var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
-            var options=[];
-            for (y=0;y<var_obj.length;y++){
-                options.push({text:var_obj[y].key,value:var_obj[y].value});
-            }
-            var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-            dhxForm.addItem("data", itemData);
-
-        }       
-    }catch(e){
-        dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
-    }
 }
-
-
 
 //#endregion
 
 /* build basic page layout and init periodic job loading */
+
 async function init(){
     //store clientid of socket.io in order to receive custom messages (e.g. job log)
-    socket.on('socketid', function(msg){
-       m_socketId = msg;
-    });
+    /* init SOCKET.IO */
 
     //main layout
     m_mainLayout = new dhtmlXLayoutObject({
@@ -386,6 +338,7 @@ async function init(){
     //workflow selection window
     var dhxwins = new dhtmlXWindows();
     m_workflowSelectionWindow = dhxwins.createWindow("Workflow Selection", window.innerWidth/6, window.innerHeight/7, 800, 600);
+    
     var _menu = m_workflowSelectionWindow.attachMenu({
             icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
             items:[
@@ -417,15 +370,16 @@ async function init(){
     m_mainLayout.cells("b").setMinWidth(50);
     m_mainLayout.cells("a").setMinHeight(50);
     m_mainLayout.cells("b").setMinHeight(50);  
-    m_mainLayout.cells("a").setText("Schedule");
+    m_mainLayout.cells("a").setText("Scheduled Jobs <a href='google.com'>Help</a>");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
     m_mainGrid.setHeader("id, Enabled, Name, Description, Condition, Workflow, Variables,Frequency,  Last Start, Next Start, Created on,Last Message,Errors");
     m_mainGrid.setColumnIds("id,enabled,job_name,job_description,condition_display,workflow_display,variables_display,cron,last_start,next_start,date_created,last_message,error_list");     
     m_mainGrid.setInitWidthsP("0,5,10,10,10,10,10,10,6,6,6,10,7");          
     m_mainGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left,left");       
-    m_mainGrid.setColTypes("ed,ch,ed,ed,txttxt,txttxt,txttxt,cron,ro,ro,txttxt,txttxt,txttxt,ro");               
+    m_mainGrid.setColTypes("ed,ch,ed,ed,txttxt,txttxt,txttxt,cron,ro,ro,ro,txttxt,txttxt,ro");               
     m_mainGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str,str");  
+    m_mainGrid.enableMultiselect(true);
     /*typecombo = m_mainGrid.getCombo(8);
     typecombo.put("custom","Custom");
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
@@ -466,23 +420,48 @@ async function init(){
     window.setInterval(updateJobs, 3000);
     m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
 		items:[
-            
-            {id:"new", text:"<i class='fas fa-plus-square'></i>New"},
-			{id:"delete", text:"<i class='fas fa-minus-square'></i>Delete"},
+            {id:"save", text:"<div title='Usually everything is saved automatically but we could have forgot something...'><i class='fas fa-save'></i>Save</div>"},
+            {id:"new", text:"<i class='fas fa-plus-square' style='color:forestgreen'></i>New"},
+			{id:"delete", text:"<i class='fas fa-minus-square' style='color: #ff5a00;'></i>Delete"},
+            {id:"enable", text:"<i class='fa fa-power-off'></i>Enable"},
+            {id:"disable", text:"<i class='fa fa-ban'></i>Disable"},
             {id:"clone", text:"<i class='fas fa-copy'></i>Clone"},
 			{id:"exportrow", text:"<i class='fas fa-file-export'></i>Export"},
 			{id:"importrow", text:"<i class='fas fa-file-import'></i>Import"},
+            {id:"test", text:"<i class='fas fa-play'></i>Test Run"},
 			// {id:"exportall", text:"<i class='fas fa-save'></i>Export All"},
-			{id:"save", text:"<i class='fas fa-save'></i>Save"},
-            
+
 		]
 	});
 	
     m_mainGridMenu.attachEvent("onClick", function(id,ind){
-        //create new job rows
+        if (id=="enable"){
+            var rows = m_mainGrid.getSelectedRowId().split(",");
+            for (var i=0;i<rows.length;i++){
+                var _cur_id = rows[i];
+                setGridValueByColName(_cur_id,"enabled","1");
+            }
+            saveJobGrid();
+        }
+        if (id=="disable"){
+            var rows = m_mainGrid.getSelectedRowId().split(",");
+            for (var i=0;i<rows.length;i++){
+                var _cur_id = rows[i];
+                setGridValueByColName(_cur_id,"enabled","0");
+            }
+            saveJobGrid();
+        }
+        if (id=="test"){
+            socket.emit("echo","test");
+            var rows = m_mainGrid.getSelectedRowId().split(",");
+            for (var i=0;i<rows.length;i++){
+                var _cur_id = rows[i];
+                startJobImmediate(_cur_id);
+            }
+        }
         if (id=="new"){
             var newId = Math.random();
-            m_mainGrid.addRow(newId,[newId,"false", "New Job", "No Condition","","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
+            m_mainGrid.addRow(newId,[newId,"false", "New Job", "","No Condition","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
             m_mainGrid.setUserData(newId,"script","process.send(['Scheduled Job']);//starts one job");
             //force validation
             for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
@@ -501,8 +480,12 @@ async function init(){
 				return;
 			}
 			saveJobGrid();
-			var to_save = getRowDataJson(m_mainGrid.getSelectedRowId());
-			downloadStringAsFile(JSON.stringify(to_save),"application/json",getColumnValueByColName(m_mainGrid.getSelectedRowId(),"job_name"));
+            var rows = m_mainGrid.getSelectedRowId().split(",");
+            for (var i=0;i<rows.length;i++){
+                var _cur_id = rows[i];
+                var to_save = getRowDataJson(_cur_id);
+                downloadStringAsFile(JSON.stringify(to_save),"application/json",getColumnValueByColName(_cur_id,"job_name"));
+            }
 			
         }
 		if (id=="importrow"){
@@ -563,34 +546,10 @@ async function init(){
         saveJobGrid();
     });
     m_mainGrid.attachEvent("onCheck", function(rId,cInd,state){
+        //enable/disable checkbox
         saveJobGrid();
     });
-    // m_mainGrid.attachEvent("onRowSelect", function(id,ind){
-    //     detailsLayout.cells("a").setText("Target Workflow");
-    //     //show workflow selection
-    //     detailsLayout.cells("a").attachHTMLString('<div id="wfform" style="width:100%;height:130px;overflow:visible"></div>');
-    //     m_workflowForm  = new dhtmlXForm("wfform");
-    //     m_workflowForm.addItem(null, {type : "fieldset", name : "data", label : "Workflow", inputWidth : 220, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
-    //     m_workflowForm.addItem("data", {type: "combo", label: "Workflow Name", name: "wf_id", width:200, options:[]},1);
-    //     m_workflowForm.addItem("data", {type: "combo", label: "Start Proc", name: "start_proc", width:200   , options:[]},2);
-        
-    //     //loads workflows into combo
-    //     loadWorkflows(m_workflowForm.getCombo("wf_id"),m_workflowForm.getCombo("start_proc"));+
-    //     //load start_procs into combo
-    //     m_workflowForm.getCombo("wf_id").attachEvent("onChange", function(selected_wf_id){
-    //         //workflow was selected, show start_procs
-    //         m_workflowForm.getCombo("start_proc").clearAll();
-			
-    //         //collect start procs from wf
-    //         for (var y=0;y<m_allWorfklows[selected_wf_id]["nodes"].length;y++){
-    //             var nodes = m_allWorfklows[selected_wf_id]["nodes"];
-    //             if (nodes[y]["start_proc"]){
-    //                 m_workflowForm.getCombo("start_proc").addOption(  [{value:nodes[y]["id"],text:nodes[y]["type"],selected:true}] ); //todo; get display name
-    //             }
-    //         }        
-    //     });
-    // });
-        
+    
         
 }
 
@@ -603,7 +562,7 @@ function openImportWindow(){
         });
         
         //file select button
-        layout.cells("a").setText('File: <input type="file" id="import_file" style="line-height:initial"/>');
+        layout.cells("a").setText('File: <input type="file" multiple id="import_file" style="line-height:initial"/>');
         document.getElementById('import_file').addEventListener('change', handleFileSelect, false);
 		layout.cells("a").attachHTMLString("<div id='output' ></div>")
 		
@@ -634,26 +593,38 @@ function openImportWindow(){
             }
         });
 		
-		function handleFileSelect(evt) {
+		async function handleFileSelect(evt) {
 		/* File was selected */
 			var files = evt.target.files; // FileList object
 	
 			// files is a FileList of File objects. List some properties.
 			var output = [];
-			for (var i = 0, f; f = files[i]; i++) {
+            console.log("file select files",files)
+			//for (var y = 0, f; f = files[y]; y++) {
+            readAllFiles(files);
+            function readAllFiles(files,startidx = 0){
+                if (startidx>=files.length)
+                        return
+                /* Filereader does not work in for loop, therefore we need to do recursive, just google for filereader multiple.*/
 				var fr = new FileReader();
+                fr.onerror=function(ex){
+                    alert("File reader error" + ex);
+                }
 				fr.onload=function(){
-					//file has been read
+                    console.log("file select tresult",fr.result)
 					var importJson = fr.result;
 					importJson = JSON.parse(importJson);
 					var newId = Math.random();
 					restoregrid.addRow(newId,[importJson["job_name"]]);
 					restoregrid.setUserData(newId,"jobdata",importJson);
-					
+                    if (startidx>=files.length)
+                        return
+                    startidx += 1
+					readAllFiles(files,startidx++)
 				}
-				
-				fr.readAsText(files[i]);
-			}
+				console.log("reading file",startidx,"of",files.length)
+				fr.readAsText(files[startidx]);
+            }
 		}
 	 
 }
@@ -754,7 +725,6 @@ function openWorkflowSelector(rowId,savedWorkflow){
 }
 
 
-
 function saveSelectedWorkflow(){
     //saves selected wf and proc  
     var attachedMenu = m_workflowSelectionWindow.getAttachedMenu();
@@ -801,25 +771,8 @@ function loadWorkflows(success_cb){
             if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{            
-                //get currently selected workflow:
-                // var cellindex = m_mainGrid.getColIndexById('workflow');
-                // var currentWf = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
-                // if (currentWf){
-                //     currentWf = JSON.parse(currentWf);
-                //     procCombo.addOption(  [{value:currentWf["start_proc"],text:currentWf["start_proc_name"],selected:true}] );
-                // }
-                //add options to dropdown
                 m_workflowArray = response['workflows'];
                 success_cb();
-                // for (i in m_workflowArray){
-                //     //create a combo option for each workflow
-                //     var _selected = false;
-                //     if (currentWf['wf_id'] == m_workflowArray[i]['wf_id']){
-                //         _selected = true;
-                //     }
-                //     m_allWorfklows[m_workflowArray[i]['wf_id']] = m_workflowArray[i];//store all workflows for later proc selection
-                //     _combo.addOption(  [{selected:_selected,value:m_workflowArray[i]['wf_id'],text:m_workflowArray[i]["wf_name"]}] );  
-                // };
             }
         },
         error: function (xhr, status) {
@@ -845,13 +798,13 @@ function showScriptEditor(selectedRowId){
         scriptDevLayout.cells("a").hideHeader();
         scriptDevLayout.cells("a").setText("Custom Script");
         scriptDevLayout.cells("b").setText("Live Log");
-        
+        scriptDevLayout.cells("b").setWidth(200);
         var scriptMenu = scriptDevLayout.cells("a").attachMenu({
                 icons_path: "/webinterface/dependencies/dhtmlx/imgs/",
                 items:[
                     {id:"save", text:'<i class="fas fa-save"></i>Save'},
                     {id:"start", text:'<i class="fas fa-play"></i>Test Run'},
-					//{id:"examplebrowser", text:'<i class="fas fa-play"></i>Examples'}
+					{id:"examplebrowser", text:'<i class="fa fa-magic"></i>Examples'}
                 ]
             });
         scriptMenu.setUserData("save", "jobid", selectedRowId);//stores scheduled jobid for this window so later on we find out which job we are connected to
@@ -894,15 +847,18 @@ function showExampleBrowser(){
         exampleLayout.cells("a").setHeight(30);        
         exampleLayout.cells("a").hideHeader();
         exampleLayout.cells("b").hideHeader();
-        exampleLayout.cells("a").attachHTMLString("<span style='margin-left:20px;margin-top:5px'>Examples:</span><div style='margin-left:20px;margin-top:5px' id='examplesCombo'/>");
-        var exampleCombo = new dhtmlXCombo("examplesCombo","alfa2",200);
+        exampleLayout.cells("a").attachHTMLString("<div style='margin-left:20px;margin-top:5px;' id='examplesCombo'/>");
+        var exampleCombo = new dhtmlXCombo("examplesCombo","alfa2",400);
+        exampleCombo.readonly(true);
         exampleCombo.addOption([
-            ["1","Compare Folders (Same Filename but different Extensions)"],
+            ["1223","Compare Folders (Same Filename but different Extensions)"],
+            ["scheduler_pages/example_browser/1_file_1_job.txt","1 job per file in folder"]
         ]);
-        exampleCombo.attachEvent("onChange", function(value, text){
-            scriptDevLayout.cells("a").attachHTMLString("<div style='height:100%' id='codemirror'></div>");
-                var base = document.getElementById("codemirror");
-                  m_codemirror = CodeMirror(base, {
+        exampleCombo.attachEvent("onChange", async function(value, text){
+            value = await $.get(value);
+            exampleLayout.cells("b").attachHTMLString("<div style='height:100%' id='codemirror_ex'></div>");
+                var base = document.getElementById("codemirror_ex");
+                  var cm = CodeMirror(base, {
                       lineNumbers: true,
                       value: value, //"//when you are done and this array contains filepaths, one job per contained path will be started.\nvar filesToProcess = [];",
                       mode:  "javascript"
@@ -911,8 +867,10 @@ function showExampleBrowser(){
         
 }
 
-function startJobImmediate(jobId,dhxLayoutCell){
-    saveUserScript(jobId,function(){
+async function startJobImmediate(jobId,dhxLayoutCell = null){
+        if (dhxLayoutCell)
+            await saveUserScript(jobId)
+        console.log("startjobimmi, socketid:",socket.id)
         var cellindex = m_mainGrid.getColIndexById('id');
         var _id = m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).getValue();
         $.ajax({
@@ -920,17 +878,15 @@ function startJobImmediate(jobId,dhxLayoutCell){
             type: "POST",
             dataType: "json",
             context: this,
-            data: {jobid : _id,socketid: m_socketId},
+            data: {jobid : _id,socketid: socket.id},
             success: function (msg) {
-                dhxLayoutCell.attachHTMLString("<div id='"+msg.pid+"' style='width:100%;height:100%;overflow:scroll'/>");//log message div
+                if (dhxLayoutCell)
+                    dhxLayoutCell.attachHTMLString("<div id='"+msg.pid+"' style='width:100%;height:100%;overflow:scroll'/>");//log message div
                 
-                dhtmlx.message("Job was started, " + msg.pid);
+                dhtmlx.message("Job was started, " + JSON.stringify(msg));
                 socket.off('logmessage');//unregister event listener
                 socket.on('logmessage', function(msg){
-                    //todo: create log window on demand and pass log message to this window.
                     document.getElementById(msg.pid).innerHTML += "<pre style='margin-left:5px'>" + new Date().toLocaleTimeString() + " " + msg.msg + "</pre>"; 
-                    
-                   
                 });    
                 
             },
@@ -939,7 +895,7 @@ function startJobImmediate(jobId,dhxLayoutCell){
                 
             }
         });  
-    })
+    
 }
 
 
@@ -958,6 +914,15 @@ function saveUserScript(rId,callback){
     saveJobGrid(rId,callback)
 }
 
+function setGridValueByColName(rowId,col_name,new_val){
+    for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                    var colName = m_mainGrid.getColumnId(colidx);
+                    if (colName == col_name){
+                        m_mainGrid.cells(rowId,colidx).setValue(new_val);//last start
+                    }           
+    }
+}
+
 function updateJobs(){
 //update last_start
    $.ajax({
@@ -969,6 +934,7 @@ function updateJobs(){
                 var _job = response[i]['scheduled_jobs'];
                 for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
+                    //todo: can change to setGridValueByColName
                     if (colName == "last_start"){
                         m_mainGrid.cells(_job["id"],colidx).setValue(_job["last_start"]);//last start
                     }           
@@ -1001,6 +967,7 @@ function loadJobs(dhxGrid){
             response = JSON.parse(response) 
             for (i in response){
 				var _job = response[i]['scheduled_jobs'];
+                console.log("debug job:",_job)
 				createJobRowInGrid(_job,dhxGrid);
                 continue;
             }
@@ -1072,26 +1039,37 @@ function saveJobGrid(rIdToSave,callback){
 }
 
 function deleteJob(id){
+    var jobs = id.split(",");
+    var jobnames = jobs.map(j=> {
+        return getColumnValueByColName(j,"job_name");
+    })
     dhtmlx.message({
         type:"confirm",
-        text: "Delete the selected Job<br/><br/>" +unescape(id),
+        text: "Delete the selected Jobs<br/><br/>" +unescape(JSON.stringify(jobnames)),
         callback: function(ok) {
             if(ok){
-                $.ajax({
-                    url:  ("/deletescheduledjob?id=" + id),
-                    type: "DELETE",
-                    context: this,
-                    dataType: "json",
-                    data: {jobid : id},
-                    success: function () {
-                        dhtmlx.message("Saved");
-                        m_mainGrid.deleteSelectedRows();
-                    },
-                    error: function (xhr, status) {
-                        dhtmlx.message("Fatal error, could not delete scheduled jobs, check server logs. "+ xhr.responseText );
-                        
-                    }
-                });    
+                for (var i=0;i<jobs.length;i++){
+                    var id_to_del = jobs[i];
+                    do_delete(id_to_del)
+                }
+                function do_delete(id){
+                    $.ajax({
+                        url:  ("/deletescheduledjob?id=" + id),
+                        type: "DELETE",
+                        context: this,
+                        dataType: "json",
+                        data: {jobid : id},
+                        success: function () {
+                            dhtmlx.message("Job successfully deleted.");
+                            m_mainGrid.deleteRow(id);
+                            //m_mainGrid.deleteSelectedRows();
+                        },
+                        error: function (xhr, status) {
+                            dhtmlx.message("Fatal error, could not delete scheduled jobs, check server logs. "+ xhr.responseText );
+                            
+                        }
+                    });    
+                }
             }//if ok
         }
     });

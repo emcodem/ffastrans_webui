@@ -48,10 +48,10 @@ module.exports = {
 //     return info;
 // })();
 
-function getLogger(label,suppress_startup_msg = false) {
+function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
   /* returns a logger if exists, if not creates a new one */
 
-  var logpath = path.join(global.approot, "/logs/");
+  var logpath = path.join(global.approot, "/logs/",log_subdir);
   fs.ensureDirSync(logpath);
   if (!winston.loggers.has(label)) {
 	

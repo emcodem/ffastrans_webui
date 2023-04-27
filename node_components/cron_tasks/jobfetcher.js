@@ -17,8 +17,37 @@ var count_running = false;
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
 
-
 module.exports = {
+
+	importLegacyDatabase: async function(old_path){
+            var all_lines = await fsPromises.readFile( old_path, "utf8" );
+            all_lines.forEach(line =>{
+				var jobArray = [];
+				jobArray.push(JSON.parse(line));
+				var i = 0;
+
+
+				jobArray[i]["_id"] = jobArray[i]["job_id"] + "_main";
+				delete jobArray[i]["title"];
+				jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
+				delete jobArray[i].job_start;
+				jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
+				delete jobArray[i].job_end;
+				jobArray[i].outcome = jobArray[i]["result"];
+				delete jobArray[i].result;
+				delete jobArray[i].key;
+				
+				
+				//filter deleted jobs from new joblist
+				if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1){
+					non_deleted_jobs.push(jobArray[i]);
+				}else{
+					return;
+				}
+            })
+        
+	},
+
     fetchjobs: async function () {	
 
 	//kick off global countjobs DEPRECATED; REPLACED BY POLLING getworkflowjobcount
@@ -30,7 +59,7 @@ module.exports = {
 
     if (!Number.isInteger(parseInt(global.config.STATIC_API_TIMEOUT))){
         var txt = 'ERROR contact admin. Server setting STATIC_API_TIMEOUT is not a number: [' + global.config.STATIC_API_TIMEOUT + ']';
-        console.error(txt)
+        console.error(txt);
         global.socketio.emit("error", txt);
     }else{
         global.config.STATIC_API_TIMEOUT = parseInt(global.config.STATIC_API_TIMEOUT)
@@ -65,8 +94,9 @@ module.exports = {
 			}
 			
 			/* end of alert email */
+			global.lastactive = body;
 			
-            var jobArray;		
+            var jobArray;	
             try{
                 jobArray = JSON.parse(body).jobs;
             }catch(exc){
@@ -210,7 +240,10 @@ module.exports = {
     
 //fetch HISTORY jobs from api
     Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=100"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
-		
+		if (!global.db.deleted_jobs){
+			console.log("global.db.deleted_jobs not defined, is Database started yet?")
+			return;
+		}
 		try{
 			if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
 				return;
@@ -306,7 +339,7 @@ module.exports = {
 					//check if deleted
 
 					//insert new mainjob if needed
-					var newmainjob = JSON.stringify(jobArray[i]);
+					var newmainjob = JSON.stringify(jobArray[i]);//mainjob = copy of current job
 					newmainjob = JSON.parse(newmainjob);
 					newmainjob.children = [];	
 					newmainjob._id = jobArray[i].job_id + "_main"; //internal database id for mainjob, just for the db, not for use in code!
@@ -323,7 +356,6 @@ module.exports = {
 					//we inserted a new mainjob, add first child
 					jobArray[i]._id = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
 					mainjob.children.push(jobArray[i]);
-					
 				}else{
 					//udpate existing mainjob
 					var existingChildIds = mainjob.children.map((child) => child._id);
@@ -334,7 +366,7 @@ module.exports = {
 						mainjob.job_end = getOldestJobEnd(mainjob.children);
 						mainjob.duration = (getDurationStringFromDates(mainjob.job_start, mainjob.job_end )+"");
 						mainjob.state = getJobstate(mainjob.children);
-						mainjob.result = "";
+						mainjob.outcome = getJobOutcome(mainjob.children);
 					}
 				}
 				
@@ -367,11 +399,12 @@ function objectWithoutKey(key,obj){
 }
 
 function getJobstate(a_children){
-	var state = "Error";
+	var state = a_children[a_children.length-1].state;
+	var preferState = global.config.JOBFETCHER_AGGREGATE_BRANCH_STATE || "Success";
 	for (let i=0;i<a_children.length;i++){
 		var _job = a_children[i];
-		if (_job.state == "Success"){
-			state = "Success";
+		if (_job.state == preferState){
+			state = preferState;
 		}
 		if (_job.state == "Cancelled"){
 			state = "Cancelled";
@@ -379,6 +412,20 @@ function getJobstate(a_children){
 	}
 	return state;
 }
+
+function getJobOutcome(a_children){
+	/* returns outcome of the last child with specified state */
+	var outcome = a_children[a_children.length-1].outcome;
+	var preferState = global.config.JOBFETCHER_AGGREGATE_BRANCH_STATE || "Success";
+	for (let i=0;i<a_children.length;i++){
+		var _job = a_children[i];
+		if (_job.state == preferState){
+			outcome = _job.outcome;
+		}
+	}
+	return outcome;
+}
+
 
 function getYoungestJobStart(a_children){
 	var youngest_start = a_children[0].job_start;
@@ -400,15 +447,15 @@ function getOldestJobEnd(a_children){
 	return oldest_end;
 }
 
-async function countJobsAsync(countobj) {
-    let count = await new Promise((resolve, reject) => {
-        global.db.jobs.count(countobj, (err, count) => {
-            if (err) reject(err);
-            resolve(count);
-        });
-    });
-    return count ;
-}
+// async function countJobsAsync(countobj) {
+//     let count = await new Promise((resolve, reject) => {
+//         global.db.jobs.count(countobj, (err, count) => {
+//             if (err) reject(err);
+//             resolve(count);
+//         });
+//     });
+//     return count ;
+// }
 
 function getDateObj(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
@@ -432,7 +479,6 @@ function getDateStr(str){
 		var parsed = moment.parseZone(to_parse)
 		return parsed.format("YYYY-MM-DD HH:mm:ss");
     }catch(ex){
-		
 		console.error("Error getDate: " +str);
 		throw ex;
 	}
@@ -533,6 +579,9 @@ function doRequest(url) {
 
 
 async function sendEmailAlert(subject, body){
+		if (!"email_alert_config" in global.config){
+			return;
+		}
 		try{
 			var rcpt = global.config["email_alert_config"]["email_alert_rcpt"];
 			

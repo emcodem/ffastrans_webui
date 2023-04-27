@@ -9,7 +9,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/server.js"
+            "program": "${workspaceFolder}/server.js",
+            "program_rest_only_rename_me_to_program": "${workspaceFolder}/rest_service/app.js"
         },
         {
             "type": "chrome",

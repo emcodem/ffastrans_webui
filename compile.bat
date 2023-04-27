@@ -1,6 +1,12 @@
 REM DOWNLOAD PREBUILT NEXE NODE BINS for your version FROM https://github.com/nexe/nexe/releases/
 cd "%~dp0"
-REM nexe server.js -t windows-x64-14.15.3 -r "./webinterface/**" -r "./rest_service/*/{*,!(rabbitmq-server)/**}" -r  "./rest_service/app.js" --verbose
+set /p FULLVERSION=<"%~dp0webinterface/version.txt"
+set MAJOR=%FULLVERSION:~0,1%
+set MINOR=%FULLVERSION:~2,1%
+set BUILDNUM=%FULLVERSION:~4,10%
+set /a NEWVERSION=%BUILDNUM%+1
+echo %MAJOR%.%MINOR%.%NEWVERSION% > "%~dp0/webinterface/version.txt"
+
 
 cmd /C "ncc build server.js -o dist"
 

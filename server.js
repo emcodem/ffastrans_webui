@@ -9,12 +9,12 @@ const AsyncNedb  = require('@seald-io/nedb');
 const Mongod = require("./node_components/mongodb_server/mongod");
 const portfinder = require("portfinder");
 const passport = require('passport');
-const flash    = require('connect-flash');
+
 const session      = require('express-session');
 const assert = require('assert');
 const fs = require('fs-extra');
 const socket = require('socket.io');
-console.log("after include");
+
 const socketwildcard = require('socketio-wildcard');
 const configmgr = require( './node_components/server_config')
 const ffastrans_new_rest_api = require("./rest_service");
@@ -30,9 +30,6 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0; //as we have a self-signed exam
 // blocked((time, stack) => {
   // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
-
-//job scheduler - TODO: reset isactive state at program start
-global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
 //LOGGING
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
@@ -73,8 +70,12 @@ console.warn = (...args) => logger.warn.call(logger, ...args);
 console.error = (...args) => logger.error.call(logger, ...args);
 console.debug = (...args) => logger.debug.call(logger, ...args);
 
+//job scheduler - TODO: reset isactive state at program start
+global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
+
 //Before DB init, we need socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
+const jobfetcher = require('./node_components/cron_tasks/jobfetcher');
  
 //init DB
 global.db={};
@@ -100,21 +101,28 @@ async function connectDb(){
     //fire up database process
     var dbpath = path.join(global.approot, "/database/job_db");
     await fs.ensureDir(dbpath);
+    console.log("Database path:",dbpath)
     var dbPort = await portfinder.getPortPromise({port: 8010, stopPort: 8020});
+    var dblogger = logfactory.getLogger("database");
     console.log("Database port: " + dbPort);
     global.db.mongod = new Mongod(dbpath);
     global.db.mongod.port = dbPort;
     global.db.mongod.start();
-    var dblogger = logfactory.getLogger("database");
+    
     dblogger.info("Database port: ",dbPort);
     global.db.mongod.onStdOut = function(data){
-        //dblogger.info(data.toString());
+        dblogger.info(data.toString());
     }
     global.db.mongod.onStdErr = function(data){
-        //dblogger.info(data.toString());
+        dblogger.error(data.toString());
     }
     global.db.mongod.onExit = function(data){
         dblogger.info("database process exited, code: ",data);
+        //todo:restart DB? Anyway, we must inform clients continuously...
+		setInterval(function(){
+			//show errormsg forever as we do not attempt to reconnect
+			global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
+		}, 3000);
     }
 
     //connect to database, store connection in global object
@@ -134,6 +142,10 @@ async function connectDb(){
     global.db.jobs = db.collection('jobs');
     global.db.deleted_jobs = db.collection('deleted_jobs');
 
+    var old_dbpath = path.join(global.approot, "/database/jobs");
+    if (fs.existsSync(old_path)){
+        //jobfetcher.importLegacyDatabase(old_dbpath);
+    }
     //ensure db indexes
     //try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
 	try{await global.db.deleted_jobs.createIndex({ job_id:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
@@ -147,6 +159,7 @@ async function connectDb(){
     try{await global.db.jobs.createIndex({ job_id:       1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ state:       1,job_start:   1 });}catch(ex){}
 }
+
 
 async function init(conf){
 	global.config = conf;
@@ -164,7 +177,7 @@ async function init(conf){
         }));
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
-    app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
+    //app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
     
     //redirect views - for passport
     app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
@@ -186,7 +199,7 @@ async function init(conf){
     
 	if (!global.config["alternate-server"]){
 		delete global.config["ffastrans-about"];
-		    //NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
+		//NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
 		var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
 		console.log("NOT running on alternate-server, getting FFAStrans API about:",about_url);
 		var _request = require('retry-request', {
@@ -320,7 +333,7 @@ async function init(conf){
 
     //log all requests
     app.use(function(req, res, next) {
-        console.debug("REQUEST: " + "[" + req.originalUrl + "]");
+        //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
         next();
     });
 
@@ -344,6 +357,7 @@ async function init(conf){
     require("./node_components/views/getworkflowdetails")(app, passport);
     require("./node_components/views/scheduledjobs")(app, passport);
     require("./node_components/views/browselocations")(app, express);
+    require("./node_components/views/getjobstate")(app, express);
     require("./node_components/get_userpermissions")(app, passport);
     require("./node_components/resumeable_backend.js")(app, passport);
     require("./node_components/mediainfo.js")(app, passport);
@@ -351,10 +365,18 @@ async function init(conf){
 	require("./node_components/admin_alert_email_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
     require("./node_components/databasemaintenance")(app, express);
+    require("./node_components/views/databasemaintenance_views")(app, passport);
+    
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
-
+    // const errorHandling = (err, req, res, next) => {
+    //     res.status(500).json({
+    //       msg: err.message,
+    //       success: false,
+    //     });
+    //   };
+    //  app.use(errorHandling);
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans') 
 	// Listen both http & https ports if configured
@@ -429,12 +451,15 @@ function initSocketIo(created_httpserver){
 	  console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
 	  
 	  //send back the socketio id to the client
-		_socket.emit("socketid",_socket.id);
+	  _socket.emit("socketid",_socket.id);
 	  
 	  //register to all events from client
 		_socket.on('*', function(data){
 			var cmd = data.data[0];
 			var obj = data.data[1];
+            if (cmd == "echo"){
+                _socket.emit("echo",_socket.id);
+            }
 			if (cmd == "player"){
 				let thisplayer = new Player();
 				//player has it's own socket io connection, should be ok to attach event only for this socket.

@@ -74,10 +74,44 @@ function buildForm(){
 				// sets alignment for columns
 				align: "center",  // "center", "end", "between", "around", "evenly"
 				rows:[
-					{cols: [
-							{type: "datepicker", timePicker: true,range: true, value: [today_start], name: "db_start_date", label: "Date Start", dateFormat: "%Y-%m-%d %H:%i:%s"},
-							{type: "datepicker", timePicker: true,range: true, value: [today_end], name: "db_end_date", label: "Date End", dateFormat: "%Y-%m-%d %H:%i:%s"},   
-					]},
+					{
+						cols : [{
+							"labelWidth":70,
+							"type": "checkbox",
+							"label": "Error",
+							"checked": true
+							},{
+							"labelWidth":70,
+							"type": "checkbox",
+							"label": "Success",
+							"checked": true
+							},{
+							"labelWidth":70,
+							"type": "checkbox",
+							"label": "Cancelled",
+							"checked": true
+							}
+						]},
+						{
+						cols: [
+							{type: "datepicker", timePicker: true, value: today_start, name: "db_start_date", label: "Date Start", dateFormat: "%Y-%m-%d %H:%i:%s"},
+							{type: "spacer",name: "spacer"},
+							{type: "datepicker", timePicker: true, value: today_end, name: "db_end_date", label: "Date End", dateFormat: "%Y-%m-%d %H:%i:%s"},   
+						]},
+						{
+							"name":"olderthan",
+							"type": "input",
+							"label": "Older than days",
+							"labelPosition": "top",
+							"labelWidth": "140",
+							"required": false,
+							
+							"preMessage": "If you input days, the date selection is ignored.",
+							"successMessage": "If you input days, the date selection is ignored.",
+							"errorMessage": "If you input days, the date selection is ignored."
+						},
+						
+						{type: "spacer",name: "spacer",height:30},
 					{cols: [
 							{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_export_history","hidden":false,name: "btn_export_history", width:100,value:"Export"},
 							{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:100,value:"Delete"},
@@ -111,15 +145,22 @@ function do_validate(){
 	}
 	return true;
 }
-function do_export(){
-	var values = m_mainForm.getValue()
-	do_validate();
+
+async function do_export(){
+	var values = m_mainForm.getValue();
+	if (!do_validate() || (!m_mainForm.validate() && values.olderthan!= "")  )
+		return;
+	
+	console.log("formv values",values)
+	window.open("/database_maintenance_download?parameters=" + encodeURIComponent(JSON.stringify(values)), "_blank");
+	//m_mainForm.send("/database_download","POST");
+	//await fetch("/database_download");
+	
 }
 
 function do_purge(){
 	var values = m_mainForm.getValue()
 	do_validate();
-	
 }
 
 function loadserverconfig() {

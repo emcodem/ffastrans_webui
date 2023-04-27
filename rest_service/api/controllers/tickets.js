@@ -15,6 +15,25 @@ module.exports = {
 };
 //HELPERS
 
+async function get_review(){
+	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"review","queue"),"");
+    var all_objects = [];
+    try{
+        var allfiles = await fsPromises.readdir(s_tick_path, { withFileTypes: false });
+        for (var _idx in allfiles){
+            var split = allfiles[_idx].split("~");
+            all_objects.push({
+                wf_name:split[0],
+                guid:split[1]
+            });
+
+        }
+        return all_objects;
+    }catch(ex){
+        return[];
+    }
+}
+
 async function get_running(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
     var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"));
@@ -117,7 +136,7 @@ async function get_incoming(returnarray){
                         
                     }
                 }catch(ex){
-                    console.warn("Not very critical " + ex);
+                    //console.warn("Not very critical " + ex);
                 } 
             }
         }
@@ -166,12 +185,6 @@ async function get_pending(){
 	
 }
 
-/*
-  Functions in a127 controllers used for operations should take two parameters:
-
-  Param 1: a handle to the request object
-  Param 2: a handle to the response object
- */
 async function start(req, res) {
 	try {
         var o_return = {};
@@ -182,15 +195,16 @@ async function start(req, res) {
             var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
             o_return["tickets"]["running"] = await fsPromises.readdir(path.join(s_tick_path,"running"), { withFileTypes: false });
             o_return["tickets"]["queued"] = await fsPromises.readdir(path.join(s_tick_path,"pending"), { withFileTypes: false });
-
         }else{
-            
+        
             //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
             //the real queued folder is more like a temp folder for tickets between pending and running
             o_return["tickets"]["queued"] = await get_pending(); 
             //o_return["tickets"]["queue"] = common.ticket_files_to_array(path.join(s_tick_path,"queue"));
             o_return["tickets"]["incoming"] = await get_incoming();
             o_return["tickets"]["running"] = await get_running();
+            o_return["tickets"]["review"] = await get_review();
+            
         }
 
 	} catch(err) {

@@ -11,6 +11,12 @@ const ffastransapi = require("../ffastransapi");
 const moment = require("moment");
 const asyncdatastore = require("nedb-promise");
 const axios = require("axios");
+const logfactory = require("../../node_components/common/logger")
+
+var logger = logfactory.getLogger("scheduler");
+logger.log = logger.info;
+
+
 
 function twoDigits(d) {
     if(0 <= d && d < 10) return "0" + d.toString();
@@ -43,7 +49,7 @@ module.exports = {
                     executeJob(current_job);
                     
                 } catch (exec) {
-                    console.trace("Error parsing cron entry from scheduled_job, " + exec);
+                    logger.error("Error parsing cron entry from scheduled_job, " + exec);
                 }
             }//for every job
 
@@ -54,44 +60,49 @@ module.exports = {
   },
   
   executeImmediate: async function(id,socketioClientId,informCallback){
-        global.db.config.find({ "scheduled_jobs.id": id }, function (err, data) {
-            if (err) {
-                console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
-                throw err;
-            }
-            if (data){
-                
-                var current_job = data[0]["scheduled_jobs"];
-                console.log("Executing immediate: " + id);
-                executeJob(current_job,socketioClientId,informCallback);
-                        
-            }else{
-                console.error("Could not find job in database for executeimmediate, jobid: " + id)
-            }  
+        var DB = asyncdatastore.fromInstance(global.db.config);
         
-        })
+        var data = await DB.find({ "scheduled_jobs.id": id });
+        if (data){
+            var current_job = data[0]["scheduled_jobs"];
+            logger.log("Executing immediate: " + id);
+            return executeJob(current_job,socketioClientId,informCallback);
+                    
+        }else{
+            logger.error("Could not find job in database for executeimmediate, jobid: " + id)
+        }  
 
       // var DB = asyncdatastore.fromInstance(global.db.config);
       // var data = await DB.find({ "scheduled_jobs.id": id });
-      // console.log("Found Jobs to execute immedate: ", data["scheduled_jobs"])
+      // logger.log("Found Jobs to execute immedate: ", data["scheduled_jobs"])
  
   }
 };
 
 //starts job, can be called from multiple sources. socketioClientId and informCallback is only used for handing the log of the process to an client that executed immediate (for testing the script)
+function formatFilename(str){
+    if (!str)
+        return "";
+    
+    return str.replaceAll(/[^a-zA-Z0-9]/g, '');
+}
 
 function executeJob(current_job,socketioClientId,informCallback){
-    console.log("Executing a scheduled job");
-	console.log ("SCIRPT",current_job["script"])
+
+    var runId = Math.random();
+    var joblogger = logfactory.getLogger(formatFilename(new Date().toISOString()),current_job['job_name']);
+    joblogger.info("Job Start: [" + current_job['job_name'] + "]");
+    global.socketio.to(socketioClientId).emit("logmessage","Job Start: [" + current_job['job_name'] + "]");
+	//logger.log ("SCIRPT",current_job["script"])
 	
     tmp.file({ mode: '0777', prefix: 'userscript-', postfix: '.js',discardDescriptor: true },function _tempFileCreated(err, path, fd, cleanupCallback) {
         if (err) throw err;
-        console.log('Scheduled job user script File: ', path);
+        logger.log('Scheduled job user script File: ', path);
         var userScript = current_job["script"];
         //write user script into tmp file
-        fs.appendFileSync(path, new Buffer(userScript), function (err) {
+        fs.appendFileSync(path, Buffer.from(userScript), function (err) {
             if (err) {
-                console.error("FATAL ERROR, could not write userscript to tmp file: " + path)
+                logger.error("FATAL ERROR, could not write userscript to tmp file: " + path)
                 if (informCallback){
                     informCallback(0);
                 }
@@ -104,28 +115,28 @@ function executeJob(current_job,socketioClientId,informCallback){
         //send parameters and infos to the running node script, retrieve in script like process.on('message', (m) => {
 		forked.send({"self":current_job});
 		
-        console.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
+        logger.log("Started Scheduled job "+ current_job['job_name']+" PID: " + forked.pid);
         if (informCallback){
             informCallback(forked.pid);
         }
         updateScheduledJob(current_job["id"],"last_start",new Date().toMysqlFormat());
         updateScheduledJob(current_job["id"],"last_pid",forked.pid);
-        //console.log(forked.stdout, forked.stderr); // prints "null null"
+        //logger.log(forked.stdout, forked.stderr); // prints "null null"
         
         forked.stderr.on('data', (data) => { 
             //capture stdout 
-            console.log("STDERR Message from fork PID " +  forked.pid + ": "+ data);
+            logger.log("STDERR Message from fork PID " +  forked.pid + ": "+ data);
             //TODO: if client requested, forward message to client!
             if (socketioClientId){
-                global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"ERROR: "+ data })
+                global.socketio.to(socketioClientId).emit("logmessage",{pid: runId,msg:"ERROR: "+ data });
             }
         })
         forked.stdout.on('data', (data) => { 
             //capture stdout 
-            console.log("STDOUT Message from fork PID " +  forked.pid + ": "+ data);
+            logger.log("STDOUT Message from fork PID " +  forked.pid + ": "+ data);
             //TODO: if client requested, forward message to client!
             if (socketioClientId){
-                global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:""+data})
+                global.socketio.to(socketioClientId).emit("logmessage",{pid: runId,msg:data.toString()});
             }
         })
 		
@@ -133,9 +144,9 @@ function executeJob(current_job,socketioClientId,informCallback){
          * when this is happening, the child submits a json array and wants to start a job*/
          /* JOB START */
         forked.on('message', (msg) => {
-            console.log("MESSAGE FROM FORK: " + msg);
+            logger.log("MESSAGE FROM FORK: " + msg);
             if (current_job["workflow"] == ""){
-                console.warn("No Workflow selected!", "number of non started jobs:", msg.length);
+                logger.warn("No Workflow selected!", "number of non started jobs:", msg.length);
                 updateScheduledJob(current_job["id"],"last_message","No Workflow selected!");
                 return;
             }
@@ -144,52 +155,52 @@ function executeJob(current_job,socketioClientId,informCallback){
                 if (msg){
                     var fileArray = msg;
                     var _workflow = JSON.parse(current_job["workflow"]);
-					
 					try{
 						if (current_job["variables"]){
 							var _variables = JSON.parse(current_job["variables"]);
 							_workflow["variables"] = _variables;
 						}
 					}catch(exce){
-						console.error("Error adding Variables to job, ",exce);
+						logger.error("Error adding Variables to job, ",exce);
 					}
 					
 					if (!_workflow){
-                        console.log("No target workflow configured for scheduled_job " +  current_job["job_name"]);
-                        global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"No target workflow configured for scheduled_job " +  current_job["job_name"] })
+                        logger.log("No target workflow configured for scheduled_job " +  current_job["job_name"]);
+                        global.socketio.to(socketioClientId).emit("logmessage",{pid: runId,msg:"No target workflow configured for scheduled_job " +  current_job["job_name"] })
                         return;
                     }
                     for (i in fileArray){
                         _workflow['inputfile'] = fileArray[i];
+                        global.socketio.to(socketioClientId).emit("logmessage",{pid: runId,msg:"Attempting to start FFAStrans workflow..." })
                         ffastransapi.startJob(JSON.stringify(_workflow),function(data){
-                            console.log("Return message from ffastrans job: " + data);
+                            logger.log("Return message from ffastrans job: " + data);
                             try{
                                 updateScheduledJob(current_job["id"],"last_job_id",JSON.parse(data)["job_id"]);
-                                global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"FFAStrans Job was started, Message: "+ data })
+                                global.socketio.to(socketioClientId).emit("logmessage",{pid: runId,msg:"FFAStrans Job was started, Message: "+ data })
                             }catch(ex){
-                                console.log("Error starting ffastrans job, ",ex);
+                                logger.log("Error starting ffastrans job, ",ex);
                                 global.socketio.to(socketioClientId).emit("logmessage","Error starting ffastrans job, see logs")
                                 reportError(current_job,"Error starting workflow. Message:  " + ex + " Workflow: " +_workflow)
                                 
                             }
                         },function(err){
-                            console.log("Error occured starting ffastrans job: " + err)
-                            global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:"Error starting FFAStrans Job, Message: "+ err })
+                            logger.log("Error occured starting ffastrans job: " + err)
+                            global.socketio.to(socketioClientId).emit("logmessage",{pid: runId,msg:"Error starting FFAStrans Job, Message: "+ err })
                         });
                         
                     }
                 }
             }catch(ex){
-                console.error("Error starting workflow: "+ ex);
-                console.error("Input was: ",msg);
-                console.error("Stacktrace: " + ex.stack);
-                console.error("Current Job: ", current_job)
+                logger.error("Error starting workflow: "+ ex);
+                logger.error("Input was: ",msg);
+                logger.error("Stacktrace: " + ex.stack);
+                logger.error("Current Job: ", current_job)
             }
             
         });
         forked.on('error', function(e){
             //forked.send(e);
-            console.log("uncaught Exception from fork: " + e)
+            logger.log("uncaught Exception from fork: " + e)
             global.socketio.to(socketioClientId).emit("logmessage",{pid: forked.pid,msg:e})
         })
 
@@ -206,7 +217,7 @@ function executeJob(current_job,socketioClientId,informCallback){
             //delete userscript file
             fs.unlink(path, (err) => {
                 if (err) {
-                    console.log("failed to delete temp script file: " + err);
+                    logger.log("failed to delete temp script file: " + err);
                 } else {     
                     
                 }
@@ -216,17 +227,17 @@ function executeJob(current_job,socketioClientId,informCallback){
         
         
     });
-    
+    return runId;    
 }
 
 function killRunningJob(current_job){
-        console.log("Kill cmd: " + current_job['last_pid'])
+        logger.log("Kill cmd: " + current_job['last_pid'])
         if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
-            console.log("Killing Job " + current_job["job_name"] + " with PID " + current_job['last_pid']);
+            logger.log("Killing Job " + current_job["job_name"] + " with PID " + current_job['last_pid']);
             try{
                 process.kill(current_job['last_pid']);
             }catch(ex){
-                console.error("Could not kill PID: " , current_job['last_pid'],"Message:",ex)
+                logger.error("Could not kill PID: " , current_job['last_pid'],"Message:",ex)
             }
         }
     
@@ -260,74 +271,86 @@ async function needsExecution(current_job){
     
     
     //job is not running. Check if we need to start it
-    var dateOfInterest = current_job["last_start"] || current_job["date_created"] ;
-    var options = {
-      currentDate: dateOfInterest,
-      //endDate: new Date('Wed, 26 Dec 2012 14:40:00 UTC'),
-      iterator: false
-    };
+   
+    var last_start_date = current_job["last_start"] || current_job["date_created"] ;
     crons = current_job["cron"].split(",");
-    
     var returnvalue = false; 
     
-    for (cron in crons){ //check all configured intervals of current job
-        //why do we parse all cron jobs here?
-        cron = crons[cron];
-        var interval = parser.parseExpression(cron,options);
-        var nextExecutionDate = interval.next();
-        var _nextdate = new Date(nextExecutionDate);
-        var _datenow = new Date();
-        if (_nextdate < _datenow){
-            console.log("Scheduled job is pending:" , {"_nextdate":_nextdate,"_datenow":_datenow, "nextExecutionDate(fromCron)":new Date(nextExecutionDate),"cron":cron})
-            updateScheduledJob(current_job["id"],"last_message","Job is pending execution, nextstart: ",_nextdate);
-            returnvalue = true;
-        }else{
-            returnvalue = false;
-        }
-        //update "next run" time
-        if (current_job["next_start"] != moment(_nextdate).format("YYYY-MM-DD HH:mm:ss")){
-            console.log("Updating next start of ",current_job["job_name"], "to",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
-            updateScheduledJob(current_job["id"],"next_start",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
-        }else{
-           
+    //collect youngest next start time of all registered crons
+    var youngest_next = new Date("9999"); //hight start date, year 9999
+    for (var _idx in crons){ 
+        var _cur_cron = crons[_idx];
+        var _interval = parser.parseExpression(_cur_cron,{//parseExpression func needs last_start_date to calcualte next interval
+            currentDate: last_start_date,
+            iterator: false
+          });
+        var current_next = new Date(_interval.next());
+        if (current_next < youngest_next){
+            youngest_next = current_next;
         }
     }
+
+    var formatted_youngest = moment(youngest_next).format("YYYY-MM-DD HH:mm:ss");
+    //update database entry if needed
+    if (current_job["next_start"] != formatted_youngest){
+        updateScheduledJob(current_job["id"],"next_start",formatted_youngest);
+        //updateScheduledJob(current_job["id"],"last_message","Job is pending execution, nextstart: " + formatted_youngest);
+    }
+
+    //start job if needed
+    if (youngest_next < new Date()){
+        //job should be started now.
+        //updateScheduledJob(current_job["id"],"last_message","Job is pending execution, nextstart: " + formatted_youngest);
+        
+        returnvalue = true;
+    }
+
+
+
+
+    // for (cron in crons){ 
+    //     cron = crons[cron];
+    //     var interval = parser.parseExpression(cron,options);
+    //     var nextExecutionDate = interval.next();
+    //     var _nextdate = new Date(nextExecutionDate);
+    //     var _datenow = new Date();
+    //     if (_nextdate && _nextdate < _datenow){
+    //         logger.log("Scheduled job is pending:" , {"interval.next()":_nextdate,"_datenow":_datenow, "nextExecutionDate(fromCron)":new Date(nextExecutionDate),"cron":cron})
+    //         updateScheduledJob(current_job["id"],"last_message","Job is pending execution, nextstart: " + _nextdate);
+    //         returnvalue = true; //if any of the crons matches, we return true
+    //     }
+    //     //update "next run" time
+    //     if (current_job["next_start"] != moment(_nextdate).format("YYYY-MM-DD HH:mm:ss")){
+    //         logger.log(current_job["job_name"],"stored next start does not match calculated next start: ",current_job["next_start"]," != ",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss") )
+    //         logger.log("Updating next start of ",current_job["job_name"], "to",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
+    //         updateScheduledJob(current_job["id"],"next_start",moment(_nextdate).format("YYYY-MM-DD HH:mm:ss"));
+    //     }
+    // }
     
     //job is pending but should we really execute it?
     if (returnvalue){
 
-        // if (current_job['last_pid']){ //LAST PID IS A REALLY BAD CHECK; ANOTHER PROCESS MIGHT HAVE THE PID
-            // if (current_job['last_pid'] != 0 && isRunning(current_job['last_pid'])){
-                // console.log("Scheduled Job is pending " + current_job["job_name"] + " but PID is still running, preventing execution");
-                // //todo: check for timeout and reset pid if neccessary 
-                // updateScheduledJob(current_job["id"],"last_message","Job is pending but PID is still running " + current_job['last_pid']);
-                // return false;
-            // }
-        // }
-        
         if ("last_job_id" in current_job){
-            
-            if (current_job["last_job_id"] != ""){  
+            if (current_job["last_job_id"] != ""){
                 updateScheduledJob(current_job["id"],"last_message","Detected last Jobid exists, checking if Jobid is active");
-                console.log("checking if job is still runing");
+                logger.log("checking if job is still runing");
                 var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
                 var url = protocol + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets?nodetails=true" ;
-                
-                console.log("calling,",url)
+                logger.log("calling,",url)
                 try{
                     var resp = await axios.get(url);
                     if ("data" in resp){
                         if (JSON.stringify(resp["data"]).indexOf(current_job["last_job_id"]) != -1){
                             updateScheduledJob(current_job["id"],"last_message","Last job is still active");
-                            console.log("last_job_id is still active")
+                            logger.log("last_job_id is still active")
                             return false;
                         }else{
-                            console.trace(resp["data"],"does contain",current_job["last_job_id"])
+                            logger.error(resp["data"],"does contain",current_job["last_job_id"])
                         }
                         
                     }
                 }catch(ex){
-                    console.error("Could not get information about currently running job, resetting las_job_id",ex);
+                    logger.error("Could not get information about currently running job, resetting las_job_id",ex);
                     updateScheduledJob(current_job["id"],"last_message","Reset last job id due to error getting job details: " + current_job["last_job_id"] + ex);
                     updateScheduledJob(current_job["id"],"last_job_id","");
                     return true;
@@ -342,17 +365,17 @@ async function needsExecution(current_job){
 function updateScheduledJob(id,field,value){
     
    /* global.db.config.find({ "scheduled_jobs.id": id }, function (err, data) {
-            console.log(data);
+            logger.log(data);
     })
     return;*/
     var setObject = {};
     setObject[ "scheduled_jobs."+ field] = value;
     global.db.config.update({ "scheduled_jobs.id": id },{$set: setObject},{upsert:false,multi:false} ,function (err, count) {
         if (err) {
-            console.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
+            logger.error("FATAL ERROR; could not update scheduled_job "+field+", contact development!")
             throw err;
         }
-        console.log("updated scheduled job ",id, field, value)
+        logger.log("updated scheduled job ",id, field, value)
         global.db.config.compactDatafile(); //deletes unused stuff from DB file
         
     })

@@ -1,0 +1,307 @@
+<html>
+<!-- CONFIG is done in  node_components\views\adminconfig.js -->
+<head>
+
+
+
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/>
+<script src="../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+
+<script src="../dependencies/jquery/jquery.js"></script>
+
+<style>
+.open_win_btn{
+    
+    
+}
+
+</style>
+
+<script>
+var m_serverconfig;
+/*load config from server*/
+function loadserverconfig(){
+   $.ajax({
+        url:  ("/getserverconfig") ,
+        type: "GET",
+        success: function (response) {
+            m_serverconfig = JSON.parse(response);
+            init();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. " );
+            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+        }
+    });
+}
+
+function setDefaultConfigValues(){
+    if (!("JOBFETCHER_AGGREGATE_BRANCH_STATE" in m_serverconfig))
+    m_serverconfig["JOBFETCHER_AGGREGATE_BRANCH_STATE"] = "Success";
+}
+
+function init(){
+
+    setDefaultConfigValues();
+
+    var label_width = 145;
+    const layout = new dhx.Layout(document.body, {
+        type: "space",
+        rows: [
+        { id: "toolbar", height: "content" },
+            {cols: [
+                {
+                    id: "form",
+                },
+                {
+                    id: "docs",
+                },
+            ]}
+        ]
+    });
+
+    const form = new dhx.Form(null, {
+        css: "dhx_widget--bordered",
+        padding:10,
+        rows: [
+            {
+                name: "STATIC_WEBUI_HEADER_NAME",
+                value: m_serverconfig["STATIC_WEBUI_HEADER_NAME"],
+                type: "input",
+                label: "Header Name",
+                labelPosition: "left",
+                labelWidth: label_width,
+                preMessage:"Name of FFastrans Instance, top left on page. HTML allowed."
+            },
+            {
+                type: "radioGroup",
+                name: "STATIC_USE_WEB_AUTHENTIFICATION",
+                value: m_serverconfig["STATIC_USE_WEB_AUTHENTIFICATION"] || "false",
+                labelWidth: label_width,
+                required:true,
+                options: {
+                    cols: [
+                        {
+                            "type": "radioButton",
+                            "text": "Enabled",
+                            "value": "true",
+                        },
+                        {
+                            "type": "radioButton",
+                            "text": "Disabled",
+                            "value": "false"
+                        }
+                    ]
+                },
+                label: "Authentification",
+                labelPosition: "left",
+                preMessage:"Enabled: require login username",
+                successMessage:"Enabled: require login username",
+                errorMessage:"Enabled: require login username",
+            },
+            { /* Button needs separate label */
+                cols:[
+                    {
+                        type: "text",height:"60px",
+                        label: "Active Directory",labelPosition: "left",labelWidth: label_width,value: " ",width:label_width,
+                    },
+                    {
+                        type: "button",name: "btn_activedirectory",padding: "0px 0px 0px 20px",
+                        text: "Active Directory Setup",size: "medium",view: "flat",color: "primary",full:true,
+                        css:"dhxform_obj_dhx_skyblue open_win_btn",height:"60px",
+                    }
+                ]
+            },
+            {
+                name: "STATIC_HEADER_JOB_COUNT_DAYS",
+                value: m_serverconfig["STATIC_HEADER_JOB_COUNT_DAYS"],
+                inputType: "number",
+                type: "input",
+                label: "Job Count Days",
+                labelPosition: "left",
+                labelWidth: label_width,
+                required: true,
+                preMessage:"Job Counters on page header are limited to X days.  Lower is faster",
+                successMessage:"Job Counters on page header are limited to X days.  Lower is faster"
+            },
+            {
+                type: "radioGroup",
+                name: "JOBFETCHER_AGGREGATE_BRANCH_STATE",
+                value: m_serverconfig["JOBFETCHER_AGGREGATE_BRANCH_STATE"],
+                labelWidth: label_width,
+                required:true,
+                options: {
+                    cols: [
+                        {
+                            "type": "radioButton",
+                            "text": "Success",
+                            "value": "Success"
+                        },
+                        {
+                            "type": "radioButton",
+                            "text": "Error",
+                            "value": "Error"
+                        }
+                    ]
+                },
+                label: "Prefer Job state",
+                labelPosition: "left",
+                preMessage: "On Job Status page, Show Job state 'Success' if any Branch Succeeded or 'Error' if any Branch Errored",
+                successMessage: "On Job Status page, Show Job state 'Success' if any Branch Succeeded or 'Error' if any Branch Errored",
+                errorMessage: "On Job Status page, Show Job state 'Success' if any Branch Succeeded or 'Error' if any Branch Errored",
+            },
+            {
+                name: "STATIC_UPLOADPATH",
+                value: m_serverconfig["STATIC_UPLOADPATH"],
+                type: "input",
+                label: "File Uploads",
+                labelPosition: "left",
+                labelWidth: label_width,
+                preMessage:"Uploaded Files from Job Submitter go here."
+            },
+            { /* Button needs separate label */
+                cols:[
+                    {
+                        name: "text",type: "text",
+                        label: "Job Database",labelPosition: "left",labelWidth: label_width,value: " ",width:label_width,
+                        height:"60px",
+                    },
+                    {
+                        type: "button",name: "btn_database",padding: "0px 0px 0px 20px",
+                        text: "Database Manager",size: "medium",view: "flat",color: "primary",
+                        css:"dhxform_obj_dhx_skyblue",
+                        height:"60px"
+                    }
+                ]
+            }
+        ]})
+
+        layout.getCell("form").attach(form);
+        attachToolbar(layout.getCell("toolbar"),form);
+        //layout.getCell("form").attach(menu)
+   
+
+        //EVENTS
+        form.events.on("change", function(name, events) {
+           
+        });
+        form.events.on("click", function(name, events) {
+           if (name == "btn_database"){
+                showConfigWindow("Database Maintenance","database_maintenance.html");
+           }
+           if (name == "btn_activedirectory"){
+                showConfigWindow("Active Directory setup","activedirectory_setup.html");
+           }
+        });
+}
+
+async function checkIfAdminGroupExists(){
+    try{
+        var resp = await fetch("/usergrouplist");
+        var groups = await resp.json();
+        for (_g of groups){
+            if (JSON.stringify(_g).match("GROUPRIGHT_MENU_VIEW_ADMIN")){
+                resp = await fetch("/userlist");
+                var usersresp = await resp.text();
+                if (usersresp.match(_g.name)) //there is at least on user member of a group with view_admin
+                    return true;
+            }
+        }
+        return false;
+    }catch(ex){
+        alert("Fatal error getting usergrouplist, contact development. message:" + ex)
+        return true;
+    }
+}
+
+function attachToolbar(layoutCell,form){//layout.getCell("toolbar").
+const cfg = [
+        {
+            id: "btnsave",
+            type: "button",
+            value: "Save",
+            icon: "dxi dxi-content-save",
+            size: "small",
+            color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
+        }
+    ]
+
+    const toolbar = new dhx.Toolbar(null, {
+        css:"dhx_widget--bordered"
+        });
+    toolbar.data.add(cfg);
+    toolbar.events.on("click", async function(id,e){
+        if(id == "btnsave"){
+
+            var to_save = form.getValue();
+            if (to_save["STATIC_USE_WEB_AUTHENTIFICATION"] == "true"){
+                var have_admin  = await checkIfAdminGroupExists();
+                if (!have_admin){
+                    altertMsg("You enabled web auth but no user group with access to MENU_VIEW_ADMIN exists. <br>As you would be locked out from this moment, <b>the configuration was not saved.</b>");
+                    form.getItem("STATIC_USE_WEB_AUTHENTIFICATION").setValue("false");
+                    return;
+                }
+            }
+
+            delete to_save.text; //delete helper items form form
+            
+            var merged = {...m_serverconfig, ...to_save};
+            console.log("Saving merged config",merged)
+            saveConfig(merged);
+        }
+    });
+    
+    layoutCell.attach(toolbar);
+}
+
+function altertMsg(msg){
+    dhx.alert({
+                text: msg, 
+                css:"dhxform_obj_dhx_skyblue",
+            });
+
+}
+
+function saveConfig(what){
+    //we should really add support for updating single properties in adminconfig
+    $.ajax({
+		url: ("/adminconfig"),
+		type: "POST",
+		data: what,
+		success: function(response) {
+			parent.window.m_needreload = true;//reload parent window so it updates the new config
+            dhx.message({
+                text:"Saved", 
+                css:"expire", 
+                expire:2000
+            });
+		},
+		error: function(xhr, status) {
+			console.log("Error saving config!" + xhr.responseText);
+			alert("Error saving config!\n"+ xhr.responseText);
+		}
+	});
+}
+
+function showConfigWindow(win_text,win_url){
+    const html = "<iframe style='width:100%;height:100%;border:1px solid black' src="+encodeURIComponent(win_url)+">";
+    const dhxWindow = new dhx.Window({
+        width: 540,
+        height: 620,
+        title: win_text,
+        resizable:true,
+        movable:true,
+        modal:true
+    });
+    dhxWindow.attachHTML(html);
+    dhxWindow.show();
+}
+
+</script>
+</head>
+
+<body onload="loadserverconfig()"> 
+    
+</body>

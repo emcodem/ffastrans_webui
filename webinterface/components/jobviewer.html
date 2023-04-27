@@ -19,7 +19,8 @@
 
 <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
 
-<link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
+<!-- <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet"> -->
+<link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 
 <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
 <script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
@@ -70,16 +71,17 @@
     }
 
     .progressbar {
+        margin: 0;
+        margin-left:5px;
+        margin-right:5px;
         border-radius: 5px;
         height: 15px;
         background-color: #4CAF50;
-        margin: 0;
         padding: 0;
         text-align: center;
         vertical-align: middle;
         white-space: nowrap;
     }
-
 
     /*layout headers (big blue lines)*/
     .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr {
@@ -200,6 +202,7 @@
 	.up-arrow-dis{
 		border-bottom: solid 7px #BBB;
 	}
+
 	.down-arrow-dis{
 		border-top: solid 7px #BBB;
 	}
@@ -209,6 +212,60 @@
         height:100%;
         grid:'table_container' minmax(0,1fr);
     }
+
+    ul.fancytree-container {
+        font-size:12px !important;
+    }
+    
+    div.gridbox table.obj td { /* prevent success column to line break when small*/
+        white-space: nowrap !important;
+    }
+    table.fancytree-ext-table tbody tr.fancytree-focused{
+        background-color: unset; /* override default bg color #4169e1 of fancytree */
+    }
+    
+    table.fancytree-ext-table tbody tr.fancytree-active {
+        background-color: unset;  /* override default bg color #4169e1 of fancytree */;
+    }
+/* 
+    .fancytree-exp-c span.fancytree-expander
+    {
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 8px solid #555555;
+        border-right: 0;
+        background-image:unset;
+        margin-left:4px;
+        
+    } 
+    .fancytree-exp-e span.fancytree-expander
+    {
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-right: 6px solid transparent;
+        border-left: 6px solid transparent;
+        border-top: 8px solid #555555;
+        border-bottom: 0;
+        background-image:unset;
+        margin-left:4px;
+    } 
+    .fancytree-selected span.fancytree-title {
+        font-style:unset;
+    } */
+
+    /* .fancytree-exp-e span.fancytree-expander{
+        width: 0;
+        height: 0;
+        border-width: 6 0 6 8;
+        border-color: transparent transparent transparent #FFFF00;
+        border-style: solid;
+        margin-left: 5;
+        margin-top: 2;
+    }  */
 </style>
 
 
@@ -346,6 +403,7 @@
     }
     
     function applyFilter(filtername,filtervalue){
+        /* inserts filter into grid header and hits enter */
         for (i = 0; i < $("input[name=search]").length; i++) {
             var input = $("input[name=search]")[i];     
             var keyname = input.placeholder.toLowerCase();
@@ -671,14 +729,14 @@
             },
             error: function (xhr, status) {
                 mainLayout.cells("a").progressOff();
-                dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+                dhtmlx.message("ERROR getting WORKFLOWS, possibly FFASTRANS API is offline or you havee an invalid expression in filter?");
             }
         });
     }
 
     function applyWorkflowSearch(selectednodes){
         var searchpatterns = [];
-        selectednodes.forEach(function(n){           
+        selectednodes.forEach(function(n){
             if (n.folder){
                 //unselect folders
                 console.log("unselecting folder",n.title)
@@ -1115,7 +1173,7 @@
                 if (pagination.pageNumber != tree.mystuff.page){
                     //a new  page was selected, reload tree
                     var start = (pagination.pageNumber-1) * m_max_history_gridrows;
-                    var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+JSON.stringify(tree.mystuff.filterobj);
+                    var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(tree.mystuff.filterobj));
                     tree.mystuff.page = pagination.pageNumber;
                     tree.reload({
                         url: sourceUrl,
@@ -1159,7 +1217,7 @@
 			console.log("disable","history-job_end-sorticon-dis");
 		}
         $('i[id="history-job_end-sorticon"]').addClass("down-arrow");
-        var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj="+JSON.stringify(filterobj);
+        var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(filterobj));
         //var sourceUrl = "testdata.xml";
         var histTree = $("#treetable_history").fancytree({
             
@@ -1264,7 +1322,7 @@
 
                 //get total count separately because it takes lots of time, note that we add the getcount parameter in url
                 var tree = $('#treetable_history').fancytree('getTree');
-                var _url = "/gethistoryjobsajax_treegrid?getcount=1&filterobj="+JSON.stringify(tree.mystuff["filterobj"]);
+                var _url = "/gethistoryjobsajax_treegrid?getcount=1&filterobj="+ encodeURIComponent(JSON.stringify(tree.mystuff["filterobj"]));
                 $.ajax({
                     url: _url,
                     type: "GET",
@@ -1350,7 +1408,7 @@
             var rootNode = $("#treetable_history").fancytree("getRootNode");
             //load data from server
             var response = await $.ajax({
-                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(tree.mystuff.filterobj),
+                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + encodeURIComponent(JSON.stringify(tree.mystuff.filterobj)),
                 type: 'GET',
             });
             var joblist = JSON.parse(response).data;
@@ -1413,7 +1471,7 @@
         /* modifies list of database jobs into tree compatible */
         for (var i=0;i<joblist.length;i++){
             try{
-                var c = joblist[i];
+                var c = joblist[i];//mainjob
                 if (c._id){
                     joblist[i].key = c._id;
                 }
@@ -1421,7 +1479,7 @@
                 if (c.children){
                     for (var c_idx =0;c_idx<c.children.length;c_idx++){
                         c.children[c_idx]["title"] = c.children[c_idx]["state"];
-                        c.result += c.children[c_idx].outcome + " ";
+                        //c.result += c.children[c_idx].outcome + " ";
                     }
                 }else{
                     c.children = [];
@@ -1507,7 +1565,7 @@
             tree.mystuff["filterobj"] = search_obj;
             tree.mystuff.page = 1;
             tree.reload({
-                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + JSON.stringify(tree.mystuff.filterobj),
+                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + encodeURIComponent(JSON.stringify(tree.mystuff.filterobj)),
                 cache: false
             });
             console.log("Current history filter: ", search_obj);
@@ -2063,8 +2121,6 @@
             </table>
         </div>
 
-
-
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
         <div id="history_div" class="history_div" >
             <div id="table_container" style="overflow-y:scroll;" class="gridbox_dhx_skyblue gridbox">
@@ -2097,13 +2153,19 @@
             </div>
         </div>
          <!-- WORKFLOW FILTER TEMPLATE -->
-        <div id="workflow_filter_menu" class="workflow_filter_background" >
-            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='width:100% ;height:40px;white-space:nowrap'>
+        <div id="workflow_filter_menu" class="workflow_filter_background">
+            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
                 <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
                 <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->
-                <button title="Delete Selection (Show all Workflows)" name="delsel"       class="workflow_filter_menu_item" style="width:30px;height:30px;margin-top:5px;margin-left:5px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> <i class="fas fa-ban"></i></button>
-                <input name='wf_filter' class="workflow_filter_menu_item" style='margin-top:5px;height:20px;margin-left:10px;margin-bottom:5px' id='wf_filter' autocomplete='off'></input> <i class="fas fa-search"></i>
-            </div>
+                <div style="float:left;display:block;margin-top:5px;margin-left:5px">
+                    <button title="Delete Selection (Show all Workflows)" name="delsel" class="workflow_filter_menu_item" style="border-radius:5px;width:30px;height:30px;" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> 
+                        <i class="fas fa-ban" ></i>
+                    </button>
+                    </div>
+                <div style="float:left;margin-top:10px;margin-left:10px;display:flex;max-width:180px;white-space:nowrap;overflow:hidden">
+                    <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input> 
+                    <i class="fas fa-search" style="float:left;margin-top:3px;margin-left:2px"></i></div>
+           </div> 
             <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
         </div>
         
