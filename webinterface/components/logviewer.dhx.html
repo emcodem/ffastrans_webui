@@ -1,0 +1,1519 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FFAStrans Workflow</title>
+	<link rel="stylesheet" href="/alternate-server/css/override.css"></link>
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Sets the basepath for the library if not in same directory -->
+    <script type="text/javascript">
+        mxBasePath = '../dependencies/mxgraph/406/javascript/src';
+    </script>
+    <script src="../dependencies/jquery/jquery.js"></script>
+    <script src="../dependencies/moment/moment.js"></script>
+    <!-- Loads and initializes the library -->
+    <!--    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>-->
+    <script type="text/javascript" src="../dependencies/mxgraph/406/javascript/mxClient.min.js"></script>
+
+    <!-- Grid dependency -->
+    <script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+    <link href="../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet"></link>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
+    <!--<script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>-->
+    <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+    <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
+
+    <script src="../dependencies/json.human.js-master/src/json.human.js"></script>
+    <!--    <script src="../dependencies/json.human.js-master/lib/codemirror_min.js"></script>
+        <script src="../dependencies/json.human.js-master/lib/codemirror_mode.js"></script>
+        <script src="../dependencies/json.human.js-master/lib/require.js"></script>
+        <link rel="stylesheet" href="../dependencies/json.human.js-master/lib/codemirror.css" type="text/css">
+        -->
+        
+    <!-- google chart timeline - cannot be used offline due to license restrictions -->
+    <script type='text/javascript' src='https://www.google.com/jsapi'></script>
+
+    <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css"></link>
+
+    <!-- DHTMLX dependencies -->
+    <script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+    <link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"></link>
+
+    <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+    <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"></link>
+    <!-- FONTAWESOME -->
+    <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" ></link>
+
+    <style type="text/css" id="customstyle">
+        /* it's important to set width/height to 100% for full-screen init */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            overflow: hidden;
+            color: #333;
+            font: 14px Helvetica, Arial, sans-serif;
+            line-height: 18px;
+        }
+
+        #graphContainer {
+            /*background: url('../images/canvas_background.png');*/
+            position: absolute;
+            border: 1px solid #F2F2F2;
+            white-space: nowrap;
+            font-family: Arial;
+            font-size: 8pt;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .exec_count {
+            background: #555555;
+            border-radius: 0.9em;
+            -moz-border-radius: 0.9em;
+            -webkit-border-radius: 0.9em;
+            color: #FFFFEE;
+            display: inline-block;
+            line-height: 1.7em;
+            position: absolute;
+            left: -15px;
+            top: 0px;
+            text-align: center;
+            width: 1.7em;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            table-layout:fixed;
+            white-space:nowrap;
+            overflow:hidden;
+            vertical-align: top;
+        }
+
+        .table_ffastrans_processor_enabled {
+            overflow: hidden;
+            font-size: 12px; /*wf description as font size 8, header has 15*/
+            font-family: Calibri;
+            border: 3px rgb(85,85,85);
+            background-color: rgb(184,184,184);
+        }
+
+        .table_ffastrans_processor_disabled {
+            overflow: hidden;
+            font-size: 12px;
+            font-family: Calibri;
+            border: 3px rgb(85,85,85);
+            background-color: rgb(184,184,184);
+            opacity: .4
+        }
+
+        .tr_ffastrans_processor_top {
+            background-color: rgb(119,119,119);
+            height: 30%;
+            color: white;
+        }
+
+        .jh-key, .jh-value {
+            margin: 0;
+            padding: 0 5px 0 5px !important;
+            /* padding: 0.2em;*/
+            font-weight: lighter;
+            font-size: 12px
+        }
+
+        div.gridbox {
+            overflow: initial;
+            
+        }
+        div.gridbox table.obj td{
+            user-select: text !important;
+        }
+
+        .dhx_cell_cont_wins {
+            overflow: scroll !important;
+        }
+
+
+        /*three dots on text overflow*/
+        .celltext {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            user-select: text;
+            margin-left: 6px;
+        }
+
+        .blinking-progress {
+            /* NAME | TIME | ITERATION */
+            -webkit-animation: changeShadowProgress 0.5s infinite alternate;
+            -moz-animation: changeShadowProgress 0.5s infinite alternate;
+            animation: changeShadowProgress 0.5s infinite alternate;
+        }
+
+        @-webkit-keyframes changeShadowProgress {
+            from {
+                box-shadow: 0 0 10px 5px #93ce99;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #269922;
+            }
+        }
+
+        @-moz-keyframes changeShadowProgress {
+            from {
+                box-shadow: 0 0 10px 5px #93ce99;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #269922;
+            }
+        }
+
+        @keyframes changeShadowProgress {
+            from {
+                box-shadow: 0 0 10px 5px #93ce99;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #269922;
+            }
+        }
+
+        .blinking-error {
+            /* NAME | TIME | ITERATION */
+            -webkit-animation: changeShadowError 0.5s infinite alternate;
+            -moz-animation: changeShadowError 0.5s infinite alternate;
+            animation: changeShadowError 0.5s infinite alternate;
+        }
+
+        @-webkit-keyframes changeShadowError {
+            from {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+        }
+
+        @-moz-keyframes changeShadowError {
+            from {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+        }
+
+        @keyframes changeShadowError {
+            from {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+
+            to {
+                box-shadow: 0 0 10px 5px #a21a1a;
+            }
+        }
+
+        .sticky{
+            position:sticky;
+            top:0;
+        }
+    </style>
+
+
+    <script type="text/javascript">
+        //madatory url parameter: workflowid
+        //request job from server
+
+        
+
+        var m_debuggraph = {};
+
+        var m_workflowdata = {};
+        var m_jobobject = {};
+        var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
+        var m_graph = {};
+        var m_serverconfig;
+        var mainLayout;
+        var m_timelineobject =  [];
+        var m_userpermissions;
+        /*load config from server*/
+        function loadserverconfig() {
+        $.ajax({
+            url: ("/getuserpermissions" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+
+                m_userpermissions = JSON.parse(response);
+                //load serverconfig and initialize page
+					$.ajax({
+						url: ("/getserverconfig" + "?" + Math.random()),
+						type: "GET",
+						success: function(response) {
+							m_serverconfig = JSON.parse(response);
+							init();
+						},
+						error: function(xhr, status) {
+							dhtmlx.message("Fatal error, could not load serverconfig. ");
+							document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+						}
+					});
+				},
+				error: function(xhr, status) {
+					dhtmlx.message("Fatal error, could not load serverconfig. ");
+					document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+				}
+
+			});
+        }
+
+        /*MAIN ENTRY POINT*/
+        function init() {
+            buildMainLayout     ();
+            buildLogGridGrid    ();
+            buildNodeGridGrid   ();
+            console.log("Getting Job Details of " + getQueryVariable("job_id"));
+            get_all_job_details(getQueryVariable("job_id"));
+
+            window.onresize = function(){console.log("logviewer window resized")};
+
+        }
+
+		function _getObjectByValue(object, value) { //helper
+			var to_return = [];
+			for (var _idx in object){
+			   var _v =  object[_idx]["key"];
+			   if (_v == value){
+				to_return.push(object[_idx]);
+			   }
+			}
+			return to_return;
+		}
+
+        function renderMainMenu(){
+            
+			var menuButtonLabels = ["Load latest Job",
+									"Resubmit Job",
+									"Refresh this page"];
+			var menuButtonHtmlTemplate = ['<button id="Load latest Job" title="Load log from latest Finished Job" class="btn"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>',
+								  '<button id="Resubmit Job" class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>',
+								  '<button id="Refresh this page" class="btn"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>'
+									];
+            
+            var finalMainMenuHtml = "";
+	        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+			if (_filter.length > 0){
+				var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+				console.log("Displaying filtered list of buttons, regex: ", regex);
+				//add filtered btns to Running jobgrid
+				for (_id=0;_id<menuButtonLabels.length;_id++){
+					if (menuButtonLabels[_id].match(regex)){
+                        finalMainMenuHtml += menuButtonHtmlTemplate[_id];
+						//_appendtext(menuButtonLabels[_id],menuButtonHtmlTemplate[_id])
+					}
+				}
+			}else{
+				//just render all btns
+				console.log("Displaying unfiltered list of menu buttons" )
+				for (_id=0;_id<menuButtonLabels.length;_id++){
+                    finalMainMenuHtml += menuButtonHtmlTemplate[_id];
+					//_appendtext(menuButtonLabels[_id],menuButtonHtmlTemplate[_id])
+				}
+			}
+			//draw elements on page
+            document.getElementById("mainMenu").innerHTML = finalMainMenuHtml;
+
+            //attach buttons events
+            $("button").click(function () {
+                var id = this.id;
+            
+                if (id == "Refresh this page"){
+                    window.location.href = window.location.href;
+                }
+                if (id == "Load latest Job") {
+                var url = "/gethistoryjobsajax_treegrid?count=1"
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        crossDomain: true,
+                        dataType: "json",
+                        success: function (response) {
+                            if (response["data"]) {
+                                var jid = response["data"][0]["sort_family_name"];
+                                window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+                            }
+                        },
+                        error: function (xhr, status) {
+                            alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
+                        }
+                    });
+                }
+            
+                if (id == "Resubmit Job"){
+                    console.log("resubmitting job", m_jobobject)
+                    
+                    var postBody = {};
+                    postBody.start_proc = "";
+                    postBody.wf_id = m_jobobject["workflow"]["id"];
+                    postBody.inputfile = m_jobobject["sources"]["original_file"];
+                    postBody.variables = m_jobobject["variables"];
+                
+                        $.ajax({
+                        url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                        type: "POST",
+                        crossDomain: true,
+                        data: postBody,
+                        success: function(response) {
+                            console.log("Job Resubmit response:",response);
+                            try{
+                                if (["job_id"] in response){
+                                    dhtmlx.alert({
+                                            type:"confirm",
+                                            text:"Success, Window will reload to display the resubmitted job in 3 seconds, you cannot prevent this anymore",
+                                            title:"Reload Pending!",
+                                            ok:"OK"
+                                    });
+                                    window.setTimeout(function(){
+                                        window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + response["job_id"];
+                                    },3000);
+                                }else{
+                                    
+                                }
+                            }catch(ex){
+                                console.log(ex)
+                                alert("Error resubmitting job, contact developer\n\n" + ex)
+                            }
+                        },
+                        error: function(xhr, status) {
+                            dhtmlx.alert("Error submitting job: " + xhr.responseText);
+                        }
+                    });
+                }
+            });
+        }
+
+        async function buildMainLayout(){
+            
+            mainLayout = new dhx8.dhx.Layout(document.body, {
+                type: "line",
+                rows: [
+                    {
+                        id: "mainMenu",
+                        height:"content",
+                        html:"<div id='mainMenu'></div>"                   
+                    },
+                    {
+                        type: "wide",
+                        cols: [
+                             {
+                                collapsable:true,
+                                resizable:true,
+                                id: "a",
+                                html: '<div id="general_div" style="height:100%;width:100%"/>',
+                                header:"Info"                           
+                             },
+                            {
+                                type: "line",
+                                header:"Canvas",
+                                collapsable:true,
+                                resizable:true,
+                                rows:[
+                                    {
+                                        id: "toolbar",
+                                        html: "<div id='canvas_menu'></div>",
+                                        height: 40,
+                                    },
+                                    {
+
+                                        id: "b",
+                                        html: '<div id="graphContainer" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7"></div>',
+                                        
+                                    }
+                            ]
+                        },
+                       ]//cols
+                    },
+                    {
+                        type: "wide",
+                        cols: [
+                            {
+                                collapsable:true,
+                                resizable:true,
+                                id: "c",
+                            },
+                            {
+                                collapsable:true,
+                                resizable:true,
+                                id: "d",
+                                html: getLogDivHtmlTemplate()
+                            },
+                        ]
+                    },
+                ]
+            });
+
+            //mainLayout.getCell("a").attachHTML("");
+            
+
+            // mainLayout = new dhtmlXLayoutObject({
+            //     // mainLayout = headerLayout.cells("b").attachLayout({
+            //     parent: document.body,
+            //     pattern: "3L"
+            // });
+
+            // mainMenu = mainLayout.attachMenu();
+			renderMainMenu()
+            
+
+           
+			
+            //mainMenu.addNewSibling(null, "reload", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Reload</button>');
+            
+
+
+            var canvasMenuHtml = ('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
+                                <button class="btn" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
+                                <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
+                                <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
+                                <button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> ');
+            document.getElementById("canvas_menu").innerHTML = canvasMenuHtml;
+
+            return;
+            //mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden);cursor:default;background-color:#E7E7E7"></div>');
+            mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
+                                <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
+                                <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()"><i style = "margin-right:3px" class= "fas fa-history " ></i></button>\
+                                <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
+                                <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
+                                ');
+            mainLayout.cells("c").showInnerScroll();
+            mainLayout.cells("c").attachObject("log_div"); //for json_to_table
+            //todo: on btnclick, hide minfo und ffprobe: set height 10px und display:inline-block
+            mainLayout.cells("a").setWidth(400);
+            mainLayout.cells("a").setText('Info');
+
+            //SIZES
+            mainLayout.cells("b").setWidth($(document).width() / 2);
+            //mainLayout.cells("c").setText("Finished");
+            mainLayout.cells("a").setHeight($(document).height() / 2);
+            restoreLayoutSizes(mainLayout, "mainLayout");
+            mainLayout.attachEvent("onPanelResizeFinish", function () {
+                saveLayoutSizes(mainLayout, "mainLayout");
+            });
+            mainLayout.attachEvent("onUndock", function (name) {
+                var _win = mainLayout.dhxWins.window(name);
+                _win.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
+                _win.center();
+            });
+
+            //Left Layout
+            var m_info_layout = mainLayout.cells("a").attachLayout("2E");
+            m_info_layout.cells("a").setText('<button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'a\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button>' +
+                "<span id='general_text'>General</span>");
+            m_info_layout.cells("b").setText("Nodes");
+            m_info_layout.cells("b").attachObject("node_div");
+            //m_info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>')
+            m_info_layout.cells("a").showInnerScroll();
+            m_info_layout.cells("b").showInnerScroll();
+            m_info_layout.attachEvent("onPanelResizeFinish", function () {
+                saveLayoutSizes(m_info_layout, "m_info_layout");
+            });
+            restoreLayoutSizes(m_info_layout, "m_info_layout", true);
+            //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
+        }
+
+        google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
+        function open_timeline() {
+            var myWins= new dhtmlXWindows();
+            var win = myWins.createWindow("Timeline", 50, 50,  window.innerWidth - 50, 600);
+            win.setText("Timeline");
+            win.attachHTMLString('<div id="div_timeline"></div>');
+            //google.setOnLoadCallback(open_timeline);
+            
+            
+                    
+                var container = document.getElementById('div_timeline');
+                var chart = new google.visualization.Timeline(container);
+                var data = new google.visualization.DataTable();
+                
+                data.addColumn({ type: 'string', id: 'RowLabel' });
+                data.addColumn({ type: 'string', id: 'BarLabel' });
+                data.addColumn({ type: 'string', role: 'tooltip', 'p': { 'html': true } });
+                data.addColumn({ type: 'date', id: 'Start' });
+                data.addColumn({ type: 'date', id: 'End' });
+                console.log(m_timelineobject)
+                data.addRows(m_timelineobject);
+     
+                // Hack from Stack Overflow to try and re-size the vertical extents of the chart to
+                // avoid vertical scrolling. See http://stackoverflow.com/questions/18640818/google-charts-timeline-dynamic-height-with-scalebar-position
+                // set a padding value to cover the height of title and axis values
+                var paddingHeight = 40;
+                // set the height to be covered by the rows
+                var rowHeight = data.getNumberOfRows() * 45;
+                // set the total chart height
+                var estimatedHeight = rowHeight + paddingHeight;
+
+                var options = {
+                    timeline: {
+                        showRowLabels: true,
+                        colorByRowLabel: true,
+                        rowLabelStyle: { fontName: 'Arial', color: '#FFFFFF' },
+                        barLabelStyle: { fontName: 'Arial' /* bar label color cannot be set viat the API */ }
+                    },
+                    backgroundColor: '#999999',
+                    avoidOverlappingGridLines: true,
+                    height: estimatedHeight,
+                    hAxis: {
+                        format: 'hh:mm:ss'
+                      },
+                };
+
+                chart.draw(data, options);
+            
+
+        }
+        
+        function toggle_hide_all(chkbox){
+        //show/hide content of log entry
+            if (chkbox.checked){
+                $( ".togglecontentvisible" ).prop("checked", true).trigger("change");
+            }else{
+                $( ".togglecontentvisible" ).prop("checked", false).trigger("change");
+            }
+        }
+
+
+        var firstrun = true;
+        function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph
+            //set default box sizes as defined by ffastrans.au3
+            var i_BOX_WIDTH = 115;
+            var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
+            var i_POS_FACTOR = 1;
+
+            if ("variable" in m_workflowdata) {
+                if ("wf_size" in m_workflowdata["variable"]) {
+                    //i_BOX_WIDTH = (m_workflowdata["variable"]["wf_size"]);
+                    //i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
+                    i_POS_FACTOR = (m_workflowdata["variable"]["wf_size"] / i_BOX_WIDTH ) ;
+                }
+            }
+
+
+            // Checks if the browser is supported
+            if (!mxClient.isBrowserSupported()) {
+                // Displays an error message if the browser is not supported.
+                mxUtils.error('Browser is not supported!', 200, false);
+            } else {
+                // Disables the built-in context menu
+                mxEvent.disableContextMenu(container);
+
+                // Creates the graph inside the given container
+                var graph = new mxGraph(container);
+                m_graph = graph; //store graph for global reuse
+                graph.setHtmlLabels(true);
+                graph.panningHandler.ignoreCell = panning; //disables selection of a single cell but instead allow moving the whole graph
+                graph.setPanning(panning);
+                graph.setCellsMovable(false)
+                graph.setCellsSelectable(false)
+                //trackColor = new mxCellTracker(graph, "#666");
+                
+                graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
+                    if (this.getModel().isVertex(cell)) {
+                        if (cell.value == "zoom"){
+                            return "";
+                        }
+                        //calculate the text to display on canvas
+                        var FF_NODE_TITLE = cell.ffastransobj["name"] || cell.ffastransobj["type"];
+                        var FF_NODE_DESC = cell.ffastransobj["description"] || "";
+                        var FF_NODE_ID = cell.ffastransobj["id"].toUpperCase();
+                        var FF_NODE_TYPE = cell.ffastransobj["type"];
+
+                        //create the cell style
+                        if (this.isCellCollapsed(cell)) {
+                            //return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
+                            //    '<tr><th>Customers</th></tr>' +
+                            //    '</table>';
+                        } else { //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
+                            var tbl = '<div style="width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px"><table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                                'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
+                                '<tr class="tr_ffastrans_processor_top" >' +
+                                '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
+                                '<tr style="height:70%;font-size:8px" title="' +FF_NODE_DESC + '"><th id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
+                                '</table></div>';
+                                
+                            return tbl;
+                        }
+                    } else {
+                        return '';
+                    }
+                };
+                
+
+                graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
+                    //disable doubleclick evt
+
+                    var cell = evt.getProperty("cell"); // cell may be null
+                    if (cell != null) {
+                        SelectGraphCell(cell);
+                        graph.setSelectionCell(cell);
+                    }
+                    console.log("Doubleclick evt")
+                    evt.consume();
+                });
+
+
+                graph.addListener(mxEvent.CLICK, function (sender, evt) {
+                    //load log for seelcted cell
+                    console.log("detected mouseclick on cell")
+                    var cell = evt.getProperty("cell"); // cell may be null
+                    if (cell != null) {
+                        var search = cell["ffastransobj"]["id"].toUpperCase();
+                        var tree = $("#treetable_log").fancytree('getTree');
+                        tree.filterNodes(function (node) {
+                            if (node["data"]["node"]["id"]){
+                                if (node["data"]["node"]["id"].toUpperCase().match(search)) {
+                                    //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                                    return true;
+                                }else{
+                                    return false;
+                                }
+                            }
+                        }, {
+                            mode: "hide"
+                        });
+                    }
+                    evt.consume();
+                });
+
+                //BUILD THE GRAPH
+                // Gets the default parent for inserting new cells. This
+                // is normally the first child of the root (ie. layer 0).
+                var parent = graph.getDefaultParent();
+                // Adds cells to the model in a single step
+                graph.getModel().beginUpdate();
+                try {
+                    var style = graph.getStylesheet().getDefaultVertexStyle()
+                    style[mxConstants.STYLE_FONTSIZE] = '10';
+                    style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_TOP;
+                    mxConstants["CURSOR_MOVABLE_VERTEX"] =  "pointer";
+                    mxConstants["CURSOR_MOVABLE_EDGE"] =  "auto";
+
+                    //var estyle = graph.getStylesheet().getDefaultEdgeStyle();
+                    //estyle[mxConstants.STYLE_EDGE] = mxEdgeStyle.SegmentConnector; //OrthConnector,SegmentConnector
+
+                    var connections = []; //build an object used to create the connections between the nodes
+                    //parse ffastrans workflow json
+                    var nodes = workflow_json["nodes"];
+                    var wf_size = workflow_json["variable"]["wf_size"];
+                    
+                    for (var key in nodes) {
+                        var x = nodes[key]["pos_x"] / i_POS_FACTOR;
+                        var y = nodes[key]["pos_y"] / i_POS_FACTOR;
+                        //i_BOX_WIDTH
+
+
+                        /*width and heigth are defined in ffastrans as 115 and 1.6 aspect ratio. Fontsize as $i_BOX_WIDTH / 15 */
+                        var v1 = graph.insertVertex(parent, nodes[key]["id"].toUpperCase(), '', x, y, i_BOX_WIDTH, i_BOX_HEIGHT, 'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                        nodes[key].originalname = key; //expand ffastrans properties by name of processor
+                        v1.ffastransobj = nodes[key];
+                        v1.data = new CustomData('v1'); //TODO: fill with useful data?
+                        connections.push({
+                            "from": nodes[key]["id"].toUpperCase(),
+                            "to": nodes[key].outbounds || []
+                        })
+                    }
+
+                    //create node connections
+
+                    for (i = 0; i < connections.length; i++) {
+                        var from_id = (connections[i]["from"]);
+                        var from_cell = graph.getModel().getCell(from_id);
+                        var to_array = connections[i]["to"];
+                        for (t = 0; t < to_array.length; t++) {
+                            //for each target, create connection arrow
+                            try {
+                                var to_cell = graph.getModel().getCell(to_array[t]["id"].toUpperCase());
+                                console.log(to_cell.ffastransobj["execute_on"])
+                                if (to_cell.ffastransobj["execute_on"] == "success") {
+                                    var color = "rgb(0,200,0)"; //execute_on success color
+                                }
+                                if (to_cell.ffastransobj["execute_on"] == "error") {
+                                    color = "rgb(200,0,0)"; //execute_on error color
+                                }
+                                if (to_cell.ffastransobj["execute_on"] == "any") {
+                                    color = "rgb(255,200,0)"; //execute_on always color
+                                }
+                            } catch (ex) {
+                                dhtmlx.message("Could not create connection for node " + to_array[t]["id"]);
+                                console.log("Could not create connection for node " + to_array[t]["id"]);
+
+                            }
+                            //INERT ARROW; ARROW STYLE
+                            var edge = graph.insertEdge(parent, null, '', from_cell, to_cell, "strokeOpacity=45;fillOpacity=45;strokeColor=" + color + ";strokeWidth=2");
+                        }
+                    }
+                }
+                finally {
+                    // Updates the display, fullscreen zoom graph
+                    graph.getModel().endUpdate();
+                    graph.fit(0, false, 35);
+                    graph.zoomOut();
+                    m_graph = graph;
+                    m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
+                     
+                    });
+
+                    mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
+                    {   //zoom on mousewheel event
+                      if (mxEvent.isConsumed(evt)) {
+                        return;
+                      }
+                      if (!$('#graphContainer:hover').length > 0) {
+                            return;//mouse is not over container
+                      }
+                      var gridEnabled = graph.gridEnabled;
+                      // disable snapping
+                      graph.gridEnabled = false;
+                      var p1 = graph.getPointForEvent(evt, false);
+                      if (up) {
+                         graph.zoomIn();
+                      } else {
+                         graph.zoomOut();
+                      }
+                      var p2 = graph.getPointForEvent(evt, false);
+                      var deltaX = p2.x - p1.x;
+                      var deltaY = p2.y - p1.y;
+                      var view = graph.view;
+                      view.setTranslate(view.translate.x + deltaX, view.translate.y + deltaY);
+                      graph.gridEnabled = gridEnabled;
+                      mxEvent.consume(evt);
+                      return;
+                        
+                    }))
+                }
+            }
+
+        };
+
+
+
+        
+        function CustomData(value) {
+            this.value = value;
+        }
+
+
+//export svg test
+
+
+function copy_style_for_svg(ParentNode, OrigData){
+    var Children = ParentNode.childNodes;
+    var OrigChildDat = OrigData.childNodes;     
+    var ContainerElements = ["svg","g"];
+    
+    for (var cd = 0; cd < Children.length; cd++){
+        var Child = Children[cd];
+
+        var TagName = Child.tagName;
+        if (ContainerElements.indexOf(TagName) != -1){
+            copy_style_for_svg(Child, OrigChildDat[cd])
+        } else if (TagName){
+            var StyleDef = window.getComputedStyle(OrigChildDat[cd]);
+            var StyleString = "";
+            for (var st = 0; st < StyleDef.length; st++){
+                StyleString += StyleDef[st] + ":" + StyleDef.getPropertyValue(StyleDef[st]) + "; ";
+            }
+            Child.setAttribute("style",StyleString);
+            copy_style_for_svg(Child, OrigChildDat[cd])
+        }
+    }
+}
+
+function export_StyledSVG(){
+    var SVGElem = document.getElementsByTagName("svg")[0];
+    var exportname = (m_workflowdata["wf_name"] + "_" + m_jobobject["id"] + ".svg");
+    var oDOM = SVGElem.cloneNode(true)
+    copy_style_for_svg(oDOM, SVGElem);
+    var data = new XMLSerializer().serializeToString(oDOM);
+    var svg = new Blob([data], { type: "data:application/octet-stream;charset=utf-8" });
+    var url = URL.createObjectURL(svg);
+    var link = document.createElement("a");
+    link.setAttribute('download', exportname);
+    var Text = document.createTextNode("Export");
+    link.appendChild(Text);
+    link.href=url;
+    document.body.appendChild(link);
+    link.click();
+}
+
+        
+function asyncsleep(time) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve();
+    }, time);
+  });
+}
+
+        //parse Job log
+        async function parseJobLog(lines) {
+            var a_log_per_node = {};
+            var id_pid_mapping = {};
+            var sub_workflow_is_loading = false;
+            for (var i = 0; i < lines.length; i++) {
+                var _proc_id;
+                var line = lines[i];
+                try {
+                    //m_timelineobject = [];
+                    //['Group1', 'Item1', 'this is a tooltip for Item1.cpp', new Date(1485183398349.28) /* 2017-01-23 14:56:38.349 */, new Date(1485183403210.01) /* 2017-01-23 14:56:43.210 */],
+                    try{
+                        var timeline_entry = [line["event"],line["node"]["type"],"",new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00"))),new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00")) +1 )];
+                        //var timeline_entry = ['Group1', 'Item1',"",new Date(1485183398349.28),new Date(1485183398359.28)];
+                        
+                        m_timelineobject.push(timeline_entry)
+                    }catch(ex){
+                        console.log("error parsing log line for timeline")
+                    }
+                    
+                    //start of new node log
+
+                    //handle sub-wf
+                    if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
+                       if (line['data']['wf_id']){
+                            var _tablehead = document.getElementById(line["node"]["id"].toUpperCase()+"_body");
+                            console.log(_tablehead);
+                            _tablehead.style.backgroundColor ="white";
+                            //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
+                            //load current sub-workflows
+                            var _url = "/getjobdetails?jobid=" + getQueryVariable("job_id");
+                            //TODO: herausfinden wie ich den ajax call absetze und bei der antwort IMMER NOCH WEISS nach welcher WF ID ich gesucht habe
+                            sub_workflow_is_loading = true;
+                            $.ajax({
+                                url: build_new_api_url(_url),
+                                type: "GET",
+                                crossDomain: true,
+                                dataType: "json",
+                                context: this,
+                                beforeSend:function( jqXHR ){
+                                  jqXHR.wf_id = line['data']['wf_id'];
+                                },
+                                success: function (response,status,jqXHR) {
+                                   try{
+                                        jqXHR["wf_id"];
+                                        var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
+                                         
+                                        
+                                        buildMxGraph(_tablehead,sub_wf_json,false);
+                                        //buildMxGraph(document.getElementById("deleteme"),sub_wf_json,false);
+                                        
+                                   }catch(ex){
+                                        alert("There was a problem getting subworkflow data, contact developers");
+                                   }
+                                   sub_workflow_is_loading = false;
+
+                                },
+                                error: function (xhr, status) {
+                                    sub_workflow_is_loading = false;
+                                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+                                }
+                            });
+
+                            
+                       }
+                    }
+                    
+                    //wait until sub-wf is drawn in order to guarantee the nodes are already there
+                    while (sub_workflow_is_loading){
+                        await asyncsleep(1000)
+                    }
+                                        
+                    //check if node is unique for nodegrid
+                    var new_key = line["node"]["id"] + line["split_id"]
+                    _proc_id = line["node"]["id"].toUpperCase();
+                    id_pid_mapping[line["pid"]] = _proc_id;
+
+                    //show processor as enabled on ui
+                    a_log_per_node[_proc_id] = [];
+                    $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
+                    $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
+                    
+                    
+                    //check processor error state and count
+                    if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
+                        m_unique_nodes[new_key] = (line);
+                        m_unique_nodes[new_key]["state"] = "running";
+                        //raise proc count on gui
+                        var _o_counter = $("#" + _proc_id).parent().find("span");
+                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1);
+                        //progress-circle
+                        $("#" + _proc_id).addClass("blinking-progress");
+
+                    }
+                    
+                    //check for processor end and state
+                    if (line["event"] == "node end") {
+                        m_unique_nodes[new_key]["date_end"] = line["created"];
+                        m_unique_nodes[new_key]["state"] = "success";
+                        $("#" + _proc_id).removeClass("blinking-progress");
+
+                        //red border for errored nodes
+                        if (line["data"] != null) { //when this exists, we have a node in error
+                            $("#" + _proc_id).addClass("blinking-error");
+                        } 
+                    }
+
+                } catch (ex) { }
+                //sort the current line as accurate as possible
+                if (line["pid"] != "undefined") { //we have a pid, perfect
+                    var id_from_pid = id_pid_mapping[line["pid"]];
+                    try{
+                        a_log_per_node[id_from_pid].push(line);
+                    }catch(ex){
+                        debug = true;
+                    }
+                } else {
+                    //did not get pid, so cannot guarantee that this line belongs to the proc but it is the best we can do...
+                    a_log_per_node[_proc_id].push(line);
+                }
+            }
+        }
+
+        function buildLogGridGrid() {
+
+            $("#treetable_log").fancytree({
+                extensions: [ "filter","table",  "gridnav", "multi"],
+                quicksearch: true,
+                filter: {
+                    autoExpand: true, // Expand all branches that contain matches while filtered
+                    fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
+                    hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+                    hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
+                    highlight: true,   // Highlight matches by wrapping inside <mark> tags
+                    leavesOnly: false, // Match end nodes only
+                    nodata: true,      // Display a 'no data' status node if result is empty
+                    mode: "dimm"       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+                },
+                icon: false,
+                checkbox: false,
+                titlesTabbable: true, // Add all node titles to TAB chain
+                quicksearch: true,
+                focusOnSelect: false,
+                autoScroll: false,
+                autoActivate: false,
+                unselectable: true,
+                activeVisible: false,
+                multi: { //multiselct
+                    mode: "",
+                },
+                init: function (event, data) {
+                    $("input[name=log_filter]").keyup(function (e) {
+                        var n, tree = $("#treetable_log").fancytree('getTree');
+                        var match = $(this).val();
+                        n = tree.filterNodes(match, { mode: "hide" });
+                        opts = {}, filterFunc = tree.filterNodes;
+                        if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === "") {
+                            tree.clearFilter();
+                            return;
+                        }
+                        // Pass a string to perform case insensitive matching
+                        n = filterFunc.call(tree, match, opts);
+                    })
+                    //ENABLE RESIZE COLUMNS
+                    /*
+                    $("#treetable_log").colResizable({
+                        resizeMode: 'fit',
+                        hoverCursor: "col-resize",
+                        dragCursor: "col-resize",
+                        postbackSafe: true,
+                        useLocalStorage: true,
+                        minWidth: 10,
+                        liveDrag: true,
+                    });*/
+                },
+                modifyChild: function (event, data) {
+                    //reset all odd even row colors
+                    var rootNode = $("#treetable_log").fancytree("getRootNode");
+                    var oldnodes = rootNode.children;
+                    for (i = 0; i < oldnodes.length; i++) {
+                        if (i % 2 == 0) {
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                        } else {
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                        }
+                    }
+                },
+                renderColumns: function (event, data) {
+                    
+                    var node = data.node;
+
+                    //style
+                    if (data.node.getIndex() % 2 == 0) {
+                        node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                        node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                    } else {
+                        node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                        node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                    }
+                    
+                    if ("node" in node["data"] == false){
+                        node["data"]["node"] = {}
+                        node["data"]["node"]["id"] = node["data"]["context"];
+                        
+                    }
+                    if (! "id" in node.data["node"]){
+                        return false;
+                    }
+
+                    var nodeid = node.data["node"]["id"];
+                    
+                    var nodename = getNodeNameById(nodeid);
+                    var created = node.data["created"];
+                    created = moment.parseZone(created.replace(/.00$/, ":00"))
+                    created = created.format("YYYY-MM-DD HH:mm:ss");
+
+                    $tdList = $(node.tr).find(">td");
+                    $tdList.eq(0).html("<div class='celltext'>" + nodename + "</div>");
+                    $tdList.eq(1).html("<div class='celltext'>" + created + "</div>");
+                    $tdList.eq(2).html("<div class='celltext'>" + node.data["host"] + "</div>");
+                    $tdList.eq(3).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
+                    var evt_id = Math.random(1000000000);
+                    if (node.data["event"] == "_IPS_SRV_FFMon"){
+                        $tdList.eq(4).html("<div class='celltext' id='"+evt_id+"'><b>" + node.data["event"] + "</b></div>");
+                    }else{
+                        $tdList.eq(4).html("<div class='celltext' id='"+evt_id+"'>" + node.data["event"] + "</div>");
+                    }
+                    
+                    var table = (JsonHuman.format(data.node.data["_data"]));
+                    table.name = "bla"
+                    $tdList.eq(5).html(table);
+                    
+                    //create show/hide checkbox
+                    var xid = Math.random(100000000);
+                    var x = document.createElement("INPUT");
+                    x.setAttribute("type", "checkbox");
+                    x.setAttribute("checked", "true");
+                    x.setAttribute("class", "togglecontentvisible");
+                    x.style.float = "left";
+                    x.id = xid;
+                    x.name = node.data["event"];
+                    document.getElementById(evt_id).parentElement.insertBefore(x,document.getElementById(evt_id));
+                    x.onchange = function () { 
+                                    if (this.checked){
+                                        this.parentElement.nextElementSibling.style.display = ""
+                                    }else{
+                                        this.parentElement.nextElementSibling.style.display = "none"
+                                    }
+                                
+                                };
+                },
+                gridnav: {
+                    autofocusInput: false,
+                    handleCursorKeys: true
+                },
+                beforeSelect: function (event, data) { },
+
+            });
+
+            //search
+            $("input[name=search]").on("change search", function (e) {
+                if (e.type === "change" && e.target.onsearch !== undefined) {
+                    // We fall back to handling the change event only if the search event is not supported.
+                    return;
+                }
+                var n;
+                var tree = $("#treetable_log").fancytree('getTree');
+                match = $.trim($(this).val());
+                // Pass a string to perform case insensitive matching
+                var re = new RegExp(match, "i");
+
+                tree.filterNodes(function (node) {
+                    if (JSON.stringify((node["data"]["_data"])).match(re)) {
+                        node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                        return true;
+                    }
+                }, {
+                    mode: "hide"
+                });
+                // This will adjust the start value in case the filtered row set
+                // is not inside the current viewport
+                // tree.setViewport();
+            });
+
+        }
+
+        function buildNodeGridGrid() {
+            $("#treetable_nodes").fancytree({
+                extensions: ["table", "filter", "gridnav", "multi"],
+                icon: false,
+                checkbox: false,
+                titlesTabbable: true, // Add all node titles to TAB chain
+                focusOnSelect: false,
+                autoScroll: false,
+                autoActivate: false,
+                unselectable: false,
+                activeVisible: false,
+                init: function (event, data) {
+                    //ENABLE RESIZE COLUMNS
+                    /*                    $("#treetable_nodes").colResizable({
+                                            resizeMode: 'fit',
+                                            hoverCursor: "col-resize",
+                                            dragCursor: "col-resize",
+                                            postbackSafe: true,
+                                            useLocalStorage: true,
+                                            minWidth: 10,
+                                            liveDrag: true,
+                                        })*/
+                },
+                select: function (event, data) {
+                    //center cell in view
+                    var node = m_graph.model.getCell(data.node.data.node.id,true)
+                    m_graph.scrollCellToVisible(node);
+                    //set row style
+                    if (data.node.isSelected()) {
+                        data.node.addClass("rowselected");
+                    } else {
+                        data.node.removeClass("rowselected");
+                    }
+                },
+                modifyChild: function (event, data) {
+                    //reset all odd even row colors
+                    var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    var oldnodes = rootNode.children;
+                    for (i = 0; i < oldnodes.length; i++) {
+                        if (i % 2 == 0) {
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                        } else {
+                            oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                            oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                        }
+                    }
+                },
+                renderColumns: function (event, data) {
+                    
+                    var node = data.node;
+                    
+                    if (data.node.getIndex() % 2 == 0) {
+                        node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                        node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                    } else {
+                        node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                        node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                    }
+                    //check if this proc already exists
+                    
+                    //var new_key = node.data["node"]["id"] + node.data["pid"]
+                    //node.key = new_key;
+                    $tdList = $(node.tr).find(">td");
+                    var nodeid = node.data["node"]["id"];
+                    var nodename = getNodeNameById(nodeid);
+                    //time calculations
+                    var duration = "";
+                    var created = "";
+                    try {
+                        created = node.data["created"];
+                        created = moment.parseZone(created.replace(/.00$/, ":00"))
+                        var end = node.data["date_end"];
+                        end = moment.parseZone(end.replace(/.00$/, ":00"))
+                        duration = end.diff(created, "seconds");
+                    } catch (ex) { }
+
+                    //fill row columns
+                    
+                    $tdList.eq(0).html("<div class='celltext'>"+node.data["state"]+"</div>"); //.addClass("alignRight");
+                    $tdList.eq(1).html("<div class='celltext'>" + nodename + "</div>"); //.addClass("alignRight");
+                    $tdList.eq(2).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + duration + "</div>");
+                    $tdList.eq(3).html("<div class='celltext' style='text-align:left;'>" + created.format("YYYY-MM-DD HH:mm:ss") + "</div>");
+                    $tdList.eq(4).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + node.data["host"] + "</div>");
+                    $tdList.eq(5).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
+                },
+                // transform gethistoryjobsajax result into tree compatible
+                postProcess: function (event, data) {
+                    // data is a treegrid specific object
+                    //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
+                },
+                table: {
+                    indentation: 15,
+                    nodeColumnIdx: 0,
+                },
+                gridnav: {
+                    autofocusInput: false,
+                    handleCursorKeys: true
+                }
+            })
+
+        }
+
+        function getNodeNameById(id) {
+            if (!id){
+                return "System";
+            }
+            var n = m_workflowdata.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
+            if (n.length != 1) { return "System" }
+            nodename = n[0].name || n[0].type;
+            return nodename;
+        }
+
+
+        function appendLogLines(proc_id, a_lines) {
+            //checks if lines already exists (for running jobs) and updates log data of node
+            graph.getModel().getCell(to_array[t]["id"])
+
+        }
+
+        function get_job_log(job_id, start) {
+            start = typeof start !== 'undefined' ? start : 0;
+            console.log("START: " + start )
+            //get all workflows from server  start main with the workflow of interest
+            var _url = "/getjoblog?jobid=" + job_id+ "&start="+ start ;
+            $.ajax({
+                url: build_new_api_url(_url),
+                type: "GET",
+                crossDomain: true,
+                dataType: "json",
+                success: function (response,status,request) {
+                
+                    //PARSE JOB LOG
+
+                    for (var a in response) {
+                        response[a]["_data"] = response[a]["data"];
+                    }
+
+                    var type = request.getResponseHeader('ffastrans_log_type');
+                    if (type == "partial") {
+                        //if partial, set up another get_job_log call
+                        var _start = request.getResponseHeader('ffastrans_log_last_endpos');
+                        
+                        console.log("Job still running, getting next log lines from start: " + _start);
+                        window.setTimeout(function () { get_job_log(job_id, _start) }, 3000);
+                        var rootNode = $("#treetable_log").fancytree("getRootNode");
+                        rootNode.addChildren(response);
+                        $("#log_div").css("visibility", "visible");
+                    } else {
+                        //full log received
+                        var rootNode = $("#treetable_log").fancytree("getRootNode");
+                        rootNode.removeChildren();
+                        rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
+                        $("#log_div").css("visibility", "visible");
+                    }
+
+
+                    parseJobLog(response);
+
+                    //load data into node grid
+                    var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+                    //var nodetree = $("#treetable_nodes").fancytree("getTree");
+                    rootNode.removeChildren();
+                    //turn m_unique_nodes to array
+                    var result = Object.keys(m_unique_nodes).map(function (key) {
+                       
+                        m_unique_nodes[key]["key"] = key;
+                        
+                        return m_unique_nodes[key];
+                    });
+                    /*result = result.filter(function (el) {
+                        return el != null;//filters empty entries from map function
+                    });*/
+                    
+                    //add nodegrid rows
+                    rootNode.addChildren(result);
+                    $("#node_div").css("visibility", "visible");
+                },
+                error: function (xhr, status) {
+                    alert("Did not get Log for job " + job_id);
+                }
+            });
+        }
+
+
+        function get_all_job_details(job_id) {
+            //get all workflows from server and start main with the workflow of interest
+            var _url = "/getjobdetails?jobid=" + job_id;
+            $.ajax({
+                url: build_new_api_url(_url),
+                type: "GET",
+                crossDomain: true,
+                dataType: "json",
+                success: function (response) {
+                    if (response['wf_object'].length == 0) {
+                        alert("Did not get any workflows from FFASTRANS API");
+                    } else {
+                        m_jobobject = response;
+                        m_workflowdata = response['wf_object'];
+                        //populate top left data
+                        var copy = JSON.stringify(response);
+                        copy = JSON.parse(copy); //copy the whole object to be able to delete wf_object for display in general_div
+                        delete copy["wf_object"]; 
+                        delete copy["nodes"];
+                        delete copy["workflows"];
+                        delete copy["variables"];
+                        delete copy["finished"];
+                        //sort
+                        
+                        var table = (JsonHuman.format(copy));
+                        //render
+                        document.getElementById("general_div").appendChild(table);
+                        $("#general_text").text("General [" + response["workflow"]["name"] + "]");
+                        //populate workflow canvas
+                        buildMxGraph(document.getElementById('graphContainer'),m_workflowdata);
+                        get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
+                    }
+                },
+                error: function (xhr, status) {
+                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+                }
+            });
+
+        }
+
+        //PARSE GET PARAMS
+        function getQueryVariable(variable) {
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[0] == variable) {
+                    return decodeURIComponent(pair[1]);
+                }
+            }
+        }
+
+        function build_new_api_url(what) {
+            if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+                return "/new_proxy" + what;
+            } else {
+                var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+                var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+                return _url;
+            }
+        }
+
+
+        //SAVE AND RESTORE PAGE LAYOUT
+        function saveLayoutSizes(dhxLayout, name) {
+            //store layout cells height and with into html5 storage (in percentage of document height)
+            var aw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
+            var ah = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
+            var bw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
+            var bh = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+            localStorage.setItem(name + "_aw", aw);
+            localStorage.setItem(name + "_ah", ah);
+            localStorage.setItem(name + "_bw", bw);
+            localStorage.setItem(name + "_bh", bh);
+
+        }
+        function restoreLayoutSizes(dhxLayout, name, ignore_width) {
+            return; //TODO: disabled because usually the resize ended up in foobar
+            if (localStorage.getItem(name + "_aw")) {
+                console.log("restoring layout sizes, all stored values: ",localStorage)
+                var aw = localStorage.getItem(name + "_aw");
+                var ah = localStorage.getItem(name + "_ah");
+                var bw = localStorage.getItem(name + "_bw");
+                var bh = localStorage.getItem(name + "_bh");
+                if (!ignore_width) {
+                    if (aw > 0.01 && aw < 0.9){
+                        dhxLayout.cells("a").setWidth(aw * document.body.scrollWidth);
+                        console.log("width restored cell a:", aw);
+                    }else{
+                        console.log("Width not restored, stored value was too low or too high: ", aw)
+                    }
+                    if (bw < 0.8){
+                        dhxLayout.cells("b").setWidth(bw * document.body.scrollWidth);
+                        console.log("width restored cell b:", bw);
+                    }
+                }
+                dhxLayout.cells("a").setHeight(ah * document.body.scrollHeight);
+                dhxLayout.cells("b").setHeight(bh * document.body.scrollHeight);
+                console.log("height restored")
+            }
+        }
+    
+    
+    function buildUrl(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/proxy" + what;
+        } else {
+            var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
+            return _url;
+        }
+        //old, delete at next iteration
+    }
+
+    function getLogDivHtmlTemplate(){
+        return (
+          `
+          <div id="log_div" style="visibility:hidden;overflow:visible" class="gridbox_dhx_skyblue gridbox">
+            <table id="treetable_log"  class="obj">
+                <colgroup>
+                    <col width="7%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="10%"></col>
+                    <col width="15%"></col>
+                    <col width="50%"></col>
+                </colgroup>
+                <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                    <tr class="">
+                        <th class="sticky" style="font-weight:normal">Node</th>
+                        <th class="sticky" style="font-weight:normal">Time</th>
+                        <th class="sticky" style="font-weight:normal">Host</th>
+                        <th class="sticky" style="font-weight:normal">Branch</th>
+                        <th class="sticky" style="font-weight:normal">Event</th>
+                        <th class="sticky" style="font-weight:normal">Data</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+          `
+        )
+
+    }
+    
+    function getNodeDivHtmlTemplate(){
+        `
+            <div id="node_div" style="visibility:hidden" style="" class="gridbox_dhx_skyblue gridbox">
+            <table id="treetable_nodes" class="obj">
+
+                <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                    <tr class="">
+                        <th style="font-weight:normal">State</th>
+                        <th style="font-weight:normal">Node</th>
+                        <th style="font-weight:normal">Duration</th>
+                        <th style="font-weight:normal">Start</th>
+                        <th style="font-weight:normal">Host</th>
+                        <th style="font-weight:normal">Branch</th>
+                    </tr>
+                </thead>
+            </table>
+         </div>
+        `
+    }
+    </script>
+</head>
+
+<!-- Page passes the container for the graph to the program -->
+<body onload="loadserverconfig()">
+<!-- <div style="max-width:20px;max-height:20px;height:20px;width:20px" id="parentofdeleteme" > -->
+<!-- <div style="height:20px;width:20px" id="deleteme"/> -->
+</div>
+    <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
+
+
+  
+
+
+<canvas id="invisible_export_helper"  style="display:none;width:1920px;height:1080px"></canvas>
+</body>
+</html>

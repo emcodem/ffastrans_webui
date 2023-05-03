@@ -61,11 +61,12 @@ function init(){
     m_mainLayout.cells("a").setText("Groups");
     m_mainLayout.cells("c").setText("All Group Permissions");
     m_mainLayout.cells("d").setText("Documentation");
-    
-    var right_layout = m_mainLayout.cells("d").attachLayout("2E");
-    right_layout.cells("a").setText("Authentification Setup");
-    right_layout.cells("b").setText("Documentation");
-    right_layout.cells("b").attachObject("documentation");
+    m_mainLayout.cells("c").collapse();
+
+    //var right_layout = m_mainLayout.cells("d").attachLayout("2E");
+    //right_layout.cells("a").setText("");
+    //right_layout.cells("b").setText("Documentation");
+    m_mainLayout.cells("d").attachObject("documentation");
     
     
     //m_mainLayout.cells("d").attachObject("Groups");
@@ -202,9 +203,21 @@ function init(){
     })
     
     
+
+    m_permissiongrid.attachEvent("onRowSelect", function (rId){
+        //show properties on the right side
+        //showGroupProps(m_groupgrid.getUserData(rId,"object"));
+        //unselect row in usergrid
+        m_usergrid.clearSelection();
+        m_groupgrid.clearSelection();
+    });  
+
     m_groupgrid.attachEvent("onRowSelect", function (rId){
         //show properties on the right side
         showGroupProps(m_groupgrid.getUserData(rId,"object"));
+        //unselect row in usergrid
+        m_usergrid.clearSelection();
+        m_mainLayout.cells("c").expand();//permissions hide
     });  
 
     m_usergrid.attachEvent("onRowSelect", function (rId){
@@ -212,6 +225,9 @@ function init(){
         //dhtmlx.message(JSON.stringify(m_usergrid.getUserData(rId,"object")));
         var userobj = m_usergrid.getUserData(rId,"object");
         showUserProps(m_usergrid.getUserData(rId,"object"),m_mainLayout.cells("d"));
+        m_groupgrid.clearSelection();
+        m_mainLayout.cells("c").collapse();//permissions hide
+
     });  
     
     //kick off data loading
@@ -441,6 +457,7 @@ function showGroupProps(groupObj){
         }else{
             _menu.setItemDisabled("edit");
         }
+
         
     });
     //usergroupprops menu onclick
@@ -669,7 +686,7 @@ function deleteuser(){
 <div id="documentation" class="documentation" style="font-family:Tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap">
 <p>
 <b>General:</b>
-User management is only needed when Web Authentification is enabled in Admin settings.
+User management is only used when Web Authentification is enabled in Admin settings.
 
 <b>User management:</b>
 Select a user and drag&drop groups to the user (drag a grid row from left to right)

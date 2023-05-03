@@ -3,9 +3,8 @@
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="../dependencies/dhtmlx/dhtmlx.js"></script> 
-<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
-
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css">
 
 <!-- <script src="../dependencies/dhtmlx/vault/vault.js"></script> -->
 <!-- <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"> -->
@@ -673,6 +672,7 @@
 		
 		//workaround grips getting lost after resize: as fancytree takes a while to resize on window resize, we delay the resizing of colresizeable plugin
 		window.onresize = function(){
+            console.log("window was resized")
 			window.setTimeout(function(){
 				attachColResizeable("#treetable_active")
 				attachColResizeable("#treetable_history")
@@ -883,11 +883,7 @@
                 return;
             }
             var jobid = (selected[0].data["job_id"]); 
-            var url = "/webinterface/components/logviewer.html?job_id=" + jobid;
-            var dhxwins = new dhtmlXWindows();
-            var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
-            win.setText("Job Details");
-            win.attachURL(url);
+            openLogViewer(jobid);
 
             //window.open(url, '_blank');
         }
@@ -1065,8 +1061,7 @@
                         }
                         if (action == "details") {
                             var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared between multiple jobs
-                            var url = "logviewer.html?job_id=" + jobid;
-                            window.open(url, '_blank');
+                            openLogViewer(jobid);
                         }
                         if (action.indexOf("resume") != -1) {
                            console.log(selected)
@@ -1092,6 +1087,17 @@
 
         })
 
+    }
+
+    function openLogViewer(jobid){
+        var url = "logviewer.html?job_id=" + jobid;
+        var dhxwins = new dhtmlXWindows();
+        var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
+        win.setText("Job Details");
+        win.attachURL(url);
+        window.onresize = function(){
+            win.setDimension(window.innerWidth-20,window.innerHeight-20);
+        }
     }
 
     function filterHistoryList(the_list) {
@@ -1376,8 +1382,7 @@
                          console.log(action,selected)
                         if (action.indexOf( "details") != -1) {
                             var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared by multiple jobs
-                            var url = "logviewer.html?job_id=" + jobid;
-                            window.open(url, '_blank');
+                            openLogViewer(jobid);
                         }
                         if (action == "delsel") {
                             node.setSelected();
@@ -1392,6 +1397,7 @@
                 }//contextmenu
             
         })
+        
 
         //extend tree by custom stuff, used mainly to build the paging
         $("#treetable_history").fancytree('getTree').mystuff = {"maxrows":100,"filterobj":{},"page":1,"sortcol":"job_end","sortdir":"des"}

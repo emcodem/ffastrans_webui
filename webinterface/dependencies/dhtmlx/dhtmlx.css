@@ -8566,3 +8566,7 @@ ul.fancytree-container{/* workflow selection */
 .dhx_navbar-title{
   color:grey
 }
+
+.label_text_align_left > div > label{
+  text-align: left !important;
+}
