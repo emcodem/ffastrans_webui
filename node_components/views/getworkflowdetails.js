@@ -1,5 +1,6 @@
 const Request = require("request");
 var userpermissions = require("../userpermissions");
+const { build_new_api_url } = require("../common/helpers");
 
 module.exports = function(app, passport){
 //serve and store admin config as dhtmlx form json config 
@@ -14,14 +15,14 @@ module.exports = function(app, passport){
                }
                
                //download workflowlist from ffastrans server
-                var _url = buildApiUrl(global.config.STATIC_GET_WORKFLOW_VARS_URL.replace("<wf_id>",wf_id));
+                var _url = build_new_api_url("/workflows".replace("?wf_id=",wf_id));
                 console.log("calling ",_url)
                 Request.get(_url, {timeout: 7000},(error, workflowResponse, body) => {
                     console.log("--------------------")
                     console.log("Response body: ",body)
                     if(error) {
                         console.log("Error response from getworkflowdetails,",error)
-                        global.socketio.emit("error", 'Error, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(_url));
+                        global.socketio.emit("error", 'Error, could not get workflows. Is FFAStrans API online? ' );
                         res.writeHead(200,{"Content-Type" : "text/text"});
                         res.write("");//output json array to client
                         res.end();

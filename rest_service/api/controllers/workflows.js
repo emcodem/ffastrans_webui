@@ -221,7 +221,7 @@ async function add_user_vars(o_return){
             if (vars_in_this_node != null){
                 //vars_in_this_node = new Set(vars_in_this_node); //filters duplicates
 
-                if (_wf.wf_name == "ManualSubmit")
+                if (_wf.wf_name == "Transcribe Test")
                     var stop = 1
                 for (var _vname of vars_in_this_node){
                     var used_var = all_vars.find(o => o.name ===  _vname.replaceAll("%",""));
