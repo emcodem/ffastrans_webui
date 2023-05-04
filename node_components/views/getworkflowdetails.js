@@ -15,7 +15,7 @@ module.exports = function(app, passport){
                }
                
                //download workflowlist from ffastrans server
-                var _url = build_new_api_url("/workflows".replace("?wf_id=",wf_id));
+                var _url = build_new_api_url("/workflows?id=" + wf_id);
                 console.log("calling ",_url)
                 Request.get(_url, {timeout: 7000},(error, workflowResponse, body) => {
                     console.log("--------------------")
