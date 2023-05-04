@@ -257,10 +257,6 @@ function systemSync(cmd) {
   }
 };
 
-function buildApiUrl(what){
-    return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
-}
-
 function hashCode (string) {
 //this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
   var hash = 0, i, chr;

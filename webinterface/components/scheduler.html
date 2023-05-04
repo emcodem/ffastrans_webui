@@ -370,6 +370,7 @@ async function init(){
     m_mainLayout.cells("b").setMinWidth(50);
     m_mainLayout.cells("a").setMinHeight(50);
     m_mainLayout.cells("b").setMinHeight(50);  
+    m_mainLayout.cells("b").setText("Documentation");
     m_mainLayout.cells("a").setText("Scheduled Jobs <a href='google.com'>Help</a>");
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
@@ -516,7 +517,9 @@ async function init(){
     var detailsLayout = m_mainLayout.cells("b").attachLayout({
             pattern: "1C"  
     })
-    detailsLayout.cells("a").setText("Documentation");
+    
+    //detailsLayout.cells("a").setText("Documentation");
+    detailsLayout.cells("a").hideHeader()
     document.getElementById("documentation").style.visibility = "visible";
     detailsLayout.cells("a").attachObject("documentation");
     detailsLayout.cells("a").setWidth(380);

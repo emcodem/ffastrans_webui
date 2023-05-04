@@ -39,6 +39,16 @@ paths:
                     id: 1
                     name: Jessica Right
                     fullTime: true
+  /about:
+    x-swagger-router-controller: about
+    get:
+      description: Gets ffastrans about
+      operationId: about
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /getjoblog:
     x-swagger-router-controller: get_job_log
     get:

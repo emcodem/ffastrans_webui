@@ -8570,3 +8570,14 @@ ul.fancytree-container{/* workflow selection */
 .label_text_align_left > div > label{
   text-align: left !important;
 }
+
+.ffas_tabbar .dhx_tabbar-tab-button--active { /* dhx 8 tabbar*/
+  font-family: "Tahoma"; 
+  color: black;
+}
+
+.ffas_tabbar  .dhx_tabbar-tab-button{
+  font-family: "Tahoma"; 
+  color: black;
+  text-transform:unset;
+}

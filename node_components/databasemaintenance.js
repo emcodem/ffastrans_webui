@@ -1,6 +1,7 @@
 var moment = require('moment-timezone');
 const { uuid } = require('uuidv4');
-var axios = require("axios")
+var axios = require("axios");
+const { build_new_api_url } = require('./common/helpers');
 
 module.exports = function(app, express){
 
@@ -93,7 +94,7 @@ module.exports = function(app, express){
             try{
             console.log("generatetestjobs inserter called, inserting 10000 test jobs");
             var m_jobStates = ["Error","Success","Cancelled","Unknown"];
-			var workflowResponse = await axios.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), {timeout: 7000,agent: false, maxSockets: Infinity});
+			var workflowResponse = await axios.get(build_new_api_url("/workflows"), {timeout: 7000,agent: false, maxSockets: Infinity});
             var a_workflows = workflowResponse.data.workflows;//wf_name
 			var date_start = new Date();
 			date_start.setFullYear(date_start.getFullYear() - 4);

@@ -36,6 +36,7 @@ module.exports = async function (app, passport) {
     })
 
     app.get('/getworkflowjobcount', async (req, res) => {
+        
         m_req_count++;
         try {
             //counts jobs based on user permissions
@@ -45,7 +46,7 @@ module.exports = async function (app, passport) {
 
             //get filtered list of workflow names
             var all_permissions = await userpermissions.getpermissionlistAsync(username);
-            var all_workflows = await axios.get(buildApiUrl(global.config.STATIC_GET_WORKFLOW_DETAILS_URL), { timeout: 7000, agent: false, maxSockets: Infinity });
+            var all_workflows = await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
             var allowed_workflows = getPermittedWorkflowList(all_permissions, all_workflows);
             var allowed_wfnames = allowed_workflows.map(wf => wf.wf_name); //objects to name array
 
@@ -211,10 +212,6 @@ function sleep(ms) {
     });
 }
 
-function buildApiUrl(what) {
-    return "http://" + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_PORT + what;
-}
-
 function build_new_api_url(what) {
     var host = global.config["STATIC_API_HOST"];
     var port = global.config["STATIC_API_NEW_PORT"];
@@ -232,8 +229,7 @@ function hashCode(string) {
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
-};
-
+}
 
 function getPermittedWorkflowList(allPermissions, workflowResponse) {
     var workflowlist = workflowResponse["data"];
@@ -262,7 +258,7 @@ function getPermittedWorkflowList(allPermissions, workflowResponse) {
                 } else {
                     //console.log("Worfkflow folder  " + wf["general"]["wf_folder"] + " NOT MATCHES filter "+ filter); 
                 }
-            };
+            }
         }
         
         if (allPermissions[x]["key"] == "FILTER_WORKFLOW_NAME") {
@@ -277,7 +273,7 @@ function getPermittedWorkflowList(allPermissions, workflowResponse) {
                         filteredWorkflowList.push(wf);//allow workflow
                     }
                 }
-            };
+            }
         }
     }//for allPermissions
 

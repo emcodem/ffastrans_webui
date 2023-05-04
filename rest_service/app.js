@@ -154,6 +154,7 @@ async function start_server(_host, _hostport, _listenport){
     var all_swag_operations = {
         /* most or all of our controllers serve v2 and v3, so we just register all operations at once, even if the yamls might not use all of them */
         /* add new operationids from swagger.yaml here */
+        about :             require(_approot + "/api/controllers/about").get,
         hello:              require(_approot + "/api/controllers/hello_world").get,
         get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
         get_job_details:    require(_approot + "/api/controllers/get_job_details").get,

@@ -137,10 +137,6 @@ module.exports = function(app, passport){
 	});
 }
 
-function buildApiUrl(what){
-    return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
-}
-
   
   
   
