@@ -92,10 +92,20 @@
             border: 1px solid black;
             table-layout:fixed;
             white-space:nowrap;
-            overflow:hidden;
             vertical-align: top;
+            overflow:hidden;
         }
 
+  
+        #treetable_log {
+            overflow:unset!important;
+            table-layout:fixed;
+            white-space:nowrap;
+            vertical-align: top;
+            border-collapse: separate !important; /* Don't collapse */
+            border-spacing: 0;
+        }
+        
         .table_ffastrans_processor_enabled {
             overflow: hidden;
             font-size: 12px; /*wf description as font size 8, header has 15*/
@@ -423,7 +433,7 @@
                                 <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
                                 <button class="btn" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
                                 ');
-            mainLayout.cells("c").showInnerScroll();
+            //mainLayout.cells("c").showInnerScroll();
             mainLayout.cells("c").attachObject("log_div"); //for json_to_table
             //todo: on btnclick, hide minfo und ffprobe: set height 10px und display:inline-block
             mainLayout.cells("a").setWidth(400);
@@ -1395,7 +1405,7 @@ function asyncsleep(time) {
 <!-- <div style="height:20px;width:20px" id="deleteme"/> -->
 </div>
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
-    <div id="log_div" style="visibility:hidden;overflow:visible" class="gridbox_dhx_skyblue gridbox">
+    <div id="log_div" style="visibility:visible;overflow:scroll;height:100%" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_log"  class="obj">
             <colgroup>
                 <col width="7%"></col>

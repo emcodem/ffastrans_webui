@@ -886,6 +886,7 @@ function addAjaxTooltip(dhxGrid,rowId){
         allowHTML: true,
         delay: [500],
         followCursor: false,
+        custom_field_is_hidden : false,
         onMount(instance) {
             //instance.hide();
         },
@@ -896,50 +897,56 @@ function addAjaxTooltip(dhxGrid,rowId){
             instance._error = null;
         },
         onShow(instance) {
-            console.log("attaching scroll listener")
-            $(".objbox").on("scroll",function(){
-                    console.log("Hiding img preview due to scroll")
-                    instance.hide(0);
-                    //unbind event listener so we dont overflow
-                    $(".objbox").off("scroll");
+                console.log("attaching scroll listener")
+                $(".objbox").on("scroll",function(){
+                        console.log("Hiding img preview due to scroll")
+                        instance.hide(0);
+                        //unbind event listener so we dont overflow
+                        $(".objbox").off("scroll");
+                    }
+                )
+
+                if (instance._isFetching || instance._src || instance._error) {
+                    console.log("isfse")
+                    return;
                 }
-            )
+                //load image!
+                instance._isFetching = true;
+                fetch('/getjpeg?fullpath=' + encodeURIComponent(fullpath) )
+                .then(function (response){ 
+                    if (!response.ok)
+                        throw new Error("getjpg error");
+                    console.log("response",response)
+                    return response.blob();
+                })
+                .then((blob) => {
+                    console.log("blob",blob)
+                    const src = URL.createObjectURL(blob);
+                    instance._src = src;
+                    //instance.hide();
+                    instance.setContent('<img style="max-width:320"  src="'+src+'"/>' );
+                    if (!instance.custom_field_is_hidden) //prevent showing image after ajax load when mouse is already out
+                        instance.show();
+                    //hide whenever grid is scrolled
 
-            if (instance._isFetching || instance._src || instance._error) {
-                console.log("isfse")
-                return;
-            }
-            instance._isFetching = true;
-            fetch('/getjpeg?fullpath=' + encodeURIComponent(fullpath) )
-            .then(function (response){ 
-                if (!response.ok)
-                    throw new Error("getjpg error");
-                console.log("response",response)
-                return response.blob();
-            })
-            .then((blob) => {
-                console.log("blob",blob)
-                const src = URL.createObjectURL(blob);
-                instance._src = src;
-                instance.hide();
-                instance.setContent('<img style="max-width:320"  src="'+src+'"/>' );
-                instance.show();
-                //hide whenever grid is scrolled
-
-            })
-            .catch((error) => {
-                console.log("image loading failed, hiding tooltip")
-                instance._error = error;
-                instance.hide();
-                return false;
-            })
-            .finally(() => {
-                instance._isFetching = false;
-            });
-        },
-        onHidden(instance) {
-            instance._error = null;
-        },
+                })
+                .catch((error) => {
+                    console.log("image loading failed, hiding tooltip")
+                    instance._error = error;
+                    instance.hide();
+                    return false;
+                })
+                .finally(() => {
+                    instance._isFetching = false;
+                });
+            },
+            onUntrigger(instance, event) {
+                //prevent showing image after ajax load when mouse is already out
+                instance.custom_field_is_hidden = true;
+            },
+            onHidden(instance) {
+                instance._error = null;
+            },
         });
 
 
