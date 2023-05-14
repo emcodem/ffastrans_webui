@@ -273,9 +273,9 @@ function init(){
     m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
     m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0,0");          //the widths of columns  
-    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left");       //the alignment of columns   
-    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str");          //the sorting types  
+    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
+    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
+    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str");          //the sorting types  
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -290,7 +290,9 @@ function init(){
     m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex;width:max-content'><input id='nfilter' placeholder='Name' style='margin-left:10px;margin-right:10px' ></div>\
                                     ,,,\
                                     <input autocomplete='off' id='sizefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
-                                    <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>");
+                                    <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
+                                    ,\
+                                    ");
     m_fileBrowserGrid.makeFilter("nfilter",0); //attach filter functionality to html input
     m_fileBrowserGrid.makeFilter("sizefilter",3); 
     m_fileBrowserGrid.makeFilter("datefilter",4); 
@@ -314,8 +316,9 @@ function init(){
     m_fileBrowseGridMenu.setItemDisabled("player");
 
     //preview checkbox
-    var prev_chkbox_html = "<div style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><label><input type='checkbox' id='chk_previews'>Preview</label></div>";
-    document.querySelector(".align_left").innerHTML += prev_chkbox_html;
+
+    var prev_chkbox_html = createElementFromHTML("<div id='chkcont' class='' style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><input type='checkbox' id='chk_previews'></input><label for='chk_previews'>Preview</label></div>");
+    document.querySelector(".align_left").appendChild(prev_chkbox_html)
 
     function prevCheckChanged(){
             if (document.querySelector("#chk_previews").checked) {
@@ -323,7 +326,7 @@ function init(){
                 m_fileBrowserGrid.setColWidth(0,"60");
                 m_fileBrowserGrid.setColWidth(7,"10");
                 //m_fileBrowserGrid.setWidthsP("60,0,0,10,20,0,0,10"); 
-                $('.previewcontainer').css('display', 'inline');
+                $('.previewcontainer').css('display', 'unset');
                 
             } else {
                 localStorage.setItem("jobstarter_chk_previews",'false');
@@ -335,8 +338,7 @@ function init(){
         }
     
     document.querySelector("#chk_previews").addEventListener('change',prevCheckChanged);
-    //document.querySelector("#chk_previews").checked = ;
-    //document.querySelector("#chk_previews").click();
+
     $('#chk_previews').prop('checked',localStorage.getItem("jobstarter_chk_previews") == 'true');
     prevCheckChanged();
 
@@ -587,6 +589,14 @@ function init(){
     
                 
         if (id == "download"){
+            
+            var selectedrows =  m_fileBrowserGrid.getSelectedRowId().split(',');
+            
+            for (i = 0; i < selectedrows.length; i++) {
+                var rId = selectedrows[i];
+                window.open("/download?fullpath=" + encodeURIComponent(m_fileBrowserGrid.getUserData(rId,"fullpath")) +"&"+Math.random(), '_blank');
+                await sleep(100);
+            }
             
             return;
         }
@@ -972,7 +982,7 @@ function addAjaxTooltip(dhxGrid,rowId){
     var fullpath =  dhxGrid.getUserData(rowId,"fullpath");
     var instance = tippy(name_cell, {
         allowHTML: true,
-        delay: [500],
+        delay: [700],
         followCursor: false,
         custom_field_is_hidden : false,
         onMount(instance) {
@@ -1489,6 +1499,12 @@ function saveRestoreUserState(tabbarId){
     }
 }
 
+function createElementFromHTML(htmlString) {
+    var div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+    return div.firstChild;
+}
+
 function getQueryVariable(variable) {
   var query = window.location.search.substring(1);
   var vars = query.split("&");
@@ -1498,6 +1514,10 @@ function getQueryVariable(variable) {
       return decodeURIComponent(pair[1]);
     }
   } 
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function buildUrl(what){

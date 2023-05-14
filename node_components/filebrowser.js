@@ -27,10 +27,21 @@ Date.prototype.toMysqlFormat = function() {//todo: move this to server.js?
 
 module.exports = function(app, express){
 /* presents files from filesystem based on allowed directories in config and post/get params*/
-    app.get('/extractpreview1', async (req, res) => {
-        res.writeHead(200,{"Content-Type" : "application/JSON"});
-        res.write(JSON.stringify({}));//output dhtmlx compatible json
-        res.end();
+    app.get('/download', async (req, res) => {
+
+        try{
+            if (!checkFolderInGlobalConfig(baseFolder,res)){
+                throw new ("Folder not allowed."); 
+             };
+
+            res.download(req.query.fullpath);
+        }catch(ex){
+            console.trace("ERROR: in download : " + ex);
+            res.status(500);//Send error response here
+            res.send("ERROR: Error in download: " + ex);
+            res.end();
+        }
+
     })
 
 	app.get('/filebrowser', (req, res) => {
@@ -93,6 +104,7 @@ module.exports = function(app, express){
 
 
     app.get('/getjpeg', async (req, res) => {
+        
         return new Promise((resolve,reject) => {
             var standard_args = [
                 "-i", req.query.fullpath, 
