@@ -353,7 +353,8 @@ async function parseWorkflowVariables(wf_id){
 
 function getReviewProcessorConfig(outbound){
     //match 
-    var configured_opts = outbound.ticket.job.proc_data.outputs;
+    var configured_opts = outbound.ticket.job.proc_data.inputs;
+    console.log("configured opts",configured_opts)
     for(var i=0;i<configured_opts.length;i++){
         if (configured_opts[i].value == outbound.name){
             return configured_opts[i+1].value;

@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 
@@ -27,6 +28,8 @@
         height: 100%;
         margin: 0px;
         overflow: hidden;
+        font-family: "Tahoma";
+        --preview-display : "none";
     }
 
     ul.fancytree-container {
@@ -36,8 +39,7 @@
     /* menu buttons */
     .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal {
         display:inline-block;
-        color:#444; !important
-        border:2px solid #AAA !important;
+        color:#444 !important;
         background:#DDD;
         box-shadow: 1px 1px 1px 1px rgb(0 0 0 / 30%) !important;
         cursor:pointer;
@@ -78,6 +80,38 @@
 	.alternate_row .dhx_grid-row:nth-child(2n) {
 		background: #add8e6;
 	}
+
+    .folder_browser_nav{
+        white-space: nowrap;
+        font-size:12px !important;
+        margin:0 !important;
+        padding:0 !important;
+        height:15px !important;
+        line-height:unset !important;
+    }
+
+    .previewcontainer{
+        display: var(--preview-display);
+        max-width:50px;
+        max-height:40px
+    }
+    .previewimg{
+        display: var(--preview-display);
+        max-width:100%;
+        max-height:40px
+    }
+    .align_left{
+        width:100%;
+        white-space: nowrap;
+        display:flex;
+        
+    }
+
+    [id$="previews_menuitem"] {
+        margin-left:auto !important;
+        margin-right:10px !important;
+    }
+
 </style>
 
 <script>
@@ -149,10 +183,12 @@ function globalPageInterval(){
         m_fileBrowseGridMenu.setItemDisabled("select");
         m_fileBrowseGridMenu.setItemDisabled("mediainfo");
         m_fileBrowseGridMenu.setItemDisabled("player");
+        m_fileBrowseGridMenu.setItemDisabled("download");
     }else{
         m_fileBrowseGridMenu.setItemEnabled("select");
         m_fileBrowseGridMenu.setItemEnabled("mediainfo");
         m_fileBrowseGridMenu.setItemEnabled("player");
+        m_fileBrowseGridMenu.setItemEnabled("download");
     }
 }
 
@@ -205,7 +241,7 @@ function init(){
         pattern: "2U"           
     });
     
-    m_mainLayout.setAutoSize("a", "a;b");//make left cell expand on resize
+    m_mainLayout.setAutoSize("b", "a;b");//make left cell expand on resize
    
     m_mainLayout.cells("a").setMinWidth(50);
     m_mainLayout.cells("b").setMinWidth(50);
@@ -233,13 +269,13 @@ function init(){
 
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size");//the headers of columns  
-    m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size");
+    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,preview");//the headers of columns  
+    m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
-    m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0");          //the widths of columns  
-    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left");       //the alignment of columns   
-    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int");          //the sorting types  
+    m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0,0");          //the widths of columns  
+    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left");       //the alignment of columns   
+    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
+    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str");          //the sorting types  
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -251,7 +287,7 @@ function init(){
     }
 
 	//onclick='(arguments[0]||event).cancelBubble = true'
-    m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'><input id='nfilter' style='margin-left:10px;margin-right:10px' ></div>\
+    m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex;width:max-content'><input id='nfilter' placeholder='Name' style='margin-left:10px;margin-right:10px' ></div>\
                                     ,,,\
                                     <input autocomplete='off' id='sizefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
                                     <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>");
@@ -262,18 +298,47 @@ function init(){
     window.setInterval(function(){globalPageInterval()},250);
 	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
 		items:[
-            {id:"location", text:"<span >Locations <i class='fas fa-list'></i></span>"},
-			{id:"savelocation", text:"<span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span>"},
-
-            {id:"mediainfo", text:"<span title='Mediainfo'>Info <i class='fas fa-search'></i></span>"},
-			{id:"player", text:"<span title='VLC Player'>Play <i class='fas fa-play'></i></span>"},
-            {id:"select", text:"<span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span>"},
-            {id:"selectall", text:"<span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span>"},
+            {id:"location", text:"<div style='width:80px'><span >Locations <i class='fas fa-list'></i></span></div>"},
+			{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
+            {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
+			{id:"player", text:"<div style='width:45px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
+            {id:"download", text:"<div style='width:70px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
+            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span></div>"},
+            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span></div>"},
+            //{id:"previews_menuitem", text:""},
 		]
 	});
+
     m_fileBrowseGridMenu.setItemDisabled("select");
     m_fileBrowseGridMenu.setItemDisabled("mediainfo");
     m_fileBrowseGridMenu.setItemDisabled("player");
+
+    //preview checkbox
+    var prev_chkbox_html = "<div style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><label><input type='checkbox' id='chk_previews'>Preview</label></div>";
+    document.querySelector(".align_left").innerHTML += prev_chkbox_html;
+
+    function prevCheckChanged(){
+            if (document.querySelector("#chk_previews").checked) {
+                localStorage.setItem("jobstarter_chk_previews",'true');
+                m_fileBrowserGrid.setColWidth(0,"60");
+                m_fileBrowserGrid.setColWidth(7,"10");
+                //m_fileBrowserGrid.setWidthsP("60,0,0,10,20,0,0,10"); 
+                $('.previewcontainer').css('display', 'inline');
+                
+            } else {
+                localStorage.setItem("jobstarter_chk_previews",'false');
+                m_fileBrowserGrid.setColWidth(0,"70");
+                m_fileBrowserGrid.setColWidth(7,"0");
+                //m_fileBrowserGrid.setWidthsP("70,0,0,10,20,0,0,0");
+                $('.previewcontainer').css('display', 'none');
+            }
+        }
+    
+    document.querySelector("#chk_previews").addEventListener('change',prevCheckChanged);
+    //document.querySelector("#chk_previews").checked = ;
+    //document.querySelector("#chk_previews").click();
+    $('#chk_previews').prop('checked',localStorage.getItem("jobstarter_chk_previews") == 'true');
+    prevCheckChanged();
 
     m_fileBrowserGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
             //disallow drag&drop rows to self   
@@ -359,16 +424,16 @@ function init(){
 
     m_selectedFileGrid = jobLayout.cells("a").attachGrid();
     m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,State"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
-    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,State");
+    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
+    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,Status,Outcome");
     m_selectedFileGrid.setColumnHidden(1,true);
     m_selectedFileGrid.setColumnHidden(2,true);
     m_selectedFileGrid.setColumnHidden(6,true);
     m_selectedFileGrid.setColumnHidden(7,true);
-    m_selectedFileGrid.setInitWidthsP("45,0,0,10,15,15,0,0,15");
-    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left");
-    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro");
-    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str");   
+    m_selectedFileGrid.setInitWidthsP("45,0,0,0,0,0,0,0,10,*");
+    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");
+    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str");   
     m_selectedFileGrid.enableMultiselect(true);
     m_selectedFileGrid.enableDragAndDrop(true);
     m_selectedFileGrid.enableStableSorting(true);
@@ -520,6 +585,12 @@ function init(){
 			return;
         }
     
+                
+        if (id == "download"){
+            
+            return;
+        }
+
 		if (id == "select") {
 			if (!m_fileBrowserGrid.getSelectedRowId()){
 				dhtmlx.message("Please select a File in the file browser");
@@ -789,7 +860,7 @@ function constructpathLink(what){
     var displaytext = parsed["root"].replace(/^\\\\/,"");
     displaytext = displaytext.replace(/\\$/,"");
         
-    html += '<span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span>";
+    html += '<div class="folder_browser_nav"><span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span></div>";
     
     var previous = "";
     var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);
@@ -802,7 +873,7 @@ function constructpathLink(what){
         var current = a_dirs[i] + "\\";
         var fullpath = btoa(encodeURIComponent(parsed["root"] + previous + current));
         var displaytext = current.replace("\\","");
-        html += "<div class='folder_browser_nav'  style='font-size:12px !important;margin:0 !important;padding:0 !important;height:15px !important;line-height:unset !important;'><span  onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)'>" + displaytext + " > </span></div>";
+        html += "<div class='folder_browser_nav'  style=''><span  onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)'>" + displaytext + " > </span></div>";
         previous += current;
 
         if (i==a_dirs.length-2){//pre-last folder, add levelup
@@ -853,11 +924,14 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
             //loads file list into grid
             dhtmlxGrid.clearAll();
 			dhtmlxGrid.parse(response,"json");
-			dhtmlxGrid.forEachRow(function(id){
+            //sort by date
+            dhtmlxGrid.sortRows(4,"str","des");
+
+            dhtmlxGrid.forEachRow(function(id){
                 //add tooltip to filename cell for preview image
                 
                 addAjaxTooltip(dhtmlxGrid,id)
-
+                addPreviewImage(dhtmlxGrid,id)
 			    //convert filesize to human readable
 				dhtmlxGrid.cells(id,3).setValue( (dhtmlxGrid.cells(id,3).getValue())); 
                 
@@ -870,6 +944,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                     });
                 }
 			});
+
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR from filebrowser. " + path + " " + xhr.responseText);
@@ -878,9 +953,22 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
     });
 }
 
+function addPreviewImage(dhxGrid,rowId){
+    var is_folder = dhxGrid.getCellByName(rowId,"is_folder").getValue();
+    if (is_folder)
+        return;
+    
+    var fullpath = dhxGrid.getUserData(rowId,"fullpath")
+    var is_folder = dhxGrid.getCellByName(rowId,"preview").setValue("<div class='previewcontainer' style=''><img class='previewimg' alt='' loading='lazy' onclick='this.requestFullscreen()' src='/getjpeg?fullpath="+encodeURIComponent(fullpath)+"'></img></div>");
+}
+
 function addAjaxTooltip(dhxGrid,rowId){
     /* on row hover, we call getjpeg for ffmpeg extracting image and display as tooltip */
-    var name_cell = dhxGrid.cells(rowId,0).cell
+    var name_cell = dhxGrid.getCellByName(rowId,"Filename").cell //dhxGrid.cells(rowId,0).cell;
+    var is_folder = dhxGrid.getCellByName(rowId,"is_folder").getValue();
+    if (is_folder)
+        return;
+    console.log("is_folder",is_folder)
     var fullpath =  dhxGrid.getUserData(rowId,"fullpath");
     var instance = tippy(name_cell, {
         allowHTML: true,
@@ -897,7 +985,7 @@ function addAjaxTooltip(dhxGrid,rowId){
             instance._error = null;
         },
         onShow(instance) {
-                console.log("attaching scroll listener")
+                console.log("attaching scroll listener");
                 $(".objbox").on("scroll",function(){
                         console.log("Hiding img preview due to scroll")
                         instance.hide(0);
@@ -983,13 +1071,6 @@ async function getBrowseLocations(){
         console.error(ex);
    }
 }
-
-
-
-
-
-
-
 
 async function on_gridWorkflowSelected(wf_name,wf_object){
     document.getElementById("variables_form").innerHTML = "";
@@ -1301,14 +1382,15 @@ async function startJobs(form,selectedWorkflow){
         for (var i = 0; i<gridrows_sorted.length;i++){
             var id = gridrows_sorted[i];
             var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
-            var _state = m_selectedFileGrid.getCellByName(id,"State").getValue();
+            var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
             var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
             
             if (source == "Upload"){
                 _filepath = m_realUploadpath + _filepath;
             }
             all_files.push(_filepath.replace(/&amp;/g, '&'));
-            m_selectedFileGrid.getCellByName(id,"State").setValue("Submitted");
+            m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
+            m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
         }//foreach gridrow
         //start one job for all files
         postBody.inputfile = JSON.stringify(all_files); 
@@ -1321,7 +1403,7 @@ async function startJobs(form,selectedWorkflow){
         //one job per file mode
         m_selectedFileGrid.forEachRow(async function(id){
             var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
-            var _state = m_selectedFileGrid.getCellByName(id,"State").getValue();
+            var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
             var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
             if (_state){
                 //row was already submitted
@@ -1335,8 +1417,9 @@ async function startJobs(form,selectedWorkflow){
             var postBody_clone = JSON.stringify(postBody);
             postBody_clone = JSON.parse(postBody_clone);
             postBody_clone.inputfile = _filepath.replace(/&amp;/g, '&');
+            m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
+            m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
             
-            m_selectedFileGrid.getCellByName(id,"State").setValue("Submitted");
             //start one job per file
             var jobid = await startJobApiCall(postBody_clone);
             waitForJobToFinish(id,jobid);
@@ -1351,6 +1434,16 @@ async function waitForJobToFinish(rowId,jobId){
     //m_selectedFileGrid.setUserData(rId,"fullpath",));
     var this_interval = window.setInterval(async function(){
         var response =  await $.ajax({url:  "/getjobstate?id=" + jobId});
+        if (!("jobs" in response))
+            return;
+
+        var statefield = m_selectedFileGrid.getCellByName(rowId,"Status");
+        statefield.setValue("Running");
+        if (response.all_finished)
+            statefield.setValue("Success");
+        if (response.all_failed)
+            statefield.setValue("Error");
+
         if (response.jobs.length == 0)
             return;
         var statusText = response.all_messages;
@@ -1358,12 +1451,12 @@ async function waitForJobToFinish(rowId,jobId){
             statusText = response.progress+"% " + statusText; 
         
         if(statusText != "" && statusText != " ")
-            m_selectedFileGrid.getCellByName(rowId,"State").setValue(statusText);
+            m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(statusText);
         console.log("statustext",statusText)
         //stop job polling if all are finished
         if (response.all_finished)
             window.clearInterval(this_interval)
-    },1000);
+    },3000);
 }
 
 async function startJobApiCall(postBody){
@@ -1409,7 +1502,6 @@ function getQueryVariable(variable) {
 
 function buildUrl(what){
     return "/proxy" + what;
-
     var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
     return  _url;
 }
@@ -1418,5 +1510,5 @@ function buildUrl(what){
 
 </head>
 <body onload="loadserverconfig()">
-
+    <img id="imgfullscreen" src=""></img>
 </body>

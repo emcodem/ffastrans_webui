@@ -95,7 +95,7 @@ module.exports = function(app, express){
     app.get('/getjpeg', async (req, res) => {
         return new Promise((resolve,reject) => {
             var standard_args = [
-                "-i",req.query.fullpath, 
+                "-i", req.query.fullpath, 
                 "-vframes","1",
                 "-c:v", "mjpeg","-f","rawvideo",
                 "-"
@@ -112,7 +112,7 @@ module.exports = function(app, express){
             });
 
             this.ffrewrap.stderr.on('data', data => {
-                //console.log(`preview extraction log: ${data}`);
+                console.log(`preview extraction log: ${data}`);
             });
     
             this.ffrewrap.on('exit', returncode => { 
@@ -124,7 +124,7 @@ module.exports = function(app, express){
                     res.writeHead(500,{"Content-Type" : "text/html"});
                     res.write("ffmpeg preview extraction failed, return code: " + returncode);
                     res.end();
-                    reject();
+                    resolve();
                     return;
                 }
                 res.writeHead(200,{"Content-Type" : "image/jpeg"});

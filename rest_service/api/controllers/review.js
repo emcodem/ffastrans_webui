@@ -11,12 +11,6 @@ module.exports = {
     do_delete:do_delete
 };
 
-/*
-  Functions in a127 controllers used for operations should take two parameters:
-
-  Param 1: a handle to the request object
-  Param 2: a handle to the response object
- */
 async function get(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var s_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"review","queue"),"");

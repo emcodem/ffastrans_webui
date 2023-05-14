@@ -229,11 +229,15 @@ function initForms(tabbar,layout){
     var formrows = [];
     //General Form
     var formrows = constructAllFormInputs(m_last_data.about,"general","general",130);
+    formrows.push(constrcutFormSaveButton());
     const generalform = new dhx8.dhx.Form(null, constructFormConfig(formrows));
+
     tabbar.getCell("general").attach(generalform);
+
 
     //emailform
     var formrows = constructAllFormInputs(m_last_data.about,"email","email",130);
+    formrows.push(constrcutFormSaveButton());
     const emailform = new dhx8.dhx.Form(null, constructFormConfig(formrows));
     tabbar.getCell("email").attach(emailform);
 
@@ -241,8 +245,54 @@ function initForms(tabbar,layout){
     formrows = constructAllFormInputs(m_last_data.about,"debug","debug",130);
     var warning = constructFormHintText("know_what_you_do_warn","Do not change these values unless you know what you do!",850);
     formrows = [warning, ...formrows];
+    formrows.push(constrcutFormSaveButton());
     const debugform = new dhx8.dhx.Form(null, constructFormConfig(formrows));
     tabbar.getCell("debug").attach(debugform);
+
+
+    [generalform,emailform,debugform].forEach(form => form.getItem("btn_save").events.on("click", async function(events){
+        //save changes
+        formSaveButtonClick(form);
+    }))
+}
+
+async function formSaveButtonClick(form){
+    //get current config, merge with changes and post back to server
+    var existing_data = await(loadData());
+    if (JSON.stringify(existing_data) != JSON.stringify(m_last_data)){
+        alert("Config File has been changed from outside, cannot save changes.");
+        return;
+    }
+    
+    //transform form values to saveable ffastrans config
+    var formvalues = form.getValue();
+    delete formvalues.discovery;
+    formvalues = {about:formvalues};
+
+    //merge existing ffastrans config with new one
+    var updated_props = {};
+    Object.keys(formvalues).map(function(v){
+            if (v.indexOf("form_ignore") != -1)
+                return
+            leaf(updated_props,v,formvalues[v]);
+    })
+
+    console.log("left",formvalues);
+    console.log("right",existing_data);
+    var merged = mergeDeep({},existing_data,updated_props);
+    console.log("saving form",merged);
+    
+}
+
+function constrcutFormSaveButton(name){
+    return {
+        type: "button",
+        name: "btn_save",
+        css:"dhxform_obj_dhx_skyblue",
+        width: 150,
+        full:true,
+        text: "Save"
+    }
 }
 
 function constructAllFormInputs(_rootobj,_currentKey,_absoluteKey,labelW = 130){
@@ -298,6 +348,7 @@ function uuidv4() {
 }
 
 function mergeDeep(...objects) {
+    /*merges values of 2 objects deep and creates a new object. Example: call: mergeDeep({},old,new)*/
   const isObject = obj => obj && typeof obj === 'object';
   
   return objects.reduce((prev, obj) => {
@@ -318,6 +369,19 @@ function mergeDeep(...objects) {
     
     return prev;
   }, {});
+}
+
+function leaf(obj, path, value) {
+    console.log("leav",path)
+    //allows to set a non existing deep path in flat object, e.g. my.path.is = value (path and is did not exist in obj)
+  const pList = path.split('.');
+  const key = pList.pop();
+  const pointer = pList.reduce((accumulator, currentValue) => {
+    if (accumulator[currentValue] === undefined) accumulator[currentValue] = {};
+    return accumulator[currentValue];
+  }, obj);
+  pointer[key] = value;
+  return obj;
 }
 
 

@@ -761,6 +761,7 @@ function uuidv4() {
 }
 
 function mergeDeep(...objects) {
+     /* merges values of 2 objects deep and creates a new object. Example: call: mergeDeep({},old,new) */
   const isObject = obj => obj && typeof obj === 'object';
   
   return objects.reduce((prev, obj) => {

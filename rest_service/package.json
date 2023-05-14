@@ -19,6 +19,7 @@
     "mediainfo-wrapper": "^1.2.0",
     "read-last-lines": "^1.8.0",
     "strip-bom": "^4.0.0",
+    "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.1.4",
     "winston": "^3.2.1",
     "yamljs": "^0.3.0"

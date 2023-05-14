@@ -143,7 +143,7 @@ async function connectDb(){
     global.db.deleted_jobs = db.collection('deleted_jobs');
 
     var old_dbpath = path.join(global.approot, "/database/jobs");
-    if (fs.existsSync(old_path)){
+    if (fs.existsSync(old_dbpath)){
         //jobfetcher.importLegacyDatabase(old_dbpath);
     }
     //ensure db indexes
