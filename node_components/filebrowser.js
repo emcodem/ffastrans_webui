@@ -30,7 +30,7 @@ module.exports = function(app, express){
     app.get('/download', async (req, res) => {
 
         try{
-            if (!checkFolderInGlobalConfig(baseFolder,res)){
+            if (!checkFolderInGlobalConfig(req.query.fullpath,res)){
                 throw new ("Folder not allowed."); 
              };
 
@@ -104,7 +104,7 @@ module.exports = function(app, express){
 
 
     app.get('/getjpeg', async (req, res) => {
-        
+
         return new Promise((resolve,reject) => {
             var standard_args = [
                 "-i", req.query.fullpath, 
