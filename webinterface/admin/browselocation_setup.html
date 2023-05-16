@@ -28,6 +28,11 @@ async function saveBrowseLocations(data){
             contentType: "application/json",
             data:JSON.stringify(data)
         });
+        dhx.message({
+                text:"Saved", 
+                css:"expire", 
+                expire:2000
+            });
     }catch(ex){
         alert("Unexpected error saving, contact developer and send server logs");
     }

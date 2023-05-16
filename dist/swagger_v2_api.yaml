@@ -47,7 +47,7 @@ paths:
   /swagger:
     x-swagger-pipe: swagger_raw
 servers:
-  - url: /
+  - url: /api/json/v2
 
 components:
   schemas:

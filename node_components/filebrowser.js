@@ -94,7 +94,7 @@ module.exports = function(app, express){
 				})		
 			}
 		}catch (ex){
-				console.trace("ERROR: in filebrowser : " + ex);
+				console.error("ERROR: in filebrowser : " + ex);
                 res.status(500);//Send error response here
                 res.send("ERROR: Error in filebrowser: " + ex);
                 res.end();
