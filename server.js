@@ -9,6 +9,7 @@ const AsyncNedb  = require('@seald-io/nedb');
 const Mongod = require("./node_components/mongodb_server/mongod");
 const portfinder = require("portfinder");
 const passport = require('passport');
+const axios = require('axios');
 
 const session      = require('express-session');
 const assert = require('assert');
@@ -33,6 +34,12 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0; //as we have a self-signed exam
 
 //LOGGING
 require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }   
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
@@ -202,29 +209,43 @@ async function init(conf){
 		//NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
 		var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
 		console.log("NOT running on alternate-server, getting FFAStrans API about:",about_url);
-		var _request = require('retry-request', {
-			request: require('request')
-		});
-		//we need to get install directory when running as part of webinterface, before we can start new api
-		_request(about_url, {noResponseRetries:1000000,timeout:1000}, (error, response, body) => {
-			console.log("Email config retrieved from ffastrans.")
-			if (error) {
-				console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
-				return;
-			};
+		var got_connection = false;
+        async function connectApi(){
+            while(!got_connection){
+                try{
+                    var res = await axios.get(about_url)
+                    global["ffastrans-about"] = res.data;
+                    console.log("FFAStrans config:",global["ffastrans-about"]);
+                    ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
+                    got_connection = true;
+                }catch(exc){
+                    console.error("Could not get ffastrans about");
+                    await sleep(1000);
+                }   
+            }
+        }
+        connectApi();
+        
+		// //we need to get install directory when running as part of webinterface, before we can start new api
+		// _request(about_url, {noResponseRetries:1000000,timeout:1000}, (error, response, body) => {
+		// 	console.log("Email config retrieved from ffastrans.")
+		// 	if (error) {
+		// 		console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
+		// 		return;
+		// 	};
 			
-			try{
-				global["ffastrans-about"] = JSON.parse(body);
-				console.log("FFAStrans config:",global["ffastrans-about"])
-			}catch(exception){
-				console.error("Could not parse about JSON from ffastrans url: ",about_url,exception);
-			}
-			//startup our own rest API
-			console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
+		// 	try{
+		// 		global["ffastrans-about"] = JSON.parse(body);
+		// 		console.log("FFAStrans config:",global["ffastrans-about"])
+		// 	}catch(exception){
+		// 		console.error("Could not parse about JSON from ffastrans url: ",about_url,exception);
+		// 	}
+		// 	//startup our own rest API
+		// 	console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
 			
-			ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
+		// 	ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
 			
-		})
+		// })
 	}
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY
@@ -378,7 +399,7 @@ async function init(conf){
     //   };
     //  app.use(errorHandling);
     //startup server
-    console.log('\x1b[32mHello and welcome, thank you for using FFAStrans') 
+    console.log('\x1b[32mHello and welcome, thank you for using FFAStrans')
 	// Listen both http & https ports if configured
 	var path_to_privkey = global.approot  	+ '/cert/key.pem';
 	var path_to_cert = global.approot  		+ '/cert/cert.pem';
