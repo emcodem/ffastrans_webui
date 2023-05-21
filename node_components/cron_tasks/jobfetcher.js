@@ -153,7 +153,7 @@ module.exports = {
 			
 			var q_obj = JSON.parse(body)["tickets"]["queued"];
 			if (q_obj !== undefined) {
-				for (i=0; i<q_obj.length;i++){
+				for (var i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
 							q_obj[i]["split_id"] = ""
 							q_obj[i]["state"] = "Queued";
@@ -193,7 +193,7 @@ module.exports = {
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
 			console.error(exc.stack)
-            console.error(q_obj[i])
+            console.error(q_obj)
 		}
 		//WATCHFOLDER Incoming
         try{

@@ -1,0 +1,1259 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<script src="../../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<script src="../../dependencies/jquery/jquery.js"></script>
+<script src="../../components/common/webuiVariables.js"></script> 
+<link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+
+<script src="../../dependencies/dhtmlx/8.0.0/suite.js"></script>
+
+<!-- unbelieveable how many dependencies we need for codemirror json -->
+<link rel="stylesheet" href="../../dependencies/codemirror/addon/lint/lint.css"/>
+<link rel="stylesheet" href="../../dependencies/codemirror/codemirror.css"/>
+<script src="../../dependencies/codemirror/codemirror.js"></script>
+<script src="../../dependencies/codemirror/mode/javascript/javascript.js"></script>
+<script src="../../dependencies/codemirror/addon/lint/jshint.js"></script>
+<script src="../../dependencies/codemirror/addon/lint/jsonlint.js"></script>
+<script src="../../dependencies/codemirror/addon/lint/lint.js"></script>
+<script src="../../dependencies/codemirror/addon/lint/json-lint.js"></script>
+
+
+
+
+<style>
+* {
+  /* ↓ Now literally all elements display a sans-serif font */
+  font-family: "Tahoma";
+}
+
+.CodeMirror { height: 100%; }
+
+.CodeMirror-lint-tooltip
+{
+    z-index: 2147483648; /* codemirror tooltip would be hidden because of dhtmlx window overlay. dhtmlx z-index is 2147483647 */
+    opacity: 0.7 !important;
+}
+
+.custom_msg{
+    /*we re-use dhx default message class but override some props to fit our needs */
+    width:unset;
+    font-weight:unset;
+    padding:4px;
+    margin:4px;
+    box-shadow:var(--dhx-border-shadow-small);
+    cursor:unset;
+    font-size:10;
+}
+
+.dhx_grid-cell{
+    font-size:12
+}
+
+.dhx_button--size_medium{
+    text-transform:unset;
+}
+
+.option_grid_button{
+   height:70%;width:30px;
+   margin:5px;
+}
+
+.dhx_button .dhx_toolbar-button__text{
+    font-size:12 !important
+}
+
+.seekme nav  {
+        height:100% !important;
+        min-height:20px;
+}
+.seekme ul.dhx_navbar  {
+    padding:3 !important; 
+}
+.seekme [data-cell-id="header"] {
+    height: 25px !important; 
+    
+}
+.seekme span {
+    padding-left:10px !important; 
+    font-size: 12px !important; 
+}
+
+.seekme2 > div{
+    height:25px;
+}
+
+.seekme2 h3{
+    font-size:12px;
+}
+
+.seekme3  button{
+    height:25px;
+}
+
+.seekme3 > div{
+    height:10px;
+}
+
+.dhx_menu-button__text {
+    font-family: "Tahoma";
+    font-size: 12px;
+}
+
+</style>
+<script>
+var m_maingrid;m_last_data= null;m_var_layout = null;
+var m_filter_statics = false;
+
+window.addEventListener("pagehide",(event) => {
+    window.parent.window.parent.showHeader(); //the root index html is 2 iframes up ;-)
+  },
+  false
+);
+
+const variable_templates={
+    "Input Text": {
+            type: "input",
+            merit: 1,
+            label: "Input Example",
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            required: true,
+
+            validation:"regex|email|integer|numeric|alphanumeric|IPv4",
+            placeholder: "Input placeholder",
+            "preMessage": "Display Text before validation",
+            "successMessage": "Display Text on  validation success",
+            "errorMessage": "Display Text on validation error",
+        },
+    "Checkbox":{
+            "type":"checkbox",
+            merit: 1,
+            "label": "Check this box",
+            "labelPosition": "left",
+            "labelWidth": 140,   
+            "checked": true
+        },
+    "Select (Dropdown)": {
+            type: "select",
+            merit: 1,
+            label: "Select Example",
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            value: "C Drive",
+            required: true,
+            options: [
+                {
+                    content: "C Drive",
+                    value: "C:\\"
+                },
+                {
+                    content: "Server Share",
+                    value: "\\\\server\\share\\folder",
+                    
+                }
+            ]
+        },
+        "Combo (Advanced Dropdown)":{
+            type: "combo",
+            merit: 1,
+            label: "The Combo Label",
+            width: 450,
+            labelWidth: 140,
+            labelPosition: "left",
+            multiselection: true,
+            selectAllButton: true,
+            value: [
+                "id_1",
+                "id_2"
+            ],
+            data: [
+                {"value": "Fred","id": "freddy@noreply.com"},
+                {"value": "Andreas","id": "andy@noreply.com"},
+                {"value": "Cynth","id": "cynthia@noreply.com"}
+            ]
+        },
+        "RadioGroup": {
+            "type": "radioGroup",
+            merit: 1,
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            "options": {
+                "rows": [
+                    {
+                        "type": "radioButton",
+                        "text": "Server Share",
+                        "value": "\\\\server\\share\\folder"
+                    },
+                    {
+                        "type": "radioButton",
+                        "text": "C Drive",
+                        "value": "C:\\"
+                    }
+                ]
+            },
+            required: true
+        },
+        "DateTimePicker": {
+            type: "datepicker",
+            merit: 1,
+            label: "Calendar Example",
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            required: true,
+            timePicker: true,
+            dateFormat: "%Y-%m-%d %H:%i:%s",
+            
+        },
+        "Timepicker":{
+            type: "timepicker",
+            merit: 1,
+            label: "Select the time",
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            timeFormat: 24,
+            valueFormat: "string",
+            value: [12,59]
+        },
+        "Text Display" : {
+            "type": "text",
+             merit: 1,
+            "label": "Text Display",
+            "labelPosition": "left",
+            "labelWidth": 140,                   
+            "value": "Information Display"
+        },
+        "Text Area":{
+            type: "textarea",
+            merit: 1,
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            width:400,
+            placeholder: "The Placeholder",
+            readOnly: false, // false by default
+            resizable: true,
+        },
+        "Slider":{
+            type: "slider",
+            merit: 1,
+            label: "Slider",
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            mode: "horizontal",
+            labelWidth: 130,
+            min: 0,
+            max: 100
+        }
+}
+
+async function loadData(){
+    var locations = await  $.ajax({
+        url:  ("/getworkflowlist"),
+        type: "GET"
+    });
+    return locations;
+}
+
+async function saveVariableAjax(var_name_and_data){
+    var data = await  $.ajax({
+        url:  (build_new_api_url("/variables")),
+        type: "POST",
+        contentType:"application/json",
+        
+        data: JSON.stringify(var_name_and_data)
+    });
+    loadGridData(true);//reload with every save
+    dhx.message({
+        text:"Success Saving Variables", 
+        css:"expire", 
+        expire:2000
+    });
+    return data;
+}
+
+async function deleteVariableAjax(var_name_and_data){
+    var data = await  $.ajax({
+        url:  (build_new_api_url("/variables?name=" + var_name_and_data.name)),
+        type: "DELETE",
+        contentType:"application/json",
+        
+        data: JSON.stringify(var_name_and_data)
+    });
+    loadGridData(true);//reload with every save
+    return data;
+}
+
+function build_new_api_url(what) {
+        return "/new_proxy" + what;
+}
+
+function init(){
+    buildLayout();
+}
+
+async function buildLayout(){
+    //LAYOUT
+    const mainlayout_config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		width:"100%", height:"100%",rows:
+		[   { id: "toolbar", height: "content" },
+			{
+				cols: [{
+						id: "main",
+						resizable:false,
+						padding: "0px",  
+						margin: "0px",
+					}]
+			}
+		]
+	}
+        
+    var layout = new dhx.Layout("layout", mainlayout_config);
+    layout.getCell("main").progressShow();
+
+    //GRID
+    m_maingrid = new dhx.Grid(null, {
+        adjust:"data",
+        columns: [
+            {  readonly:true, id: "use_count",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Use count" }]},
+            {  readonly:true, id: "name", minWidth: 80,     header: [{ content: "inputFilter" },{ text: "Name" }] },
+            {  readonly:true, id: "type",minWidth: 80,      header: [{ content: "inputFilter" },{ text: "Type" }]},
+            {  readonly:true, hidden:true,id: "data",minWidth: 160,maxWidth:450,  header: [{ content: "inputFilter" },{ text: "Value/Description" }]},
+            {  readonly:true, id: "data_display",minWidth: 160,maxWidth:450,  header: [{ content: "inputFilter" },{ text: "Value/Description" }]},
+            {  readonly:true, id: "used_in",minWidth: 80,   header: [{ content: "inputFilter" },{ text: "Used in" }]},
+        
+        ],
+        editable: false,
+        autoWidth: true,
+        resizable: true,//allow manual resize
+        selection:"row",
+        htmlEnable: true,
+        
+    });
+
+    m_maingrid.events.on("beforeEditStart", function(row,col,editorType){
+        // doubleclick row opens editor
+        //editWebUiTypeVar()
+        //return false;
+    });
+    //TOOLBAR
+    const cfg = [
+        {
+            id: "btnnew",
+            type: "button",
+            value: "New",
+            icon: "dxi dxi-plus",
+            size: "small",
+            color: "secondary",
+            css: "dhxform_obj_dhx_skyblue"
+        },
+        {
+            id: "btnedit",
+            type: "button",
+            value: "Edit",
+            icon: "dxi dxi-pencil",
+            size: "small",
+            color: "secondary",
+            css: "dhxform_obj_dhx_skyblue"
+        },{
+            id: "btndel",
+            type: "button",
+            value: "Delete",
+            icon: "dxi dxi-close",
+            size: "small",
+            color: "secondary",
+            css: "dhxform_obj_dhx_skyblue"      
+        }, {
+            id: "filtervartype",
+            type: "selectButton",
+            value: "Show All Variables",
+            css: "showvariablesdropdown",
+            items: [
+                {
+                    value: "Show All Variables"
+                },
+                {
+                    value: "Statics Only"
+                },
+                {
+                    value: "WebUI Only"
+                },
+            ]
+        }
+    ]
+    const toolbar = new dhx.Toolbar("toolbar", {
+        css:"dhx_widget--bordered"
+        });
+    toolbar.data.add(cfg);
+    toolbar.events.on("click", function(id,e){
+        if(id == "btnedit")
+            editWebUiTypeVar()
+        if(id == "btndel")
+            deleteSelected()
+        if (id == "btnnew")
+            newVariableWindow()
+    });
+    toolbar.events.on("change", function(id,e){
+        //user change filter
+        const typefilter = m_maingrid.getHeaderFilter("type");
+        typefilter.setValue("");
+        if (toolbar.getState("filtervartype").indexOf("Statics") != -1){
+            m_filter_statics = true;
+            loadGridData(true);
+            return;
+        }
+        if (toolbar.getState("filtervartype").indexOf("WebUI") != -1){
+            typefilter.setValue("web");
+        }
+        m_filter_statics = false;
+        loadGridData(true);
+        
+    })
+    
+    layout.getCell("toolbar").attach(toolbar);
+    
+    await loadGridData(true);
+    layout.getCell("main").attach(m_maingrid);
+    layout.getCell("main").progressHide();
+    
+}
+
+function create_generic_div(value){
+    return "<div class='custom_msg dhx_widget dhx_message '>" + value+ " </div>";
+}
+function create_used_in_div(used_in){
+    var html = used_in.map(o=> "<div class='custom_msg dhx_widget dhx_message '>" + o.wf_name + " (" +o.node_name + ") </div>");
+    return html.join("");
+}
+
+function create_type(name){
+    if (name.match("s_webui"))
+        return "webui"
+    return name.charAt(0);
+}
+
+async function loadGridData(force=false){
+    console.trace("loadGridData called.., force:",force)
+
+    var data = await(loadData());
+    if (data != m_last_data || force){
+        m_last_data = data;
+    }else{
+        return;
+    }
+    console.log("loadGridData got some new data...")
+    data = JSON.parse(data);
+    var gridData = [];
+    data.user_variables = data.user_variables.reverse();
+    for (var i=0;i<data.user_variables.length;i++){
+        var _cur = data.user_variables[i];
+        if (m_filter_statics && !_cur.is_static){
+            continue;
+        }
+        var displaydata =  _cur.data;
+        //if data is json, don't show raw data
+        try{
+            if (create_type(_cur.name) == "webui"){
+                console.log("trying to parse json",_cur.data)
+                JSON.parse(_cur.data);
+                displaydata = create_generic_div("Type: " + JSON.parse(_cur.data).type);
+            }
+        }catch(ex){
+            displaydata = "Invalid JSON, please open Editor and Correct Error. " + ex;
+        } 
+
+        gridData.push(
+            {   
+                name:               _cur.name,
+                data:               _cur.data,
+                data_display:       displaydata,
+                type:               create_type(_cur.name),
+                use_count:          _cur.used_in.length,
+                used_in:            create_used_in_div(_cur.used_in),//_cur.used_in.map(o=>o.wf_name + " (" +o.node_name + ") \n")
+                original_object:    _cur,
+                height:28,
+            }
+        ) 
+    }   
+
+    console.log("loading",gridData);
+    m_maingrid.data.parse([]);
+    m_maingrid.data.parse(gridData);
+    
+}
+
+function deleteSelected(){
+    const selectedCells = m_maingrid.selection.getCells();
+    if (selectedCells.length == 0){
+        return;
+    }
+    var to_delete = selectedCells[0].row;
+    if (to_delete.use_count != 0){
+        dhx.alert({
+            header: "Not possible",
+            text: "Selected Variable is used ("+to_delete.use_count+"), you must edit your workflows to not make use of the variable before deleting it.",
+            buttons: ["ok"]
+        });
+        return;
+    }
+
+    dhx.confirm({
+        header: "Confirm delete",
+        text: "Delete "+to_delete.name+"?",
+    }).then(function (i) { 
+        try{
+            deleteVariableAjax(to_delete);
+        }catch(ex){
+            console.log("Error deleting".ex)
+            alert("Error deleting variable: " + ex.responseText)
+            console.log("Error deleting",ex.responseText)
+        }
+        m_maingrid.data.remove(selectedCells[0].row.id);
+    });
+    
+}
+
+
+async function newVariableWindow(){
+    var dhxWindow = new dhx.Window({
+        header: true,
+        title: "New Variable",
+        movable: true,
+        closable:true,
+        modal:true,
+        resizable:true,
+        height:550,
+        html:"<div style='height:80%' id='newvarform'></div>Final variable name: <input style='width:70%' readonly=true id='newvarname'></div>"
+    });
+    dhxWindow.show()
+    await dhx.awaitRedraw(); //wait until html part of dhxWindow is drawn on page
+    dhxWindow.events.on("beforeHide", function(position, events){
+        //reload grid after window close
+        loadGridData();
+    });
+    const new_form = new dhx.Form("newvarform", {
+        css: "dhx_widget--bordered",
+        rows: [
+            {
+                type: "select",name:"var_or_static",label: "Variable or Static",labelPosition: "left",labelWidth: 110,value: m_filter_statics ? "static" : "variable",
+                required: true,
+                options: [
+                    {
+                        value: "static",
+                        content: "Static"
+                    },
+                    {
+                        value: "variable",
+                        content: "Variable"
+                    }
+                ]
+            },
+            {type: "select",name: "datatype",label: "Data Type",labelPosition: "left",labelWidth: 110,value: "s_",
+                required: true,
+                options: [
+                    {
+                        value: "s_",
+                        content: "String"
+                    },
+                    {
+                        value: "s_webui_",
+                        content: "Webui Form Field"
+                    },
+                    {
+                        value: "i_",
+                        content: "Integer"
+                    },
+                    {
+                        value: "f_",
+                        content: "Floating Point Number"
+                    }
+                ]
+            },
+            {type: "input",name: "new_var_name",label: "Name",value: "new_name",labelPosition: "left",labelWidth:110,required:true,preMessage:"s_ i_ f_ or s_webui will be added automatically"},
+            {type: "input",name: "description",label: m_filter_statics ? "Value" : "Description",value: "",labelPosition: "left",labelWidth:110,preMessage:""},
+            {view:"link",width:"250px",css:"dhxform_obj_dhx_skyblue",circle:true,full:true,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"},
+        ]
+    });
+
+    new_form.events.on("click", async function(event, name, id) {
+        //form submit
+        if (!new_form.validate()){
+            alert("Error, Please check your inputs.");
+            return;
+        }
+        calculateRealName();
+        var v = new_form.getValue();
+        var n = document.getElementById("newvarname").value.replaceAll("%","");
+        try{
+            var res = await saveVariableAjax({name:n,data:v.description});
+            console.log("Save variable response",res);
+            dhxWindow.destructor();
+            loadGridData();
+        }catch(ex){
+            console.log("Error Saving variable: ", ex)
+            alert("Error Saving variable: " + ex.responseText)
+            console.log("Responsetext: ", ex.responseText)
+        }
+
+    });
+    new_form.events.on("change", function(event, name, id) {
+        calculateRealName();
+    });
+    new_form.events.on("keydown", function(event, name, id) {
+        console.log("keydown")
+        calculateRealName();
+    });
+    
+    function calculateRealName(){
+        //live calculate actual name while the user interacts with form
+        var v = new_form.getValue();
+        var _name = document.querySelector('[data-dhx-id="new_var_name"]').value; //form native getValue method only gives actual value when input was  validated
+        const regex = /[^A-Z1-9]/ig;
+        _name = _name.replaceAll(regex,"_");
+        var real_name = v.datatype + _name;
+
+        if (v.var_or_static == "static")
+            real_name = real_name.toUpperCase();
+        document.getElementById("newvarname").value = "%" + real_name + "%";
+        //new_form.getItem("real_name").setValue(real_name);
+    }
+    await dhx.awaitRedraw();
+    calculateRealName();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* -------- webui variable editor -------- */
+
+function editWebUiTypeVar(){
+    
+    try{
+        window.parent.window.parent.hideHeader(); //the root index html is 2 iframes up ;-)
+    }catch(ex){}
+
+    const selectedCells = m_maingrid.selection.getCells();
+    if (selectedCells.length == 0){
+        return;
+    }
+
+    var selected_var = selectedCells[0].row;
+    console.log("Selected Variable:",selected_var);
+    var o_var = JSON.parse(m_last_data);
+    o_var = o_var.user_variables.find(v=>v.name == selected_var.name);
+    
+    if (!o_var){
+        alert("Unknown error getting variable by name "+vname+", contact developer");
+        return;
+    }
+
+    var dhxWindow = new dhx.Window({
+        node: document.body,
+        viewportOverflow:true,
+        header: true,
+        title: "Editor ("+o_var.name+")",
+        movable: true,
+        closable:true,
+        modal:true,
+        resizable:true,
+        customFullScreen:false,
+        height:350,
+        css: "seekme",
+    });
+
+    dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
+    var isFullScreen = false;
+    dhxWindow.header.events.on("click", function (id) {
+        if (id === "fullscreen") {
+            if (isFullScreen) {
+                isFullScreen = false;
+                dhxWindow.unsetFullScreen();
+            } else {
+                isFullScreen = true;
+                dhxWindow.setFullScreen();
+            }
+        }
+    });
+
+    dhxWindow.events.on("beforeHide", function(position, events){
+        //reload grid after window close
+        try{
+            window.parent.window.parent.showHeader(); //the root index html is 2 iframes up ;-)
+        }catch(ex){}
+        loadGridData();
+    });
+
+    ////webui type variables need special attention ^^
+    if (selected_var.name.indexOf("s_webui")!=-1){
+        construct_webui_vars_form(dhxWindow,selected_var,form_btns,top_form_rows);
+        return;
+    }
+    //NON webui variables can just edit description
+    var layout = new dhx.Layout(null, {
+                                            type: "space",
+                                            rows: [
+                                                {id: "top"},
+                                            ]
+                                        });
+    dhxWindow.attach(layout);                            
+    
+    //attach form component editor to top cell
+    var top_form_rows = [];
+
+    //add save button
+    var form_btns = {
+                padding: "10px", 
+                align: "around",// "center", "end", "between", "around", "evenly"
+                cols:[
+                    {view:"link",css:"dhxform_obj_dhx_skyblue",circle:true,full:true,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"}
+                ]
+            }
+
+        //FINALLY CONSTRUCT FORM
+        var label_text = selected_var.name.match(/^s_|^i_|^f_/) ? "Description" : "Value"; //statics have uppercase sif, they have value instead of description
+        top_form_rows.push({type: "input",  label: label_text,name: "data",value: selected_var.original_object.data,labelPosition: "left",
+                                            preMessage:"Note this is only Variable Description, it is not important for your Workflow. Actual Variable Values are calculated only while a job is running. Use 'static' if you need variables with fixed values." 
+                            });
+        top_form_rows.push(form_btns);
+
+        const top_form = new dhx.Form(null, {
+                        css: "dhx_widget--bordered",
+                        rows: top_form_rows
+                    });
+        top_form.getItem("btn_save").events.on("click", async function(events){
+            var _d = top_form.getValue().data;
+            saveVariable(selected_var.name,_d);
+        })
+        layout.getCell("top").attach(top_form);  
+
+        dhxWindow.show();
+}
+
+function attach_codemirror(id){
+    document.getElementById(id).innerHTML = "";
+    var base = document.getElementById(id);
+        var o_codemirror = CodeMirror(base, {
+                  lineNumbers: true,
+                  value: "", //"//when you are done and this array contains filepaths, one job per contained path will be started.\nvar filesToProcess = [];",
+                  mode: "application/json",
+                  gutters: ["CodeMirror-lint-markers"],
+                  lint: true
+        });
+    return o_codemirror;
+}
+
+async function construct_webui_vars_form(dhxWindow,selected_var,form_btns,top_form_rows){
+    try{
+        parent.m_sidebar.collapse();
+        await dhx.awaitRedraw();
+    }catch(ex){}
+
+    dhxWindow.setSize(window.innerWidth-100, window.innerHeight-10);//webui editor win is bigger than the one for generic vars
+
+    const layout = new dhx.Layout(null, {
+            
+            cols: [
+                {
+                    type: "line",
+                    width:"40%",
+                    resizable:true,
+                    rows:[
+                        {
+                            id: "jsonedit",
+                            html:"<div id='codemirror'></div>",
+                        },
+                        { 
+                            type: "line",
+                            height:"content",id: "save_btn_area",
+                        }
+                    ]
+                },
+                {
+                    type: "space",
+                    resizable:true,
+                    rows: [
+                        {
+                            type: "line",
+                            cols: [
+                                {
+                                    header:"Main Editor",
+                                    resizable:true,
+                                    id: "top",
+                                    collapsable: true,
+                                    css: "seekme2"
+                                },
+                                {
+                                    header:"Select Options",
+                                    resizable:true,
+                                    collapsable: true,
+                                    id: "select_options",
+                                    hidden:true,
+                                    width:"350px",
+                                    minWidth:"50px",
+                                },
+                            ],
+                            
+                    },
+                    { 
+                        resizable:true,
+                        height:"40%",
+                        id: "bottom",
+                        css:"seekme2"
+                    },
+                ]
+    }]});
+    m_var_layout = layout;
+    dhxWindow.attach(layout);                            
+    dhxWindow.show();
+    await dhx.awaitRedraw();
+
+    dhxWindow.events.on("beforeHide", function(position, events){
+        try{
+            parent.m_sidebar.expand()
+        }catch(ex){}
+        return true;
+    });
+
+    layout.codemirror = attach_codemirror("codemirror");
+    init_top_form(selected_var.name,selected_var.original_object.data,layout);
+    
+    // top_form.getItem("data").events.on("keyDown", async function(value) {
+    //     //this did not work as attaching preview to bottom form did reset top form
+    //     window.setTimeout(function(){previewForm(getDataInputValue(),layout.getCell("bottom")),1});
+    //     return true;
+    // });
+}//webui type variables
+
+async function init_top_form(var_name,var_data,layout){
+    //(RE-)initializes form inputs for constructing webui type variables
+
+    var type_combo = {
+        type: "combo",
+        readonly: true,
+        name: "type",
+        label: "Type",
+        labelPosition: "left",
+        data: []
+    };
+    //type selection data depends on variable_templates
+    for (var i=0;i<Object.keys(variable_templates).length;i++){
+        var itm = Object.keys(variable_templates)[i];
+        type_combo.data.push({id:itm,value:itm})
+    }
+
+    //test parse the current variable config if any
+    var existing_config = {}
+    if (var_data){
+        try{
+            existing_config = resolveWebUiVarData(var_data);
+            if(isDhx5Variable(existing_config))
+                existing_config = translateDhx5To8Vars(existing_config,false);
+            //translate adds validation function for dhx8, we must revert it to original value
+            if (existing_config.validregex){
+                existing_config.validation = existing_config.validregex;
+                delete existing_config.validregex;
+            }
+            
+            //console.log("retrieved and translated var data:",var_data)
+            var_data = JSON.stringify(existing_config); //if value was translated/parsed successfully, it overrides original var data
+            
+        }catch(ex){
+            console.log("Error Processing existing var data",var_data,ex)
+        }
+        //todo: add support for restore/construct various types here
+        if (existing_config.type)
+            type_combo.value = existing_config.type;
+    }
+
+    var top_form_rows = [];
+    top_form_rows.push(type_combo);
+
+    //These form fields always exist, independent of var type
+    top_form_rows.push({cols:[
+                {type: "input",label: "Merit",name: "merit",value: 1,labelPosition: "left",labelWidth:100,validation:"integer",preMessage:"Importance (Vertical Position)"},
+                {type: "input",label: "Width",name: "width",value: "",  labelPosition: "left",labelWidth:100}
+            ]});
+    top_form_rows.push({cols:[
+                                {type: "input",label: "Label",name: "label",value: "Input Label",labelPosition: "left",labelWidth:100},
+                                {type: "input",label: "Label Width",name: "labelWidth",value: 100,labelPosition: "left",labelWidth:100,validation:"integer"},
+                               
+                            ]});
+    top_form_rows.push({cols:[
+        {type: "input",label: "Label Postion",name: "labelPosition",value: "",labelPosition: "left",labelWidth:100,preMessage:"top|left"}
+    ]})
+
+    top_form_rows.push({cols:[ 
+        {type: "checkbox",label: "Required",name: "required",value: false,labelPosition: "left",labelWidth:100}
+    ]})
+
+    //SAVE BUTTON INTO ITS OWN AREA    
+    const save_form = new dhx.Form(null, {
+                css: "dhx_widget--bordered",
+                rows: [{view:"link",full: true,css:"dhxform_obj_dhx_skyblue",circle:false,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"}]
+            });
+    layout.getCell("save_btn_area").attach(save_form);
+    save_form.getItem("btn_save").events.on("click", async function(events){
+        console.log("saving..")
+        saveVariable(var_name,layout.codemirror.getValue());
+    });
+    //DATA and PREVIEW/SAVE BUTTONS always exist
+    var form_btns = {
+        //padding: "10px", 
+        //align: "evenly",// "center", "end", "between", "around", "evenly"
+        rows:[
+            // {view:"link",css:"dhxform_obj_dhx_skyblue",circle:true,type: "button",name: "btn_preview",text: "Preview",view: "flat",color: "primary"},
+            
+        ]
+    }
+
+    top_form_rows.push(form_btns);
+
+    const top_form = new dhx.Form(null, {
+                css: "dhx_widget--bordered",
+                rows: top_form_rows
+            });
+
+    layout.getCell("top").attach(top_form);
+    top_form.validate();
+
+    //show json in codemirror
+    try{
+        layout.codemirror.setValue(JSON.stringify(JSON.parse(var_data),null, "   ")) //m_codemirror.getValue();
+        do_after_codemirror_change();
+
+    }catch(ex){
+        layout.codemirror.setValue(var_data) //m_codemirror.getValue()
+    }
+
+    //select type shows options grid, others hide it
+    if (existing_config.type == "select"){
+        //init_options_grid(layout,top_form); //done by do_after_codemirror_change
+    }else{
+        layout.getCell("select_options").detach();
+        layout.getCell("select_options").hide();
+        
+    }
+
+
+
+    //form field change events
+    top_form.getItem("type").events.on("change", async function(newType,value){
+        //type change loads templates into data field and re-initializes the form
+        var oldValue = "";
+        try{
+            oldValue = layout.codemirror.getValue().type
+        }catch(ex){}
+        
+        if (oldValue != "" && newType != oldValue){
+            var confirmed = await dhx.confirm({
+                header: "Changing Type",
+                buttons:["Cancel", "Apply"],
+                text: "Setting a new type will reset the current Data, continue?",
+            })
+            if (!confirmed)
+                return
+        }
+        
+        var newData = (JSON.stringify(variable_templates[newType]));
+        //amend originally selected variable and re-init the whole form
+        init_top_form(var_name,newData,layout);
+
+    });
+
+    layout.codemirror.on("change", async function(name,value){
+        do_after_codemirror_change();
+    })
+    function do_after_codemirror_change(){
+                //when data field is changed manually, udpate the value into form field
+        try{    
+            var the_data = JSON.parse(layout.codemirror.getValue())
+            for (var i =0; i< Object.keys(the_data).length;i++){
+                try{
+                    var cur_name = Object.keys(the_data)[i];
+                    if (cur_name == "type")
+                        continue;
+                    if (cur_name == "options")
+                        init_options_grid(layout,top_form)
+                    top_form.getItem(cur_name).setValue(the_data[cur_name]);
+                }catch(ex){}
+            }
+            do_previewForm(layout.codemirror.getValue(),layout.getCell("bottom"),var_name);  
+        }catch(ex){
+            //alert("Could not update value in Data field, did you manually change the data and now have invalid json?")
+        };
+    }
+
+    top_form.events.on("change", async function(name,value){
+        
+        if (layout.codemirror.hasFocus()){
+            //if editor has focus, the change event came from changing stuff in the editor actually, not from user changed a form field
+            return;
+        }
+         /* all other form field changes just lead to the value being updated into Data field */
+        if (name == "type")
+            return; //type and data is handled separately
+        console.log("form change evt",name,value);
+        try{
+            var the_data = JSON.parse(layout.codemirror.getValue());
+            console.log("Parsed value from codemirr",the_data)
+            the_data[name] = value;
+            layout.codemirror.setValue(JSON.stringify(the_data,null, "   "));//JSON.stringify(JSON.parse(the_data),null, "   ")
+        }catch(ex){
+            console.log(ex)
+            alert("Could not update value in Data field, did you manually change the data and now have invalid json?");
+        };
+    })
+    
+    //button click events
+    // top_form.getItem("btn_preview").events.on("click", async function(events){
+    //     do_previewForm(layout.codemirror.getValue(),layout.getCell("bottom"));
+    // });
+
+}
+
+
+async function init_options_grid(layout,top_form){
+//builds a grid for topright, only shown in case type is select
+
+    var griddata = [];
+    try{
+        griddata = JSON.parse(layout.codemirror.getValue()).options;
+        if (!Array.isArray(griddata))
+            return;
+    }catch(ex){
+        alert("Error parsing options field from Data JSON. Did you manually edit the data field and produce invalid JSON?")
+        console.log(ex)
+    };
+    console.log("options grid data:",griddata)
+    
+    layout.getCell("select_options").show();
+
+    var opts_grid;
+    try{ 
+        var g_layout = layout.getCell("select_options").getWidget(); //gets attached grid layout
+        opts_grid = g_layout.getCell("attach_grid_here").getWidget(); //gets the grid itself
+        console.log("Using existing optsgrid")
+    }catch(ex){}
+    //only initialize if grid is not there
+    if (opts_grid){
+        console.log("Optsgrid",opts_grid)
+        opts_grid.data.parse(griddata);
+        return; //important, otherwise we attach
+    }
+    
+    //only initialize everything if not already done
+    opts_grid = new dhx.Grid(null, {
+        selection:"row",
+        autoWidth: true,
+        multiselection:true,
+        columns: [
+            { id: "value", header: [{ text: "Display Name" }],gravity:100 },
+            { id: "content", header: [{ text: "Value" }],gravity:200 }
+        ],
+        
+        editable: true,
+        data: griddata
+    });
+    var grid_layout = new dhx.Layout(null, {
+        type: "line",
+        rows: [
+            {
+                id: "right_header",
+                height:40,
+                css:"displayflex dhxlayout_base_dhx_skyblue dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr",
+                html:"<div style='padding-left: 10px;'>Options <button class='option_grid_button' id='addRow' >+</button><button class='option_grid_button' id='removeRow'>-</button></div>"
+            },
+            {
+                id: "attach_grid_here",
+            },
+        ]
+    });
+
+    grid_layout.getCell("attach_grid_here").attach(opts_grid);
+    layout.getCell("select_options").attach(grid_layout);
+
+        
+    //we build a layout here in order to have the add/delete buttons on top. this is not possible with grid only?
+
+    
+    //EVENTS 
+
+    //add/remove row button click event
+    await dhx.awaitRedraw();
+    $(".option_grid_button").click(function(evt){
+        if(evt.currentTarget.id == "addRow"){
+            var added_row = opts_grid.data.add({value:"value",content:"content"});
+            saveOptsGridChanges();
+            dhx.awaitRedraw().then(function () {
+                opts_grid.scrollTo(added_row, "value")
+            })
+        }else{
+            //todo.get selected row
+            var selcel = opts_grid.selection.getCells();
+            console.log("delete row:",selcel[0].row)
+            opts_grid.data.remove(selcel[0].row.id);
+            dhx.awaitRedraw();
+            saveOptsGridChanges();
+        }
+    });
+
+    opts_grid.events.on("afterEditEnd", function(value,row,column){
+        //cell was edited
+        console.log("Saving opts grid changes");
+        saveOptsGridChanges();
+
+    });
+
+    function saveOptsGridChanges(){
+        //udpates codemirror with changes
+        try{    
+            var _parsed = JSON.parse(layout.codemirror.getValue());
+            _parsed.options = opts_grid.data.serialize();
+            //remove id because it would pollute our json, it is auto generated
+            var without_id = _parsed.options.map(o=>{return {content:o.content,value:o.value}});
+            _parsed.options = without_id;
+            layout.codemirror.setValue(JSON.stringify(_parsed,null, "   "));
+        }
+        catch(ex){
+            console.log("options error:",ex)
+            alert("Could not update 'options' of variable Data JSON definition. Did you manually edit the Data Field?")
+        };
+    }
+}
+
+// function getDataInputValue(){
+//     var dataInput = document.querySelector('[data-dhx-id="data"]');
+//     alert(dataInput.value)
+//     return dataInput.value;
+// }
+
+async function do_previewForm(value,bottom_layout_cell,selected_var_name){
+    /* parses and previews current webui type variable config */
+    const layout = new dhx.Layout(null, {
+        type:"line",
+                rows: [
+                    {
+                        header:"Preview",
+                        id: "previewlayout",
+                        resizable:false,
+                        css:"seekme2"
+                    },
+                    {
+                        height: 80,
+                        id: "testerlayout",
+                        resizable:false,
+                    },
+                ]
+            });
+    bottom_layout_cell.attach(layout);
+
+    try{
+        var item_config = JSON.parse(value);
+        if (item_config.validation){
+            //transform validation into function that applies regex
+            //make sure this is in sync with webuiVariables.js addvalidation function. We must do that manually here to avoid 
+            item_config = _addValidation(item_config)
+            // item_config.validregex = item_config.validation;
+            // if (!original.validation.match ("email|integer|numeric|alphanumeric|IPv4")){
+            //     item_config.validation = function(value){
+            //         console.log("validating",value)
+            //         return value.match(item_config.validregex);
+            //     }
+            // }
+        }
+
+
+        var testerFormItems = {css:"seekme3",
+                            "cols":[
+                                {"view":"flat","css":"dhxform_obj_dhx_skyblue","circle":true,"type":"button","name":"btn_test","text":"Test Submit","color":"primary"},
+                                {
+                                    "type": "input",
+                                    "name" : "final_value",
+                                    "label": "Workflow Value:",
+                                    "readOnly":true,
+                                    "labelPosition": "left",
+                                    "labelWidth": 140,
+                                    "placeholder": "",
+                                    "preMessage": "The value that  %" + selected_var_name + "% would have when submitting the job"
+                                }
+                        ]}
+        var preview_form = new dhx.Form(null,{
+            rows: [item_config]
+        });
+        var test_form = new dhx.Form(null,{
+            rows: [testerFormItems]
+        });
+
+        layout.getCell("previewlayout").attach(preview_form);             
+        layout.getCell("testerlayout").attach(test_form); 
+
+        preview_form.events.on("change",function(name, new_value){
+            preview_form.validate();
+        });
+        
+        // preview_form.getItem("simplevault").data.events.on("afterAdd", function(file) {
+        //     preview_form.getItem("simplevault").send()
+        // });
+
+        test_form.getItem("btn_test").events.on("click", function(value,row,column){
+            console.log("testing start");
+            preview_form.validate();
+            console.log("testing validation done");
+            var prev_form_itms = preview_form.getValue();
+            delete(prev_form_itms.final_value);
+            var user_item = Object.values(prev_form_itms)[0];
+            console.log("set final value. all user item values:",Object.values(prev_form_itms));
+            test_form.getItem("final_value").setValue(""); //this works around an issue with combo where after second selection, the final value is not displayed updated
+            dhx.awaitRedraw();
+            test_form.getItem("final_value").setValue(user_item);
+            dhx.awaitRedraw();
+        });
+
+    }catch(ex){
+        //show error in bottom cell
+        console.log(ex)
+        bottom_layout_cell.attachHTML("Error: " + ex.stack + " Value was: " +value);
+    }
+}
+
+async function saveVariable(var_name,data_value){
+
+     var to_save = {name:var_name,data:data_value};
+    console.log("Saving var:",to_save);
+    try{
+        await saveVariableAjax(to_save);
+        
+    }catch(ex){
+        alert("Error saving variable: "+ ex.responseText());
+        console.error(ex);
+    }
+
+}
+
+
+</script>
+</head>
+<body onload="init()">
+<div id="windowcontainer">
+
+</div>
+</body>
+</html>

@@ -1085,7 +1085,7 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
                                             rows: [
                                                 {
                                                     id: "top",
-                                                    html:"<div id='form_wf_description'></div><div id='form_wf_form'></div>"
+                                                    html:"<div id='form_wf_description' style='font-weight:bold;font-size:14px;margin: 5px'></div><div id='form_wf_form'></div>"
                                                 },
                                             ]
                                         });
@@ -1462,12 +1462,29 @@ async function waitForJobToFinish(rowId,jobId){
             statusText = response.progress+"% " + statusText; 
         
         if(statusText != "" && statusText != " ")
-            m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(statusText);
+            m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(decodeEntities(statusText));
         console.log("statustext",statusText)
         //stop job polling if all are finished
         if (response.all_finished)
             window.clearInterval(this_interval)
     },3000);
+}
+
+function decodeEntities(encodedString) {
+    var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+    var translate = {
+        "nbsp":" ",
+        "amp" : "&",
+        "quot": "\"",
+        "lt"  : "<",
+        "gt"  : ">"
+    };
+    return encodedString.replace(translate_re, function(match, entity) {
+        return translate[entity];
+    }).replace(/&#(\d+);/gi, function(match, numStr) {
+        var num = parseInt(numStr, 10);
+        return String.fromCharCode(num);
+    });
 }
 
 async function startJobApiCall(postBody){

@@ -132,6 +132,7 @@ async function init(){
     //main layout
     m_mainLayout = new dhx.Layout(document.body, {
     type: "space",
+    header:"Review Queue",
         cols: [
             {
                 id: "left",
@@ -353,6 +354,7 @@ async function parseWorkflowVariables(wf_id){
 
 function getReviewProcessorConfig(outbound){
     //match 
+    console.log("proc_Data",outbound.ticket.job.proc_data)
     var configured_opts = outbound.ticket.job.proc_data.inputs;
     console.log("configured opts",configured_opts)
     for(var i=0;i<configured_opts.length;i++){
@@ -478,6 +480,16 @@ async function afterStage1Select(outbound){
                 try{
                     //todo: parse and add variables from form
                     await submitJob(api_job,outbound);
+                }catch(ex){
+                    alert("Error submitting review ticket, check console. "+ JSON.stringify(ex));
+                    console.log("Error submitting",outbound,ex)
+                }
+                try{
+                    await deleteReviewJob(outbound.ticket["review_file"])
+                }catch(ex){
+                    alert("Error deleting review ticket, check console. "+ JSON.stringify(ex));
+                    console.log("Error deleting",outbound,ex)
+                }
                     dhxWindow.destructor();
                     var q = await loadqueue();
                     updateGrid(q);
@@ -486,10 +498,7 @@ async function afterStage1Select(outbound){
                     m_layout_right.getCell("right_header").attachHTML("");
                     m_layout_right.getCell("right_header").paint();
 
-                }catch(ex){
-                    alert("Error deleting review ticket, contact developer. "+ ex);
-                    console.log("Error deleting",outbound,ex)
-                }
+
             });
 
             try{
@@ -538,7 +547,7 @@ async function submitJob(apiJob,outbound){
             dataType: "json",
             data: JSON.stringify(apiJob)
         });
-        await deleteReviewJob(outbound.ticket["review_file"])
+        
         return result;
 }
 

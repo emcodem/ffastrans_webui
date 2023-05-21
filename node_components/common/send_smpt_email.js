@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const axios = require('axios');
+const helpers = require("helpers");
 
 module.exports = {
 	send: send

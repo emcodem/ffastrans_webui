@@ -2,6 +2,11 @@ openapi: 3.0.0
 info:
   version: 3.0.0
   title: FFAStrans REST API Version 3.0
+  
+servers:
+  - url: /
+  - url: /api/json/v2
+
 paths:
   /hello:
     x-swagger-router-controller: hello_world
@@ -49,6 +54,20 @@ paths:
           description: Success
         default:
           description: Error
+    post:
+      description: "Save about subsection. Top level object must be general, email or debug. You can only change existing fields, not delete or create fields."
+      operationId: about_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {"general": {}}
+      responses:
+          "200":
+            description: Success
+          default:
+            description: Error
   /getjoblog:
     x-swagger-router-controller: get_job_log
     get:
@@ -247,10 +266,49 @@ paths:
           description: Success
         default:
           description: Error
+  /jobs:
+    x-swagger-router-controller: jobs
+    post:
+      description: ""
+      operationId: jobs
+      requestBody:
+        content:
+          application/json:
+            schema:      # Request body contents
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+              example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+  /api/json/v2/workflows/{id}:
+    x-swagger-router-controller: workflows
+    get:
+      description: "DEPRECATED Legacy API call (use /workflows), if /id is not specified returns all. ID is marked as required because the standard requires path parameters to be required but this API it also works without /id parameter"
+      operationId: workflows_v2
+      parameters:
+        - name: id
+          in: path
+          description: "optional (even if marked as required)"
+          # problem of the old ffastrans api: parameters as part of url (not get params but url) must be required by standard but ffastrans has optional params
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+
   /swagger:
     x-swagger-pipe: swagger_raw
-servers:
-  - url: /
+
 
 components:
   schemas:

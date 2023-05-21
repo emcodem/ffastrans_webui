@@ -1,0 +1,428 @@
+<html>
+<head>
+
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"> 
+<script src="../../dependencies/jquery/jquery.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+<link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
+
+<script src="../../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+<link href="../../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
+<script src="../../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
+
+
+<!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
+<link rel="stylesheet" href="../../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
+<script src="../../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.js"></script>
+
+<script src="../../dependencies/moment/moment.js"></script>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        /* width: 100%; */
+        height: 100%;
+        margin: 0px;
+        overflow: auto;
+        color: #333;
+        font: 14px Helvetica, Arial, sans-serif;
+        line-height: 18px;
+    }
+
+    .fas {
+        opacity: 0.9;                /* Opacity (Transparency) */
+        color: rgba(0, 0, 0, 0.9);   /* RGBA Color (Alternative Transparency) */
+        
+    }
+
+    .progressbar {
+        border-radius: 5px;
+        height: 15px;
+        background-color: #4CAF50;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+
+    /*layout headers (big blue lines)*/
+    .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr {
+        height: 25px;
+        line-height: 23px;
+        font-size: 12px;
+    }
+
+        /*collapse icon in layout header*/
+        .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_ha {
+            background-position: -32px -5px;
+            z-index: 1;
+            margin-top: -3;
+        }
+    /*collapse icon in layout header*/
+    div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_vb {
+        margin-top: -8px;
+        z-index: 1;
+    }
+
+    /*fancytree line break*/
+    table.fancytree-ext-table tbody tr td {
+        text-overflow: ellipsis;
+        /*white-space: nowrap;*/
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    /* tree column resize issues*/
+    table {
+        border: 1px;
+        table-layout: fixed;
+        width: 100%;
+        outline: none;
+    }
+    /* tree column resize issues*/
+    th,
+    td {
+        border: 1px;
+        overflow: hidden;
+        font-weight: unset;
+    }
+    th{
+        border-right: 1px solid grey;
+    }
+    /* text in tree title column */
+    span.fancytree-title {
+        padding: 0 0 0;
+    }
+    /*three dots on text overflow*/
+    .celltext {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: text;
+        margin-left: 6px;
+    }
+
+    .celltext_clicked {
+        text-overflow: clip;
+        white-space: normal;
+        word-break: break-all;
+        user-select: text;
+    }
+   
+    /*context menu stuff*/
+    td:hover {
+        opacity:0.5;
+    }
+    .context-menu-active {
+        opacity:0.5;
+    }
+</style>
+
+<script>
+
+
+    /* GLOBALS */
+    var m_serverconfig, m_userpermissions;
+    
+    /*load config from server*/
+    function loadserverconfig() {
+        $.ajax({
+            url: ("/getuserpermissions" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+
+                m_userpermissions = JSON.parse(response);
+                //load serverconfig and initialize page
+                $.ajax({
+                    url: ("/getserverconfig" + "?" + Math.random()),
+                    type: "GET",
+                    success: function(response) {
+                        console.log("got server conf")
+                        m_serverconfig = JSON.parse(response);
+                        init();
+                    },
+                    error: function(xhr, status) {
+                        dhtmlx.message("Fatal error, could not load serverconfig. ");
+                        document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+                    }
+                });
+            },
+            error: function(xhr, status) {
+                dhtmlx.message("Fatal error, could not load serverconfig. ");
+                document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+            }
+
+        });
+
+    }
+
+        
+    /* build basic page layout and init periodic job loading*/
+    async function init() {
+        const mainlayout_config = {
+            //type: "wide",//"line" | "wide" | "space" | "none";
+            width:"100%", height:"100%",
+            type:"wide",
+            rows:
+            [
+                { id: "toolbar", height: "content" },
+                {
+                    cols:[
+                        {
+                                header:"Farm Machines",
+                                id: "main",
+                                padding: "0px",  
+                                width:"content",
+                                margin: "0px",
+                                width: "100%"
+                                
+                        }
+                    ]
+                }
+            ]
+        }
+
+        var layout = new dhx8.dhx.Layout(document.body, mainlayout_config);
+        
+        const treetemplate = document.getElementById("machines_div");
+        layout.getCell("main").attachHTML(treetemplate.outerHTML);
+        treetemplate.remove();
+        await dhx8.dhx.awaitRedraw();
+        //check if html5 features supported
+        if (typeof(Storage) !== "undefined") {} else {
+            dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+        }
+        
+        $(document).ready(function () {//button background on hover
+            $('.button').hover(function () {
+                $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
+                $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
+            }, function () {
+                $(this).addClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal');
+                $(this).removeClass('dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected');
+            });
+        });
+        buildMachinesGrid()
+
+
+    }
+    
+    function build_new_api_url(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/new_proxy" + what;
+        } else {
+            var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+            var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            return _url;
+        }
+    }
+
+    function formattime(_dt){
+        try{
+            console.log("formatting date",_dt)
+            return moment(_dt.replace(/......$/,"")).format("YYYY-MM-DD HH:mm:ss");
+        }catch(ex){
+            return "";
+        }
+    }
+    
+    
+    function buildMachinesGrid() {
+        
+        var sourceUrl = build_new_api_url("/machines");
+       
+        $.ui.fancytree.debugLevel = 2; 
+        console.log("debuglevel of grid: ",$.ui.fancytree.debugLevel)
+        $("#treetable_machines").fancytree({
+            debugLevel: 2,
+            extensions: ["contextMenu", "table", "gridnav", "multi"],
+            checkbox: false,
+            titlesTabbable: false, // Add all node titles to TAB chain
+            source: {
+                url: sourceUrl,
+                cache: true,
+            },
+            icon: false,
+            multi: { //multiselct
+                mode: ""
+            },
+            modifyChild: function(event, data) {
+                console.log("tree modifyChild")
+                //reset all odd even row colors
+                var rootNode = $("#treetable_machines").fancytree("getRootNode");
+                var oldnodes = rootNode.children;
+                
+                for (i = 0; i < oldnodes.length; i++) {
+                    if (i % 2 == 0) {
+                        oldnodes[i].toggleClass("ev_dhx_skyblue", false)
+                        oldnodes[i].toggleClass("odd_dhx_skyblue", true)
+                    } else {
+                        oldnodes[i].toggleClass("odd_dhx_skyblue", false)
+                        oldnodes[i].toggleClass("ev_dhx_skyblue", true)
+                    }
+                }
+            },
+            renderColumns: function(event, data) {
+                try{
+                    console.log("rendernodes")
+                    var node = data.node;
+                    console.log("data",node)
+                    if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
+                        if (data.node.getIndex() % 2 == 0) {
+                            //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
+                            node.toggleClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                        } else {
+                            //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
+                            node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                        }
+                    }
+                    node.addClass("hist_row"); //for context menu
+
+                    $tdList = $(node.tr).find(">td");
+                    // (index #0 is rendered by fancytree (title node))
+                    // we use original_data here because we needed to cripple the original json from ffastrans in transform_Data function
+                    $tdList.eq(0).html("<div class='celltext'>" + node.data["original_data"]["computername"] + "</div>")
+                    $tdList.eq(1).html("<div class='celltext'>" + node.data["ip_address"] + "</div>"); //.addClass("alignRight");
+                    $tdList.eq(2).html("<div class='celltext'>" + 0 + "</div>");//TODO:active JOBS!
+                    $tdList.eq(3).html("<div class='celltext'>" + node.data["core_usage"] + "</div>");
+                    $tdList.eq(4).html("<div class='celltext'>" + node.data["cpu_roof"] + "</div>");
+                    var coretext = ""
+					try{coretext = " Cores: " + node.data["cpu"]["cores"] + " " +node.data["cpu"]["architecture"] + " " +"" +node.data["cpu"]["identifier"] ;}
+					catch(ex){}
+                    $tdList.eq(5).html("<div class='celltext' title='"+coretext+"'>" + coretext +"</div>");
+                    $tdList.eq(6).html("<div class='celltext'>" + formattime(node.data["last_heartbeat"]) + "</div>");
+                    $tdList.eq(7).html("<div class='celltext'>" + formattime(node.data["ffas_start_time"]) + "</div>");
+                    $tdList.eq(8).html("<div class='celltext'>" + formattime(node.data["ffas_end_time"]) + "</div>");
+                    $tdList.eq(9).html("<div class='celltext'>" + node.data.web_enable + "</div>");
+                }catch(ex){
+					console.log(node.data,ex)
+                    alert("There was an error rendering the data for machines grid, "+ex.toString())
+                    
+                }
+                
+            },
+            init: function(event, data) {
+                //ENABLE RESIZE COLUMNS
+                console.log("grid init")
+                $("#treetable_machines").colResizable({
+                    resizeMode: 'fit',
+                    hoverCursor: "col-resize",
+                    dragCursor: "col-resize",
+                    postbackSafe: true,
+                    useLocalStorage: true,
+                    minWidth: 10,
+                    liveDrag: true,
+                });
+            },
+            postProcess: function(event, data) {
+                // transform gethistoryjobsajax result into tree compatible
+                // data is a treegrid specific object
+                
+                console.log("Machines Api response:",data["response"]);
+                data["result"] = transformDataForGrid(data["response"]["machines"]) //setting data["result"] means override the originally loaded data
+                
+                
+            },
+            table: {
+                indentation: 15,
+                nodeColumnIdx: 0,
+            },
+            gridnav: {
+                autofocusInput: false,
+                handleCursorKeys: true
+            },
+            select: function(event, data) {
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
+            },
+            contextMenu: {
+            
+                }//contextmenu
+            
+        })
+
+    } //buildMachinesGrid
+
+    
+    function _getObjectByValue(object, value) {//helper
+        var to_return = [];
+        for (var _idx in object){
+           var _v =  object[_idx]["key"];
+           if (_v == value){
+            to_return.push(object[_idx]);
+           }
+        }
+        return to_return;
+    }
+    
+    
+    function transformDataForGrid(the_list) {
+        //set computername to be title
+        //we need to rename the "active" column because fancytreegrid needs this field for internal operations
+        
+        var filtered = [];
+        for (i = 0; i < the_list.length; i++){
+            the_list[i]["original_data"] = JSON.parse(JSON.stringify(the_list[i]))
+            the_list[i]["title"] = the_list[i]["computername"] 
+            the_list[i]["ff_active"] = the_list[i]["active"] ; 
+            the_list[i]["active"] = false; 
+            
+        }
+        return the_list;
+
+    }
+
+
+</script>
+
+<body onload="loadserverconfig()">
+<!-- THIS DIV CONTAINS THE FANCYTREE TEMPLATE -->
+        
+        <div id="machines_div" style="" class="gridbox_dhx_skyblue gridbox">
+            <table id="treetable_machines" class="obj">
+                    <colgroup>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="4%"></col>
+                        <col width="4%"></col>
+                        <col width="4%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="10%"></col>
+                        <col width="4%"></col>
+                    </colgroup>
+                <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                    <tr class="">
+                        <th>Name</th>
+                        <th>IP</th>
+                        <th>Active Jobs</th>
+                        <th>Max Jobs</th>
+                        <th>CPU Roof</th>
+                        <th>CPU Info</th>
+                        <th>Last Heartbeat</th>
+                        <th>Last Startup</th>
+                        <th>Last Shutdown</th>
+                        <th>API Service</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+</body>

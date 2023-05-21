@@ -1287,6 +1287,7 @@
                 $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.source + "</bdi></div>");
                 
                 var outcome = node.data.result || node.data.outcome;
+                outcome = decodeEntities(outcome)
                 // if (node.children){
                     //outcome = JSON.stringify(JSON.stringify(node.children[0].data))
                     //outcome = node.data._id
@@ -2083,6 +2084,24 @@
       return query_string;
     }
     
+                   
+    function decodeEntities(encodedString) {
+        var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+        var translate = {
+            "nbsp":" ",
+            "amp" : "&",
+            "quot": "\"",
+            "lt"  : "<",
+            "gt"  : ">"
+        };
+        return encodedString.replace(translate_re, function(match, entity) {
+            return translate[entity];
+        }).replace(/&#(\d+);/gi, function(match, numStr) {
+            var num = parseInt(numStr, 10);
+            return String.fromCharCode(num);
+        });
+    }
+
     function wokrflow_tree_control(what){
         var tree = $("#workflowtree").fancytree('getTree');
         if (what.id == "wf_filter_clear"){

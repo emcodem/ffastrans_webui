@@ -154,6 +154,7 @@ async function start_server(_host, _hostport, _listenport){
     var all_swag_operations = {
         /* most or all of our controllers serve v2 and v3, so we just register all operations at once, even if the yamls might not use all of them */
         /* add new operationids from swagger.yaml here */
+        about_post :        require(_approot + "/api/controllers/about").post,
         about :             require(_approot + "/api/controllers/about").get,
         hello:              require(_approot + "/api/controllers/hello_world").get,
         get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
@@ -181,26 +182,8 @@ async function start_server(_host, _hostport, _listenport){
 
     initialize(swag_config);
 
-    var swag_config_v2_api = {
-        app,
-        apiDoc: _approot + "/api/swagger/swagger_v2_api.yaml", // required config
-        operations: {
-            /* add new methods of swagger.yaml here */   
-            operations: all_swag_operations
-        }
-	};
-
-    //initialize(swag_config_v2_api);
-
     //finally, initalize swagger UI by loading the yaml files (which point to the operations)
 	
-    
-    //v2 api
-    //TODO:find out why v2 dont work
-    var _v2_yaml_location = path.join(__dirname, '/api/swagger/swagger_v2_api.yaml');
-    const v2swaggerDocument = YAML.load(_v2_yaml_location);
-    app.use('/api', swaggerUi.serve, swaggerUi.setup(v2swaggerDocument));
-    //v3 api
     var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
 	const swaggerDocument = YAML.load(_yaml_location);
 	app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
