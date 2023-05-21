@@ -1,8 +1,10 @@
 <html>
 <head>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> <!-- legacy dhtml css goes first -->
+
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
-<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+
 <script src="../../dependencies/dhtmlx/8.0.0/suite.js"></script>
 <script src="../../dependencies/jquery/jquery.js"></script>
 <script src="../../components/common/webuiVariables.js"></script> 
@@ -35,6 +37,10 @@
 {
     z-index: 2147483648; /* codemirror tooltip would be hidden because of dhtmlx window overlay. dhtmlx z-index is 2147483647 */
     opacity: 0.7 !important;
+}
+
+.dhx_tooltip{
+    display:unset !important;
 }
 
 .custom_msg{

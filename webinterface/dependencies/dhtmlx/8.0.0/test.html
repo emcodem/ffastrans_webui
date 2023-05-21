@@ -1,0 +1,61 @@
+<html>
+<head>
+<link rel="stylesheet" href="../dhtmlx.css" type="text/css">
+<link rel="stylesheet" href="suite.css" type="text/css"/> 
+<script src="suite.umd.js"></script>
+<script
+  src="https://code.jquery.com/jquery-3.7.0.js"
+  integrity="sha256-JlqSTELeR4TLqP0OG9dxM7yDPqX1ox/HfgiSLBj8+kM="
+  crossorigin="anonymous"></script>
+  
+
+<script>
+function init(){
+	const dhxWindow = new dhx8.dhx.Window({
+    width: 440,
+    height: 520,
+    title: "Window"
+});
+
+const layout = new dhx8.dhx.Layout(null, {
+    type: "line",
+    cols: [
+        {
+            id: "left",
+            header: "DHX List",
+            width: "50%"
+        },
+        {
+            id: "dataview",
+            header: "DHX DataView",
+            width: "50%"
+        }
+    ]
+});
+
+
+const form = new dhx8.dhx.Form(null, {
+  css: "dhx_widget--bg_white dhx_widget--bordered",
+  padding: 40,
+  rows: [
+    {
+      type: "input",
+      label: "Name",
+      name: "name",
+      helpMessage: "test"
+    },
+   
+  ]
+});
+
+
+layout.getCell("left").attach(form);
+dhxWindow.attach(layout)
+dhxWindow.show();
+	
+}
+</script>
+
+<body onload="init()">
+
+</body>
