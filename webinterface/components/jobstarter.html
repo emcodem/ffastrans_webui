@@ -659,20 +659,6 @@ function init(){
 
             var _playerUrl = "player/player.html?file=" + encodeURIComponent(fullfilepath) + "&mediainfo_url="+encodeURIComponent(build_new_api_url("/getmediainfo?do_html=false&filepath=" + encodeURIComponent(fullfilepath)));
             
-            // var dhxWindow = new dhx.Window({
-            //         header: true,
-            //         title: "File [" + file.name + "]",
-            //         movable: true,
-            //         closable:true,
-            //         modal:true,
-            //         resizable:true,
-            //         height:500,
-            //         width:700,
-            //         html:'<iframe height="100%" width="100%" style="border:none" src="'+_playerUrl+'"></iframe>'
-            //     });
-            //     dhxWindow.show()
-            //     return;
-
 			var dhxWins = new dhtmlXWindows();
 			//dhxwins.attachViewportTo(window.parent.document.body);
 			win_offset = 0;

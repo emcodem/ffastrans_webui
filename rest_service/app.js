@@ -162,6 +162,8 @@ async function start_server(_host, _hostport, _listenport){
         get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
         tickets:            require(_approot + "/api/controllers/tickets").get,
         machines:           require(_approot + "/api/controllers/machines").get,
+        machines_post:      require(_approot + "/api/controllers/machines").post,
+        machines_delete:    require(_approot + "/api/controllers/machines").delete,
         metrics:            require(_approot + "/api/controllers/metrics").get,
         review:             require(_approot + "/api/controllers/review").get,
         review_delete:      require(_approot + "/api/controllers/review").do_delete,

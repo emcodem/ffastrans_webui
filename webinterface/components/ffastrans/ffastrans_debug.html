@@ -66,6 +66,11 @@
     
 }
 
+.ffastrans_debug_warning_text{
+    font-weight: bold;
+}
+
+
 </style>
 <script>
 var m_maingrid;m_last_data= null;m_var_layout = null;
@@ -164,7 +169,7 @@ async function buildLayout(){
         views: [
             { id: "general",  tab: "General"},
             { id: "email",    tab: "Email" },
-            { id: "debug",    tab: "Advanced" }
+            { id: "debug",    tab: "Debug" }
         ],
         // more config options
     });
@@ -207,7 +212,7 @@ function initForms(tabbar,layout){
 
     //Debug Form
     formrows = constructAllFormInputs(m_last_data.about,"debug","debug",130);
-    var warning = constructFormHintText("know_what_you_do_warn","Do not change these values unless you know what you do!",850);
+    var warning = constructFormHintText("know_what_you_do_warn","Do not change these values unless you know what you do!"," ffastrans_debug_warning_text ","850");
     formrows = [warning, ...formrows];
     formrows.push(constrcutFormSaveButton());
     const debugform = new dhx8.dhx.Form(null, constructFormConfig(formrows));
@@ -414,7 +419,12 @@ function label_map(name){
                 "debug.max_retries":"max_retries",
                 "debug.aping_retries":"aping_retries",
                 "debug.sleep_bias":"sleep_bias",
-                "debug.abs_cpu_roof":"cpu_roof",
+                "debug.abs_cpu_roof":"abs_cpu_roof",
+                "debug.adlib.core_update" : "adlib.core_update",
+                "debug.adlib.exception_update": "adlib.exception_update",
+                "debug.adlib.wfs_status":"adlib.wfs_status",
+                "debug.adlib.remove_old_jobs":"adlib.remove_old_jobs",
+                "debug.adlib.abs_min":"adlib.abs_min"
             }    
             try{
                 return names[name]||name;
@@ -424,8 +434,10 @@ function label_map(name){
 }
 
 
-function constructFormHintText(name,value,labelW = 130){
-        return {type: "text", name: label_map("form_ignore_" + Math.random()), label: "", labelPosition: "left",width:labelW, value:value};
+function constructFormHintText(name,value,css = "",labelW = 130){
+        return {type: "text", name: label_map("form_ignore_" + Math.random()), label: "", labelPosition: "left",width:labelW, value:value,
+                css:css
+    };
 }
 
 function constructFormEmptyLabel(labelW = 130){

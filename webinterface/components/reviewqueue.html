@@ -14,7 +14,7 @@
 <script src="common/webuiVariables.js"></script> 
 
  <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
-
+ <link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -109,6 +109,7 @@ function loadserverconfig(){
 
 /*load review queue server*/
 async function loadqueue(){
+    
     const result = await $.ajax({
         url: "/review",
         type: 'GET',
@@ -133,17 +134,22 @@ async function init(){
     m_mainLayout = new dhx.Layout(document.body, {
     type: "space",
     header:"Review Queue",
-        cols: [
+        rows:[
+            //{ id: "toolbar", height: "content" },
             {
-                id: "left",
-                resizable:true,
-                
-                width:"50%"
-            },
-            {
-                
-                id: "right",
-            },
+            cols: [
+                {
+                    id: "left",
+                    resizable:true,
+                    
+                    width:"50%"
+                },
+                {
+                    
+                    id: "right",
+                },
+                ]
+            }
         ]
     });
 
@@ -174,13 +180,41 @@ async function init(){
     m_mainLayout.getCell("left").attach(m_layout_left);
     m_mainLayout.getCell("right").attach(m_layout_right);
 
+        //TOOLBAR
+
+    // const toolbar = new dhx.Toolbar(null, {
+    //     css:"dhx_widget--bordered"
+    //     });
+    
+    // const toolbarcfg = [
+    //     {
+    //         id: "btndel",
+    //         type: "button",
+    //         value: "Delete",
+    //         icon: "mdi mdi-trash-can-outline",
+    //         size: "small",
+    //         color: "secondary",
+    //         css: "dhxform_obj_dhx_skyblue"      
+    //     }
+    // ]
+    // toolbar.data.add(toolbarcfg);
+
+    // toolbar.events.on("click", function(id,e){
+    //     if(id == "btndel"){
+    //         var selected = getSelectedGridRows();
+    //         deleteReviewJob(selected[0].row.ticket.review_file);
+    //         m_maingrid.hideRow(selected[0].row.id);
+    //     }
+    // });
+
+    //m_mainLayout.getCell("toolbar").attach(toolbar);
     //GRID
     m_maingrid = new dhx.Grid("grid", {
         css: "dhx8_grid_row_alternate dhx8_grid_row",
         columns: [
             { width: getGridSize("date",150),resize: true, align: "left", id: "date", type:"date",format: "%Y-%m-%d %H:%i:%s",header: [{ text: "Date" }, { content: "inputFilter" }] },
             { width: getGridSize("wf_name",250),resize: true, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
-            { resize: true, id: "info", header: [{ text: "Info" }, { content: "inputFilter" }] },
+            { width: getGridSize("info",1150),resize: true, id: "info", header: [{ text: "Info" }, { content: "inputFilter" }] },
             
         ],
         autoWidth: true,
@@ -190,7 +224,6 @@ async function init(){
         htmlEnable: true
     });
     m_maingrid.events.on("resize", function(col,e){
-        return
         console.log("Saving grid size ",col.id,col.width )
         localStorage.setItem("review_mgrid_" + col.id,col.width);
     });
@@ -239,7 +272,7 @@ async function init(){
                 if (evtobj.keyCode == 46 && evtobj.shiftKey) {
                     var selected = getSelectedGridRows();
                     console.log("Deleting selected row",selected)
-                    //deleteReviewJob(selected[0].row.ticket.review_file);
+                    deleteReviewJob(selected[0].row.ticket.review_file);
                     m_maingrid.hideRow(selected[0].row.id);
                     //alert("Shift + Delete Pressed");
                 }
@@ -314,35 +347,36 @@ async function parseWorkflowVariables(wf_id){
             return false;
 
         var dhx8_form_rows = [];
-        for (var i=0;i<wf.user_variables.length;i++){
-            var _cur = wf.user_variables[i];
-            if(_cur.name.indexOf("webui") != -1){
-                //parse from string into object if variable name is webui_*
-                try{
-                    var var_obj = _cur.data;
-                    try{
-                        var_obj = JSON.parse(var_obj);
-                        var_obj.name = _cur.name;
-                        dhx8_form_rows.push(var_obj);
-                    }catch(ex){
-                        try{
-                            var_obj = eval("var eval_data = " + var_obj);
-                            var_obj = eval_data;
-                            //var_obj.id = _cur.name;
-                            var_obj.name = _cur.name; //puts the actual ffastrans variable name to form name for later name-value mapping
+        dhx8_form_rows = webuiVariables_processVariables(wf.user_variables)
+        // for (var i=0;i<wf.user_variables.length;i++){
+        //     var _cur = wf.user_variables[i];
+        //     if(_cur.name.indexOf("webui") != -1){
+        //         //parse from string into object if variable name is webui_*
+        //         try{
+        //             var var_obj = _cur.data;
+        //             try{
+        //                 var_obj = JSON.parse(var_obj);
+        //                 var_obj.name = _cur.name;
+        //                 dhx8_form_rows.push(var_obj);
+        //             }catch(ex){
+        //                 try{
+        //                     var_obj = eval("var eval_data = " + var_obj);
+        //                     var_obj = eval_data;
+        //                     //var_obj.id = _cur.name;
+        //                     var_obj.name = _cur.name; //puts the actual ffastrans variable name to form name for later name-value mapping
                             
-                        }catch(exc){
-                            throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
-                        }
-                        console.log("form input: ",var_obj)
-                        //FINALLY push the stuff into form rows
-                        dhx8_form_rows.push(var_obj);
-                    }
-                }catch(exc){
-                    throw new Error("#2 Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
-                }
-            }
-        }
+        //                 }catch(exc){
+        //                     throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
+        //                 }
+        //                 console.log("form input: ",var_obj)
+        //                 //FINALLY push the stuff into form rows
+        //                 dhx8_form_rows.push(var_obj);
+        //             }
+        //         }catch(exc){
+        //             throw new Error("#2 Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
+        //         }
+        //     }
+        // }
         return dhx8_form_rows;
     }catch(ex){
         alert("there was an error getting workflow variables for wf_id " +wf_id + " Error: "+ ex.stack)
@@ -421,7 +455,7 @@ async function afterStage1Select(outbound){
         }catch(ex){
             html = "No options to display.";
         }
-        console.log("selected outpboud",outbound)
+        console.log("selected outpboud",outbound);
         console.log("winding up window",outbound);
             const dhxWindow = new dhx.Window({
                 header: true,
@@ -434,8 +468,21 @@ async function afterStage1Select(outbound){
                 customFullScreen:false
             });
             //window dimensions
-            //dhxWindow.setSize(window.innerWidth/100*80, window.innerHeight/100*80);
+            dhxWindow.setSize(window.innerWidth/100*70, window.innerHeight/100*70);
             //dhxWindow.header.data.add({icon: "mdi mdi-fullscreen", id: "fullscreen"}, 2);
+            dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
+            var isFullScreen = false;
+            dhxWindow.header.events.on("click", function (id) {
+                if (id === "fullscreen") {
+                    if (isFullScreen) {
+                        isFullScreen = false;
+                        dhxWindow.unsetFullScreen();
+                    } else {
+                        isFullScreen = true;
+                        dhxWindow.setFullScreen();
+                    }
+                }
+            });
             
             console.log("formrows",configured_variables);
 
@@ -602,7 +649,7 @@ function displayVariables(m_subForm){
 
 }
 
-function updateGrid(q){
+async function updateGrid(q){
     try{
         var a = JSON.stringify(m_lastResponse);
         var b = JSON.stringify(q)
@@ -613,7 +660,7 @@ function updateGrid(q){
         console.log(ex,m_lastResponse);
     }
 
-    m_lastResponse = q;
+    m_lastResponse = JSON.parse(JSON.stringify(q));
     var gridData = [];
     //Save selection
     var selected = getSelectedGridRows();
@@ -640,6 +687,7 @@ function updateGrid(q){
     
     //load new data
     m_maingrid.data.parse(gridData);
+    await dhx.awaitRedraw();
     //restore selection
     selectedids.forEach(function(id){
             m_maingrid.selection.setCell(id, m_maingrid.config.columns[0],true, false);
@@ -647,10 +695,16 @@ function updateGrid(q){
 
     //restore sorting
     if (!sorting.dir){
-        console.log("sorting dir not defined, sorcing asc date")
-        m_maingrid.data.sort({dir: 'desc', by: 'date'});
+        console.log("sorting dir not defined, sorcing desc date")
+        m_maingrid.data.sort({dir: 'desc', by: 'date', as: function (value) { return value.toISOString() }});
+        
     }else{
-        console.log("Sorting was defined, restoring ",sorting)
+        console.log("Sorting was defined, restoring ",sorting);
+        var as = function(v){return v};
+        if (sorting.by == 'date'){
+            as = function (value) { return value.toISOString() }
+        }
+        sorting.as = as;
         m_maingrid.data.sort(sorting);
     }
     

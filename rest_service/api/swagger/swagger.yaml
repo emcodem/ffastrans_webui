@@ -55,7 +55,7 @@ paths:
         default:
           description: Error
     post:
-      description: "Save about subsection. Top level object must be general, email or debug. You can only change existing fields, not delete or create fields."
+      description: "Save about section. Can only save a single section and number of existing keys must match new keys"
       operationId: about_post
       requestBody:
         content:
@@ -135,9 +135,38 @@ paths:
       operationId: machines
       responses:
         "200":
+          description: Success
+        default:
+          description: Error
+    post:
+      description: "Save about section"
+      operationId: machines_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {"ip_address": ""}
+      responses:
+        "200":
           description: List of Machines and config
         default:
           description: Error   
+    delete:
+      description: Deletes machine by name. 
+      parameters:
+        - name: name
+          in: query
+          description: Machine name to delete 
+          required: true
+          schema:
+            type: string
+      operationId: machines_delete
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /metrics:
     x-swagger-router-controller: metrics
     get:
