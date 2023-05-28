@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn,execSync } = require('child_process');
+const { PromisePool } = require('@supercharge/promise-pool');
 
 function regexEscape(string) {
 	if (typeof string !== 'string') {
@@ -44,7 +45,7 @@ module.exports = function(app, express){
 
     })
 
-	app.get('/filebrowser', (req, res) => {
+	app.get('/filebrowser', async (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
 				var baseFolder;
@@ -70,8 +71,8 @@ module.exports = function(app, express){
 				if (!baseFolder){throw "Parameter name not specified"};//todo: handle no basepath error
 				var split = baseFolder.split("\\");//todo: make sure path contains only backslashes
 				var parentPath = split.slice(0, split.length - 2).join("\\") + "\\";
-				rows.rows.push({id:"oneup",data:["..",parentPath, true, 0]});//add parent folder
-				fs.readdir(baseFolder, (err, files) => {
+				//rows.rows.push();//add parent folder
+				fs.readdir(baseFolder, async (err, files) => {
                     if (!files){
                         res.status(500);//Send error response here
                         res.send("ERROR: could not list files in " + baseFolder +" " + err);
@@ -80,16 +81,14 @@ module.exports = function(app, express){
                     }
                     
 				  files.forEach(filename => {
-					  try{//ignore non accessible files and folders
-						const stats = fs.statSync(baseFolder + filename);
-                        rows.rows.push({id:Math.random(),userdata:{"fullpath":baseFolder + filename} ,data:[filename,baseFolder + filename, stats.isDirectory(), getReadableFileSizeString(stats.size), stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size]});//name,fullpath,is_folder,size
-					  }catch(exce){
-						  console.log("WARNING: cannot stat file: " + baseFolder + filename +" , Exception: " + exce);
-					  }
+                        rows.rows.push({id:Math.random(),userdata:{"fullpath":baseFolder + filename}});
 				  });
-                  res.writeHead(200,{"Content-Type" : "application/JSON"});
-				  res.write(JSON.stringify(rows));//output dhtmlx compatible json
-				  res.end();
+
+                  var a_nonerror = await getStats(rows.rows);
+                  rows = {};
+                  //add oneup entry
+				  rows.rows = [{id:"oneup",data:["..",parentPath, true, 0]},...a_nonerror];
+                  res.json(rows);
                   
 				})		
 			}
@@ -101,6 +100,22 @@ module.exports = function(app, express){
 		}
 	});
 
+    async function getStats(o_fnames){
+        var a_nonerror = [];
+        const pool = await PromisePool
+        .for(o_fnames)
+        .withConcurrency(1000)
+        .process(async (cur_file, index, pool) => {
+            try{
+                var stats = await fs.promises.stat(cur_file.userdata.fullpath);
+                cur_file.data = [path.basename(cur_file.userdata.fullpath),cur_file.userdata.fullpath, stats.isDirectory(), getReadableFileSizeString(stats.size), stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size];
+                a_nonerror.push(cur_file);
+            }catch(ex){
+                console.error("Error getting stats for ",JSON.stringify(cur_file),ex);
+            }
+        })
+        return a_nonerror;
+    }
 
 
     app.get('/getjpeg', async (req, res) => {

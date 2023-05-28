@@ -1,9 +1,13 @@
-var resumable = require('../node_modules/resumablejs/samples/Node.js/resumable-node.js')('C:/tmp/');//TODO: reload location for each upload from global conf
+var resumable = require('../node_modules/resumablejs/samples/Node.js/resumable-node.js')('C:\\tmp\\');//TODO: reload location for each upload from global conf
+
 var multipart = require('connect-multiparty');
 var crypto = require('crypto');
 
 
 module.exports = function(app, passport){
+
+
+    
     app.use(multipart());
         
     // retrieve file id. invoke with /fileid?filename=my-file.jpg
@@ -21,6 +25,7 @@ module.exports = function(app, passport){
 
     // Handle uploads through Resumable.js
     app.post('/upload', function(req, res){
+      
         resumable.post(req, function(status, filename, original_filename, identifier){
             console.log('POST', status, original_filename, identifier);
             
@@ -47,4 +52,12 @@ module.exports = function(app, passport){
       res.setHeader("content-type", "application/javascript");
       fs.createReadStream("node_modules/resumablejs/resumable.js").pipe(res);
     });
+}
+
+function initResumeable(){
+  var r = new Resumable({
+    target:'c:\\temp\\',
+    query:{upload_token:'my_token'}
+  });
+  return r;
 }

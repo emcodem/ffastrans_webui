@@ -113,7 +113,8 @@ module.exports = async function (app, passport) {
                 countObj.sys.Review = 0;
                 var review_wfnames = m_ticket_cache.tickets.review.map(_tick => _tick.wf_name);
                 function is_allowed(to_check, all_allowed) {
-                    return all_allowed.some(_wf => _wf.wf_name == to_check)
+                    var a = all_allowed.some(_wf => _wf.wf_name == to_check);
+                    return a;
                 }
                 var review_filtered = review_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
                 countObj.sys.Review = review_filtered.length;
