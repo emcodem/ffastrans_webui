@@ -82,7 +82,7 @@ global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
 //Before DB init, we need socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
-const jobfetcher = require('./node_components/cron_tasks/jobfetcher');
+//var jobfetcher = require('./node_components/cron_tasks/jobfetcher');
  
 //init DB
 global.db={};
@@ -190,17 +190,17 @@ async function init(conf){
     app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
 
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
-	var jobfetcher = "";
+	
 	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))
 	if (fs.existsSync(path.join(global.approot,"alternate-server/jobfetcher.js"))){
 		/* alternate server allows to disable inbuild jobfetcher - so webint can be used with another system than ffastrans*/
 		console.log("detected alternate jobfetcher module");
-		jobfetcher = require(path.join(global.approot,"alternate-server/jobfetcher.js"));
+		global.jobfetcher = require(path.join(global.approot,"alternate-server/jobfetcher.js"));
 		global.config["alternate-server"] = true;
 	}
 	else{
 		console.log("No alternate server detected");
-		jobfetcher = require("./node_components/cron_tasks/jobfetcher");
+		global.jobfetcher = require("./node_components/cron_tasks/jobfetcher");
 		global.config["alternate-server"] = false;
     }
     
@@ -326,7 +326,7 @@ async function init(conf){
                 console.error("Error deleting old records from DB: ",ex)
             }
             try{
-                await jobfetcher.fetchjobs();
+                await global.jobfetcher.fetchjobs();
             }catch (ex){
                 console.trace("Error, jobfetcher exception. " + ex)
             }
