@@ -19,6 +19,14 @@ var count_running = false;
 
 module.exports = {
 
+	tickets:async function(){
+		//we want jobfetcher to be able to run as alternate-server, thus the getworkflowjobcount method asks ticket not directly from api but from jobfetcher
+		//in alternate-server mode you have to rebuild and simulate tickets structure, where each ticket contains at least internal_wf_name datea field
+		m_ticket_cache.last_update = new Date();
+		var response = await axios.get(build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
+		return response.data.tickets;
+	},
+
 	importLegacyDatabase: async function(old_path){
             var all_lines = await fsPromises.readFile( old_path, "utf8" );
             all_lines.forEach(line =>{

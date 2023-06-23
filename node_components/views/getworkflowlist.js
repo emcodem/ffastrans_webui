@@ -83,27 +83,33 @@ module.exports = async function (app, passport) {
             try {
                 //ask tickets api for incoming, queued, running
 
-                if (!m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
-                    //refresh ticket cache from new_api
-                    var url = build_new_api_url("/tickets");
-                    m_ticket_cache.last_update = new Date();
-                    var response = await axios.get(build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
-                    m_ticket_cache.tickets = response.data.tickets;
-                }
-                //apply user permissions to incoming and queued
-                var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
-                var queued_wfnames = m_ticket_cache.tickets.queued.map(_tick => _tick.internal_wf_name);
-                var running_wfnames = m_ticket_cache.tickets.running.map(_tick => _tick.internal_wf_name);
-                function is_allowed(to_check, all_allowed) {
-                    return all_allowed.some(_wf => _wf.wf_name == to_check)
-                }
-                var incoming_filtered = incoming_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
-                var queued_filtered = queued_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
-                var running_filtered = running_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
-                //enrich countObj with incoming and queued
-                countObj.sys.Incoming = incoming_filtered.length;
-                countObj.sys.Queued = queued_filtered.length;
-                countObj.sys.Running = running_filtered.length;
+                    if (!m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
+                       
+                        //var url = build_new_api_url("/tickets");
+                        //m_ticket_cache.last_update = new Date();
+                        //var response = await axios.get(build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
+                        //m_ticket_cache.tickets = response.data.tickets;
+                        m_ticket_cache.tickets = m_ticket_cache.tickets = global.jobfetcher.tickets();
+                        
+
+                    }
+                    //apply user permissions to incoming and queued
+                    var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
+                    var queued_wfnames = m_ticket_cache.tickets.queued.map(_tick => _tick.internal_wf_name);
+                    var running_wfnames = m_ticket_cache.tickets.running.map(_tick => _tick.internal_wf_name);
+                    function is_allowed(to_check, all_allowed) {
+                        return all_allowed.some(_wf => _wf.wf_name == to_check)
+                    }
+                    var incoming_filtered = incoming_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
+                    var queued_filtered = queued_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
+                    var running_filtered = running_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
+                    //enrich countObj with incoming and queued
+                    countObj.sys.Incoming = incoming_filtered.length;
+                    countObj.sys.Queued = queued_filtered.length;
+                    countObj.sys.Running = running_filtered.length;
+                
+
+
             } catch (exc) {
                 console.error("Fatal error counting incoming jobs", exc)
             }
