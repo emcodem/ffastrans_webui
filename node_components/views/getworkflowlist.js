@@ -46,7 +46,7 @@ module.exports = async function (app, passport) {
 
             //get filtered list of workflow names
             var all_permissions = await userpermissions.getpermissionlistAsync(username);
-            var all_workflows = await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
+            var all_workflows = await global.jobfetcher.getWorkflowList();//await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
             var allowed_workflows = getPermittedWorkflowList(all_permissions, all_workflows);
             var allowed_wfnames = allowed_workflows.map(wf => wf.wf_name); //objects to name array
 

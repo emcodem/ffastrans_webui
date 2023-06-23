@@ -18,10 +18,15 @@ var count_running = false;
 // })
 
 module.exports = {
+	//we want jobfetcher to be able to run as alternate-server, thus the getworkflowjobcount method asks ticket not directly from api but from jobfetcher
+	//in alternate-server mode you have to rebuild and simulate the returned structure
+
+	getWorkflowList: async function(){
+		return await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
+	},
 
 	tickets:async function(){
-		//we want jobfetcher to be able to run as alternate-server, thus the getworkflowjobcount method asks ticket not directly from api but from jobfetcher
-		//in alternate-server mode you have to rebuild and simulate tickets structure, where each ticket contains at least internal_wf_name datea field
+		//ticket contains at least internal_wf_name datea field
 		m_ticket_cache.last_update = new Date();
 		var response = await axios.get(build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
 		return response.data.tickets;
