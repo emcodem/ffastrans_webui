@@ -85,13 +85,8 @@ module.exports = async function (app, passport) {
 
                     if (!m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
                        
-                        //var url = build_new_api_url("/tickets");
-                        //m_ticket_cache.last_update = new Date();
-                        //var response = await axios.get(build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
-                        //m_ticket_cache.tickets = response.data.tickets;
-                        m_ticket_cache.tickets = m_ticket_cache.tickets = global.jobfetcher.tickets();
+                        m_ticket_cache.tickets = m_ticket_cache.tickets = await global.jobfetcher.tickets();
                         
-
                     }
                     //apply user permissions to incoming and queued
                     var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
