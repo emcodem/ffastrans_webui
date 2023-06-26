@@ -5,8 +5,8 @@ var configServer = require(global.approot  + '/node_components/server_config');
 		//this should only be called by the client on loading
         try{
 			if (req.method === 'GET' || req.method === 'POST') {
-                var jobfetcher = require("./../cron_tasks/jobfetcher");
-                jobfetcher.fetchjobs();
+                //var jobfetcher = require("./../cron_tasks/jobfetcher");
+                global.jobfetcher.fetchjobs();
                 res.status(200);//Send error response here
                 res.end();
             }
