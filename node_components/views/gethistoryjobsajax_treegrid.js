@@ -158,7 +158,7 @@ module.exports = function(app, express){
 				}
             
 		catch (ex){
-				console.log("ERROR: unxepected error in gethistoryjobs: " + ex);
+				console.log("ERROR: unxepected error in gethistoryjobs: ", ex);
                 res.status(500);//Send error response here
                 res.end();
 		}
