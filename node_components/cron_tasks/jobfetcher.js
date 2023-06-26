@@ -1,4 +1,5 @@
 const assert = require('assert');
+const axios = require("axios");
 const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
@@ -22,13 +23,13 @@ module.exports = {
 	//in alternate-server mode you have to rebuild and simulate the returned structure
 
 	getWorkflowList: async function(){
-		return await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
+		return await axios.get(helpers.build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
 	},
 
 	tickets:async function(){
 		//ticket contains at least internal_wf_name datea field
 		m_ticket_cache.last_update = new Date();
-		var response = await axios.get(build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
+		var response = await axios.get(helpers.build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
 		return response.data.tickets;
 	},
 
