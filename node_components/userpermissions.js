@@ -128,7 +128,7 @@ async function checkworkflowpermission(username,wf_name){
     if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
         return true;
     }
-    let all_workflows = await ffastransapi.getWorkflows();
+    let all_workflows = await global.jobfetcher.getWorkflowList().data;
     //find wf_obj by name in order to find wf group. reason is because e.g. in history jobs db we dont store wf_group
     var wf_obj = all_workflows.filter(wf => wf.wf_name == wf_name);
     var parsed_wf_group = "";
