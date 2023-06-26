@@ -129,7 +129,7 @@ async function checkworkflowpermission(username,wf_name){
         return true;
     }
     let all_workflows;
-    if (global.config["]alternate-server"]){
+    if (global.config["alternate-server"]){
         all_workflows = await global.jobfetcher.getWorkflowList();
         all_workflows = all_workflows.data.workflows;
     }else{
