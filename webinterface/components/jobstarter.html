@@ -1130,11 +1130,6 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
         console.log("getworkflowdetails failed, this is only OK in alternate-server mode");
     }
 
-    console.log("Selected workflow details",workflowdetails);
-    if (workflowdetails.workflows.length == 0){
-        alert("Fatal error, got no workflow details for " + wf_object["wf_id"]);
-        return;
-    }
     //parse workflow description
     var wf_description = wf_object["description"] || "";
     wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
