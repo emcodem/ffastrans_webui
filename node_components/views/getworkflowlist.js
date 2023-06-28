@@ -145,7 +145,8 @@ module.exports = async function (app, passport) {
             if (req.method === 'GET' || req.method === 'POST') {
                 passport.authenticate('local-login');//fills req.user with infos from cookie
                 
-                var workflowResponse = await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
+                //var workflowResponse = await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
+                var workflowResponse = await global.jobfetcher.getWorkflowList();
                 //disabled web security, show all worfklows
                 if (global.config.STATIC_USE_WEB_AUTHENTIFICATION + "" == "false") {
                     //console.log(workflowResponse["data"]);

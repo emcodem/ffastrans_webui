@@ -933,7 +933,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                     //folders get a folder icon attached
 					dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="fancytree-icon"></span></span> ' + (dhtmlxGrid.cells(id,0).getValue()) );
 				}else{
-                    dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){ 
+                    dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){
                         selectFileToProcess();
                     });
                 }
@@ -1114,15 +1114,21 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
         startProcSelectFormItm.options.push({content:proc_name_default,value:proc_root[i]["id"]});
         if (i==0)
             startProcSelectFormItm.value = proc_root[i]["id"]; //auto select first
-
     }
 
     //get user variables for selected workflow
-    var workflowdetails =  await $.ajax({
-        url:  ("/getworkflowdetails" + "?workflowid=" + wf_object["wf_id"] ),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json"})
+    
+    try{
+        //try updating workflow variables
+        var workflowdetails =  await $.ajax({
+            url:  ("/getworkflowdetails" + "?workflowid=" + wf_object["wf_id"] ),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json"})
+        wf_object.user_variables.variables = workflowdetails.workflows[0].user_variables.variables;
+    }catch(ex){
+        console.log("getworkflowdetails failed, this is only OK in alternate-server mode");
+    }
 
     console.log("Selected workflow details",workflowdetails);
     if (workflowdetails.workflows.length == 0){
@@ -1140,10 +1146,10 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     if (wf_description != ""){
         document.getElementById("form_wf_description").innerHTML = wf_description;
     }
-        //all_form_rows.push({name: "wf_description",type: "text", value: wf_description,css:"job_submit_wf_description" })
+    //all_form_rows.push({name: "wf_description",type: "text", value: wf_description,css:"job_submit_wf_description" })
     
     //push user variables into form rows
-    var dhxform_user_vars = webuiVariables_processVariables(workflowdetails.workflows[0].user_variables.variables)
+    var dhxform_user_vars = webuiVariables_processVariables(wf_object.user_variables.variables)//(workflowdetails.workflows[0].user_variables.variables)
     console.log("dhxform_items",dhxform_user_vars)
     all_form_rows.push(...dhxform_user_vars);
     //add form start btn
