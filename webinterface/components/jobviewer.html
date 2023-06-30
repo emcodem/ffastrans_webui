@@ -451,14 +451,15 @@
         mainLayout.cells("a").setWidth(350);
         mainLayout.cells("a").collapse(); 
 		
-		if (m_serverconfig["alternate-server"] != true){
+		if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
 			buildWorfklowTree(); //load workflows
 			mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
 		
 		}else{
-			console.log("alternate server is not true!")
+			console.log("alternate server is true!")
 			mainLayout.cells("a").setCollapsedText("");
 			mainLayout.cells("a").hideArrow();
+            mainLayout.cells("a").collapse();
 		}
         mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
         mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px" >Finished</span>');
@@ -1601,7 +1602,7 @@
 
     function restoreLayoutSizes(dhxLayout, name) {
         if (localStorage.getItem(name + "_aw")) {
-            if (localStorage.getItem(name + "_c_collapsed") == "false"){
+            if (localStorage.getItem(name + "_c_collapsed") == "false"  && !m_serverconfig["alternate-server"]){
                 dhxLayout.cells("a").expand();
             }
             var aw = localStorage.getItem(name + "_aw");
@@ -1614,6 +1615,7 @@
             dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
             dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
             dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
+            
             if (dhxLayout.cells("a").isCollapsed() == false){
                 console.log("CW",cw)
                 dhxLayout.cells("a").setWidth(cw * document.body.scrollWidth);

@@ -104,7 +104,7 @@ module.exports = function(app, express){
         var a_nonerror = [];
         const pool = await PromisePool
         .for(o_fnames)
-        .withConcurrency(1000)
+        .withConcurrency(30) //too big concurrency blocks cpu
         .process(async (cur_file, index, pool) => {
             try{
                 var stats = await fs.promises.stat(cur_file.userdata.fullpath);

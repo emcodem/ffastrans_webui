@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+global.expressapp = app;
 const path = require("path");
 const util = require('util');
 const bodyParser = require('body-parser');
