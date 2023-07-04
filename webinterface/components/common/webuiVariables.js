@@ -1,7 +1,10 @@
 function resolveWebUiVarData(datastr,name){
     //ffastrans var description contains a string json, this is parsed into object here
     //throws if not possible
+    console.log("resolve type:",typeof(datastr))
     var data_obj = {};
+    if (typeof(datastr) == "object" || typeof(datastr) == "array" )
+        return translateDhx5To8Vars(data_obj);
     try{
         eval("var eval_data = " + datastr);
         data_obj = JSON.parse(JSON.stringify(eval_data));
@@ -53,8 +56,20 @@ function webuiVariables_processVariables(user_variables){
         var current_var = user_variables[i];
         if (current_var.name.indexOf("webui") != -1){
             try{
-                user_variables[i]["data"] 	= resolveWebUiVarData(user_variables[i]["data"]);
-                user_variables[i] 			= postProcessDhtmlxFormItem(user_variables[i])
+                console.log("resolving varaible",user_variables[i])
+                //todo: get rid of original_data by letting the rest of the code access data object instead of overwriting the variable itelf with postProcessDhtmlxFormItem
+                if ("original_data" in user_variables[i]){
+                    var original_data = JSON.parse(JSON.stringify(user_variables[i]["original_data"]));
+                    user_variables[i]["data"] 	= resolveWebUiVarData(original_data);
+                    user_variables[i] 			= postProcessDhtmlxFormItem(user_variables[i])
+                    user_variables[i]["original_data"] = original_data;
+                }else{
+                    var original_data = JSON.parse(JSON.stringify(user_variables[i]["data"]));
+                    user_variables[i]["data"] 	= resolveWebUiVarData(user_variables[i]["data"]);
+                    user_variables[i] 			= postProcessDhtmlxFormItem(user_variables[i])
+                    user_variables[i]["original_data"] = original_data;
+                }
+
                 transformed_vars.push(user_variables[i]);
             }catch(ex){
                 console.log("Error parsing webui var data:",user_variables[i],ex);
