@@ -379,7 +379,7 @@ function init(){
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
 			
-                 {id:"add", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
+                 {id:"add_customfile", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
                  {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
                  
 				 
@@ -539,7 +539,7 @@ function init(){
     
     //file add remove event
     headerMenu.attachEvent("onClick", function(id, zoneId, cas){
-            if (id == "add") {
+            if (id == "add_customfile") {
                 var box = dhtmlx.modalbox({
                     title:"New File",
                     text: "Enter a Full Path (e.g. UNC) as seen by FFAStrans Server...<br/><input class='inform' type='text'>",
@@ -1067,7 +1067,7 @@ async function getBrowseLocations(){
 }
 
 async function on_gridWorkflowSelected(wf_name,wf_object){
-
+    console.log("selwf",wf_object)
 
     document.getElementById("variables_form").innerHTML = "";
     var layout = new dhx8.dhx.Layout("variables_form", {
@@ -1302,6 +1302,16 @@ function getWorkflows(){
                         }
                     }
                 }
+
+                /*
+                //if there is only 1 workflow, select it
+                if (m_workflowArray.length == 1){
+                    var tree = $("#workflowtree").fancytree("getTree");
+                    var onlynode = tree.getFirstChild();
+                    on_gridWorkflowSelected(onlynode.title,onlynode.data["wf_object"]);
+                }*/
+                
+
                 
             }
         },
