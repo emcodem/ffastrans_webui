@@ -24,7 +24,14 @@ module.exports = {
         });
     },
 
-	
+    getuserAsync: async (username) => {
+        //callback with userobject
+        var data = await global.db.config.findOne({"local.username":username});    
+        if ((data)){
+            return data.local;
+        }
+       return [];
+    },
 
 	getpermissionlistAsync:async (username) => {
 		try{
