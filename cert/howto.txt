@@ -73,5 +73,14 @@ You're all done, grab the code signing request .txt file from C:\Temp and send i
 They'll review it and decide whether they'll grant you the certificate or not.
 If everything checks out, you'll get a new shiny cert.pem which you'll be able to put in the cert folder of the webinterface 
 by replacing the example one and you can do the same with the key.pem that you find in C:\Temp.
-After that you can easily go settings, fill the password field with the password you picked during the creation of the key.pem
-and enable the HTTPS mode.
+After that you can easily go to the Webinterface, click on settings, fill the "STATIC_WEBSERVER_HTTPS_PK_PASSWORD" field 
+with the password you picked during the creation of the key.pem and enable the HTTPS mode by setting "STATIC_WEBSERVER_ENABLE_HTTPS" to "Enable".
+Restart the service (or reboot the host) and you're done.
+
+Side note:
+Sometimes the CA might not send back a .pem as certificate but rather an x509 .cer certificate.
+If that's the case, don't despair, you just need to convert it to .pem first.
+To do so, you can just:
+
+openssl x509 -in "C:\Temp\cert.cer" -outform PEM -out "C:\Temp\cert.pem"
+
