@@ -122,10 +122,14 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					});
 					console.log("Parsed AD groups for user",username,groups_cn_only)
 					var group_exists = false;
+                    var intersection_groups = [] //groups that exist locally and user has in ad are stored to users group list
 					for (_gid in groups_cn_only){
 						_gid = groups_cn_only[_gid]
 						var _exist = await asyncqueryOne(global.db.config,{"local.usergroup.name":_gid});
-						if (_exist){group_exists = true}
+						if (_exist){
+                            group_exists = true;
+                            intersection_groups.push(_gid);
+                        }
 						console.log(_gid,"exists in db?",group_exists)
 					}
 					//check if any of the users groups exists in db
@@ -139,9 +143,9 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					var newGroups = groups_cn_only;
 					
 						if (existing){
-							console.log("merging existing user groups with ad groups", existing,groups_cn_only )
+							console.log("merging existing user groups with ad groups", existing,intersection_groups )
 							
-							newGroups = [...existing.local.groups, ...groups_cn_only];
+							newGroups = [...existing.local.groups, ...intersection_groups];
 							newGroups = array_unique(newGroups);
 							console.log("combined local and ad groups of user:",newGroups)
 						}
@@ -154,7 +158,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					newUser.local.password    = "aduser";
 					newUser.local.is_ad_user        = true;
 					newUser.local.id                = Math.random(1000000000000);
-					newUser.local.groups            = newGroups;
+					newUser.local.groups            = intersection_groups;
 					console.log("Storing user in db: ",newUser)
 					await asyncInsertOne(global.db.config,newUser);
 					return done(null, newUser);
