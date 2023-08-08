@@ -83,7 +83,7 @@ module.exports = async function (app, passport) {
             try {
                 //ask tickets api for incoming, queued, running
 
-                    if (!m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
+                    if (!m_ticket_cache || !m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
                        
                         m_ticket_cache.tickets = m_ticket_cache.tickets = await global.jobfetcher.tickets();
                         
@@ -123,7 +123,7 @@ module.exports = async function (app, passport) {
 
 
             } catch (ex) {
-
+                var stopdebug =1;
             }
 
             res.json(countObj);//output json array to client
