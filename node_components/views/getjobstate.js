@@ -26,7 +26,7 @@ module.exports = async function(app, passport){
                 //status or result is the "message"
                 if (j.job_id == search_for_id){
                     found.push(j);
-                    if (j.state > 1){
+                    if (j.state != 1 && j.state != -1){//0 is error, higher than 1 is cancelled
                         failed_count ++;
                         bad_messages += "result" in j ?  " " + j.result : " " + j.status; 
                     }else{
