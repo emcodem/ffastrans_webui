@@ -36,7 +36,7 @@ and after that you can easily go settings, fill the password field with the pass
 and enable the HTTPS mode.
 
 
-### Self signed certificates ###
+### CA Signed certificates ###
 Those kind of certificates will be released by a CA Authority, which means that they will be trusted by all modern OS and computers on the web.
 CA Authorities are trustworthy organizations which are recognized across the world and are stored in the Trusted Root by various OS.
 To do this, we will need to create a CSR (Certificate Signing Request) in which we will ask the Certificate Authority to trust us.
