@@ -622,8 +622,15 @@
             }
             mainLayout.cells("b").progressOff();
         });
-        socket.on('activejobs', function(msg) {
-            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg), "Active");
+        socket.on('activejobs', async function(msg) {
+            //load activejobs from server and call
+            var activejobs = await $.ajax({
+                url: "/getactivejobsajax_treegrid",
+                type: 'GET', 
+            });
+            console.log(activejobs,msg)
+            console.log("Active jobs:",msg)
+            addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
             mainLayout.cells("b").progressOff();
         });
         socket.on('error', function(msg) {
@@ -1868,7 +1875,7 @@
     }
 
     /* NO PROXY MODE */
-    /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
+    /*TODO: this does not work anymore, add a parameter for in getactivejobsajaxt*/
     function forcejobloading() {
         getActiveJobs/* deprecated  ?!*/
         $.ajax({

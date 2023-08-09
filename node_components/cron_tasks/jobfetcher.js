@@ -8,6 +8,10 @@ var smptMail = require("../common/send_smpt_email");
 var helpers = require("../common/helpers")
 // const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
 
+//NOTE the rest of the code uses global.lasthistory and global.lastactive to access the joblists.
+//var last_active     = JSON.parse(global.lastactive);
+//var last_history    = JSON.parse(global.lasthistory);
+
 var alert_sent = false;
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 process.env.UV_THREADPOOL_SIZE = 128;
@@ -108,7 +112,7 @@ module.exports = {
 			}
 			
 			/* end of alert email */
-			global.lastactive = body;
+			
 			
             var jobArray;	
             try{
@@ -138,14 +142,16 @@ module.exports = {
                 jobArray[i].wf_name = jobArray[i]["workflow"];
                 
             }//for all jobs
-                       
-        // //send the new jobs to connected clients, todo: only notify clients about new stuff
+
+		//notify clients about 
 		try{
-			global.socketio.emit("activejobs", JSON.stringify(jobArray));
-			//global.socketio.emit("activejobcount", jobArray.length);
+			if (JSON.stringify(jobArray) != global.lastactive)
+				global.socketio.emit("activejobs", JSON.stringify(jobArray));
 		}catch(exc){
 			console.error("Error occured while sending activejobs to clients: " + exc + body)
 		}
+		//it is important to store the fancytree enhanced version of jobarray here, the rest of the code uses lastactive to serve the list.
+		global.lastactive = JSON.stringify(jobArray);
     });
     
     //fetch queued jobs from new api
