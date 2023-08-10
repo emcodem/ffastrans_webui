@@ -642,22 +642,15 @@
         socket.on('alert', function(msg) {
             dhtmlx.alert(msg);
         });
-        //deprecated!!!
-        if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
-            alert("running in pull mode, this should not happen")
-            window.setInterval(function() {
-                getQueuedJobs(runningJobGrid)
-            }, parseInt(3000));
+        
+        
+
             window.setInterval(function() {
                 getActiveJobs(runningJobGrid)
             }, parseInt(3000));
-            window.setInterval(function() {
-                getFinishedJobs(finishedJobGrid)
-            }, parseInt(3000));
-            getQueuedJobs(runningJobGrid);
+            
             getActiveJobs(runningJobGrid);
-            getFinishedJobs(finishedJobGrid);
-        }
+        
 
 
         $('input[type="search"]').click(function(event){
