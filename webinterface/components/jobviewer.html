@@ -1920,22 +1920,28 @@
         });
     }
 
-    function getActiveJobs(targetGridObj) {
+    async function getActiveJobs(targetGridObj) {
         //deprecated; still there for "no proxy mode"
-        $.ajax({
-            url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
-            type: "GET",
-            crossDomain: true,
-            dataType: "json",
-            context: this,
-            success: function(response) {
-                addActiveJobsToGrid(targetGridObj, response.jobs);
-                mainLayout.cells("b").progressOff();
-            },
-            error: function(xhr, status) {
-                dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-            }
-        });
+        var activejobs = await $.ajax({
+                url: "/getactivejobsajax_treegrid",
+                type: 'GET', 
+            });
+        addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
+
+        // $.ajax({
+        //     url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
+        //     type: "GET",
+        //     crossDomain: true,
+        //     dataType: "json",
+        //     context: this,
+        //     success: function(response) {
+        //         addActiveJobsToGrid(targetGridObj, response.jobs);
+        //         mainLayout.cells("b").progressOff();
+        //     },
+        //     error: function(xhr, status) {
+        //         dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+        //     }
+        // });
     }
 
     function getFinishedJobs(targetGridObj) {

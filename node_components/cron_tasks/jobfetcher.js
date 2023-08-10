@@ -145,8 +145,8 @@ module.exports = {
 
 		//notify clients about 
 		try{
-			if (JSON.stringify(jobArray) != global.lastactive)
-				global.socketio.emit("activejobs", JSON.stringify(jobArray));
+			
+			global.socketio.emit("activejobs", JSON.stringify(jobArray));
 		}catch(exc){
 			console.error("Error occured while sending activejobs to clients: " + exc + body)
 		}
