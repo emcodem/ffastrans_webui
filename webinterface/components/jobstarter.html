@@ -1303,6 +1303,7 @@ function getWorkflows(){
                     }
                 }
 
+				//select wf from url
                 /*
                 //if there is only 1 workflow, select it
                 if (m_workflowArray.length == 1){
@@ -1310,9 +1311,15 @@ function getWorkflows(){
                     var onlynode = tree.getFirstChild();
                     on_gridWorkflowSelected(onlynode.title,onlynode.data["wf_object"]);
                 }*/
-                
+				var _wf_id = getQueryVariable("wf_id");
+				if(_wf_id){
+						var tree = $("#workflowtree").fancytree("getTree");
+						var node = tree.getNodeByKey(_wf_id)
+                        if (node && node!= "undefined"){
+                            on_gridWorkflowSelected(node.title,node.data["wf_object"]);
+                        }
+				}
 
-                
             }
         },
         error: function (xhr, status) {
