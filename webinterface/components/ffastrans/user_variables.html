@@ -623,7 +623,7 @@ async function newVariableWindow(){
         //live calculate actual name while the user interacts with form
         var v = new_form.getValue();
         var _name = document.querySelector('[data-dhx-id="new_var_name"]').value; //form native getValue method only gives actual value when input was  validated
-        const regex = /[^A-Z1-9]/ig;
+        const regex = / /ig; //[^A-Z1-9]
         _name = _name.replaceAll(regex,"_");
         var real_name = v.datatype + _name;
 

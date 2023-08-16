@@ -254,7 +254,7 @@ function init(){
     m_mainLayout.cells("a").setText("Uploads");
     
     //m_mainLayout.cells("a").setWidth();
-    m_mainTabBar = m_mainLayout.cells("a").attachTabbar({
+    var _cfg = {
         mode:               "top",
         align:              "left",
         close_button:       true,
@@ -264,12 +264,17 @@ function init(){
         tabs: [ // tabs config
             {
                 id:"browse",text:"Browse",width:null,index:0,active:true,enabled: true,close:false
-            },
-            {
-                id:"upload",text:"Upload",width:null,index:1,active:false,enabled: true,close:false
-            },
+            },{
+                id:"upload",text:"Upload",width:null,index:1,active:false,
+                enabled: m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] != "disabled",
+                close:false
+            }
+
         ]
-    });
+    }
+   
+    m_mainTabBar = m_mainLayout.cells("a").attachTabbar(_cfg);
+
 
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
@@ -411,7 +416,9 @@ function init(){
         mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
         tabs: [ // workflow and variable tabs config
             {
-                id: "workflowtab", text:"Workflows",width:null,index:0,active:true, enabled: true, close:false
+                id: "workflowtab", text:"Workflows",width:null,index:0,active:true, 
+                enabled: getQueryVariable("wf_id"), 
+                close:false //emcodem:set disabled if urlparam is set
             },
             {
                 id:"variabletab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
@@ -520,7 +527,7 @@ function init(){
     // });
     
     //file uploaded event
-    vault.events.on("UploadComplete", function(files){
+    vault.events.on("UploadComplete", function(files,other){
         for (i=0;i<files.length;i++){
             var newId = (new Date()).valueOf();
             var newrowdata = {};
@@ -531,12 +538,16 @@ function init(){
             newrowdata["Created"] = new Date(files[i].file.lastModified).toISOString()
             newrowdata["original_size"] = files[i].size;
             newrowdata["Size"] = files[i].size;
+            newrowdata["source_of_adding"] = "Upload";
             console.log(files[i])
             m_selectedFileGrid.addRow(newId,[]);
             m_selectedFileGrid.setRowData(newId,newrowdata);
         }
     });
-    
+    // vault.events.on("UploadFail", function(file){
+    //     alert("Upload failed");
+    // });
+
     //file add remove event
     headerMenu.attachEvent("onClick", function(id, zoneId, cas){
             if (id == "add_customfile") {
@@ -694,7 +705,7 @@ function init(){
     
     m_workflowTabBar.attachEvent("onTabClick", function(id, lastId){ 
         if (id=="workflowtab"){
-            m_workflowTabBar.cells("variabletab").setText("Job Setup");
+            //m_workflowTabBar.cells("variabletab").setText("Job Setup");
             if (m_fileAddedEventId){
                 m_selectedFileGrid.detachEvent(m_fileAddedEventId);
             }
@@ -1106,16 +1117,23 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     };
 
     //create a form combo item containing all start procs
+    var _sp_id = getQueryVariable("start_proc"); //support selecting start proc via url
     for (var i=0;i<proc_root.length;i++){
         if (i>0)
             startProcSelectFormItm.hidden = false
         var proc = proc_root[i];
         var proc_name_default=  proc["name"] || proc["type"]; //on non renamed nodes, name is not defined
         startProcSelectFormItm.options.push({content:proc_name_default,value:proc_root[i]["id"]});
-        if (i==0)
-            startProcSelectFormItm.value = proc_root[i]["id"]; //auto select first
+        if (i==0 || _sp_id == proc_root[i]["id"]){
+            startProcSelectFormItm.value = proc_root[i]["id"]; //auto select first startproc (or the one from url param)  
+            if ( _sp_id == proc_root[i]["id"]){
+                startProcSelectFormItm.hidden = true //hide start proc if it was submittted via url param
+            }
+        }
+                
     }
 
+    
     //get user variables for selected workflow
     
     try{
@@ -1429,6 +1447,7 @@ async function startJobs(form,selectedWorkflow){
                 dhtmlx.message("Already submitted " + _filepath);
                 return;
             }
+            alert(source)
             if (source == "Upload"){
                 _filepath = m_realUploadpath + _filepath;
             }
