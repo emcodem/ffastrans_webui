@@ -100,6 +100,19 @@ function init(){
                 successMessage:"Enabled: require login username",
                 errorMessage:"Enabled: require login username",
             },
+            {
+                type: "textarea",
+                name: "LOGIN_WELCOME_MESSAGE",
+                label: "Welcome Message",
+                value: m_serverconfig.LOGIN_WELCOME_MESSAGE || "",
+                labelWidth: label_width,
+                labelPosition: "left",
+                placeholder: "Welcome to the Webinterface",
+                resizable: true,
+                preMessage:"Displayed above username/password on login page, HTML allowed",
+                successMessage:"Displayed above username/password on login page, HTML allowed",
+                errorMessage:"Displayed above username/password on login page, HTML allowed",
+            },
             { /* Button needs separate label */
                 cols:[
                     {

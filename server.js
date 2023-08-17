@@ -1,4 +1,5 @@
 const express = require('express');
+const mustacheExpress = require('mustache-express');
 const app = express();
 global.expressapp = app;
 const path = require("path");
@@ -174,7 +175,22 @@ async function init(conf){
 
 	connectDb(); //async startup and connect to db, it fires messages to userinterface on it's own in case of error
 
-    require("./node_components/metrics_control.js")(app);
+    require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
+
+    //mustache setup and login page
+    app.set('views', `${__dirname}/webinterface/components`);
+    app.set('view engine', 'mustache');
+    app.engine('mustache', mustacheExpress());
+    app.use ('/webinterface/components/login.html', function(req,res){
+        //changed from static login.html to mustache dynamically rendered
+        
+        res.render("login.mustache",
+          {
+            instanceName:global.config.LOGIN_WELCOME_MESSAGE
+          }
+        )
+    });
+
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
     app.use(session({
@@ -183,12 +199,13 @@ async function init(conf){
                         saveUninitialized:  true,
 						cookie:             { maxAge: farFuture }
         }));
+
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
     //app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
     
     //redirect views - for passport
-    app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
+    //app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
 
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
 	
@@ -392,6 +409,8 @@ async function init(conf){
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
+    
+    //init hanlebars for dynamic page rendering
     // const errorHandling = (err, req, res, next) => {
     //     res.status(500).json({
     //       msg: err.message,

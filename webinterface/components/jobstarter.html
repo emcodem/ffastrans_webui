@@ -392,6 +392,7 @@ function init(){
         });
     
 	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
+    
     var vault = new dhx.Vault('vault', {
         uploader:{ 
             target:"/backend/upload" 
@@ -527,8 +528,23 @@ function init(){
     // });
     
     //file uploaded event
+    vault.events.on("BeforeAdd", function(file){  
+    // file is an object with details
+        if (!window.onbeforeunload){
+            window.onbeforeunload = function(){  
+                return 'Are all uploads complete?';
+            };
+        }
+
+        return true;   
+    });
+
     vault.events.on("UploadComplete", function(files,other){
         for (i=0;i<files.length;i++){
+
+            if (files[i].status != "uploaded") //onUploadFailEvent did not work, we must catch errors this way
+                continue
+            
             var newId = (new Date()).valueOf();
             var newrowdata = {};
             newrowdata["Filename"] = files[i].name;
@@ -543,6 +559,7 @@ function init(){
             m_selectedFileGrid.addRow(newId,[]);
             m_selectedFileGrid.setRowData(newId,newrowdata);
         }
+        window.onbeforeunload = null
     });
     // vault.events.on("UploadFail", function(file){
     //     alert("Upload failed");
@@ -553,13 +570,24 @@ function init(){
             if (id == "add_customfile") {
                 var box = dhtmlx.modalbox({
                     title:"New File",
-                    text: "Enter a Full Path (e.g. UNC) as seen by FFAStrans Server...<br/><input class='inform' type='text'>",
+                    text: "Enter a Full Path (e.g. UNC) as seen by FFAStrans Server<br/><br/><input class='inform' type='text'>",
                     buttons:["OK",  "Cancel"],
                     callback: function(result){
                         if (result == 0){
                             var inputs = box.getElementsByTagName("input");
                             var newId = (new Date()).valueOf();
-                            m_selectedFileGrid.addRow(newId,["Manual",inputs[0].value]);
+                            var newrowdata = {};
+                            var a_dirs = (inputs[0].value.split(/\\|\//));
+                            newrowdata["Filename"] = a_dirs[a_dirs.length-1];
+                            newrowdata["Path"] = inputs[0].value;
+                            newrowdata["is_folder"] = false;
+                            newrowdata["Modified"] =  "";
+                            newrowdata["Created"] = ""
+                            newrowdata["original_size"] = "";
+                            newrowdata["Size"] = "";
+                            newrowdata["source_of_adding"] = "Manual";
+                            m_selectedFileGrid.addRow(newId,[]);
+                            m_selectedFileGrid.setRowData(newId,newrowdata);
                         }
                     }
                 });
