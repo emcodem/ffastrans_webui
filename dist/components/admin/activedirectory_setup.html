@@ -1,0 +1,219 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<script src="../../dependencies/jquery/jquery.js"></script>
+<link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css"/>
+<link href="../../dependencies/bootstrap/5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet" >
+<script src="../../dependencies/bootstrap/5.0.0-beta3/js/bootstrap.bundle.min.js" ></script>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html  {
+
+        margin: 5px;
+        overflow: scroll;
+    }
+	hr {
+	  margin-top: 1rem;
+	  margin-bottom: 1rem;
+	  border: 0;
+	  border-top: 1px solid rgba(0, 0, 0, 0.1);
+	}
+    div, label, input{
+        font-size:12px; 
+        width: 300px !important;
+    }
+    form{
+        width:100%
+    }
+
+</style>
+
+<script>
+
+/* GLOBALS */
+var m_mainLayout,m_mainForm, m_serverconfig;
+var socket = io();
+/* build basic page layout and init periodic job loading*/
+function init(){
+    socket.on('activedirectory_tester', function(msg){
+		alert(msg);
+    });
+	
+	registerButtonClicks();
+    restoreAdConfig();
+}
+
+function loadserverconfig() {
+	
+	$.ajax({
+		url: ("/getserverconfig" + "?" + Math.random()),
+		type: "GET",
+		success: function(response) {
+			console.log("got server conf")
+			m_serverconfig = JSON.parse(response);
+			init();
+		},
+		error: function(xhr, status) {
+			dhtmlx.message("Fatal error, could not load serverconfig. ");
+			document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+		}
+	});
+}
+
+function registerButtonClicks(){
+	
+	$( "#btn_save" ).click(function(event) {
+	  event.preventDefault();
+	  saveAdConfig();
+	});
+	$( "#btn_test" ).click(function(event) {
+	  event.preventDefault();
+	  testAdConfig();
+	});
+    $('#ad_fqdn,#ad_port').on("keypress", function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            saveAdConfig();
+        }
+    });
+    $('#ad_password').on("keypress", function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            testAdConfig();
+        }
+    });   
+    
+    //button hover style
+    $("div").hover(function(){
+          $(this).parent().addClass("dhxform_btn_over");  //Add the active class to the area is hovered
+      }, function () {
+          $(this).parent().removeClass("dhxform_btn_over");
+      });
+}
+
+function testAdConfig(){
+    var o_ad = {};
+    o_ad["ad_config"] = m_serverconfig["ad_config"];
+    o_ad["ad_user"] = document.getElementById("ad_user").value;
+	o_ad["ad_alternate_user"] = document.getElementById("ad_alternate_user").value;
+	o_ad["ad_password"] = btoa(document.getElementById("ad_password").value);
+    document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain fqdn\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
+	$.ajax({
+		url: ("/activedirectory_tester" + "?" + Math.random()),
+		type: "POST",
+		data: o_ad,
+		success: function(response) {
+			console.log("AD TEST OK",response);
+			try{
+				response= JSON.parse(response);
+				response = JSON.stringify(response, undefined, 2);
+			}catch(ex){
+			
+			}
+			document.getElementById("testresult").innerHTML = response;
+			
+		},
+		error: function(xhr, status) {
+			console.log("AD TEST FAIL");
+			document.getElementById("testresult").innerHTML = xhr.responseText;
+		}
+	});
+}
+
+function restoreAdConfig(){
+
+	if ("ad_config" in m_serverconfig){
+		document.getElementById("ad_fqdn").value = m_serverconfig["ad_config"]["ad_fqdn"];
+		document.getElementById("ad_port").value = m_serverconfig["ad_config"]["ad_port"];
+	}
+
+}
+function saveAdConfig(){
+	var o_ad = {};
+	o_ad["ad_fqdn"] = document.getElementById("ad_fqdn").value;
+    o_ad["ad_port"] = document.getElementById("ad_port").value;
+	m_serverconfig["ad_config"] = o_ad;
+    
+	$.ajax({
+		url: ("/activedirectory_config_set"),
+		type: "POST",
+		data: m_serverconfig,
+		success: function(response) {
+			$('#alert').css("display","")
+			setTimeout(function () {
+	  
+				// Closing the alert
+				$('#alert').css("display","none")
+			}, 1000);
+			parent.window.m_needreload = true;//reload parent window so it updates the new config
+		},
+		error: function(xhr, status) {
+			console.log(status)
+			alert("Error saving config!")
+		}
+	});
+
+}
+/* */
+
+</script>
+
+</head>
+<body onload="loadserverconfig()" style="overflow:hidden;margin-left:20px">
+<!-- Flash msg -->
+<div id="alert" class="alert alert-success" style="opacity:5;position:absolute;display:none;margin-top:20px">
+	Saved
+</div>
+
+<!-- Configuration Form -->
+<form class="dhxform_obj_dhx_skyblue">
+	<div class="row mb-3" >
+		<div class="col-sm-4">
+		<label for="ad_fqdn" class="col-sm-0 dhxform_label dhxform_label_align_left" >Activedirectory FQDN</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>	
+		<input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="local.acme.com">
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<label for="ad_port" class="dhxform_label dhxform_label_align_left" >Activedirectory port</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="text"  class="form-control form-control-sm" id="ad_port" placeholder="389">
+		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
+			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
+		</div>
+		</div>
+	</div>
+
+</form>
+
+<!-- Test Form -->
+<form class="dhxform_obj_dhx_skyblue">
+<div class="row mb-3">
+	<div class="col-sm-4">
+		<label for="ad_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username for testing</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="text" class="form-control form-control-sm"  id="ad_user" placeholder="mypersonaldomainuser">
+		
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<label for="ad_password" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Password for testing</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="password" class="form-control form-control-sm" autocomplete="one-time-code"  id="ad_password" />
+		<!-- alternate username to get groups for -->
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<label for="ad_alternate_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username to check groups</label>
+		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
+		<input type="text" class="form-control form-control-sm"  id="ad_alternate_user" />
+		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
+			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_test">Test</div>
+		</div>
+	</div>
+
+</div>
+    
+
+<!-- Testresult Display -->
+<div  style="width:90%;" class="card-header">Testresult (get AD memberof)</div>
+<pre  style="width:90%;height:1000px" class="form-control form-control-sm"  id="testresult"></pre>
+</form>
+</body>

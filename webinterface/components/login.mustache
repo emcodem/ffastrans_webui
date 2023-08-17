@@ -13,6 +13,12 @@
         overflow: hidden;
         
     }
+    #welcome_message{
+        justify-content: center;
+        width: 100%;
+        display: flex;
+        font-size: 14px;
+    }
 
     #center {
         font-family:Tahoma;
@@ -47,8 +53,8 @@ function init(){
     //we use mustache to render the page in order to have access to protected data like instancename
 
     m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Login", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
-    m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10}); 
-    m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10}); 
+    m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10, labelWidth: 70}); 
+    m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70}); 
     m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 100}); 
     m_mainForm.setItemFocus("username");
     m_mainForm.attachEvent("onButtonClick", function(){
@@ -117,7 +123,7 @@ function parse_query_string(query) {
 
 <body onload="init()">
     <div id="center">
-        <div>{{instanceName}}</div>
+        <div id="welcome_message">{{{instanceName}}}</div>
         <div id="mainform" >
     </div>
 </body>

@@ -175,7 +175,10 @@ async function init(conf){
 
 	connectDb(); //async startup and connect to db, it fires messages to userinterface on it's own in case of error
 
+    //NON Password protected stuff
+
     require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
+    app.use('/webinterface/images/F364x64.png', express.static('./webinterface/images/F364x64.png'));
 
     //mustache setup and login page
     app.set('views', `${__dirname}/webinterface/components`);
@@ -186,11 +189,12 @@ async function init(conf){
         
         res.render("login.mustache",
           {
-            instanceName:global.config.LOGIN_WELCOME_MESSAGE
+            instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="16" src="/webinterface/images/F364x64.png" title="" width="16" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface'
           }
         )
     });
 
+    //EVERYTHING FROM HERE IS PASSWORD PROTECTED (i think)
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
     app.use(session({
