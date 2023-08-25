@@ -519,13 +519,30 @@ function init(){
         return true ;
     });  
 
-    // m_mainForm.attachEvent("onButtonClick", function (name, value, state){
-    //         if (name == 'show_wf'){
-    //             var wf = m_mainForm.getUserData("start_proc", "workflow_object");
-    //             window.open("../components/worfklowcanvas.html?wf_id="+wf.wf_id + "&url="+buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']));
-    //             return;
-    //         }
-    // });
+    //allow drag and drop of "links" onto selected files grid
+    document.getElementsByClassName("objbox")[1].ondragover = allowDropText
+    document.getElementsByClassName("objbox")[1].ondrop = dropText
+    function allowDropText(ev) {
+        ev.preventDefault();
+    }
+
+    function dropText(ev) {
+        //steinars personal function ;-)
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text");
+        var newId = (new Date()).valueOf();
+        var newrowdata = {};
+        newrowdata["Filename"] = decodeURIComponent(data);
+        newrowdata["Path"] = data;
+        newrowdata["is_folder"] = false;
+        newrowdata["Modified"] =  "";
+        newrowdata["Created"] = ""
+        newrowdata["original_size"] = 100;
+        newrowdata["Size"] = 100;
+        newrowdata["source_of_adding"] = "Drop";
+        m_selectedFileGrid.addRow(newId,[]);
+        m_selectedFileGrid.setRowData(newId,newrowdata);
+    }
     
     //file uploaded event
     vault.events.on("BeforeAdd", function(file){  
@@ -887,6 +904,7 @@ function constructpathLink(what){
     /* navbar on top of filebrowser, we construct dynamic html here, sorry for that */
     console.log("parsed path for navlink bar:",parse_path(what))
     var html = "";
+    what = what.replace(/\\$/,"");
     var parsed = parse_path(what);
     var encoded = btoa(encodeURIComponent(parsed["root"]));
     //add root 
@@ -910,9 +928,11 @@ function constructpathLink(what){
         previous += current;
 
         if (i==a_dirs.length-2){//pre-last folder, add levelup
+            //console.log("oneup: ",atob(fullpath),"adirs",a_dirs)
             html = "<i onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
         }
     }
+
     //finally prevent default dhtmlx onheaderclick sort action by wrapping into this div
     html = "<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'>" + html + "</div>";
 
@@ -948,6 +968,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
             m_mainLayout.cells("a").progressOff();
             localStorage.setItem("lastVisitedBrowseLocation", path);
 			//construct nav link bar
+            console.log("constructpathlink",path)
             document.getElementById("current_folder").innerHTML = constructpathLink(path),
             $(".folder_browser_nav").hover(function(evt,ele){
                     $(this).addClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");  //Add the active class to the area is hovered

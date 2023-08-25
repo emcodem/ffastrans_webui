@@ -614,13 +614,17 @@
 
                 graph.addListener(mxEvent.CLICK, function (sender, evt) {
                     //load log for seelcted cell
-                    console.log("detected mouseclick on cell")
+                    
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell != null) {
+                        console.log("detected mouseclick on cell",cell)
+                        if (cell.ffastransobj.type == "sub_wf")
+                            return // if click on node in sub-wf, prevents that we show log only of workflow proc
                         var search = cell["ffastransobj"]["id"].toUpperCase();
                         var tree = $("#treetable_log").fancytree('getTree');
                         tree.filterNodes(function (node) {
                             if (node["data"]["node"]["id"]){
+                                
                                 if (node["data"]["node"]["id"].toUpperCase().match(search)) {
                                     //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
                                     return true;
@@ -706,13 +710,20 @@
                 finally {
                     // Updates the display, fullscreen zoom graph
                     graph.getModel().endUpdate();
+
                     graph.fit(0, false, 35);
-                    //on initial workflow show, zoom out
-                    graph.zoomOut();
-                    graph.zoomOut();
-                    graph.zoomOut();
-                    graph.zoomOut();
-                    graph.zoomOut();
+                    if (!panning){
+                        return
+                    }
+                    
+                    //on initial workflow show, zoom out but only if not sub-wf
+                    if (panning){
+                        graph.zoomOut();
+                        graph.zoomOut();
+                        graph.zoomOut();
+                        graph.zoomOut();
+                        graph.zoomOut();
+                    }
                     m_graph = graph;
                     m_graph.addListener(mxEvent.CLICK, function (sender, evt) {
                      
