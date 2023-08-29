@@ -28,6 +28,7 @@
     "ffprobe": "^1.1.2",
     "firstline": "^2.0.2",
     "grunt": "^1.4.0",
+    "html-tablify": "^2.0.4",
     "https": "^1.0.0",
     "is-running": "^2.1.0",
     "log4js": "^6.3.0",
@@ -62,6 +63,7 @@
     "uuidv4": "^6.2.13",
     "winston": "^3.3.3",
     "winston-console-formatter": "^1.0.0-beta.3",
+    "xml2js": "^0.6.2",
     "xml2json": "^0.12.0"
   },
   "scripts": {
