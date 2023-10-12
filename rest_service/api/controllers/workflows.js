@@ -204,46 +204,50 @@ async function add_user_vars(o_return){
     //loop through workflow nodes, count usage, attach used variables to workflow...
 
     for (var _wfidx=0; _wfidx<o_return.workflows.length;_wfidx++){
-        var _wf = o_return.workflows[_wfidx];
-        //ffastrans uses $a = StringRegExp($s_wf_readout, '(?i)%[ifs]_.+?%', 3)
-        if (_wf.wf_name == "Sleep_te")
-            var stop =1 
-        _wf.user_variables = {"variables":[],"statics":[]};
+        try{
+            var _wf = o_return.workflows[_wfidx];
+            //ffastrans uses $a = StringRegExp($s_wf_readout, '(?i)%[ifs]_.+?%', 3)
+            if (_wf.wf_name == "Sleep_te")
+                var stop =1 
+            _wf.user_variables = {"variables":[],"statics":[]};
 
-        var vars_in_this_wf = []; //filters duplicates
-        for (var _nodeidx=0;_nodeidx<_wf.nodes.length;_nodeidx++){
+            var vars_in_this_wf = []; //filters duplicates
+            for (var _nodeidx=0;_nodeidx<_wf.nodes.length;_nodeidx++){
 
-            var _node = _wf.nodes[_nodeidx];
-            var s_node_readout = JSON.stringify(_node);
-            var vars_in_this_node = s_node_readout.match(/(%[ifs]_.+?%)/gmi);
-            //found a node in a workflow using some variable, process it
-            
-            if (vars_in_this_node != null){
-                //vars_in_this_node = new Set(vars_in_this_node); //filters duplicates
+                var _node = _wf.nodes[_nodeidx];
+                var s_node_readout = JSON.stringify(_node);
+                var vars_in_this_node = s_node_readout.match(/(%[ifs]_.+?%)/gmi);
+                //found a node in a workflow using some variable, process it
+                
+                if (vars_in_this_node != null){
+                    //vars_in_this_node = new Set(vars_in_this_node); //filters duplicates
 
-                if (_wf.wf_name == "Transcribe Test")
-                    var stop = 1
-                for (var _vname of vars_in_this_node){
-                    var used_var = all_vars.find(o => o.name ===  _vname.replaceAll("%",""));
-                    var report_var = all_vars_report.find(o => o.name ===  _vname.replaceAll("%",""));
-                    if (used_var == null)
-                        continue; //most likely an inbuilt var like s_source
-                    vars_in_this_wf.push(used_var); //we filter dups later
-                    //add/increment use_count in the original user_vars list
-                    report_var.used_in.push ({wf_id:_wf.wf_id,wf_name:_wf.wf_name,node_id:_node.id,node_name:_node.name});
+                    if (_wf.wf_name == "Transcribe Test")
+                        var stop = 1
+                    for (var _vname of vars_in_this_node){
+                        var used_var = all_vars.find(o => o.name ===  _vname.replaceAll("%",""));
+                        var report_var = all_vars_report.find(o => o.name ===  _vname.replaceAll("%",""));
+                        if (used_var == null)
+                            continue; //most likely an inbuilt var like s_source
+                        vars_in_this_wf.push(used_var); //we filter dups later
+                        //add/increment use_count in the original user_vars list
+                        report_var.used_in.push ({wf_id:_wf.wf_id,wf_name:_wf.wf_name,node_id:_node.id,node_name:_node.name});
+                    }
                 }
             }
-        }
-        var vars_in_this_wf = new Set(vars_in_this_wf); //filters duplicates
-        //split into staics vs variables
-        if (! v)
-            var stop = 1
-        for (var v of vars_in_this_wf){
-            if (v.name.match(/A-Z/)){
-                _wf.user_variables.statics.push(v);
-            }else{
-                _wf.user_variables.variables.push(v);
+            var vars_in_this_wf = new Set(vars_in_this_wf); //filters duplicates
+            //split into staics vs variables
+            if (! v)
+                var stop = 1
+            for (var v of vars_in_this_wf){
+                if (v.name.match(/A-Z/)){
+                    _wf.user_variables.statics.push(v);
+                }else{
+                    _wf.user_variables.variables.push(v);
+                }
             }
+        }catch(ex){
+            console.error("Fatal error parsing workflow index:", _wfidx);
         }
     }
     //original obj has been inline modified
