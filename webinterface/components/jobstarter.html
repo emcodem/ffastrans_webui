@@ -562,7 +562,7 @@ function init(){
             if (files[i].status != "uploaded") //onUploadFailEvent did not work, we must catch errors this way
                 continue
             
-            var newId = (new Date()).valueOf();
+            var newId = (new Date()).valueOf() + Math.random();
             var newrowdata = {};
             newrowdata["Filename"] = files[i].name;
             newrowdata["Path"] = files[i].name;
@@ -1487,6 +1487,8 @@ async function startJobs(form,selectedWorkflow){
     }else{
         
         //one job per file mode
+        var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+        console.log("rowid3es:",gridrows_sorted)
         m_selectedFileGrid.forEachRow(async function(id){
             var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
             var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
@@ -1497,6 +1499,7 @@ async function startJobs(form,selectedWorkflow){
                 return;
             }
             if (source == "Upload"){
+                console.log("Source is upload:",_filepath)
                 _filepath = m_realUploadpath + _filepath;
             }
             //in foreach file mode, we create a copy of postbody otherwise foobar will happen
