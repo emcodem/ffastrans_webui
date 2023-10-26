@@ -172,9 +172,9 @@ async function buildLayout(){
                    ///return cpu_data["cores"] + " " +cpu_data["architecture"] + " " +"" +cpu_data["identifier"] 
                 }
             },
-            {  readonly:true, id: "ffas_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }]},
-            {  readonly:true, id: "ffas_start", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }]},
-            {  readonly:true, id: "ffas_shutdown", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}]},
+            {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }]},
+            {  readonly:true, id: "ffas_start_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }]},
+            {  readonly:true, id: "ffas_end_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}]},
           
 
         ],
