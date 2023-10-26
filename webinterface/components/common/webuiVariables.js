@@ -93,15 +93,16 @@ function webuiVariables_processVariables(user_variables){
     }
     console.log("no webui_ variables in workflow, parsing other vars")
     //the workflow does not contain webui_ type user vars, we just display all user_vars as text input
-    for (var i=0;i<user_variables.length;i++){
-        var current_var = user_variables[i];
-        var desc = current_var.description  == "" ? current_var.name : current_var.description;
-        var displayName = current_var.name;
-        displayName = displayName.replace(/s_|i_|f_/, "");
-        var virtual_var = {name:current_var.name , data:{type: "input", name: current_var.name, label: displayName, tooltip:desc }};
-        virtual_var = postProcessDhtmlxFormItem(virtual_var)
-        transformed_vars.push(virtual_var)
-    }
+    //DISABLED PARSING NON WEBUI VARIABLES BECAUSE DOES NOT MAKE SENSE
+    // for (var i=0;i<user_variables.length;i++){
+    //     var current_var = user_variables[i];
+    //     var desc = current_var.description  == "" ? current_var.name : current_var.description;
+    //     var displayName = current_var.name;
+    //     displayName = displayName.replace(/s_|i_|f_/, "");
+    //     var virtual_var = {name:current_var.name , data:{type: "input", name: current_var.name, label: displayName, tooltip:desc }};
+    //     virtual_var = postProcessDhtmlxFormItem(virtual_var)
+    //     transformed_vars.push(virtual_var)
+    // }
     
     return transformed_vars;
 }
