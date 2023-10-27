@@ -69,7 +69,7 @@
             font-family: Arial;
             font-size: 8pt;
             display: block;
-            width: 50%;
+            width: 100%;
             height: 100%;
         }
 
@@ -250,7 +250,9 @@
         //request job from server
         var m_debuggraph = {};
 
-        var m_workflowdata = {};
+        var m_workflowdata = {}; //deprecated, we got multiple workflows now
+        var m_workflows = []; //deprecated, we got multiple workflows now
+
         var m_jobobject = {};
         var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
         var m_graph = {};
@@ -431,9 +433,9 @@
                                 <button class="btn" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
                                 <button class="btn" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
                                 <button class="btn"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> ');
-            // mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7;float:left"></div>'
-            // +'<div id="graphContainer2" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7"></div>'
-            // );
+            mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7;float:left"></div>'
+            //+'<div id="graphContainer2" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7"></div>'
+            );
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                                 <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
                                 <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()"><i style = "margin-right:3px" class= "fas fa-history " ></i></button>\
@@ -852,6 +854,7 @@ function asyncsleep(time) {
             var a_log_per_node = {};
             var id_pid_mapping = {};
             var sub_workflow_is_loading = false;
+
             for (var i = 0; i < lines.length; i++) {
                 var _proc_id;
                 var line = lines[i];
@@ -872,6 +875,7 @@ function asyncsleep(time) {
                     //handle sub-wf
 
                     if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
+                        console.log("Sub wf detected, loadinhg json");
                        if (line['data']['wf_id']){
                             var _tablehead = document.getElementById(line["node"]["id"].toUpperCase()+"_body");
                             console.log(_tablehead);
@@ -892,9 +896,10 @@ function asyncsleep(time) {
                                 },
                                 success: function (response,status,jqXHR) {
                                    try{
+                                        console.log("Sub wf json ready")
                                         jqXHR["wf_id"];
                                         var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
-                                        
+                                        m_workflows.push(sub_wf_json);
                                         buildMxGraph(_tablehead,sub_wf_json,false);
                                         
                                         //buildMxGraph(document.getElementById("graphContainer2"),sub_wf_json,true);
@@ -927,7 +932,6 @@ function asyncsleep(time) {
                     a_log_per_node[_proc_id] = [];
                     $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
                     $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
-                    
                     
                     //check processor error state and count
                     if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
@@ -1183,7 +1187,7 @@ function asyncsleep(time) {
                     }
                 },
                 renderColumns: function (event, data) {
-                    
+                    console.log(">>> renderColumns")
                     var node = data.node;
                     
                     if (data.node.getIndex() % 2 == 0) {
@@ -1239,12 +1243,15 @@ function asyncsleep(time) {
 
         function getNodeNameById(id) {
             if (!id){
-                return "System";
+                return "SystemAA";
             }
-            var n = m_workflowdata.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
-            if (n.length != 1) { return "System" }
-            nodename = n[0].name || n[0].type;
-            return nodename;
+            for (var _wf of m_workflows){
+                var n = _wf.nodes.filter(function (obj) { return obj.id.toUpperCase() == id.toUpperCase(); });
+                if (n.length != 1) { continue; }
+                nodename = n[0].name || n[0].type;
+                return nodename;
+            }
+            return "System";
         }
 
 
@@ -1264,7 +1271,7 @@ function asyncsleep(time) {
                 type: "GET",
                 crossDomain: true,
                 dataType: "json",
-                success: function (response,status,request) {
+                success: async function (response,status,request) {
                 
                     //PARSE JOB LOG
 
@@ -1272,6 +1279,9 @@ function asyncsleep(time) {
                         response[a]["_data"] = response[a]["data"];
                     }
 
+                    await parseJobLog(response);
+                    console.log("<<<parseJobLog")
+                    
                     var type = request.getResponseHeader('ffastrans_log_type');
                     if (type == "partial") {
                         //if partial, set up another get_job_log call
@@ -1290,8 +1300,6 @@ function asyncsleep(time) {
                         $("#log_div").css("visibility", "visible");
                     }
 
-
-                    parseJobLog(response);
 
                     //load data into node grid
                     var rootNode = $("#treetable_nodes").fancytree("getRootNode");
@@ -1333,6 +1341,7 @@ function asyncsleep(time) {
                     } else {
                         m_jobobject = response;
                         m_workflowdata = response['wf_object'];
+                        m_workflows.push(response['wf_object']);
                         //populate top left data
                         var copy = JSON.stringify(response);
                         copy = JSON.parse(copy); //copy the whole object to be able to delete wf_object for display in general_div

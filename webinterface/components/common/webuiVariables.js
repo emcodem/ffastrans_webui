@@ -91,7 +91,7 @@ function webuiVariables_processVariables(user_variables){
             });
         return transformed_vars;
     }
-    console.log("no webui_ variables in workflow, parsing other vars")
+    // console.log("no webui_ variables in workflow, parsing other vars")
     //the workflow does not contain webui_ type user vars, we just display all user_vars as text input
     //DISABLED PARSING NON WEBUI VARIABLES BECAUSE DOES NOT MAKE SENSE
     // for (var i=0;i<user_variables.length;i++){
