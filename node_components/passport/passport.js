@@ -97,10 +97,16 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 						console.log("AD is not set up in global config: ",global.config)
 						return done("Username " + username + " is not known")
 					}
+                    
+                    var uname = username + "@" + global.config["ad_config"]["ad_fqdn"];
+                    //if username contains already @, do not add it automatically
+                    if (username.indexOf("@")!= -1)
+                        uname = username;
+
 					var adopts = {
 							url: 'ldap://'+global.config["ad_config"]["ad_fqdn"]+':'+global.config["ad_config"]["ad_port"],
 							baseDN: global.config["ad_config"]["ad_basedn"],
-							username: username + "@" + global.config["ad_config"]["ad_fqdn"],
+							username: uname,
 							password: passwd
 					}
 					

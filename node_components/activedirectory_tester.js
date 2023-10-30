@@ -25,6 +25,11 @@ module.exports = function(app, passport){
 				var decrypted = Buffer.from(data["ad_password"], 'base64').toString();
 				decrypted = ("decrypted ad_pw",decrypted);
 				
+				var uname = data["ad_user"] +'@' + data["ad_config"]["ad_fqdn"];
+				//if username contains already @, do not add it automatically
+				if (data["ad_user"].indexOf("@")!= -1)
+					uname = data["ad_user"];
+					
 				//prepare AD connection
 				var adopts = {
 				  url: 'ldap://' + data["ad_config"]["ad_fqdn"] + ":" + data["ad_config"]["ad_port"],
