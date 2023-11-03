@@ -124,13 +124,25 @@ var socket = io();
 
 /* GLOBALS */
 //dhtmlx ui
-var m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
+var m_userpermissions,m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 
 
 /*load config from server*/
-function loadserverconfig(){
-    
+async function loadserverconfig(){
+    try{
+        m_userpermissions = await $.ajax({
+            url: ("/getuserpermissionsasync" + "?" + Math.random()),
+            type: "GET"});
+            
+            m_userpermissions = JSON.parse(m_userpermissions);
+
+    }catch(ex){
+        console.log(ex);
+        document.body = "Fatal error loading userpermissions, see console";
+        return;
+    }
+
     $.ajax({
         url:  ("/getserverconfig"),
         type: "GET",
@@ -253,7 +265,21 @@ function init(){
     m_mainLayout.cells("b").setMinHeight(50);  
     m_mainLayout.cells("a").setText("Uploads");
     
-    //m_mainLayout.cells("a").setWidth();
+    var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+    var show_browse = true;
+    var show_upload = true;
+    if (_filter.length > 0){
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            show_browse = regex.test("browse");
+            show_upload = regex.test("upload");
+            console.log(regex)
+            if (m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] == "disabled") {
+                //global setting overrides user permissions
+                console.log("uploads disabled due to global settings")
+                show_upload = false;
+            }
+    }
+   
     var _cfg = {
         mode:               "top",
         align:              "left",
@@ -263,10 +289,11 @@ function init(){
         arrows_mode:        "auto" ,
         tabs: [ // tabs config
             {
-                id:"browse",text:"Browse",width:null,index:0,active:true,enabled: true,close:false
+                id:"browse",text:"Browse",width:null,index:0,active:true,close:false,
+                enabled: show_browse
             },{
                 id:"upload",text:"Upload",width:null,index:1,active:false,
-                enabled: m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] != "disabled",
+                enabled: show_upload,
                 close:false
             }
 
@@ -311,8 +338,9 @@ function init(){
     m_fileBrowserGrid.makeFilter("datefilter",4); 
 
     window.setInterval(function(){globalPageInterval()},250);
-	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
-		items:[
+
+    var allowed_menu_items = [];
+    var all_menu_items = [
             {id:"location", text:"<div style='width:80px'><span >Locations <i class='fas fa-list'></i></span></div>"},
 			{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
             {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
@@ -322,6 +350,22 @@ function init(){
             {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span></div>"},
             //{id:"previews_menuitem", text:""},
 		]
+
+    if (_filter.length > 0){
+            menu_items = [];
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            for (var _itm of all_menu_items){
+                if (regex.test(_itm.id)){
+                    allowed_menu_items.push(_itm)
+                }
+            }
+
+    }else{
+        allowed_menu_items = all_menu_items;
+    }
+
+	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
+		items: allowed_menu_items
 	});
 
     m_fileBrowseGridMenu.setItemDisabled("select");
@@ -1611,6 +1655,18 @@ function getQueryVariable(variable) {
     }
   } 
 }
+
+
+function _getObjectByValue(object, value) {//helper
+        var to_return = [];
+        for (var _idx in object){
+           var _v =  object[_idx]["key"];
+           if (_v == value){
+            to_return.push(object[_idx]);
+           }
+        }
+        return to_return;
+    }
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

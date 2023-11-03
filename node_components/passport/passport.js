@@ -119,9 +119,8 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					var groups_cn_only = [];
 					groups.forEach(function(_obj){
 						try{
-							console.log(_obj["cn"])
-						   groups_cn_only.push(_obj["cn"]);
-						   
+						    console.log(_obj["cn"]);
+						    groups_cn_only.push(_obj["cn"]);
 						}catch(ex){
 							console.error("Unexpected error parsing groups from ad user ", ex)
 						}
