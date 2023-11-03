@@ -195,6 +195,7 @@ function navigateLevelUp(){
 }
 
 function globalPageInterval(){
+    return;
     if (!m_fileBrowserGrid.getSelectedRowId()){
         m_fileBrowseGridMenu.setItemDisabled("select");
         m_fileBrowseGridMenu.setItemDisabled("mediainfo");
@@ -280,6 +281,7 @@ function init(){
             }
     }
    
+
     var _cfg = {
         mode:               "top",
         align:              "left",
@@ -289,10 +291,10 @@ function init(){
         arrows_mode:        "auto" ,
         tabs: [ // tabs config
             {
-                id:"browse",text:"Browse",width:null,index:0,active:true,close:false,
+                id:"browse",text:"Browse",width:null,index:0,active:show_browse,close:false,
                 enabled: show_browse
             },{
-                id:"upload",text:"Upload",width:null,index:1,active:false,
+                id:"upload",text:"Upload",width:null,index:1,active:show_upload && show_browse == false,
                 enabled: show_upload,
                 close:false
             }
@@ -339,7 +341,7 @@ function init(){
 
     window.setInterval(function(){globalPageInterval()},250);
 
-    var allowed_menu_items = [];
+   
     var all_menu_items = [
             {id:"location", text:"<div style='width:80px'><span >Locations <i class='fas fa-list'></i></span></div>"},
 			{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
@@ -348,25 +350,26 @@ function init(){
             {id:"download", text:"<div style='width:70px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
             {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span></div>"},
             {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span></div>"},
-            //{id:"previews_menuitem", text:""},
+            
 		]
 
+
+    m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
+		items: all_menu_items
+	});
+
     if (_filter.length > 0){
+        //apply userpermissions, hide non allowed items
             menu_items = [];
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
             for (var _itm of all_menu_items){
                 if (regex.test(_itm.id)){
-                    allowed_menu_items.push(_itm)
+                    //allowed_menu_items.push(_itm)
+                }else{
+                    m_fileBrowseGridMenu.hideItem(_itm.id);
                 }
             }
-
-    }else{
-        allowed_menu_items = all_menu_items;
     }
-
-	m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
-		items: allowed_menu_items
-	});
 
     m_fileBrowseGridMenu.setItemDisabled("select");
     m_fileBrowseGridMenu.setItemDisabled("mediainfo");
@@ -822,7 +825,8 @@ function init(){
     restoreLayoutSizes(jobLayout,"jobLayout");
     restoreLayoutSizes(m_mainLayout,"m_mainLayout");
     getWorkflows();
-    getBrowseLocations();
+    getBrowseLocations(show_browse);
+
     
     if (getQueryVariable("file")){
         m_selectedFileGrid.addRow(Math.random(),[getQueryVariable("file")]);
@@ -832,6 +836,7 @@ function init(){
     }
 
 }
+
 
 function saveLayoutSizes(dhxLayout,name){
 //store layout cells height and with into html5 storage (in percentage of document height)
@@ -1138,7 +1143,7 @@ function addAjaxTooltip(dhxGrid,rowId){
 
 }
 
-async function getBrowseLocations(){
+async function getBrowseLocations(restore_saved = true){
    //locations from admin config
    try{
         var locations = await loadBrowseLocations();
@@ -1159,7 +1164,7 @@ async function getBrowseLocations(){
                 }
         }
         
-        if (localStorage.getItem("lastVisitedBrowseLocation")){
+        if (localStorage.getItem("lastVisitedBrowseLocation") &&  restore_saved){
                 getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
         }else{
                 getFileList(m_fileBrowserGrid, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][0]);    //load first available location
