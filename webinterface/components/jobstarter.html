@@ -294,7 +294,8 @@ function init(){
         tabs: [ // tabs config
             {
                 id:"browse",text:"Browse",width:null,index:0,active:show_browse,close:false,
-                enabled: show_browse
+                enabled: show_browse,
+                hidden: show_browse
             },{
                 id:"upload",text:"Upload",width:null,index:1,active:show_upload && show_browse == false,
                 enabled: show_upload,
@@ -305,8 +306,11 @@ function init(){
     }
    
     m_mainTabBar = m_mainLayout.cells("a").attachTabbar(_cfg);
-
-
+    if (!show_browse)
+        m_mainTabBar.tabs("browse").hide();
+    if (!show_upload)
+        m_mainTabBar.tabs("upload").hide();
+        
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,preview");//the headers of columns  
