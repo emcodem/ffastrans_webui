@@ -269,10 +269,12 @@ function init(){
     var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
     var show_browse = true;
     var show_upload = true;
+    var show_preview = true;
     if (_filter.length > 0){
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
             show_browse = regex.test("browse");
             show_upload = regex.test("upload");
+            show_preview = regex.test("preview");
             console.log(regex)
             if (m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] == "disabled") {
                 //global setting overrides user permissions
@@ -376,11 +378,10 @@ function init(){
     m_fileBrowseGridMenu.setItemDisabled("player");
 
     //preview checkbox
-
-    var prev_chkbox_html = createElementFromHTML("<div id='chkcont' class='' style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><input type='checkbox' id='chk_previews'></input><label for='chk_previews'>Preview</label></div>");
-    document.querySelector(".align_left").appendChild(prev_chkbox_html)
-
-    function prevCheckChanged(){
+    if (show_preview){
+        var prev_chkbox_html = createElementFromHTML("<div id='chkcont' class='' style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><input type='checkbox' id='chk_previews'></input><label for='chk_previews'>Preview</label></div>");
+        document.querySelector(".align_left").appendChild(prev_chkbox_html)
+        function prevCheckChanged(){
             if (document.querySelector("#chk_previews").checked) {
                 localStorage.setItem("jobstarter_chk_previews",'true');
                 m_fileBrowserGrid.setColWidth(0,"60");
@@ -397,10 +398,13 @@ function init(){
             }
         }
     
-    document.querySelector("#chk_previews").addEventListener('change',prevCheckChanged);
+        document.querySelector("#chk_previews").addEventListener('change',prevCheckChanged);
 
-    $('#chk_previews').prop('checked',localStorage.getItem("jobstarter_chk_previews") == 'true');
-    prevCheckChanged();
+        $('#chk_previews').prop('checked',localStorage.getItem("jobstarter_chk_previews") == 'true');
+        prevCheckChanged();
+    }
+
+
 
     m_fileBrowserGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
             //disallow drag&drop rows to self   
