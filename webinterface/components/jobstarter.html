@@ -835,12 +835,21 @@ function init(){
     getWorkflows();
     getBrowseLocations(show_browse);
 
-    
-    if (getQueryVariable("file")){
-        m_selectedFileGrid.addRow(Math.random(),[getQueryVariable("file")]);
-        m_mainLayout.cells("a").setMinWidth(0);
-        m_mainLayout.cells("a").setWidth(0);
-        jobLayout.cells("a").setHeight(150)
+    var files_from_urlparam = getQueryVariable("file");
+    if (files_from_urlparam){
+        var _a_files = []
+        try{
+            _a_files = JSON.parse(files_from_urlparam);
+        }catch(ex){
+            _a_files .push(files_from_urlparam);
+        }
+        for (_f of _a_files){
+            m_selectedFileGrid.addRow(Math.random(),[_f]);
+            m_mainLayout.cells("a").setMinWidth(0);
+            m_mainLayout.cells("a").setWidth(0);
+            jobLayout.cells("a").setHeight(150)
+            
+        }
     }
 
 }
