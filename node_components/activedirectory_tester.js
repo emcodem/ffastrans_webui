@@ -65,7 +65,7 @@ module.exports = function(app, passport){
 							console.error("Unexpected error parsing groups from ad user ", ex)
 						}
 					});
-					
+					groups_cn_only.push("Domain Users"); //Domain Users is not returned by AD so we add it to every user here
 					res.write("AD Groups for user" + usernameToCheck + "\n" + JSON.stringify(groups_cn_only,null, 4))
 					res.status(200);//Send error response here
 					res.end();
