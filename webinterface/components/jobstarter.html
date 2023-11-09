@@ -1543,7 +1543,7 @@ async function startJobs(form,selectedWorkflow){
     var selectedStartProc = form.getItem("start_proc").getValue()//m_mainForm.getSelect("start_proc").selectedOptions[0].value;
     postBody.start_proc = selectedStartProc;
     postBody.variables = ffasvars;
-
+    postBody.system = "FFAStrans Web Interface";
     if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){
         //stitch mode, submit all files as array!
         var all_files = [];
