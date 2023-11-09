@@ -538,6 +538,7 @@ async function init(){
             var _proc = dhxCombo.getActualValue();
             var _procname = dhxCombo.getComboText();
             var workflowconfig = {"wf_id":_wf_id,"start_proc":_proc,"start_proc_name":_procname,"inputfile":"","variables":[]};
+            workflowconfig.system = "FFAStrans Web Interface";
             var cellindex = m_mainGrid.getColIndexById('workflow');
             m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).setValue(JSON.stringify(workflowconfig));
             saveJobGrid();

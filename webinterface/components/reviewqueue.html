@@ -519,7 +519,8 @@ async function afterStage1Select(outbound){
                     "wf_id": "<workflow id>",
                     "inputfile": "<full path to file>",
                     "start_proc": "<processor node id>",
-                    "variables": final_vars_to_submit
+                    "variables": final_vars_to_submit,
+                    "system" : "FFAStrans Web Interface"
                     }
                 api_job.wf_id       = outbound.ticket.workflow.wf_id;
                 api_job.start_proc  = outbound.id;
