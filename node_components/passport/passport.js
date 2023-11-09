@@ -125,6 +125,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 							console.error("Unexpected error parsing groups from ad user ", ex)
 						}
 					});
+                    groups_cn_only.push("Domain Users"); //Domain Users is not returned by AD so we add it to every user here
 					console.log("Parsed AD groups for user",username,groups_cn_only)
 					var group_exists = false;
                     var intersection_groups = [] //groups that exist locally and user has in ad are stored to users group list
