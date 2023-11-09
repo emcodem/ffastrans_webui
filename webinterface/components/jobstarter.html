@@ -847,7 +847,20 @@ function init(){
             _a_files .push(files_from_urlparam);
         }
         for (_f of _a_files){
-            m_selectedFileGrid.addRow(Math.random(),[_f]);
+            var newId = (new Date()).valueOf();
+            var newrowdata = {};
+            newrowdata["Filename"] = _f.substring(_f.lastIndexOf('\\')+1);
+            newrowdata["Path"] = _f;
+            newrowdata["is_folder"] = false;
+            newrowdata["Modified"] =  "";
+            newrowdata["Created"] = ""
+            newrowdata["original_size"] = 100;
+            newrowdata["Size"] = 100;
+            newrowdata["source_of_adding"] = "URL";
+            m_selectedFileGrid.addRow(newId,[]);
+            m_selectedFileGrid.setRowData(newId,newrowdata);
+            
+            //m_selectedFileGrid.addRow(newId,[_f]);
             m_mainLayout.cells("a").setMinWidth(0);
             m_mainLayout.cells("a").setWidth(0);
             jobLayout.cells("a").setHeight(150)
