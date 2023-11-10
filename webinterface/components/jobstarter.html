@@ -309,11 +309,18 @@ function init(){
     }
    
     m_mainTabBar = m_mainLayout.cells("a").attachTabbar(_cfg);
-    if (!show_browse)
+    if (!show_browse){
         m_mainTabBar.tabs("browse").hide();
-    if (!show_upload)
+        if (localStorage["tabbaritemselected"] == "browse")
+            localStorage["tabbaritemselected"] = "" //user had permissions for this tab before but not anymore
+    }
+
+    if (!show_upload){
         m_mainTabBar.tabs("upload").hide();
-        
+        if (localStorage["tabbaritemselected"] == "upload")
+            localStorage["tabbaritemselected"] = "" //user had permissions for this tab before but not anymore
+    }
+
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,preview");//the headers of columns  
