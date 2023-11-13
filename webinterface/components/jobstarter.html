@@ -1487,21 +1487,48 @@ function getWorkflows(){
 
 async function startJobs(form,selectedWorkflow){
 
-    function collectVariables(form){
-        var formvars = form.getValue();
-        var keys = Object.keys(formvars);
-        var ffasvars = [];
-        for (var i=0;i<keys.length;i++){
-            if (typeof(formvars[keys[i]]) != "string")
-                formvars[keys[i]] = JSON.stringify(formvars[keys[i]]); //generic dhtmlx form elements can return objects/arrays
-            if (keys[i] == "start_proc")
-                continue
-            ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+        function collectVariables(form){
+            var formvars = form.getValue();
+            var keys = Object.keys(formvars);
+            var ffasvars = [];
+            for (var i=0;i<keys.length;i++){
+                if (typeof(formvars[keys[i]]) != "string")
+                    formvars[keys[i]] = JSON.stringify(formvars[keys[i]]); //generic dhtmlx form elements can return objects/arrays
+                if (keys[i] == "start_proc")
+                    continue
+                ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+            }
+
+            //if we got vars from url params, prefer them
+            var vars_from_urlparam = getQueryVariable("user_variables");
+            if (vars_from_urlparam){
+                try{
+                    vars_from_urlparam = JSON.parse(vars_from_urlparam)
+                    //two way merge existing variables and the ones from url param
+                    var new_vars = vars_from_urlparam;
+                    //vars_from_urlparam=JSON.parse(vars_from_urlparam)
+                    for (var i=0;i<ffasvars.length;i++){
+                    var existing_var = ffasvars[i];
+                    if (new_vars.findIndex(x => x.name === existing_var.name) == -1){
+                            new_vars.push(existing_var);
+                    }
+                    }                
+                    ffasvars = new_vars;
+                }catch(ex){
+                    console.log(ex)
+                    console.log("user_variables:",vars_from_urlparam);
+                    alert("Got user_variables from URL parameter but they are not a valid json array of objects. Contact administrator, see Console.")
+                }
+            }
+
+            return ffasvars;
         }
-        return ffasvars;
-    }
+
     var ffasvars = collectVariables(form);
-    ffasvars.push({"name":"s_job_submit_username","data":m_logged_in_username});
+    if (ffasvars.findIndex(x => x.name === "s_job_submit_username") == -1){
+        ffasvars.push({"name":"s_job_submit_username","data":m_logged_in_username});
+    }
+    
     console.log("FFASVars: ",ffasvars);
     //validate form 
     

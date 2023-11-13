@@ -136,7 +136,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
                             group_exists = true;
                             intersection_groups.push(_gid);
                         }
-						console.log(_gid,"exists in db?",group_exists)
+						console.log(_gid,"exists in db?",group_exists);
 					}
 					//check if any of the users groups exists in db
 					if (!group_exists){
