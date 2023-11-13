@@ -57,6 +57,7 @@ function init(){
     m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70}); 
     m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 100}); 
     m_mainForm.setItemFocus("username");
+    console.log(document.referrer)
     m_mainForm.attachEvent("onButtonClick", function(){
         m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
                                             if (response.xmlDoc.status == 200){
@@ -79,6 +80,13 @@ function init(){
 	if ("username" in query){
 		m_mainForm.setItemValue("username",query["username"]);
 		m_mainForm.setItemValue("password",query["password"]);
+		submitForm();
+	}
+
+    var referrer_query = parse_query_string(document.referrer)
+    if ("username" in referrer_query){
+		m_mainForm.setItemValue("username",referrer_query["username"]);
+		m_mainForm.setItemValue("password",referrer_query["password"]);
 		submitForm();
 	}
 }

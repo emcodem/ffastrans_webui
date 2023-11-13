@@ -218,7 +218,9 @@ function buildServerConfigTab(m_mainTabBar){
     });
 
 	window.setInterval(function(){
-		if (m_needreload){m_fileBrowseGridMenu.setItemDisabled("save");}
+		if (m_needreload){
+            m_fileBrowseGridMenu.setItemDisabled("save");
+        }
 	},500)
 }
 

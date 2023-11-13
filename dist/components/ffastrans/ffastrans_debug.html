@@ -206,6 +206,7 @@ function initForms(tabbar,layout){
 
     //emailform
     var formrows = constructAllFormInputs(m_last_data.about,"email","email",130);
+    console.log("email formrows",formrows)
     formrows.push(constrcutFormSaveButton());
     const emailform = new dhx8.dhx.Form(null, constructFormConfig(formrows));
     tabbar.getCell("email").attach(emailform);

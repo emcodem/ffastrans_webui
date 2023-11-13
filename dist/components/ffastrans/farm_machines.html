@@ -172,9 +172,9 @@ async function buildLayout(){
                    ///return cpu_data["cores"] + " " +cpu_data["architecture"] + " " +"" +cpu_data["identifier"] 
                 }
             },
-            {  readonly:true, id: "ffas_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }]},
-            {  readonly:true, id: "ffas_start", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }]},
-            {  readonly:true, id: "ffas_shutdown", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}]},
+            {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }]},
+            {  readonly:true, id: "ffas_start_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }]},
+            {  readonly:true, id: "ffas_end_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}]},
           
 
         ],
@@ -193,24 +193,25 @@ async function buildLayout(){
     });
     //TOOLBAR
     const cfg = [
-        {
-            id: "btnedit",
-            type: "button",
-            value: "Edit",
-            icon: "mdi mdi-cogs",
-            size: "small",
-            color: "secondary",
-            css: "dhxform_obj_dhx_skyblue"
-        },        
-       {
-            id: "btndel",
-            type: "button",
-            value: "Delete",
-            icon: "dxi dxi-close",
-            size: "small",
-            color: "secondary",
-            css: "dhxform_obj_dhx_skyblue"      
-        }
+        //BUTTONS DISABLED BECAUSE FUNCTION NOT YET IMPLEMENTED
+        // {
+        //     id: "btnedit",
+        //     type: "button",
+        //     value: "Edit",
+        //     icon: "mdi mdi-cogs",
+        //     size: "small",
+        //     color: "secondary",
+        //     css: "dhxform_obj_dhx_skyblue"
+        // },        
+    //    {
+    //         id: "btndel",
+    //         type: "button",
+    //         value: "Delete",
+    //         icon: "dxi dxi-close",
+    //         size: "small",
+    //         color: "secondary",
+    //         css: "dhxform_obj_dhx_skyblue"      
+    //     }
     ]
     const toolbar = new dhx8.dhx.Toolbar(null, {
         css:"dhx_widget--bordered"

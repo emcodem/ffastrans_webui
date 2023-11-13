@@ -136,19 +136,23 @@ function saveAdConfig(){
 	o_ad["ad_fqdn"] = document.getElementById("ad_fqdn").value;
     o_ad["ad_port"] = document.getElementById("ad_port").value;
 	m_serverconfig["ad_config"] = o_ad;
-    
+   
 	$.ajax({
 		url: ("/activedirectory_config_set"),
 		type: "POST",
 		data: m_serverconfig,
 		success: function(response) {
 			$('#alert').css("display","")
+			parent.window.parent.window.parent.window.m_needreload = true;//reload parent window so it updates the new config
+			console.log("parent",window.parent);
 			setTimeout(function () {
 	  
 				// Closing the alert
 				$('#alert').css("display","none")
+
 			}, 1000);
-			parent.window.m_needreload = true;//reload parent window so it updates the new config
+			
+			
 		},
 		error: function(xhr, status) {
 			console.log(status)

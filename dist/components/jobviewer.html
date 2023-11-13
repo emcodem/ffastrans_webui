@@ -11,7 +11,7 @@
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" />
-
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
 <!-- <link href="../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
 <!-- <script src="../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
@@ -1284,7 +1284,14 @@
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
-                $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.source + "</bdi></div>");
+                var parsedFileName = node.data.source;
+                try{
+                    //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store this
+                    if (node.data.source.match(/[^\\]+$/).length == 1 && node.data.source.match(/[^\\]+$/)[0] != "")
+                        parsedFileName = node.data.source.match(/[^\\]+$/)[0];
+                }catch(ex){}
+
+                $tdList.eq(5).html("<div class='celltext_rtl' title='"+outcome+"'><bdi>" + parsedFileName + "</bdi></div>");
                 
                 var outcome = node.data.result || node.data.outcome;
                 outcome = decodeEntities(outcome)
@@ -1298,7 +1305,7 @@
                 //     outcome = node.data._id
                 // }
                 if (outcome.length == 10000) {
-                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
+                    dhtmlx.message("Detected oversized outcome in job, consider deleting the job.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
                 
