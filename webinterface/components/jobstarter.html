@@ -1191,7 +1191,8 @@ async function getBrowseLocations(restore_saved = true){
             var path = locations[displayname];
             m_fileBrowseGridMenu.addNewChild("location", new Date(), path, displayname, false,"","");
         });
-
+        if (Object.keys(locations).length == 0)
+            return;
         // for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
                 
         // }
