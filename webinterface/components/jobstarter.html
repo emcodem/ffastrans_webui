@@ -248,6 +248,7 @@ function registerHoverFunc(){
     })(jQuery);
 }
 
+
 /* build basic page layout and init periodic job loading*/
 function init(){
     /* jquery tooltip helper for global use*/
@@ -364,8 +365,8 @@ function init(){
             {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
 			{id:"player", text:"<div style='width:45px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
             {id:"download", text:"<div style='width:70px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
-            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span></div>"},
-            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span></div>"},
+            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Select<i class='fas fa-angle-right'></i></span></div>"},
+            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>SelectAll<i class='fas fa-angle-double-right'></i></span></div>"},
             
 		]
 
@@ -446,16 +447,26 @@ function init(){
     });
 
     m_mainLayout.cells("b").setText("Job Configuration");
+
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
 			
                  {id:"add_customfile", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
                  {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
-                 
-				 
 			]
         });
-    
+        
+    if (_filter.length > 0){
+        //apply userpermissions, hide non allowed items
+            menu_items = [];
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            for (var _itm of ["add_customfile","remove"]){
+                if (!regex.test(_itm)){
+                    headerMenu.hideItem(_itm);
+                }
+            }
+    }
+
 	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
     
     var vault = new dhx.Vault('vault', {
@@ -491,6 +502,16 @@ function init(){
             },
         ]
     });
+    
+    if (_filter.length > 0){
+        //apply userpermissions, hide non allowed items
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            for (var _itm of ["workflowtab","variabletab"]){
+                if (!regex.test(_itm)){
+                    m_workflowTabBar.tabs(_itm).hide();
+                }
+            }
+    }
     
     //add workflow selection components
     m_workflowTabBar.tabs("workflowtab").showInnerScroll();
