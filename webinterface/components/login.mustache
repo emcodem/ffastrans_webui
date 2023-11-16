@@ -17,7 +17,7 @@
         justify-content: center;
         width: 100%;
         display: flex;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     #center {
@@ -84,10 +84,10 @@ function init(){
     
     //we use mustache to render the page in order to have access to protected data like instancename
 
-    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Login", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
-    m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10, labelWidth: 70}); 
-    m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70}); 
-    m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 100}); 
+    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Login", inputWidth : 300, position : "label-top", width: 400, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
+    m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10, labelWidth: 70,width:250}); 
+    m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70,width:250}); 
+    m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 150}); 
     m_mainForm.setItemFocus("username");
     console.log(document.referrer)
     m_mainForm.attachEvent("onButtonClick", function(){

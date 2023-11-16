@@ -189,7 +189,7 @@ async function init(conf){
         
         res.render("login.mustache",
           {
-            instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="16" src="/webinterface/images/F364x64.png" title="" width="16" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface'
+            instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface'
           }
         )
     });
