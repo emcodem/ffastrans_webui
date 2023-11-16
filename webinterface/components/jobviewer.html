@@ -325,16 +325,20 @@
             element_names = ["a_details","a_abort","a_pause","a_resume"];
         }
         if (id.match("history")){
-            element_names = ["b_details","b_resubmit","b_delsel"];
+            element_names = ["b_details","b_resubmit","b_delete_selected"];
         }
         element_names.forEach(function(name){
-            document.getElementsByName(name)[0].disabled = (all_selected_nodes == 0);
-            if (all_selected_nodes != 0){
-                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
-                icon.classList.remove("disabled")
-            }else{
-                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
-                icon.classList.add("disabled")
+            try{
+                document.getElementsByName(name)[0].disabled = (all_selected_nodes == 0);
+                if (all_selected_nodes != 0){
+                    var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
+                    icon.classList.remove("disabled")
+                }else{
+                    var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
+                    icon.classList.add("disabled")
+                }
+            }catch(ex){
+
             }
         })
         
@@ -356,8 +360,8 @@
         
         var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
         var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
-        var b_delsel =      '<button class="btn jobviewer_menu" name="b_delsel" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
-        var arr_all_in_b = [b_details,b_resubmit,b_delsel];
+        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
         
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
@@ -384,7 +388,7 @@
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
             _appendtext('b',arr_all_in_a.join("") );
-            _appendtext('c', b_details + b_resubmit + b_delsel);
+            _appendtext('c', b_details + b_resubmit + b_delete_selected);
         }
         function _appendtext (cellid, to_append){//helper
             //appends text to mainLayout.cells("b") and mainLayout.cells("c")
@@ -890,7 +894,7 @@
 
             //window.open(url, '_blank');
         }
-        if (id == "b_delsel") {
+        if (id == "b_delete_selected") {
             //delete selected jobs
             if (selected.length == 0) {
                 dhtmlx.alert("Please select rows to delete ");
@@ -1379,7 +1383,7 @@
                         "resubmit": {
                             "name": "Resubmit from Start"
                         },
-                        "delsel": {
+                        "delete_selected": {
                             "name": "Delete selected"
                         },
                     }) ,
@@ -1394,9 +1398,9 @@
                             var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared by multiple jobs
                             openLogViewer(jobid);
                         }
-                        if (action == "delsel") {
+                        if (action == "delete_selected") {
                             node.setSelected();
-                            click_b_header("b_delsel",node);
+                            click_b_header("b_delete_selected",node);
                         }
                         if (action == "resubmit") {
                             node.setSelected();
@@ -2199,7 +2203,7 @@
                 <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
                 <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->
                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
-                    <button title="Delete Selection (Show all Workflows)" name="delsel" class="workflow_filter_menu_item" style="border-radius:5px;width:30px;height:30px;" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> 
+                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="border-radius:5px;width:30px;height:30px;" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> 
                         <i class="fas fa-ban" ></i>
                     </button>
                     </div>

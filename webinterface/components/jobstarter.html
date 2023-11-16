@@ -452,7 +452,7 @@ function init(){
             items:[
 			
                  {id:"add_customfile", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
-                 {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
+                 {id:"delete_selected_file", text:"<i class='fa fa-folder-minus'></i>Delete"},
 			]
         });
         
@@ -460,7 +460,7 @@ function init(){
         //apply userpermissions, hide non allowed items
             menu_items = [];
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
-            for (var _itm of ["add_customfile","remove"]){
+            for (var _itm of ["add_customfile","delete_selected_file"]){
                 if (!regex.test(_itm)){
                     headerMenu.hideItem(_itm);
                 }
@@ -498,7 +498,7 @@ function init(){
                 close:false //emcodem:set disabled if urlparam is set
             },
             {
-                id:"variabletab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
+                id:"job_setup_tab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
             },
         ]
     });
@@ -506,7 +506,7 @@ function init(){
     if (_filter.length > 0){
         //apply userpermissions, hide non allowed items
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
-            for (var _itm of ["workflowtab","variabletab"]){
+            for (var _itm of ["workflowtab","job_setup_tab"]){
                 if (!regex.test(_itm)){
                     m_workflowTabBar.tabs(_itm).hide();
                 }
@@ -515,10 +515,10 @@ function init(){
     
     //add workflow selection components
     m_workflowTabBar.tabs("workflowtab").showInnerScroll();
-    m_workflowTabBar.tabs("variabletab").showInnerScroll();    
+    m_workflowTabBar.tabs("job_setup_tab").showInnerScroll();    
     
-    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="variables_form" style="width:100%;height:100%;overflow:visible">');
-    //m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:70px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
+    m_workflowTabBar.tabs("job_setup_tab").attachHTMLString('<div id="variables_form" style="width:100%;height:100%;overflow:visible">');
+    //m_workflowTabBar.tabs("job_setup_tab").attachHTMLString('<div id="mainform" style="width:100%;height:70px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
     
 //     //mainform is for workflow and processor selection, subform for variables
 //     m_mainForm  = new dhtmlXForm("mainform");
@@ -695,7 +695,7 @@ function init(){
                     }
                 });
             }
-            if (id == "remove") {
+            if (id == "delete_selected_file") {
                 if (!m_selectedFileGrid.getSelectedRowId()){
                     dhtmlx.alert("Please select a File to delete");
                 }
@@ -836,7 +836,7 @@ function init(){
     
     m_workflowTabBar.attachEvent("onTabClick", function(id, lastId){ 
         if (id=="workflowtab"){
-            //m_workflowTabBar.cells("variabletab").setText("Job Setup");
+            //m_workflowTabBar.cells("job_setup_tab").setText("Job Setup");
             if (m_fileAddedEventId){
                 m_selectedFileGrid.detachEvent(m_fileAddedEventId);
             }
@@ -1254,9 +1254,9 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     //called from select event of grid select
     //populates start processor drowdown
     localStorage.setItem("lastselectedworkflow",wf_object["wf_id"]);
-    m_workflowTabBar.cells("variabletab").setActive();
+    m_workflowTabBar.cells("job_setup_tab").setActive();
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
-    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
+    m_workflowTabBar.cells("job_setup_tab").setText("Job Setup ["+wf_object["wf_name"]+"]");
     
     wf_object.variable["start_procs"] = []
     for (i=0;i<wf_object["nodes"].length;i++){
