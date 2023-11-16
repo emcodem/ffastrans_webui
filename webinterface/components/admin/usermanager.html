@@ -53,6 +53,11 @@ function init(){
      dhtmlx.message(msg);
     });
     
+    var rootLayout = new dhtmlXLayoutObject({
+        parent: document.body,  
+        pattern: "2U"           
+    });
+    
     m_mainLayout = new dhtmlXLayoutObject({
         parent: document.body,  
         pattern: "4G"           
