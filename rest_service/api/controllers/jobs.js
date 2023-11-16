@@ -90,7 +90,7 @@ async function get_running(){
             }catch(ex){
                 //omit this ticket as it does not carry source file info
                 console.error("Running ticket did not contain source file info",a_running[key])
-                keys_to_ignore.push(key)
+                keys_to_ignore.push(key);
             }
 
         }catch(ex){

@@ -30,6 +30,38 @@
         transform: translate(-50%, -50%);
     }
 
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 8px solid #3498db;
+        -webkit-animation: spin 2s linear infinite;
+        position: fixed;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 30;
+        height: 30;
+        z-index: 100;
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        margin-left: -25px;
+        margin-top: 0px;
+        visibility: hidden;
+    }
+
+        /* Safari */
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+
 </style>
 <script>
 function inIframe () {
@@ -59,17 +91,18 @@ function init(){
     m_mainForm.setItemFocus("username");
     console.log(document.referrer)
     m_mainForm.attachEvent("onButtonClick", function(){
-        m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
-                                            if (response.xmlDoc.status == 200){
-                                                //login says ok, redirect to referrer or /
-                                                if (document.referrer)
-                                                    window.location.href = document.referrer;
-                                                else
-                                                    window.location.replace("/");
-                                            }else{
-                                                dhtmlx.message(response.xmlDoc.responseText)
-                                            }
-                                        } );
+        submitForm()
+        // m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
+        //                                     if (response.xmlDoc.status == 200){
+        //                                         //login says ok, redirect to referrer or /
+        //                                         if (document.referrer)
+        //                                             window.location.href = document.referrer;
+        //                                         else
+        //                                             window.location.replace("/");
+        //                                     }else{
+        //                                         dhtmlx.message(response.xmlDoc.responseText)
+        //                                     }
+        //                                 } );
     });
     
     m_mainForm.attachEvent("onEnter", function(){
@@ -91,7 +124,22 @@ function init(){
 	}
 }
 
+
+function showLoading(){
+    console.log("showLoading")
+    document.getElementById("spinner").style.visibility = "visible";
+}
+
+function hideLoading(){
+    console.log("hideLoading")
+    document.getElementById("spinner").style.visibility = "hidden";
+}
+
+
 function submitForm(){
+
+        showLoading();
+
         m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
                                             if (response.xmlDoc.status == 200){
                                                 //login says ok, redirect to referrer or /
@@ -103,8 +151,10 @@ function submitForm(){
                                                 console.log(response.xmlDoc.responseText)
                                                 dhtmlx.message(response.xmlDoc.responseText)
                                             }
+                                            hideLoading()
                                         } );
 }
+
 
 function parse_query_string(query) {
   var vars = query.split("&");
@@ -130,9 +180,11 @@ function parse_query_string(query) {
 </script>
 
 <body onload="init()">
+    <div id="spinner" class="loader"></div>
     <div id="center">
         <div id="welcome_message">{{{instanceName}}}</div>
         <div id="mainform" >
+        
     </div>
 </body>
     
