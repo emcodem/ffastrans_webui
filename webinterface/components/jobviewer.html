@@ -11,7 +11,7 @@
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" />
-
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
 <!-- <link href="../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
 <!-- <script src="../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
@@ -325,16 +325,20 @@
             element_names = ["a_details","a_abort","a_pause","a_resume"];
         }
         if (id.match("history")){
-            element_names = ["b_details","b_resubmit","b_delsel"];
+            element_names = ["b_details","b_resubmit","b_delete_selected"];
         }
         element_names.forEach(function(name){
-            document.getElementsByName(name)[0].disabled = (all_selected_nodes == 0);
-            if (all_selected_nodes != 0){
-                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
-                icon.classList.remove("disabled")
-            }else{
-                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
-                icon.classList.add("disabled")
+            try{
+                document.getElementsByName(name)[0].disabled = (all_selected_nodes == 0);
+                if (all_selected_nodes != 0){
+                    var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
+                    icon.classList.remove("disabled")
+                }else{
+                    var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
+                    icon.classList.add("disabled")
+                }
+            }catch(ex){
+
             }
         })
         
@@ -350,31 +354,33 @@
         var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i>Abort</button> ';
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
-        var a_opts =    '<button class="btn jobviewer_menu" name="b_opts" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
+        var a_opts =    '<button class="btn jobviewer_menu" name="b_options" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
         
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
         
         var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
         var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
-        var b_delsel =      '<button class="btn jobviewer_menu" name="b_delsel" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
-        var arr_all_in_b = [b_details,b_resubmit,b_delsel];
+        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
         
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){
             
-            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
             console.log("Displaying filtered list of buttons, regex: ", regex);
             
             //add filtered btns to Running jobgrid
             for (_id=0;_id<arr_all_in_a.length;_id++){
-                if (arr_all_in_a[_id].match(regex)){
+                var input_name = arr_all_in_a[_id].match(/name="(.*?)"/)[1];
+                if (regex.test(input_name)){
                     _appendtext('b',arr_all_in_a[_id])
                 }
             }
             //no filter, add filtered btns to History jobgrid
             for (_id=0;_id<arr_all_in_b.length;_id++){
-                if (arr_all_in_b[_id].match(regex)){
+                var input_name = arr_all_in_b[_id].match(/name="(.*?)"/)[1];
+                if (regex.test(input_name)){
                     _appendtext('c',arr_all_in_b[_id])
                 }
             }
@@ -382,7 +388,7 @@
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
             _appendtext('b',arr_all_in_a.join("") );
-            _appendtext('c', b_details + b_resubmit + b_delsel);
+            _appendtext('c', b_details + b_resubmit + b_delete_selected);
         }
         function _appendtext (cellid, to_append){//helper
             //appends text to mainLayout.cells("b") and mainLayout.cells("c")
@@ -622,8 +628,15 @@
             }
             mainLayout.cells("b").progressOff();
         });
-        socket.on('activejobs', function(msg) {
-            addActiveJobsToGrid(runningJobGrid, JSON.parse(msg), "Active");
+        socket.on('activejobs', async function(msg) {
+            //load activejobs from server and call
+            var activejobs = await $.ajax({
+                url: "/getactivejobsajax_treegrid",
+                type: 'GET', 
+            });
+            console.log(activejobs,msg)
+            console.log("Active jobs:",msg)
+            addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
             mainLayout.cells("b").progressOff();
         });
         socket.on('error', function(msg) {
@@ -635,22 +648,15 @@
         socket.on('alert', function(msg) {
             dhtmlx.alert(msg);
         });
-        //deprecated!!!
-        if (!JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
-            alert("running in pull mode, this should not happen")
-            window.setInterval(function() {
-                getQueuedJobs(runningJobGrid)
-            }, parseInt(3000));
+        
+        
+
             window.setInterval(function() {
                 getActiveJobs(runningJobGrid)
             }, parseInt(3000));
-            window.setInterval(function() {
-                getFinishedJobs(finishedJobGrid)
-            }, parseInt(3000));
-            getQueuedJobs(runningJobGrid);
+            
             getActiveJobs(runningJobGrid);
-            getFinishedJobs(finishedJobGrid);
-        }
+        
 
 
         $('input[type="search"]').click(function(event){
@@ -864,7 +870,7 @@
         var tree = $('#treetable_history').fancytree('getTree');
         var selected = tree.getSelectedNodes();
          
-        if (id == "b_opts") {
+        if (id == "b_options") {
             show_options_window();
             return;
         }
@@ -888,7 +894,7 @@
 
             //window.open(url, '_blank');
         }
-        if (id == "b_delsel") {
+        if (id == "b_delete_selected") {
             //delete selected jobs
             if (selected.length == 0) {
                 dhtmlx.alert("Please select rows to delete ");
@@ -1284,7 +1290,14 @@
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
-                $tdList.eq(5).html("<div class='celltext_rtl'><bdi>" + node.data.source + "</bdi></div>");
+                var parsedFileName = node.data.source;
+                try{
+                    //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store this
+                    if (node.data.source.match(/[^\\]+$/).length == 1 && node.data.source.match(/[^\\]+$/)[0] != "")
+                        parsedFileName = node.data.source.match(/[^\\]+$/)[0];
+                }catch(ex){}
+
+                $tdList.eq(5).html("<div class='celltext_rtl' title='"+outcome+"'><bdi>" + parsedFileName + "</bdi></div>");
                 
                 var outcome = node.data.result || node.data.outcome;
                 outcome = decodeEntities(outcome)
@@ -1298,7 +1311,7 @@
                 //     outcome = node.data._id
                 // }
                 if (outcome.length == 10000) {
-                    dhtmlx.message("Detected oversized outcome in job, consider deleting it.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
+                    dhtmlx.message("Detected oversized outcome in job, consider deleting the job.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
                 
@@ -1370,7 +1383,7 @@
                         "resubmit": {
                             "name": "Resubmit from Start"
                         },
-                        "delsel": {
+                        "delete_selected": {
                             "name": "Delete selected"
                         },
                     }) ,
@@ -1385,9 +1398,9 @@
                             var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared by multiple jobs
                             openLogViewer(jobid);
                         }
-                        if (action == "delsel") {
+                        if (action == "delete_selected") {
                             node.setSelected();
-                            click_b_header("b_delsel",node);
+                            click_b_header("b_delete_selected",node);
                         }
                         if (action == "resubmit") {
                             node.setSelected();
@@ -1868,7 +1881,7 @@
     }
 
     /* NO PROXY MODE */
-    /*get active jobs immediately - should cause server to push jobs to us via socket.io*/
+    /*TODO: this does not work anymore, add a parameter for in getactivejobsajaxt*/
     function forcejobloading() {
         getActiveJobs/* deprecated  ?!*/
         $.ajax({
@@ -1913,22 +1926,28 @@
         });
     }
 
-    function getActiveJobs(targetGridObj) {
+    async function getActiveJobs(targetGridObj) {
         //deprecated; still there for "no proxy mode"
-        $.ajax({
-            url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
-            type: "GET",
-            crossDomain: true,
-            dataType: "json",
-            context: this,
-            success: function(response) {
-                addActiveJobsToGrid(targetGridObj, response.jobs);
-                mainLayout.cells("b").progressOff();
-            },
-            error: function(xhr, status) {
-                dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-            }
-        });
+        var activejobs = await $.ajax({
+                url: "/getactivejobsajax_treegrid",
+                type: 'GET', 
+            });
+        addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
+
+        // $.ajax({
+        //     url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
+        //     type: "GET",
+        //     crossDomain: true,
+        //     dataType: "json",
+        //     context: this,
+        //     success: function(response) {
+        //         addActiveJobsToGrid(targetGridObj, response.jobs);
+        //         mainLayout.cells("b").progressOff();
+        //     },
+        //     error: function(xhr, status) {
+        //         dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+        //     }
+        // });
     }
 
     function getFinishedJobs(targetGridObj) {
@@ -2184,7 +2203,7 @@
                 <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
                 <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->
                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
-                    <button title="Delete Selection (Show all Workflows)" name="delsel" class="workflow_filter_menu_item" style="border-radius:5px;width:30px;height:30px;" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> 
+                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="border-radius:5px;width:30px;height:30px;" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> 
                         <i class="fas fa-ban" ></i>
                     </button>
                     </div>

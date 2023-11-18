@@ -3,7 +3,7 @@ const path = require('path');
 const url = require('url');
 const firstline = require('firstline');
 var encoding = require("encoding");
-const util = require('util')
+const util = require('util');
 
 module.exports = function(app, express){
     const ffastransapi = require("./ffastransapi");

@@ -25,14 +25,17 @@ module.exports = function(app, passport){
 	app.get('/getuserpermissionsasync', async function(req, res) { 
 		console.log("/getuserpermissionsasync")
        	passport.authenticate('local-login');//fills req.user with infos from cookie
+		var data = [];
 		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
-			res.write("[]")
+			data.push({key:"username","value":"admin"});
+			res.write(JSON.stringify(data))
 			res.status(200);//Send error response here
 			res.end(); 
 		}else{
-			var data = await userpermissions.getpermissionlistAsync (req.user.local.username);
+			data = await userpermissions.getpermissionlistAsync (req.user.local.username);
 			//as we now have all userpermissions, finish web request, 
 			try{
+				data.push({key:"username","value":req.user.local.username});
 				res.write(JSON.stringify(data))
 				res.status(200);//Send error response here
 				res.end();   

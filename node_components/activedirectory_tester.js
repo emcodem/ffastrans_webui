@@ -25,6 +25,11 @@ module.exports = function(app, passport){
 				var decrypted = Buffer.from(data["ad_password"], 'base64').toString();
 				decrypted = ("decrypted ad_pw",decrypted);
 				
+				var uname = data["ad_user"] +'@' + data["ad_config"]["ad_fqdn"];
+				//if username contains already @, do not add it automatically
+				if (data["ad_user"].indexOf("@")!= -1)
+					uname = data["ad_user"];
+					
 				//prepare AD connection
 				var adopts = {
 				  url: 'ldap://' + data["ad_config"]["ad_fqdn"] + ":" + data["ad_config"]["ad_port"],
@@ -60,7 +65,7 @@ module.exports = function(app, passport){
 							console.error("Unexpected error parsing groups from ad user ", ex)
 						}
 					});
-					
+					groups_cn_only.push("Domain Users"); //Domain Users is not returned by AD so we add it to every user here
 					res.write("AD Groups for user" + usernameToCheck + "\n" + JSON.stringify(groups_cn_only,null, 4))
 					res.status(200);//Send error response here
 					res.end();

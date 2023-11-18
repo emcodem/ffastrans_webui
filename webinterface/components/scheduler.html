@@ -538,6 +538,7 @@ async function init(){
             var _proc = dhxCombo.getActualValue();
             var _procname = dhxCombo.getComboText();
             var workflowconfig = {"wf_id":_wf_id,"start_proc":_proc,"start_proc_name":_procname,"inputfile":"","variables":[]};
+            workflowconfig.system = "FFAStrans Web Interface";
             var cellindex = m_mainGrid.getColIndexById('workflow');
             m_mainGrid.cells(m_mainGrid.getSelectedRowId(),cellindex).setValue(JSON.stringify(workflowconfig));
             saveJobGrid();
@@ -1125,8 +1126,8 @@ function downloadStringAsFile(content, mimeType, filename){
 
 </head>
 <body onload="loadserverconfig()">
-
-<div id="documentation" style="visibility:hidden;height:100%;width:100%;margin-left:20px;white-space: pre-wrap;overflow:scroll">
+    
+<div id="documentation" style="visibility:hidden;height:100%;width:100%;font-family:Tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
 <b>General:</b>
 Scheduled jobs are used to start workflows in a specific frequency. 

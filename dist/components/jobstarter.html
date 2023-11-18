@@ -1,0 +1,1735 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<script src="../dependencies/dhtmlx/vault/vault.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
+<script src="../dependencies/jquery/jquery.js"></script>
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+<script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+<link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+
+<script src="../dependencies/tippy/popper.js"></script>
+<script src="../dependencies/tippy/tippy.js"></script>
+
+<script src="common/webuiVariables.js"></script> <!-- function translateDhx5To8Vars -->
+<script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+        font-family: "Tahoma";
+        --preview-display : "none";
+    }
+
+    .dhx_tooltip{
+        display:unset !important;
+    }
+    
+    ul.fancytree-container {
+        border: none;
+        outline:none !important;
+    }
+    /* menu buttons */
+    .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal {
+        display:inline-block;
+        color:#444 !important;
+        background:#DDD;
+        box-shadow: 1px 1px 1px 1px rgb(0 0 0 / 30%) !important;
+        cursor:pointer;
+        vertical-align:middle;
+        max-width: 100px;
+        padding: 5px;
+        text-align: center;
+        margin-left: 3px !important;
+    }
+
+    .dhtmlxMenu_dhx_skyblue_Middle{
+        height:35px;
+        padding-top:3px !important;
+    }
+
+    .dhxform_label{
+        min-width: 150px;
+    }
+
+    .dhxform_control{
+        width: auto;
+    }
+    .job_submit_wf_description > div > div > input{
+        /* sadly dhtmlx supports css at text form component but it sets the css 3 elements away*/
+        
+        font-weight: bold;
+        font-size:16px;
+    }
+    ul.fancytree-container {
+        font-size:12px !important;
+        font-family: Tahoma !important;
+    }x
+    
+    .alternate_row .dhx_grid-row {
+		background: #edfab2;
+	}
+
+	.alternate_row .dhx_grid-row:nth-child(2n) {
+		background: #add8e6;
+	}
+
+    .folder_browser_nav{
+        white-space: nowrap;
+        font-size:12px !important;
+        margin:0 !important;
+        padding:0 !important;
+        height:15px !important;
+        line-height:unset !important;
+    }
+
+    .previewcontainer{
+        display: var(--preview-display);
+        max-width:50px;
+        max-height:40px
+    }
+    .previewimg{
+        display: var(--preview-display);
+        max-width:100%;
+        max-height:40px
+    }
+    .align_left{
+        width:100%;
+        white-space: nowrap;
+        display:flex;
+        
+    }
+
+    [id$="previews_menuitem"] {
+        margin-left:auto !important;
+        margin-right:10px !important;
+    }
+
+</style>
+
+<script>
+/* init SOCKET.IO */
+var socket = io(); 
+
+/* GLOBALS */
+//dhtmlx ui
+var m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
+var m_realUploadpath = "";
+
+
+/*load config from server*/
+async function loadserverconfig(){
+    try{
+        m_userpermissions = await $.ajax({
+            url: ("/getuserpermissionsasync" + "?" + Math.random()),
+            type: "GET"});
+            
+            m_userpermissions = JSON.parse(m_userpermissions);
+
+    }catch(ex){
+        console.log(ex);
+        document.body = "Fatal error loading userpermissions, see console";
+        return;
+    }
+
+    $.ajax({
+        url:  ("/getserverconfig"),
+        type: "GET",
+        success: function (response) {
+            m_serverconfig = JSON.parse(response)
+            init();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. " );
+            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+        }
+    });
+    //try get logged in user
+    m_logged_in_username = _getObjectByValue(m_userpermissions,"username")[0].value;
+    console.log("username:",m_logged_in_username)
+}
+
+async function loadBrowseLocations(){
+    var locations = await  $.ajax({
+        url:  ("/browselocations"),
+        type: "GET"
+    });
+    return locations;
+}
+
+function get_mediainfo_analysis_html(_file,_callback){/*this function is called with file and callback as parameterto get mediainfo html output*/
+     console.log("Filename ", encodeURI(_file.name));
+     $.ajax({
+				url: build_new_api_url("/getmediainfo?do_html=true&filepath=" + encodeURIComponent(_file.name)),
+				type: "GET",
+				success: function (response) {
+					_callback(_file,response);
+				},
+				error: function (xhr, status) {
+					alert("ERROR getting mediainfo for " + _file.name);
+				}
+            });
+}
+
+function build_new_api_url(what) {
+    if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+        return "/new_proxy" + what;
+    } else {
+        var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+        var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+        return _url;
+    }
+}
+
+function navigateLevelUp(){
+    //getFileList
+
+}
+
+function globalPageInterval(){
+   
+    if (!m_fileBrowserGrid.getSelectedRowId()){
+        m_fileBrowseGridMenu.setItemDisabled("select");
+        m_fileBrowseGridMenu.setItemDisabled("mediainfo");
+        m_fileBrowseGridMenu.setItemDisabled("player");
+        m_fileBrowseGridMenu.setItemDisabled("download");
+    }else{
+        m_fileBrowseGridMenu.setItemEnabled("select");
+        m_fileBrowseGridMenu.setItemEnabled("mediainfo");
+        m_fileBrowseGridMenu.setItemEnabled("player");
+        m_fileBrowseGridMenu.setItemEnabled("download");
+    }
+}
+
+function registerHoverFunc(){
+    /* makes function delayedAction available for jquery elements*/
+    (function($) {
+        $.fn.delayedAction = function(options)
+        {
+            var settings = $.extend(
+                {},
+                {
+                    delayedAction : function(){},
+                    cancelledAction: function(){},
+                    hoverTime: 1000               
+                },
+                options);
+
+            return this.each(function(){
+            var $this = $(this);
+                $this.hover(function(){  
+                $this.data('timerId',
+                            setTimeout(function(){
+                                        $this.data('hover',false);
+                                        settings.delayedAction($this);
+                                        },settings.hoverTime));
+                    $this.data('hover',true);
+                },
+                function(){        
+                    if($this.data('hover')){       
+                        clearTimeout($this.data('timerId'));
+                        settings.cancelledAction($this);
+                    }
+                    $this.data('hover',false);
+                } );
+            });
+        }
+    })(jQuery);
+}
+
+/* build basic page layout and init periodic job loading*/
+function init(){
+    /* jquery tooltip helper for global use*/
+    registerHoverFunc()
+
+    //load config data from server
+    m_realUploadpath = m_serverconfig['STATIC_UPLOADPATH'];
+    //main layout
+    m_mainLayout = new dhtmlXLayoutObject({
+        parent: document.body,  
+        pattern: "2U"           
+    });
+    
+    m_mainLayout.setAutoSize("b", "a;b");//make left cell expand on resize
+   
+    m_mainLayout.cells("a").setMinWidth(50);
+    m_mainLayout.cells("b").setMinWidth(50);
+    m_mainLayout.cells("a").setMinHeight(50);
+    m_mainLayout.cells("b").setMinHeight(50);  
+    m_mainLayout.cells("a").setText("Uploads");
+    
+    var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+    var show_browse = true;
+    var show_upload = true;
+    var show_preview = true;
+    if (_filter.length > 0){
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            show_browse = regex.test("browse");
+            show_upload = regex.test("upload");
+            show_preview = regex.test("preview");
+            console.log(regex)
+            if (m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] == "disabled") {
+                //global setting overrides user permissions
+                console.log("uploads disabled due to global settings")
+                show_upload = false;
+            }
+    }
+   
+
+    var _cfg = {
+        mode:               "top",
+        align:              "left",
+        close_button:       true,
+        content_zone:       true,
+        onload:             function(){},
+        arrows_mode:        "auto" ,
+        tabs: [ // tabs config
+            {
+                id:"browse",text:"Browse",width:null,index:0,active:show_browse,close:false,
+                enabled: show_browse,
+                hidden: show_browse
+            },{
+                id:"upload",text:"Upload",width:null,index:1,active:show_upload && show_browse == false,
+                enabled: show_upload,
+                close:false
+            }
+
+        ]
+    }
+   
+    m_mainTabBar = m_mainLayout.cells("a").attachTabbar(_cfg);
+    if (!show_browse){
+        m_mainTabBar.tabs("browse").hide();
+        if (localStorage["tabbaritemselected"] == "browse")
+            localStorage["tabbaritemselected"] = "" //user had permissions for this tab before but not anymore
+    }
+
+    if (!show_upload){
+        m_mainTabBar.tabs("upload").hide();
+        if (localStorage["tabbaritemselected"] == "upload")
+            localStorage["tabbaritemselected"] = "" //user had permissions for this tab before but not anymore
+    }
+
+	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
+    m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,preview");//the headers of columns  
+    m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
+    //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
+    m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0,0");          //the widths of columns  
+    m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
+    m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
+    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str");          //the sorting types  
+    m_fileBrowserGrid.enableMultiselect(true);
+    m_fileBrowserGrid.enableDragAndDrop(true);
+    m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
+
+    m_fileBrowserGrid.setColumnHidden(1,true);
+    m_fileBrowserGrid.setColumnHidden(2,true);
+    m_fileBrowserGrid.setColumnHidden(5,true);
+
+    m_fileBrowserGrid.getCellByName = function(rowId,cellname){
+        //allow access to gridcell using header name, requires setColumnIds
+        var index = m_fileBrowserGrid.getColIndexById(cellname);
+        return m_fileBrowserGrid.cells(rowId,index);
+    }
+
+	//onclick='(arguments[0]||event).cancelBubble = true'
+    m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex;width:max-content'><input id='nfilter' placeholder='Name' style='margin-left:10px;margin-right:10px' ></div>\
+                                    ,,,\
+                                    <input autocomplete='off' id='sizefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
+                                    <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
+                                    ,\
+                                    ");
+    m_fileBrowserGrid.makeFilter("nfilter",0); //attach filter functionality to html input
+    m_fileBrowserGrid.makeFilter("sizefilter",3); 
+    m_fileBrowserGrid.makeFilter("datefilter",4); 
+
+    window.setInterval(function(){globalPageInterval()},250);
+
+   
+    var all_menu_items = [
+            {id:"location", text:"<div style='width:80px'><span >Locations <i class='fas fa-list'></i></span></div>"},
+			{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
+            {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
+			{id:"player", text:"<div style='width:45px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
+            {id:"download", text:"<div style='width:70px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
+            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span></div>"},
+            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span></div>"},
+            
+		]
+
+
+    m_fileBrowseGridMenu = m_mainTabBar.tabs("browse").attachMenu({
+		items: all_menu_items
+	});
+
+    if (_filter.length > 0){
+        //apply userpermissions, hide non allowed items
+            menu_items = [];
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            for (var _itm of all_menu_items){
+                if (regex.test(_itm.id)){
+                    //allowed_menu_items.push(_itm)
+                }else{
+                    m_fileBrowseGridMenu.hideItem(_itm.id);
+                }
+            }
+    }
+
+    m_fileBrowseGridMenu.setItemDisabled("select");
+    m_fileBrowseGridMenu.setItemDisabled("mediainfo");
+    m_fileBrowseGridMenu.setItemDisabled("player");
+
+    //preview checkbox
+    if (show_preview){
+        var prev_chkbox_html = createElementFromHTML("<div id='chkcont' class='' style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><input type='checkbox' id='chk_previews'></input><label for='chk_previews'>Preview</label></div>");
+        document.querySelector(".align_left").appendChild(prev_chkbox_html)
+        function prevCheckChanged(){
+            if (document.querySelector("#chk_previews").checked) {
+                localStorage.setItem("jobstarter_chk_previews",'true');
+                m_fileBrowserGrid.setColWidth(0,"60");
+                m_fileBrowserGrid.setColWidth(7,"10");
+                //m_fileBrowserGrid.setWidthsP("60,0,0,10,20,0,0,10"); 
+                $('.previewcontainer').css('display', 'unset');
+                
+            } else {
+                localStorage.setItem("jobstarter_chk_previews",'false');
+                m_fileBrowserGrid.setColWidth(0,"70");
+                m_fileBrowserGrid.setColWidth(7,"0");
+                //m_fileBrowserGrid.setWidthsP("70,0,0,10,20,0,0,0");
+                $('.previewcontainer').css('display', 'none');
+            }
+        }
+    
+        document.querySelector("#chk_previews").addEventListener('change',prevCheckChanged);
+
+        $('#chk_previews').prop('checked',localStorage.getItem("jobstarter_chk_previews") == 'true');
+        prevCheckChanged();
+    }
+
+
+
+    m_fileBrowserGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
+            //disallow drag&drop rows to self   
+            //tObj.deleteRow(dId);//row was already pasted, delete it!
+    })
+    
+    m_fileBrowserGrid.attachEvent("onDrag",function(sid,tid){
+        //if target id is undefinded, we got something from a different grid. if defined we are in own grid
+        if (tid){
+             m_fileBrowserGrid.dragContext.mode="move"; 
+        }else{
+             m_fileBrowserGrid.dragContext.mode="copy"; 
+        }
+        return true;
+    });
+
+    m_fileBrowserGrid.attachEvent("onDragIn", function(dId,tId,sObj,tObj){
+        //prevent dropping into empty space, it would create a copy of current row
+        if (sObj == tObj){
+            if (tId === undefined){
+                return false;
+            }
+        }
+        return true;
+    });
+
+    m_mainLayout.cells("b").setText("Job Configuration");
+    var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
+            items:[
+			
+                 {id:"add_customfile", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
+                 {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
+                 
+				 
+			]
+        });
+    
+	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
+    
+    var vault = new dhx.Vault('vault', {
+        uploader:{ 
+            target:"/backend/upload" 
+       }
+    });
+
+    //workflow forms
+    jobLayout = m_mainLayout.cells("b").attachLayout({
+        parent: document.body,  
+        pattern: "2E"           
+    });
+    jobLayout.cells("a").hideHeader();
+    jobLayout.cells("a").setText("Selected Files");
+    jobLayout.cells("b").hideHeader();
+    jobLayout.cells("a").setMinWidth(50);
+    jobLayout.cells("b").setMinWidth(50);
+    jobLayout.cells("a").setMinHeight(50);
+    jobLayout.cells("b").setMinHeight(50);
+    
+    //jobLayout.cells("a").setHeight($(document).height()/3.5);
+    m_workflowTabBar = jobLayout.cells("b").attachTabbar({
+        mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
+        tabs: [ // workflow and variable tabs config
+            {
+                id: "workflowtab", text:"Workflows",width:null,index:0,active:true, 
+                enabled: getQueryVariable("wf_id"), 
+                close:false //emcodem:set disabled if urlparam is set
+            },
+            {
+                id:"variabletab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
+            },
+        ]
+    });
+    
+    //add workflow selection components
+    m_workflowTabBar.tabs("workflowtab").showInnerScroll();
+    m_workflowTabBar.tabs("variabletab").showInnerScroll();    
+    
+    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="variables_form" style="width:100%;height:100%;overflow:visible">');
+    //m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:70px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
+    
+//     //mainform is for workflow and processor selection, subform for variables
+//     m_mainForm  = new dhtmlXForm("mainform");
+//    // m_mainForm.addItem(null, {type: "button",name: "show_wf", value: "Show Workflow",  offsetLeft:10}); //show workflow disabled for release
+//     m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Start Processor", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
+//     m_subForm  = new dhtmlXForm("subform");
+
+    m_selectedFileGrid = jobLayout.cells("a").attachGrid();
+    m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
+    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
+    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,Status,Outcome");
+    m_selectedFileGrid.setColumnHidden(1,true);
+    m_selectedFileGrid.setColumnHidden(2,true);
+    m_selectedFileGrid.setColumnHidden(6,true);
+    m_selectedFileGrid.setColumnHidden(7,true);
+    m_selectedFileGrid.setInitWidthsP("45,0,0,0,0,0,0,0,10,*");
+    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");
+    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str");   
+    m_selectedFileGrid.enableMultiselect(true);
+    m_selectedFileGrid.enableDragAndDrop(true);
+    m_selectedFileGrid.enableStableSorting(true);
+    
+    m_selectedFileGrid.getCellByName = function(rowId,cellname){
+        //allow access to gridcell using header name, requires setColumnIds
+        var index = m_selectedFileGrid.getColIndexById(cellname);
+        return m_selectedFileGrid.cells(rowId,index);
+    }
+
+    m_selectedFileGrid.attachEvent("onRowSelect", function(rId){
+        console.log(arguments)
+        //bloody workaround for onKeyPress not fired unless one cell is put into edit mode
+        m_selectedFileGrid.editCell(rId,0);
+        m_selectedFileGrid.editStop(true);
+    })
+
+    m_selectedFileGrid.attachEvent("onKeyPress", function(code,cFlag,sFlag){
+        if (code == 46){ //delete key
+            if (!m_selectedFileGrid.getSelectedRowId()){
+                    dhtmlx.alert("Please select a File to delete");
+                    return;
+            }
+            var current_rowid = m_selectedFileGrid.getSelectedRowId().split(",")[0];
+            var rowIndex = m_selectedFileGrid.getRowIndex(current_rowid);
+            //delete row
+            m_selectedFileGrid.deleteSelectedRows();
+            //select row with same index to allow quick delete
+            m_selectedFileGrid.selectRow(rowIndex);
+            return true;
+        }
+        return true;
+    });
+
+    m_selectedFileGrid.init();
+
+    m_selectedFileGrid.attachEvent("onDrag",function(sid,tid){
+    // copies an item instead of moving it
+        //if target id is undefinded, we got something from a different grid. if defined we are in own grid
+        if (tid){
+            m_selectedFileGrid.dragContext.mode="move"; 
+        }else{
+             m_selectedFileGrid.dragContext.mode="copy"; 
+        }
+        return true;
+    });
+    
+    m_selectedFileGrid.attachEvent("onDragIn", function(dId,tId,sObj,tObj){
+        //prevent dropping into empty space, it would create a copy of current row
+        if (sObj == tObj){
+            if (tId === undefined){
+                return false;
+            }
+        }
+        return true;
+    });
+
+    m_selectedFileGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
+        //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
+        if (colindex == 3){//sorted by file size
+            m_selectedFileGrid.sortRows(6,"int",dir);
+            m_selectedFileGrid.setSortImgState(true,3,dir);//this is important to let the js grid know how it is sorted (not just the user)
+            return false;//do not allow grid to apply default sorting
+        }
+        return true ;
+    });  
+
+    //allow drag and drop of "links" onto selected files grid
+    document.getElementsByClassName("objbox")[1].ondragover = allowDropText
+    document.getElementsByClassName("objbox")[1].ondrop = dropText
+    function allowDropText(ev) {
+        ev.preventDefault();
+    }
+
+    function dropText(ev) {
+        //steinars personal function ;-)
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text");
+        var newId = (new Date()).valueOf();
+        var newrowdata = {};
+        newrowdata["Filename"] = decodeURIComponent(data);
+        newrowdata["Path"] = data;
+        newrowdata["is_folder"] = false;
+        newrowdata["Modified"] =  "";
+        newrowdata["Created"] = ""
+        newrowdata["original_size"] = 100;
+        newrowdata["Size"] = 100;
+        newrowdata["source_of_adding"] = "Drop";
+        m_selectedFileGrid.addRow(newId,[]);
+        m_selectedFileGrid.setRowData(newId,newrowdata);
+    }
+    
+    //file uploaded event
+    vault.events.on("BeforeAdd", function(file){  
+    // file is an object with details
+        if (!window.onbeforeunload){
+            window.onbeforeunload = function(){  
+                return 'Are all uploads complete?';
+            };
+        }
+
+        return true;   
+    });
+
+    vault.events.on("UploadComplete", function(files,other){
+        for (i=0;i<files.length;i++){
+
+            if (files[i].status != "uploaded") //onUploadFailEvent did not work, we must catch errors this way
+                continue
+            
+            var newId = (new Date()).valueOf() + Math.random();
+            var newrowdata = {};
+            newrowdata["Filename"] = files[i].name;
+            newrowdata["Path"] = files[i].name;
+            newrowdata["is_folder"] = false;
+            newrowdata["Modified"] =  new Date(files[i].file.lastModified).toISOString();
+            newrowdata["Created"] = new Date(files[i].file.lastModified).toISOString()
+            newrowdata["original_size"] = files[i].size;
+            newrowdata["Size"] = files[i].size;
+            newrowdata["source_of_adding"] = "Upload";
+            console.log(files[i])
+            m_selectedFileGrid.addRow(newId,[]);
+            m_selectedFileGrid.setRowData(newId,newrowdata);
+        }
+        window.onbeforeunload = null
+    });
+    // vault.events.on("UploadFail", function(file){
+    //     alert("Upload failed");
+    // });
+
+    //file add remove event
+    headerMenu.attachEvent("onClick", function(id, zoneId, cas){
+            if (id == "add_customfile") {
+                var box = dhtmlx.modalbox({
+                    title:"New File",
+                    text: "Enter a Full Path (e.g. UNC) as seen by FFAStrans Server<br/><br/><input class='inform' type='text'>",
+                    buttons:["OK",  "Cancel"],
+                    callback: function(result){
+                        if (result == 0){
+                            var inputs = box.getElementsByTagName("input");
+                            var newId = (new Date()).valueOf();
+                            var newrowdata = {};
+                            var a_dirs = (inputs[0].value.split(/\\|\//));
+                            newrowdata["Filename"] = a_dirs[a_dirs.length-1];
+                            newrowdata["Path"] = inputs[0].value;
+                            newrowdata["is_folder"] = false;
+                            newrowdata["Modified"] =  "";
+                            newrowdata["Created"] = ""
+                            newrowdata["original_size"] = "";
+                            newrowdata["Size"] = "";
+                            newrowdata["source_of_adding"] = "Manual";
+                            m_selectedFileGrid.addRow(newId,[]);
+                            m_selectedFileGrid.setRowData(newId,newrowdata);
+                        }
+                    }
+                });
+            }
+            if (id == "remove") {
+                if (!m_selectedFileGrid.getSelectedRowId()){
+                    dhtmlx.alert("Please select a File to delete");
+                }
+                m_selectedFileGrid.deleteSelectedRows();
+            }
+         
+    });
+    
+	//file browser events
+	m_fileBrowserGrid.attachEvent("onRowSelect", function(id,ind){
+		//change folder 
+		if (m_fileBrowserGrid.cells(id,2).getValue() == "true"){
+			getFileList(m_fileBrowserGrid, m_fileBrowserGrid.cells(id,1).getValue())
+		}
+	});
+    
+	m_fileBrowseGridMenu.attachEvent("onClick", async function(id, zoneId, cas){
+        if (id == "delete_browsercache") { 
+			dhtmlx.message({
+				type:"confirm",
+				text: "This will reset stored locations, layout, last visited folder. Do you wish to continue?",
+				callback: function(ok) {
+					if (ok){
+						localStorage.clear();
+						location.reload();
+				    }
+				}
+			});
+			return;
+        }
+    
+                
+        if (id == "download"){
+            
+            var selectedrows =  m_fileBrowserGrid.getSelectedRowId().split(',');
+            
+            for (i = 0; i < selectedrows.length; i++) {
+                var rId = selectedrows[i];
+                window.open("/download?fullpath=" + encodeURIComponent(m_fileBrowserGrid.getUserData(rId,"fullpath")) +"&"+Math.random(), '_blank');
+                await sleep(100);
+            }
+            
+            return;
+        }
+
+		if (id == "select") {
+			if (!m_fileBrowserGrid.getSelectedRowId()){
+				dhtmlx.message("Please select a File in the file browser");
+				return;
+			}
+			selectFileToProcess();
+            return;
+		}
+        
+        if (id == "selectall") {
+            m_fileBrowserGrid.forEachRow(function(id){
+                if ( m_fileBrowserGrid.getRowIndex(id) != -1){
+                    if (! m_fileBrowserGrid.getCellByName(id,"is_folder").getValue()){//is_folder
+                        var newId = Math.random();
+                        m_selectedFileGrid.addRow(newId,"");
+                        var data_to_copy = m_fileBrowserGrid.getRowData(id);
+                        m_selectedFileGrid.setRowData(newId,data_to_copy);
+                        
+                        //m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
+                    }else{
+                        console.log("AddAll Excluded ", m_fileBrowserGrid.cells(id,1).getValue(), "because it is a folder")
+                    }
+                }
+            })
+            return;
+        }
+        
+        if (id == "savelocation"){
+            saveLocation();
+            return;
+        }
+        
+        if (id == "mediainfo"){
+			var rId = m_fileBrowserGrid.getSelectedRowId()
+			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
+			
+			get_mediainfo_analysis_html(file,function(_fileobj,minfo_html){
+				var dhxwins = new dhtmlXWindows();
+				//dhxwins.attachViewportTo(window.parent.document.body);
+				win_offset = 0;
+				var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/2);
+				win_offset+=30;
+				win.setText("File [" + file.name + "]");
+				win.attachHTMLString(minfo_html);
+				win.showInnerScroll(true);
+            });
+            return;
+        }
+        
+		if (id == "player"){
+			var rId = m_fileBrowserGrid.getSelectedRowId()
+			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
+			var fullfilepath = m_fileBrowserGrid.getUserData(rId,"fullpath");
+			if (fullfilepath.match(/C\$|D\$|E\$|F\$|G\$/gi)){
+				dhtmlx.alert("Sorry, VLC Player does not support files on Administrative shares (e.g. \\\\server\\c$\\). Alter your webinterface admin settings and a normal share instead, e.g. '\\\\server\\C_drive'");
+				return;
+			}
+
+            var _playerUrl = "player/player.html?file=" + encodeURIComponent(fullfilepath) + "&mediainfo_url="+encodeURIComponent(build_new_api_url("/getmediainfo?do_html=false&filepath=" + encodeURIComponent(fullfilepath)));
+            
+			var dhxWins = new dhtmlXWindows();
+			//dhxwins.attachViewportTo(window.parent.document.body);
+			win_offset = 0;
+			var win = dhxWins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, 600, 400);
+			win_offset+=30;
+			win.setText("File [" + file.name + "]");
+			console.log("Constructed url",encodeURIComponent(fullfilepath))
+			
+            win.attachURL(_playerUrl) ;
+            //win.attachHTMLString(playerhtml);
+			win.showInnerScroll(true);
+			dhxWins.attachEvent("onFocus", function(win){
+				console.log("global event onFocus was called for "+win.getText());
+			});
+
+			win.attachEvent("onBeforeMoveStart", function(whut){
+				win.bringToTop();
+				return true;
+			});
+            return;
+        }
+		
+        //in any other case, a location was chosen
+        getFileList(m_fileBrowserGrid,id)
+	})
+    
+    //disable auto job submission when another workflow is selected
+    
+    m_mainTabBar.attachEvent("onSelect", function(id, lastId){
+        saveRestoreUserState(id);
+        return true;
+    });
+    
+    m_workflowTabBar.attachEvent("onTabClick", function(id, lastId){ 
+        if (id=="workflowtab"){
+            //m_workflowTabBar.cells("variabletab").setText("Job Setup");
+            if (m_fileAddedEventId){
+                m_selectedFileGrid.detachEvent(m_fileAddedEventId);
+            }
+        }
+    })
+    
+    m_mainLayout.attachEvent("onPanelResizeFinish", function(){
+        console.log("m_mainLayout onPanelResizeFinish");
+        saveLayoutSizes(jobLayout,"jobLayout");
+        saveLayoutSizes(m_mainLayout,"m_mainLayout");
+    });
+    
+    jobLayout.attachEvent("onPanelResizeFinish", function(){
+        console.log("jobLayout onPanelResizeFinish");
+        saveLayoutSizes(jobLayout,"jobLayout");
+        saveLayoutSizes(m_mainLayout,"m_mainLayout");
+    });
+   
+
+
+//MAIN STARTING POINT
+    //load workflow list from API
+    m_mainLayout.cells("b").progressOn();
+    saveRestoreUserState(); //restores last selected tab
+    restoreLayoutSizes(jobLayout,"jobLayout");
+    restoreLayoutSizes(m_mainLayout,"m_mainLayout");
+    getWorkflows();
+    getBrowseLocations(show_browse);
+
+    var files_from_urlparam = getQueryVariable("file");
+    if (files_from_urlparam){
+        var _a_files = []
+        try{
+            _a_files = JSON.parse(files_from_urlparam);
+        }catch(ex){
+            _a_files .push(files_from_urlparam);
+        }
+        for (_f of _a_files){
+            var newId = (new Date()).valueOf();
+            var newrowdata = {};
+            newrowdata["Filename"] = _f.substring(_f.lastIndexOf('\\')+1);
+            newrowdata["Path"] = _f;
+            newrowdata["is_folder"] = false;
+            newrowdata["Modified"] =  "";
+            newrowdata["Created"] = ""
+            newrowdata["original_size"] = 100;
+            newrowdata["Size"] = 100;
+            newrowdata["source_of_adding"] = "URL";
+            m_selectedFileGrid.addRow(newId,[]);
+            m_selectedFileGrid.setRowData(newId,newrowdata);
+            
+            //m_selectedFileGrid.addRow(newId,[_f]);
+            m_mainLayout.cells("a").setMinWidth(0);
+            m_mainLayout.cells("a").setWidth(0);
+            jobLayout.cells("a").setHeight(150)
+            
+        }
+    }
+
+}
+
+
+function saveLayoutSizes(dhxLayout,name){
+//store layout cells height and with into html5 storage (in percentage of document height)
+    var aw = (dhxLayout.cells("a").getWidth()/document.body.scrollWidth ) ;
+    var ah = (dhxLayout.cells("a").getHeight()/document.body.scrollHeight ) ;
+    var bw = (dhxLayout.cells("b").getWidth()/document.body.scrollWidth ) ;
+    var bh = (dhxLayout.cells("b").getHeight()/document.body.scrollHeight ) ;
+    localStorage.setItem(name+"_aw",aw);
+    localStorage.setItem(name+"_ah",ah);
+    localStorage.setItem(name+"_bw",bw);
+    localStorage.setItem(name+"_bh",bh);
+    
+}
+
+function restoreLayoutSizes(dhxLayout,name){
+    if (localStorage.getItem(name+"_aw")){
+        var aw = localStorage.getItem(name+"_aw");
+        var ah = localStorage.getItem(name+"_ah");
+        var bw = localStorage.getItem(name+"_bw");
+        var bh = localStorage.getItem(name+"_bh");
+        dhxLayout.cells("a").setWidth(aw*document.body.scrollWidth);
+        dhxLayout.cells("a").setHeight(ah*document.body.scrollHeight);
+        dhxLayout.cells("b").setWidth(bw*document.body.scrollWidth);
+        dhxLayout.cells("b").setHeight(bh*document.body.scrollHeight);
+    }
+}
+
+
+function saveLocation(){
+    //saves current location to html5 storage
+    if (localStorage.getItem("lastVisitedBrowseLocation")){
+        //check if location is already there
+        if (m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")) != -1){
+            dhtmlx.alert("This path is already stored in Locations on Position: " + m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")))
+            return;
+        }
+        var _path = localStorage.getItem("lastVisitedBrowseLocation");
+                var box = dhtmlx.modalbox({
+                    title:"Save Current Location",
+                    text: "Please enter a display name for: <br/>"+_path+"<br/><br/><input class='inform' type='text'>",
+                    buttons:["Save",  "Cancel"],
+                    callback: function(result){
+                        if (result == 0){
+                            var inputs = box.getElementsByTagName("input");
+                            var newId = (new Date()).valueOf();
+                            _loc = {};
+                            _loc.displayname    = inputs[0].value + "&nbsp&nbsp<i style='cursor:pointer;float:right;margin-top:8px' class='fa fa-trash' aria-hidden='true' onclick=\"removeItemFromLocationMenu('"+escape(_path)+"')\" ></i>"
+                            
+                            _loc.path           = _path;
+                            var storedArray = localStorage.getItem("savedbrowselocations") || "[]";
+                            storedArray = JSON.parse(storedArray);
+                            
+                            storedArray.push(_loc);
+                            localStorage.setItem("savedbrowselocations",JSON.stringify(storedArray))
+                            m_fileBrowseGridMenu.addNewChild("location", _loc.path,  _loc.path, _loc.displayname, false,"","");
+                        }
+                    }
+                });
+    }else{
+        dhtmlx.alert("Cannot save location, you first have to browse to a folder that you want to save");
+    }
+}
+
+function removeItemFromLocationMenu(id){
+    dhtmlx.message({
+        type:"confirm",
+        text: "Delete this stored location?<br/><br/>" +unescape(id),
+        callback: function(ok) {
+            if(ok){
+                id= unescape(id)
+                //delete selected item from menu and local storage
+                    m_fileBrowseGridMenu.removeItem(id);
+                    if (localStorage.getItem("savedbrowselocations")){
+                        var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
+                        var newLocs = [];
+                        for (i=0;i<_locs.length;i++){
+                            if (_locs[i].path == id){
+                            }else{
+                                newLocs.push(_locs[i]);
+                            }
+                        }
+                        _locs = newLocs;
+                         localStorage.setItem("savedbrowselocations",JSON.stringify(_locs))
+                   }
+            }//if ok
+        }
+    });
+}
+
+function sort_custom(a,b,order){//dhtmlx grid custom sorting function 
+    if (a == ""){
+        return 1;
+    }
+    var n=a.toLowerCase().charCodeAt(0);
+    var m=b.toLowerCase().charCodeAt(0);
+    if(order=="asc")
+        return n>m?1:-1;
+    else
+        return n<m?1:-1;
+}
+
+function selectFileToProcess(){
+    //transfer selected file to processing grid
+    //for (rowId in m_fileBrowserGrid.getSelectedRowId().split(',')){
+    for (i = 0; i < m_fileBrowserGrid.getSelectedRowId().split(',').length; i++) {
+        var newId = Math.random();
+        m_selectedFileGrid.addRow(newId,"");
+        var data_to_copy = m_fileBrowserGrid.getRowData(m_fileBrowserGrid.getSelectedRowId().split(',')[i]);
+        m_selectedFileGrid.setRowData(newId,data_to_copy);
+    }
+}
+
+function constructpathLink(what){
+    /* navbar on top of filebrowser, we construct dynamic html here, sorry for that */
+    console.log("parsed path for navlink bar:",parse_path(what))
+    var html = "";
+    what = what.replace(/\\$/,"");
+    var parsed = parse_path(what);
+    var encoded = btoa(encodeURIComponent(parsed["root"]));
+    //add root 
+    var displaytext = parsed["root"].replace(/^\\\\/,"");
+    displaytext = displaytext.replace(/\\$/,"");
+        
+    html += '<div class="folder_browser_nav"><span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span></div>";
+    
+    var previous = "";
+    var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);
+
+    var prevdirs = "";
+    for(var i=0;i<a_dirs.length;i++){
+        if (a_dirs[i] ==""){
+            continue;
+        }
+        var current = a_dirs[i] + "\\";
+        var fullpath = btoa(encodeURIComponent(parsed["root"] + previous + current));
+        var displaytext = current.replace("\\","");
+        html += "<div class='folder_browser_nav'  style=''><span  onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)'>" + displaytext + " > </span></div>";
+        previous += current;
+
+        if (i==a_dirs.length-2){//pre-last folder, add levelup
+            //console.log("oneup: ",atob(fullpath),"adirs",a_dirs)
+            html = "<i onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
+        }
+    }
+
+    //finally prevent default dhtmlx onheaderclick sort action by wrapping into this div
+    html = "<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'>" + html + "</div>";
+
+    return html;
+}
+
+function parse_path (what){
+    var output = {};
+    if (what.match(/^(\\\\.+?)\\|^(.:\\)/)){
+        output["root"] = what.match(/^(\\\\.+?\\)|^(.:\\)/)[0] ; //windows drive and unc
+    }else{
+        output["root"] = "/";
+    }
+    
+    output["filename"] = what.substring(what.lastIndexOf('\\')+1);
+    output["dirs"] = what.replace(output["root"],"");
+    output["dirs"] = output["dirs"].substr(0, output["dirs"].lastIndexOf(output["filename"]))
+    return output;
+}
+
+function getFileList(dhtmlxGrid,path,path_is_base64 = false){
+//browse files on server
+        if(path_is_base64){
+            path = atob(path);
+            path = decodeURIComponent(path);
+        }
+        console.log("Navigating to ",path)
+        m_mainLayout.cells("a").progressOn();
+	    $.ajax({
+        url: "/filebrowser?name=" + encodeURIComponent(path) +"&"+Math.random(),
+        type: "GET",
+        success: function (response,textStatus, xhr) {
+            m_mainLayout.cells("a").progressOff();
+            localStorage.setItem("lastVisitedBrowseLocation", path);
+			//construct nav link bar
+            console.log("constructpathlink",path)
+            document.getElementById("current_folder").innerHTML = constructpathLink(path),
+            $(".folder_browser_nav").hover(function(evt,ele){
+                    $(this).addClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");  //Add the active class to the area is hovered
+                }, function (evt) {
+                    $(this).removeClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");
+            });
+            //loads file list into grid
+            dhtmlxGrid.clearAll();
+			dhtmlxGrid.parse(response,"json");
+            //sort by date
+            dhtmlxGrid.sortRows(4,"str","des");
+            dhtmlxGrid.setSortImgState(true,4,"des");
+            dhtmlxGrid.forEachRow(function(id){
+                //add tooltip to filename cell for preview image
+                
+                addAjaxTooltip(dhtmlxGrid,id)
+                addPreviewImage(dhtmlxGrid,id)
+			    //convert filesize to human readable
+				dhtmlxGrid.cells(id,3).setValue( (dhtmlxGrid.cells(id,3).getValue())); 
+                
+				if (dhtmlxGrid.cells(id,2).getValue() =="true"){
+                    //folders get a folder icon attached
+					dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="fancytree-icon"></span></span> ' + (dhtmlxGrid.cells(id,0).getValue()) );
+				}else{
+                    dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){
+                        selectFileToProcess();
+                    });
+                }
+			});
+
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR from filebrowser. " + path + " " + xhr.responseText);
+            m_mainLayout.cells("a").progressOff();
+        }
+    });
+}
+
+function addPreviewImage(dhxGrid,rowId){
+    var is_folder = dhxGrid.getCellByName(rowId,"is_folder").getValue();
+    if (is_folder)
+        return;
+    
+    var fullpath = dhxGrid.getUserData(rowId,"fullpath")
+    var is_folder = dhxGrid.getCellByName(rowId,"preview").setValue("<div class='previewcontainer' style=''><img class='previewimg' alt='' loading='lazy' onclick='this.requestFullscreen()' src='/getjpeg?fullpath="+encodeURIComponent(fullpath)+"'></img></div>");
+}
+
+function addAjaxTooltip(dhxGrid,rowId){
+    /* on row hover, we call getjpeg for ffmpeg extracting image and display as tooltip */
+    var name_cell = dhxGrid.getCellByName(rowId,"Filename").cell //dhxGrid.cells(rowId,0).cell;
+    var is_folder = dhxGrid.getCellByName(rowId,"is_folder").getValue();
+    if (is_folder)
+        return;
+    console.log("is_folder",is_folder)
+    var fullpath =  dhxGrid.getUserData(rowId,"fullpath");
+    var instance = tippy(name_cell, {
+        allowHTML: true,
+        delay: [700],
+        followCursor: false,
+        custom_field_is_hidden : false,
+        onMount(instance) {
+            //instance.hide();
+        },
+        onCreate(instance) {
+            // Setup our own custom state properties
+            instance._isFetching = false;
+            instance._src = null;
+            instance._error = null;
+        },
+        onShow(instance) {
+                console.log("attaching scroll listener");
+                $(".objbox").on("scroll",function(){
+                        console.log("Hiding img preview due to scroll")
+                        instance.hide(0);
+                        //unbind event listener so we dont overflow
+                        $(".objbox").off("scroll");
+                    }
+                )
+
+                if (instance._isFetching || instance._src || instance._error) {
+                    console.log("isfse")
+                    return;
+                }
+                //load image!
+                instance._isFetching = true;
+                fetch('/getjpeg?fullpath=' + encodeURIComponent(fullpath) )
+                .then(function (response){ 
+                    if (!response.ok)
+                        throw new Error("getjpg error");
+                    console.log("response",response)
+                    return response.blob();
+                })
+                .then((blob) => {
+                    console.log("blob",blob)
+                    const src = URL.createObjectURL(blob);
+                    instance._src = src;
+                    //instance.hide();
+                    instance.setContent('<img style="max-width:320"  src="'+src+'"/>' );
+                    if (!instance.custom_field_is_hidden) //prevent showing image after ajax load when mouse is already out
+                        instance.show();
+                    //hide whenever grid is scrolled
+
+                })
+                .catch((error) => {
+                    console.log("image loading failed, hiding tooltip")
+                    instance._error = error;
+                    instance.hide();
+                    return false;
+                })
+                .finally(() => {
+                    instance._isFetching = false;
+                });
+            },
+            onUntrigger(instance, event) {
+                //prevent showing image after ajax load when mouse is already out
+                instance.custom_field_is_hidden = true;
+            },
+            onHidden(instance) {
+                instance._error = null;
+            },
+        });
+
+
+}
+
+async function getBrowseLocations(restore_saved = true){
+   //locations from admin config
+   try{
+        var locations = await loadBrowseLocations();
+        Object.keys(locations).forEach(function(displayname) {
+            var path = locations[displayname];
+            m_fileBrowseGridMenu.addNewChild("location", new Date(), path, displayname, false,"","");
+        });
+
+        // for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
+                
+        // }
+        
+        //restore user locations
+        if (localStorage.getItem("savedbrowselocations")){
+                var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
+                for (i=0;i<_locs.length;i++){
+                    m_fileBrowseGridMenu.addNewChild("location", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
+                }
+        }
+        
+        if (localStorage.getItem("lastVisitedBrowseLocation") &&  restore_saved){
+                getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
+        }else{
+                getFileList(m_fileBrowserGrid, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][0]);    //load first available location
+        }
+   }catch(ex){
+        dhtmlx.alert("There was an error loading allowed Browse locations, contact Administrator");
+        console.error(ex);
+   }
+}
+
+async function on_gridWorkflowSelected(wf_name,wf_object){
+    console.log("selwf",wf_object)
+
+    document.getElementById("variables_form").innerHTML = "";
+    var layout = new dhx8.dhx.Layout("variables_form", {
+                                            type: "space",
+                                            rows: [
+                                                {
+                                                    id: "top",
+                                                    html:"<div id='form_wf_description' style='font-weight:bold;font-size:14px;margin: 5px'></div><div id='form_wf_form'></div>"
+                                                },
+                                            ]
+                                        });
+    
+    //called from select event of grid select
+    //populates start processor drowdown
+    localStorage.setItem("lastselectedworkflow",wf_object["wf_id"]);
+    m_workflowTabBar.cells("variabletab").setActive();
+    m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
+    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
+    
+    wf_object.variable["start_procs"] = []
+    for (i=0;i<wf_object["nodes"].length;i++){
+        if (wf_object["nodes"][i]["start_proc"])
+            wf_object.variable["start_procs"].push(wf_object["nodes"][i]);
+    }
+
+    //get start processors
+    var proc_root = wf_object.variable["start_procs"] || wf_object.variable["start_proc"];
+    if (!proc_root){
+        dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
+        console.log(wf_object)
+    }
+
+    var startProcSelectFormItm = {
+        name: "start_proc",type: "select", value: "",label: "Start Processor:",disabled: false,labelPosition: "left",
+        selectAllButton: false,required: true,readonly: true,hidden: true,options: [ ]
+    };
+
+    //create a form combo item containing all start procs
+    var _sp_id = getQueryVariable("start_proc"); //support selecting start proc via url
+    for (var i=0;i<proc_root.length;i++){
+        if (i>0)
+            startProcSelectFormItm.hidden = false
+        var proc = proc_root[i];
+        var proc_name_default=  proc["name"] || proc["type"]; //on non renamed nodes, name is not defined
+        startProcSelectFormItm.options.push({content:proc_name_default,value:proc_root[i]["id"]});
+        if (i==0 || _sp_id == proc_root[i]["id"]){
+            startProcSelectFormItm.value = proc_root[i]["id"]; //auto select first startproc (or the one from url param)  
+            if ( _sp_id == proc_root[i]["id"]){
+                startProcSelectFormItm.hidden = true //hide start proc if it was submittted via url param
+            }
+        }
+                
+    }
+
+    
+    //get user variables for selected workflow
+    
+    try{
+        //try updating workflow variables
+        var workflowdetails =  await $.ajax({
+            url:  ("/getworkflowdetails" + "?workflowid=" + wf_object["wf_id"] ),
+            type: "GET",
+            crossDomain: true,
+            dataType: "json"})
+        wf_object.user_variables.variables = workflowdetails.workflows[0].user_variables.variables;
+    }catch(ex){
+        console.log("getworkflowdetails failed, this is only OK in alternate-server mode");
+    }
+
+    //parse workflow description
+    var wf_description = wf_object["description"] || "";
+    wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
+
+    var all_form_rows = []; 
+    //add form text field for wf_desc
+
+    all_form_rows.push(startProcSelectFormItm);
+    if (wf_description != ""){
+        document.getElementById("form_wf_description").innerHTML = wf_description;
+    }
+    //all_form_rows.push({name: "wf_description",type: "text", value: wf_description,css:"job_submit_wf_description" })
+    
+    //push user variables into form rows
+    var dhxform_user_vars = webuiVariables_processVariables(wf_object.user_variables.variables)//(workflowdetails.workflows[0].user_variables.variables)
+    console.log("dhxform_items",dhxform_user_vars)
+    all_form_rows.push(...dhxform_user_vars);
+    //add form start btn
+    var startBtnFormItm = {"view":"flat","css":"dhxform_obj_dhx_skyblue","width":"200","circle":true,"full":true,"type":"button","name":"btn_save","text":"Start","color":"primary"};
+
+    const vars_form = new dhx8.dhx.Form("form_wf_form", {
+                //css: "dhx_widget--bordered",
+                rows: [ 
+                        ...all_form_rows,
+                        startBtnFormItm
+                    ]
+            });
+
+    vars_form.getItem("btn_save").events.on("click", async function(events){
+        startJobs(vars_form,wf_object);
+    })
+
+    //finally add form to layout
+    //layout.getCell("top").attach(vars_form); 
+
+    //
+
+    // var itemData = {type: "select",name: "start_proc", width:200,options: options,  offsetLeft:10};  
+    // m_mainForm.addItem("data", itemData, 2);
+    // m_mainForm.setUserData("start_proc", "workflow_object", wf_object);       //store selected workflow along with start_proc
+
+    // //hide whole startproc selection if there is only a single startproc
+    
+    // if (options.length == 1){
+    //     document.getElementById("mainform").style.display = "none";
+    // }else{
+    //     document.getElementById("mainform").style.display = "";
+    // }
+
+    //switch to variables tab
+    //on_processorSelected(wf_object);                                           //auto select first processor    
+    
+}
+
+
+function on_processorSelected(selectedWorkflow){
+    /*
+        called from onChange function of Form
+        populates variables and start  button
+        due to unknown reason (maybe bug), we have to ask STATIC_GET_WORKFLOWS_URL for workflow variables. The details we already have don't contain the user_vars
+    */
+
+    // var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
+    //workaround load user_variables from workflow api call
+    $.ajax({
+        url:  ("/getworkflowdetails" + "?workflowid=" + selectedWorkflow.wf_id ),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        context: this,
+        success: function (response) {
+
+
+            // console.log(response)
+            // console.log("getworkflowdetails",response)
+            // //rebuild subform for variable selection
+            // if (m_subForm){
+            //     m_subForm.unload();//clear existing form items
+            //     m_subForm = null;
+            // }
+            // m_subForm  = new dhtmlXForm("subform"); //html element id subform already exists in mainform body
+
+            // //add workflow description to UI display
+            // var wf_description = selectedWorkflow["description"] || "";
+            // wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
+            // m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10}),
+            // m_subForm.enableLiveValidation(true);
+            // m_subForm.attachEvent("onButtonClick", function(name){
+            //     if(name == "submit"){
+            //         startJobs();
+            //     }
+            // });             
+             
+            // if (! response['user_variables'] || response['user_variables'] == "undefined"){
+            //     alert("ERROR Did not get Information for workflow " + selectedWorkflow.wf_id + "\nThis can happen when the workflow was never used or you deleted the cache directory. \n It will go away when you play with workflow variables, read more about it here:\n http://www.ffastrans.com/frm/forum/viewtopic.php?f=4&t=796");
+            //     return;
+                
+            // }else{
+            //     //ok, we have the workflow info, populate user variables and start btn
+            //     if (!("user_variables" in response)){
+			// 		m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);                
+            //         return;
+            //     }
+            //     console.log("user_vars response: ",response["user_variables"])
+            //     try{
+
+            //     }catch(ex){
+            //         console.log("Error parsing user_Variables,",ex);
+            //         alert("Contact Administrator, Error parsing user_variables of the selected workflow.\n" + ex)
+            //     }
+            //     var dhxform_items = processWebUiVars(response["user_variables"]);
+            //     console.log("parsed user vars",dhxform_items)
+            //     for (var i=0;i<dhxform_items.length;i++){
+            //         m_subForm.addItem(null,dhxform_items[i]);
+            //     }
+            //     m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"});
+            // }
+              
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("ERROR in getworkflowdetails for " +selectedWorkflow.wf_id );
+            console.log(xhr,status)
+        }
+    });
+}
+
+function getWorkflows(){
+
+    $.ajax({
+        url:  "/getworkflowlist",//buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        success: function (response) {
+            if (response['workflows'].length == 0){
+                alert("Did not get any workflows from FFASTRANS API");
+            }else{
+                m_workflowArray = response['workflows'];
+                
+                m_mainLayout.cells("b").progressOff();
+                m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
+                m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+                //search button 
+                $("input[name=wf_filter]").keyup(function(e){
+                  var n,
+                        tree = $.ui.fancytree.getTree(),
+                        opts = {},
+                        filterFunc = tree.filterNodes,
+                        match = $(this).val();
+                        if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                            tree.clearFilter();
+                            return;
+                        }
+                    // Pass a string to perform case insensitive matching
+                    n = filterFunc.call(tree, match, opts);
+                }).focus();
+                
+                //finally build workflow tree
+                parseWorkflows(m_workflowArray,{"selectMode":1,"extensions":["filter"],"dom_id":"workflowtree"},function(){/*no select func*/},on_gridWorkflowSelected);
+                //restore user selection from last time
+                if (localStorage.getItem("lastselectedworkflow")){
+                    var tree = $("#workflowtree").fancytree("getTree");
+                    var n = localStorage.getItem("lastselectedworkflow")
+                    if (n && n!= "undefined"){
+                        //var node = tree.findAll(n)[0]
+                        var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"))
+                        if (node && node!= "undefined"){
+                            node.setSelected(true);
+                            node.parent.setExpanded(true);            
+                        }
+                    }
+                }
+
+				//select wf from url
+                /*
+                //if there is only 1 workflow, select it
+                if (m_workflowArray.length == 1){
+                    var tree = $("#workflowtree").fancytree("getTree");
+                    var onlynode = tree.getFirstChild();
+                    on_gridWorkflowSelected(onlynode.title,onlynode.data["wf_object"]);
+                }*/
+				var _wf_id = getQueryVariable("wf_id");
+				if(_wf_id){
+						var tree = $("#workflowtree").fancytree("getTree");
+						var node = tree.getNodeByKey(_wf_id)
+                        if (node && node!= "undefined"){
+                            on_gridWorkflowSelected(node.title,node.data["wf_object"]);
+                        }
+				}
+
+            }
+        },
+        error: function (xhr, status) {
+            m_mainLayout.cells("b").progressOff();
+            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+        }
+    });
+}
+
+async function startJobs(form,selectedWorkflow){
+
+    function collectVariables(form){
+        var formvars = form.getValue();
+        var keys = Object.keys(formvars);
+        var ffasvars = [];
+        for (var i=0;i<keys.length;i++){
+            if (typeof(formvars[keys[i]]) != "string")
+                formvars[keys[i]] = JSON.stringify(formvars[keys[i]]); //generic dhtmlx form elements can return objects/arrays
+            if (keys[i] == "start_proc")
+                continue
+            ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+        }
+        return ffasvars;
+    }
+    var ffasvars = collectVariables(form);
+    ffasvars.push({"name":"s_job_submit_username","data":m_logged_in_username});
+    console.log("FFASVars: ",ffasvars);
+    //validate form 
+    
+    if (!form.validate(true)){ //hides green validated rows
+        form.validate(false) //displays red validated rows
+        dhtmlx.alert("Cannot submit because of invalid Form Fields. Please check your inputs.");
+        return;
+    }
+
+
+    //var selectedWorkflow = m_mainForm.getUserData("start_proc", "workflow_object");
+    if (m_selectedFileGrid.getRowsNum() == 0){
+        dhtmlx.alert("Please add files to the list top right before starting")
+        return;
+    }
+
+    // //kick off one workflow per file in grid
+    // if (m_selectedFileGrid.getRowsNum() == 0){
+        
+    //     if (selectedWorkflow.description.indexOf("webui_stitch") != -1){
+    //         dhtmlx.alert("The selected workflow supports multiple input files, please add files to the list before starting.");
+    //         return;
+    //     }
+
+    //     dhtmlx.message("Workflow will be started as soon as files are added (e.g. Drag/drop from left or Upload finished)")
+    //     m_subForm.disableItem("submit");
+    //     //m_subForm.getInput("submit");
+    //     m_subForm.setItemLabel("submit", "Waiting for new Files...");
+    //     m_subForm.addItem(null, {type: "button", name:"stop",offsetLeft:10,width:200,value: "Stop auto Job submit"});
+    //     m_subForm.attachEvent("onButtonClick", function(name){
+    //         if (name == "stop"){
+    //             m_selectedFileGrid.detachEvent(m_fileAddedEventId);
+    //             m_subForm.removeItem("stop");
+    //             m_subForm.enableItem("submit");
+    //             m_subForm.setItemLabel("submit", "Start");
+    //         }
+    //     })
+    //     m_fileAddedEventId = m_selectedFileGrid.attachEvent("onRowAdded", function(id,ind){
+    //         //auto start jobs when new file added
+    //         startJobs();
+    //     });
+    //     return;
+    // }
+
+    //construct submit job POST Body template
+    var postBody = {}; //the JSON Structure for start job api
+    postBody.wf_id = selectedWorkflow.wf_id;
+    var selectedStartProc = form.getItem("start_proc").getValue()//m_mainForm.getSelect("start_proc").selectedOptions[0].value;
+    postBody.start_proc = selectedStartProc;
+    postBody.variables = ffasvars;
+    postBody.system = "FFAStrans Web Interface";
+    
+    if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){
+        //stitch mode, submit all files as array!
+        var all_files = [];
+        var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+        for (var i = 0; i<gridrows_sorted.length;i++){
+            var id = gridrows_sorted[i];
+            var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
+            var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
+            var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
+            
+            if (source == "Upload"){
+                _filepath = m_realUploadpath + _filepath;
+            }
+            all_files.push(_filepath.replace(/&amp;/g, '&'));
+            m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
+            m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
+        }//foreach gridrow
+        //start one job for all files
+        postBody.inputfile = JSON.stringify(all_files); 
+        var jobid = await startJobApiCall(postBody);
+        var firstId = gridrows_sorted[0]
+        waitForJobToFinish(firstId,jobid);
+
+    }else{
+        
+        //one job per file mode
+        var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+        console.log("rowid3es:",gridrows_sorted)
+        m_selectedFileGrid.forEachRow(async function(id){
+            var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
+            var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
+            var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
+            if (_state){
+                //row was already submitted
+                dhtmlx.message("Already submitted " + _filepath);
+                return;
+            }
+            if (source == "Upload"){
+                console.log("Source is upload:",_filepath)
+                _filepath = m_realUploadpath + _filepath;
+            }
+            //in foreach file mode, we create a copy of postbody otherwise foobar will happen
+            var postBody_clone = JSON.stringify(postBody);
+            postBody_clone = JSON.parse(postBody_clone);
+            postBody_clone.inputfile = _filepath.replace(/&amp;/g, '&');
+            m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
+            m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
+            
+            //start one job per file
+            var jobid = await startJobApiCall(postBody_clone);
+            waitForJobToFinish(id,jobid);
+
+        });
+    }
+}
+
+async function waitForJobToFinish(rowId,jobId){
+    /* waits until ffastrans job is finished, updates job status */
+    console.log("waiting for finish",jobId)
+    //m_selectedFileGrid.setUserData(rId,"fullpath",));
+    var this_interval = window.setInterval(async function(){
+        var response =  await $.ajax({url:  "/getjobstate?id=" + jobId});
+        if (!("jobs" in response))
+            return;
+
+        var statefield = m_selectedFileGrid.getCellByName(rowId,"Status");
+        statefield.setValue("Running");
+        if (response.all_finished)
+            statefield.setValue("Success");
+        if (response.all_failed)
+            statefield.setValue("Error");
+
+        if (response.jobs.length == 0)
+            return;
+        var statusText = response.all_messages;
+        if (response.progress)
+            statusText = response.progress+"% " + statusText; 
+        
+        if(statusText != "" && statusText != " ")
+            m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(decodeEntities(statusText));
+        console.log("statustext",statusText)
+        //stop job polling if all are finished
+        if (response.all_finished)
+            window.clearInterval(this_interval)
+    },3000);
+}
+
+function decodeEntities(encodedString) {
+    var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+    var translate = {
+        "nbsp":" ",
+        "amp" : "&",
+        "quot": "\"",
+        "lt"  : "<",
+        "gt"  : ">"
+    };
+    return encodedString.replace(translate_re, function(match, entity) {
+        return translate[entity];
+    }).replace(/&#(\d+);/gi, function(match, numStr) {
+        var num = parseInt(numStr, 10);
+        return String.fromCharCode(num);
+    });
+}
+
+async function startJobApiCall(postBody){
+    try{
+        var response =  await $.ajax({
+            url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+            type: "POST",
+            crossDomain: true,
+            contentType: "application/json; charset=UTF-8",
+            data: JSON.stringify(postBody)
+        });
+        return response.job_id;
+    }catch(ex){
+        dhtmlx.message("Error, Job Could not be started, check console logs")
+        console.log("Error starting job",ex)
+    }
+}
+
+function saveRestoreUserState(tabbarId){
+//stores/restores some user settings
+    if (!tabbarId){
+        if (localStorage.getItem("tabbaritemselected")){
+            if (m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected"))){
+                m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected")).setActive();
+            }
+        }
+    }else{
+        
+        localStorage.setItem("tabbaritemselected",tabbarId);
+    }
+}
+
+function createElementFromHTML(htmlString) {
+    var div = document.createElement('div');
+    div.innerHTML = htmlString.trim();
+    return div.firstChild;
+}
+
+function getQueryVariable(variable) {
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+  for (var i=0;i<vars.length;i++) {
+    var pair = vars[i].split("=");
+    if (pair[0] == variable) {
+      return decodeURIComponent(pair[1]);
+    }
+  } 
+}
+
+
+function _getObjectByValue(object, value) {//helper
+        var to_return = [];
+        for (var _idx in object){
+           var _v =  object[_idx]["key"];
+           if (_v == value){
+            to_return.push(object[_idx]);
+           }
+        }
+        return to_return;
+    }
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function buildUrl(what){
+    return "/proxy" + what;
+    var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
+    return  _url;
+}
+
+</script>
+
+</head>
+<body onload="loadserverconfig()">
+    <img id="imgfullscreen" src=""></img>
+</body>

@@ -97,10 +97,16 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 						console.log("AD is not set up in global config: ",global.config)
 						return done("Username " + username + " is not known")
 					}
+                    
+                    var uname = username + "@" + global.config["ad_config"]["ad_fqdn"];
+                    //if username contains already @, do not add it automatically
+                    if (username.indexOf("@")!= -1)
+                        uname = username;
+
 					var adopts = {
 							url: 'ldap://'+global.config["ad_config"]["ad_fqdn"]+':'+global.config["ad_config"]["ad_port"],
 							baseDN: global.config["ad_config"]["ad_basedn"],
-							username: username + "@" + global.config["ad_config"]["ad_fqdn"],
+							username: uname,
 							password: passwd
 					}
 					
@@ -113,13 +119,13 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					var groups_cn_only = [];
 					groups.forEach(function(_obj){
 						try{
-							console.log(_obj["cn"])
-						   groups_cn_only.push(_obj["cn"]);
-						   
+						    console.log(_obj["cn"]);
+						    groups_cn_only.push(_obj["cn"]);
 						}catch(ex){
 							console.error("Unexpected error parsing groups from ad user ", ex)
 						}
 					});
+                    groups_cn_only.push("Domain Users"); //Domain Users is not returned by AD so we add it to every user here
 					console.log("Parsed AD groups for user",username,groups_cn_only)
 					var group_exists = false;
                     var intersection_groups = [] //groups that exist locally and user has in ad are stored to users group list
@@ -130,7 +136,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
                             group_exists = true;
                             intersection_groups.push(_gid);
                         }
-						console.log(_gid,"exists in db?",group_exists)
+						console.log(_gid,"exists in db?",group_exists);
 					}
 					//check if any of the users groups exists in db
 					if (!group_exists){

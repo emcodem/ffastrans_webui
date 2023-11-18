@@ -1,40 +1,47 @@
+var userpermissions = require("../userpermissions");
+
 module.exports = function(app, express){
-//serve and store admin config as dhtmlx form json config 
-var configServer = require(global.approot  + '/node_components/server_config');
-	app.get('/getactivejobsajax_treegrid', (req, res) => {
-		//this should only be called by the client on loading
-        try{
-			if (req.method === 'GET' || req.method === 'POST') {
-                //var jobfetcher = require("./../cron_tasks/jobfetcher");
-                global.jobfetcher.fetchjobs();
-                res.status(200);//Send error response here
-                res.end();
+
+//returns filtered list of activejobs based on user permissions
+
+  var configServer = require(global.approot  + '/node_components/server_config');
+	app.get('/getactivejobsajax_treegrid', async (req, res) => {
+      //BEWARE, there can potentially be many requests per second to this
+      try{
+            var lastactive = JSON.parse(global.lastactive);
+            if (lastactive.length == 0){
+              res.json([]);
+              return;
+            }
+            //filter based on user permissions
+            var allowedWorkflows = [];
+            var allWorkflows = await global.db.jobs.distinct("workflow");
+            if (req.user){
+              //serve only workflows the user has rights for
+              for (let _wf of allWorkflows){
+                if (await userpermissions.checkworkflowpermission(req.user.local.username,_wf)){
+                  allowedWorkflows.push(_wf);
+                }
+              }
+            }else{
+              allowedWorkflows = allWorkflows;
             }
             
-        }catch (ex){
-            console.error("getactivejobsajax_treegrid error calling fetcher "+ ex)
-            res.status(500);//Send error response here
-            res.end();
-        }
+            var allowed = []
+            for(var i=0;i<lastactive.length;i++){
+              if ( allowedWorkflows.includes(lastactive[i].wf_name))
+                allowed.push(lastactive[i])  
+            }
+            
+
+            res.json(allowed);//Send error response here
+            
+      }catch (ex){
+        console.error("getactivejobsajax_treegrid error calling fetcher "+ ex);
+        res.status(500);//Send error response here
+        res.end();
+      }
 	});
 }
 
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
-
-function hashCode (string) {
-//this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
-  var hash = 0, i, chr;
-  if (string.length === 0) return hash;
-  for (i = 0; i < string.length; i++) {
-    chr   = string.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
-  
-  
-  
   

@@ -9,12 +9,11 @@ module.exports = async function(app, passport){
             var last_active     = JSON.parse(global.lastactive);
             var last_history    = JSON.parse(global.lasthistory);
             var hjobs = last_history.history;
-            var ajobs = last_active.jobs;
+            var ajobs = last_active;
 
             var all = [...hjobs, ...ajobs];
 
             var found =  [];
-            
             var failed_count = 0; 
             var finished_count = 0;
             var good_messages = "";
@@ -26,7 +25,8 @@ module.exports = async function(app, passport){
                 //status or result is the "message"
                 if (j.job_id == search_for_id){
                     found.push(j);
-                    if (j.state > 1){
+                    //running jobs have a status field, finished jobs result instead
+                    if (j.result && j.state != 1 && j.state != -1){//only finished jobs have result
                         failed_count ++;
                         bad_messages += "result" in j ?  " " + j.result : " " + j.status; 
                     }else{

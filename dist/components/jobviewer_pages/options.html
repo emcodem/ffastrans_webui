@@ -1,0 +1,129 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="../../dependencies/jquery/jquery.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+<link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
+<link href="../../dependencies/bootstrap/bootstrap-4.6.0-dist/css/bootstrap.min.css" rel="stylesheet" >
+<script src="../../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
+
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
+<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
+
+<script src="../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+<link rel="stylesheet" href="../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width:100%;
+        height:100%
+        margin: 0 px;
+        overflow: hidden;
+    }
+
+	hr {
+	  margin-top: 1rem;
+	  margin-bottom: 1rem;
+	  border: 0;
+	  border-top: 1px solid rgba(0, 0, 0, 0.1);
+	}
+    div, label, input{
+        font-size:12px; 
+       
+    }
+    form{
+        width:100%
+    }
+    
+    label{
+        display:block;
+    }
+    legend{
+        width:initial;
+    }
+   
+</style>
+
+
+<script>
+/* stores jobviewer config in localStorage, reloads page on change */
+$(document).ready(function(){
+    var m_subForm  = new dhtmlXForm("optsform");
+    m_subForm.addItem("data", {type: "input", width:40,name: "jobviewer_rows_per_page", label: "Rows per Page:",  offsetLeft:10, value: localStorage.getItem("jobviewer_rows_per_page") || 100});
+    m_subForm.addItem("data", {type: "checkbox", name: "jobviewer_showrowcolors_history", label: "Row Colors:",  offsetLeft:10,checked:localStorage.getItem("jobviewer_showrowcolors_history") });
+    m_subForm.addItem("data", {type: "button", value:"Save",offsetLeft:10 });
+      
+    m_subForm.attachEvent("onButtonClick", function(name){
+        var is_valid = true;
+        m_subForm.forEachItem(function(name){
+        //collect user_variables
+            var value = m_subForm.getItemValue(name);
+            if (name == "jobviewer_showrowcolors_history"){
+                localStorage.setItem(name,value);
+            }
+            if (name == "jobviewer_rows_per_page"){
+                if (!value.match(/^\d+$/) || value == "0" ){
+                    alert("Enter a valid number in rows per page");
+                    is_valid = false;
+                    return;
+                }
+                if (value > 1000){
+                    alert("Value for rows per page is too large, max is 1000");
+                }
+                localStorage.setItem(name,value);
+                
+            }
+            
+        })
+        if(is_valid)
+            parent.window.location.reload();
+    }); 
+
+    $("#savebtn").click(function(e) {
+        //we rely here on the fact that even if we are an iframe, the main page will benefit from the stuff in localstorage that we set here.
+
+    });
+   
+
+});
+
+
+
+
+</script>
+
+</head>
+
+<body>
+    <div id="optsform">
+<!-- <div class="dhxform_base">
+    <form class="dhxform_obj_dhx_skyblue" style="width:90%" >
+        <div class="fs_dhxform_item_label_top" style="padding-left: 20px !important; padding-top: 20px !important; ">
+            <fieldset class="dhxform_fs" style="padding-left:20px">
+                <legend class="fs_legend" >Style</legend>
+                <div class="dhxform_item_label_left" style="padding-left: 10px !important;">
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input active" id="showRowColorsCheckbox" >
+                    <label class="form-check-label" for="showRowColorsCheckbox">Enable Row Colors for Job Status</label>
+                </div>
+                <div class="dhxform_control" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                    <input id="" class="dhxform_textarea"  type="TEXT" ></input>
+               </div>             
+               
+               
+                    <div class="dhxform_label dhxform_label_align_left" title="Enter some filename"><label for="savebtn">Output Filename:</label></div>
+                    <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                        <div id="savebtn" style="cursor:pointer !important;" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
+                    </div>               
+                </div> 
+            </fieldset>
+            
+        </div>
+
+    </form>
+</div> -->
+</div> 
+</body>
+
+</html>

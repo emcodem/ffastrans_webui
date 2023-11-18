@@ -53,6 +53,7 @@ module.exports = {
     startJob: (job,callbackSuccess,callbackError) => {
         console.log("Starting job:");
         console.log(job);
+        job.system = "FFAStrans Web Interface";
         Request({ url: buildApiUrl(global.config.STATIC_START_JOB_URL), method: 'POST',body:job}, function(error, response, body){ 
             if (error){
                 console.log(error);

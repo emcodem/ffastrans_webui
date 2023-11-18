@@ -41,7 +41,7 @@ function init(){
                     id: "form",
                 },
                 {
-                    id: "docs",
+                    id: "documentation",
                 },
             ]}
         ]
@@ -68,7 +68,7 @@ function init(){
                 inputType: "number", 
                 value: m_serverconfig["STATIC_WEBSERVER_LISTEN_PORT"],
                 type: "input",
-                label: "WebUI Port",
+                label: "Webinterface Port",
                 labelPosition: "left",
                 labelWidth: label_width,
                 preMessage:"Port of webinterface, default 3002. Use 443 when HTTPS is enabled. Port 80 can be used if it is free."
@@ -94,7 +94,8 @@ function init(){
                     ]
                 },
                 label: "Protocol",
-                labelPosition: "left"
+                labelPosition: "left",
+                preMessage:"If you enable https, please check webinterface/cert/readme.txt"
                 },
             {
                 name: "STATIC_WEBSERVER_HTTPS_PK_PASSWORD",
@@ -114,6 +115,7 @@ function init(){
                 labelPosition: "left",
                 labelWidth: label_width,
                 required:true,
+                preMessage:"Is FFAStrans running on a different Server than webinterface? "
             },
             {
                 name: "STATIC_API_PORT",
@@ -125,6 +127,7 @@ function init(){
                 labelPosition: "left",
                 labelWidth: label_width,
                 required:true,
+                preMessage:"Did you change the default API Port of FFAStrans? "
             },            
             {
                 name: "STATIC_API_NEW_PORT",
@@ -135,16 +138,19 @@ function init(){
                 label: "Rest API v3 Port",
                 labelPosition: "left",
                 labelWidth: label_width,
-                preMessage:"v3 API currently comes with webinterface",
+                preMessage:"v3 API is not public yet. You only need to change this if you run multiple webinterface instances on a single server.",
                 required:true,
             },
     ]
     })
 
+        layout.getCell("documentation").attachHTML(document.getElementById("hidden_documentation").innerHTML);
+
         layout.getCell("form").attach(form);
         attachToolbar(layout.getCell("toolbar"),form);
         //layout.getCell("form").attach(menu)
    
+        
 
         //EVENTS
         form.events.on("click", function(name, events) {
@@ -224,5 +230,11 @@ function showConfigWindow(win_text,win_url){
 </head>
 
 <body onload="loadserverconfig()"> 
-    
+
+    <div id="hidden_documentation" style="display:none">
+        <div id="documentation" style="font-family:Tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap">
+            <!-- Each form field has its own documentation, no need for extra docs?-->
+        </div>
+    </div>
+
 </body>
