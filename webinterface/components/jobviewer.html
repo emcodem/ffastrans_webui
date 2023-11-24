@@ -838,7 +838,7 @@
             var url = "logviewer.html?job_id=" + jobid;
             var dhxwins = new dhtmlXWindows();
             //dhxwins.attachViewportTo(window.parent.document.body);
-            var win = dhxwins.createWindow("Job Details", 10, 10, 600, 200);
+            var win = dhxwins.createWindow("Job Details", 10, 10, window.innerWidth-20,window.innerHeight-20);
             win.setText("Job Details");
             win.attachURL(url);
             
