@@ -104,14 +104,14 @@ module.exports = {
                 {key:"GROUPRIGHT_MENU_VIEW_JOB_STATUS",value:{'description':'Job Monitor'}},//the value can be an object, e.g. filter for workflownames
                 {key:"GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS",value:{'description':'Create new jobs on ffastrans'}},
                 {key:"GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE",value:{'description':'Review Queue'}},
-                {key:"GROUPRIGHT_MENU_VIEW_ADMIN_USERS",value:{'description':'Usermanagement'}},
-                {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu item'}},
+                /*{key:"GROUPRIGHT_MENU_VIEW_ADMIN_USERS",value:{'description':'Usermanagement'}},*/
                 {key:"GROUPRIGHT_MENU_VIEW_SCHEDULER",value:{'description':'Scheduler menu item'}},
+                {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu item'}},
 				{key:"GROUPRIGHT_MENU_VIEW_FARM_ADMIN",value:{'description':'Farm administration'}},
-                {key:"FILTER_WORKFLOW_GROUP",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}},
-                {key:"FILTER_WORKFLOW_NAME",value:{'description':'Filters what workflows are presented to the user',filter:".*?"}},
+                {key:"FILTER_WORKFLOW_GROUP",value:{'description':'Filters workflows are presented to the user',filter:".*?"}},
+                {key:"FILTER_WORKFLOW_NAME",value:{'description':'Filters workflows are presented to the user',filter:".*?"}},
                 {key:"FILTER_WORKFLOW_VARIABLES",value:{'description':'Filters user_variables presented to the user',filter:".*?"}},
-                {key:"FILTER_JOBSTATUS_BUTTONS",value:{'description':'Filters what Buttons are available on Jobstatus page',filter:".*?"}},
+                {key:"FILTER_JOBSTATUS_BUTTONS",value:{'description':'Filters Buttons are available on Jobstatus page',filter:".*?"}},
                 {key:"FILTER_BROWSE_LOCATIONS",value:{'description':'Filters Browse locations by folder name',filter:".*?"}}
             ];
             return rights;
@@ -122,9 +122,9 @@ module.exports = {
                 {key:"GROUPRIGHT_MENU_VIEW_JOB_STATUS",value:{'description':'Job Monitor'}},//the value can be an object, e.g. filter for workflownames
                 {key:"GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS",value:{'description':'Create new jobs on ffastrans'}},
                 {key:"GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE",value:{'description':'Review Queue'}},
-                {key:"GROUPRIGHT_MENU_VIEW_ADMIN_USERS",value:{'description':'Usermanagement'}},
-                {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu'}},
+                /*{key:"GROUPRIGHT_MENU_VIEW_ADMIN_USERS",value:{'description':'Usermanagement'}},*/
                 {key:"GROUPRIGHT_MENU_VIEW_SCHEDULER",value:{'description':'Scheduler menu item'}},
+                {key:"GROUPRIGHT_MENU_VIEW_ADMIN",value:{'description':'Server admin menu'}},
                 {key:"GROUPRIGHT_MENU_VIEW_FARM_ADMIN",value:{'description':'Farm administration'}},
             ];
             return rights;
