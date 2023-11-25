@@ -19,6 +19,7 @@ async function deleteRecords(id_array){
 }
 
 async function deleteOldRecords(){
+    //moved to maintenance.js
     var idsToDelete = [];
     var sorting = {};
     sorting["job_end"] = -1;

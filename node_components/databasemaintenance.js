@@ -6,6 +6,7 @@ const { build_new_api_url } = require('./common/helpers');
 module.exports = function(app, express){
 
 	app.get('/deleteoldrecords', (req, res) => {
+        
         return;
         //deletes records up to m_maximimjobcount (20k is fast enough in nedb for our application)
             console.log("Delete old records initiated, count:",global.config.STATIC_MAX_HISTORY_JOB_COUNT)

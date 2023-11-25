@@ -325,10 +325,10 @@ function saveConfig(what){
 }
 
 function showConfigWindow(win_text,win_url){
-    const html = "<iframe style='width:100%;height:100%;border:1px solid black' src="+encodeURIComponent(win_url)+">";
+    const html = "<iframe style='width:100%;height:100%;border:none' src="+encodeURIComponent(win_url)+">";
     const dhxWindow = new dhx.Window({
-        width: 540,
-        height: 620,
+        width: 600,
+        height: 800,
         title: win_text,
         resizable:true,
         movable:true,

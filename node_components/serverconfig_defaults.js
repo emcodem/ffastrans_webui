@@ -57,5 +57,6 @@ defaultConfig.STATIC_USE_PROXY_URL = true;
 //NEW API Methods are named static_api...
 defaultConfig.STATIC_API_GET_JOB_LOG_URL = "/getjoblog";
 defaultConfig.STATIC_API_GET_PENDING_JOBS_URL = "/tickets";
+defaultConfig.database_maintenance_autodelete = 365;
 
 module.exports = defaultConfig;

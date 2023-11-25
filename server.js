@@ -22,7 +22,6 @@ const socketwildcard = require('socketio-wildcard');
 const configmgr = require( './node_components/server_config')
 const ffastrans_new_rest_api = require("./rest_service");
 
-const database_controller = require( './node_components/common/database_controller')
 const { Player } = require( './node_components/player')
 
 const logfactory = require("./node_components/common/logger")
@@ -167,8 +166,63 @@ async function connectDb(){
     try{await global.db.jobs.createIndex({ job_id:      -1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ job_id:       1 });}catch(ex){}
     try{await global.db.jobs.createIndex({ state:       1,job_start:   1 });}catch(ex){}
+    db_connected_first_time();
 }
 
+function db_connected_first_time(){
+    //these functions may depend on working database
+    
+    start_cron();
+}
+
+
+function start_cron(){
+
+    let maintenance_funcs = require("./node_components/cron_tasks/maintenance");
+    cron.schedule("*/5 * * * * *", async function() {
+    //JOBFETCHER     
+        if (!global.dbfetcheractive){
+            global.dbfetcheractive = true;
+            try{
+                await global.jobfetcher.fetchjobs();
+            }catch (ex){
+                console.trace("Error, jobfetcher exception. " + ex)
+            }
+            global.dbfetcheractive = false;
+        }else{
+            console.error("Jobfetcher still active, that should not happen");
+        }
+    })
+
+    cron.schedule("0 0 0-23 * * *", async function() {
+    //MAINTENANCE
+            try{
+                await maintenance_funcs.exec_all();
+            }catch(ex){
+                console.error("Error in automatic Maintenance: ",ex)
+            }
+    })
+
+    maintenance_funcs.exec_all();
+
+    cron.schedule("*/2 * * * * *", function() {
+    //SCHEDULED JOBS
+        if (!global.jobscheduleractive){
+            global.jobscheduleractive = true;
+                try{
+                    jobScheduler.execute();
+                }catch (ex){
+                    //TODO: what to do when scheduler runs into error?
+                    console.trace("Error, scheduler exception. " + ex)
+                }
+                global.jobscheduleractive = false;
+        }else{
+            console.error("Scheduler still active, that should not happen!");
+        }
+        
+    });
+    
+}
 
 async function init(conf){
 	global.config = conf;
@@ -331,48 +385,6 @@ async function init(conf){
         }
     }));
 	
-    // get information from POST like messages
-    // app.use(bodyParser.urlencoded({ extended: true }));
-    // app.use(bodyParser.json());
-
-
-    cron.schedule("*/5 * * * * *", async function() {
-        //DELETE OLD JOBS
-
-        //GET LATEST JOBS FROM FFASTRANS API     
-        if (!global.dbfetcheractive){
-            global.dbfetcheractive = true;
-            try{
-                await database_controller.deleteOldRecords();
-            }catch(ex){
-                console.error("Error deleting old records from DB: ",ex)
-            }
-            try{
-                await global.jobfetcher.fetchjobs();
-            }catch (ex){
-                console.trace("Error, jobfetcher exception. " + ex)
-            }
-            global.dbfetcheractive = false;
-        }else{
-            console.error("Jobfetcher still active, that should not happen");
-        }
-    })
-    cron.schedule("*/2 * * * * *", function() {
-    //SCHEDULED JOBS
-        if (!global.jobscheduleractive){
-            global.jobscheduleractive = true;
-                try{
-                    jobScheduler.execute();
-                }catch (ex){
-                    //TODO: what to do when scheduler runs into error?
-                    console.trace("Error, scheduler exception. " + ex)
-                }
-                global.jobscheduleractive = false;
-        }else{
-            console.error("Scheduler still active, that should not happen!");
-        }
-        
-    });
 
     //log all requests
     app.use(function(req, res, next) {
