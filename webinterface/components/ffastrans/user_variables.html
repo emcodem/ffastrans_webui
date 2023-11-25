@@ -696,15 +696,16 @@ function applyNewVarFormRules(new_form){
 
 function editWebUiTypeVar(){
     
-    try{
-        window.parent.window.parent.hideHeader(); //the root index html is 2 iframes up ;-)
-    }catch(ex){}
-
     const selectedCells = m_maingrid.selection.getCells();
+
     if (selectedCells.length == 0){
         return;
     }
 
+    try{
+        window.parent.window.parent.hideHeader(); //the root index html is 2 iframes up ;-)
+    }catch(ex){}
+    
     var selected_var = selectedCells[0].row;
     console.log("Selected Variable:",selected_var);
     var o_var = JSON.parse(m_last_data);
