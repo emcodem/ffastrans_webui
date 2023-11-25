@@ -258,8 +258,8 @@ async function openVariableSelector(rId,savedVariables){
 
     var vars_form;
     var have_webui_vars = false;
-    for (i=0;i<workflowdetails["user_variables"].length;i++){
-        var current_var = workflowdetails["user_variables"][i];
+    for (i=0;i<workflowdetails["workflows"][0]["user_variables"]["variables"].length;i++){
+        var current_var = workflowdetails["workflows"][0]["user_variables"]["variables"][i];
         if (current_var.name.indexOf("webui") != -1){
             have_webui_vars = true;
         }
@@ -292,10 +292,10 @@ async function openVariableSelector(rId,savedVariables){
     });
 
 
-    console.log("user_vars original",workflowdetails.user_variables);
-    var formItems = webuiVariables_processVariables(workflowdetails.user_variables);
+    console.log("user_vars original",workflowdetails["workflows"][0]["user_variables"]["variables"]);
+    var formItems = webuiVariables_processVariables(workflowdetails["workflows"][0]["user_variables"]["variables"]);
     console.log("user vars transformed for dhtmlx grid",formItems);
-                        
+
     vars_form = new dhx.Form(null, {
             css: "dhx_widget--bordered",
             rows: [ 
@@ -371,7 +371,7 @@ async function init(){
     m_mainLayout.cells("a").setMinHeight(50);
     m_mainLayout.cells("b").setMinHeight(50);  
     m_mainLayout.cells("b").setText("Documentation");
-    m_mainLayout.cells("a").setText("Scheduled Jobs <a href='google.com'>Help</a>");
+    m_mainLayout.cells("a").setText("Scheduled Jobs ");//<a href='google.com'>Help</a>
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
     m_mainGrid.setHeader("id, Enabled, Name, Description, Condition, Workflow, Variables,Frequency,  Last Start, Next Start, Created on,Last Message,Errors");
