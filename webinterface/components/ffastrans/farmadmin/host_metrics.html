@@ -49,8 +49,9 @@
                     url: ("/getserverconfig" + "?" + Math.random()),
                     type: "GET",
                     success: function(response) {
-                        console.log("got server conf")
+                        
                         m_serverconfig = JSON.parse(response);
+                        console.log("got server conf",m_serverconfig)
                         init();
                     },
                     error: function(xhr, status) {
@@ -100,14 +101,14 @@
     function check_install(){
 
         $.ajax({
-            url: "/grafana_proxy",
+            url: getGrafanaUrl(),
             type: "GET",
             timeout: 2000,
             success: function(response) {
                 
                 document.getElementById("installer").style.display = "none";
                 document.getElementById("i_grafana").style.display = "block";
-                document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info&theme=light"
+                document.getElementById("i_grafana").src = getGrafanaUrl()
                 
             },
             error: function(xhr, status) {
@@ -127,7 +128,7 @@
                 success: function(response) {
                     document.getElementById("installer").style.display = "none"
                     document.getElementById("i_grafana").style.display = "block";
-                    document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/000000014/windows-node-with-process-info&theme=light"
+                    document.getElementById("i_grafana").src = getGrafanaUrl()
                 
                 },
                 error: function(xhr, status) {
@@ -137,6 +138,10 @@
             });
     }
 
+    function getGrafanaUrl(){
+    var url = m_serverconfig["grafana_url_hosts"];
+    return url;
+}
 </script>
 
 <body onload="loadserverconfig()" >
@@ -145,6 +150,7 @@
 
 <div id="installer" style="display:none">
     FFAStrans Metrics Service UI (Grafana) is not reachable on port 3004, do you want to install the Services?
+    <br/><b>You must run webinterface application as service or as administrator!</b><br/>
     <input value="Install Windows Service" type="submit" onclick="submit()" onclick="" ></input>
     Note that Prometheus is a Data Collector, it might require some Gigabytes of data on your harddrive
 </div>

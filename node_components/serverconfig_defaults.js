@@ -59,5 +59,9 @@ defaultConfig.STATIC_USE_PROXY_URL = true;
 defaultConfig.STATIC_API_GET_JOB_LOG_URL = "/getjoblog";
 defaultConfig.STATIC_API_GET_PENDING_JOBS_URL = "/tickets";
 
+//Metrics URLs default
+defaultConfig.grafana_base = "http://localhost:3004/";
+defaultConfig.grafana_url_hosts = "/grafana_proxy/d/000000014/windows-node-with-process-info&theme=light";
+defaultConfig.grafana_url_jobs = "/grafana_proxy/d/Jlcx_u8Gz/ffastrans-running?orgId=1";
 
 module.exports = defaultConfig;

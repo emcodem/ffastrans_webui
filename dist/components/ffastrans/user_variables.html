@@ -108,6 +108,10 @@
     font-size: 12px;
 }
 
+.displayNone{
+    display:none;
+}
+
 </style>
 <script>
 var m_maingrid;m_last_data= null;m_var_layout = null;
@@ -134,6 +138,18 @@ const variable_templates={
             "preMessage": "Display Text before validation",
             "successMessage": "Display Text on  validation success",
             "errorMessage": "Display Text on validation error",
+        },
+    "Input Text Area":{
+            type: "textarea",
+            merit: 1,
+            label: "Multiline Input",
+            labelPosition: "left",
+            labelWidth: 140,
+            width: 450,
+            width:400,
+            placeholder: "The Placeholder",
+            readOnly: false, // false by default
+            resizable: true,
         },
     "Checkbox":{
             "type":"checkbox",
@@ -236,17 +252,7 @@ const variable_templates={
             "labelWidth": 140,                   
             "value": "Information Display"
         },
-        "Text Area":{
-            type: "textarea",
-            merit: 1,
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            width:400,
-            placeholder: "The Placeholder",
-            readOnly: false, // false by default
-            resizable: true,
-        },
+
         "Slider":{
             type: "slider",
             merit: 1,
@@ -448,7 +454,7 @@ function create_type(name){
 }
 
 async function loadGridData(force=false){
-    console.trace("loadGridData called.., force:",force)
+    //console.trace("loadGridData called..")
 
     var data = await(loadData());
     if (data != m_last_data || force){
@@ -538,7 +544,7 @@ async function newVariableWindow(){
         modal:true,
         resizable:true,
         height:550,
-        html:"<div style='height:80%' id='newvarform'></div>Final variable name: <input style='width:70%' readonly=true id='newvarname'></div>"
+        html:"<div style='height:80%' id='newvarform'></div>Final variable name: <input style='width:70%;color:rgba(0, 0, 0, 0.5)' readonly=true id='newvarname'></div>"
     });
     dhxWindow.show()
     await dhx.awaitRedraw(); //wait until html part of dhxWindow is drawn on page
@@ -549,6 +555,7 @@ async function newVariableWindow(){
     const new_form = new dhx.Form("newvarform", {
         css: "dhx_widget--bordered",
         rows: [
+            {type: "input",name: "new_var_name",label: "Name",value: "new_name",labelPosition: "left",labelWidth:110,required:true},
             {
                 type: "select",name:"var_or_static",label: "Variable or Static",labelPosition: "left",labelWidth: 110,value: m_filter_statics ? "static" : "variable",
                 required: true,
@@ -563,17 +570,19 @@ async function newVariableWindow(){
                     }
                 ]
             },
-            {type: "select",name: "datatype",label: "Data Type",labelPosition: "left",labelWidth: 110,value: "s_",
+            {type: "select",name: "datatype",label: "Data Type",labelPosition: "left",labelWidth: 110,value: "s_webui_",
                 required: true,
                 options: [
+                    {
+                        value: "s_webui_",
+                        content: "Webui Form Field",
+                        selected:true
+                    },
                     {
                         value: "s_",
                         content: "String"
                     },
-                    {
-                        value: "s_webui_",
-                        content: "Webui Form Field"
-                    },
+
                     {
                         value: "i_",
                         content: "Integer"
@@ -584,82 +593,118 @@ async function newVariableWindow(){
                     }
                 ]
             },
-            {type: "input",name: "new_var_name",label: "Name",value: "new_name",labelPosition: "left",labelWidth:110,required:true,preMessage:"s_ i_ f_ or s_webui will be added automatically"},
-            {type: "input",name: "description",label: m_filter_statics ? "Value" : "Description",value: "",labelPosition: "left",labelWidth:110,preMessage:""},
+            
+            {type: "input",name: "description",label: m_filter_statics ? "Value" : "Description",value: "",labelPosition: "left",labelWidth:110},
             {view:"link",width:"250px",css:"dhxform_obj_dhx_skyblue",circle:true,full:true,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"},
         ]
     });
 
     new_form.events.on("click", async function(event, name, id) {
-        //form submit
-        if (!new_form.validate()){
-            alert("Error, Please check your inputs.");
-            return;
-        }
-        calculateRealName();
-        var v = new_form.getValue();
-        var n = document.getElementById("newvarname").value.replaceAll("%","");
-        try{
-            var res = await saveVariableAjax({name:n,data:v.description});
-            console.log("Save variable response",res);
+            //form submit
+            if (!new_form.validate()){
+                alert("Error, Please check your inputs.");
+                return;
+            }
+            
+            var v = new_form.getValue();
+            var real_var_name = document.getElementById("newvarname").value.replaceAll("%","");
+            try{
+                var res = await saveVariableAjax({name:real_var_name,data:v.description});
+                console.log("Save variable response",res);
+            }catch(ex){
+                console.log("Error Saving variable: ", ex)
+                alert("Error Saving variable: " + ex.responseText)
+                console.log("Responsetext: ", ex.responseText)
+            }
             dhxWindow.destructor();
-            loadGridData();
-        }catch(ex){
-            console.log("Error Saving variable: ", ex)
-            alert("Error Saving variable: " + ex.responseText)
-            console.log("Responsetext: ", ex.responseText)
-        }
+            await loadGridData();
+            await dhx.awaitRedraw();
+            //select cell in grid 
+            
+            var foundRow = m_maingrid.data.find(function(item){
+                if(item.name=== real_var_name){return true}
+            });
+            if (!foundRow)
+                alert("row not found")
+            console.log("rowid",foundRow.id)
+            m_maingrid.selection.setCell(m_maingrid.data.getItem(foundRow.id));
+
+            //open variable editor
+            editWebUiTypeVar()
+
+
 
     });
     new_form.events.on("change", function(event, name, id) {
-        calculateRealName();
+        onNameChange();
+        applyNewVarFormRules(new_form);
     });
     new_form.events.on("keydown", function(event, name, id) {
         console.log("keydown")
-        calculateRealName();
+        onNameChange();
     });
     
-    function calculateRealName(){
+
+
+    function onNameChange(){
         //live calculate actual name while the user interacts with form
         var v = new_form.getValue();
-        var _name = document.querySelector('[data-dhx-id="new_var_name"]').value; //form native getValue method only gives actual value when input was  validated
-        const regex = / /ig; //[^A-Z1-9]
-        _name = _name.replaceAll(regex,"_");
-        var real_name = v.datatype + _name;
+        var _name = document.querySelector('[data-dhx-id="new_var_name"]').value; //form native getValue method only gives actual value when input was validated
+
+        var real_name = calculateRealVarName(v.var_or_static,v.datatype,_name)
 
         if (v.var_or_static == "static")
             real_name = real_name.toUpperCase();
-        document.getElementById("newvarname").value = "%" + real_name + "%";
-        //new_form.getItem("real_name").setValue(real_name);
+        try{
+            document.getElementById("newvarname").value = "%" + real_name + "%";
+        }catch(ex){}
+        
     }
+
     await dhx.awaitRedraw();
-    calculateRealName();
+    onNameChange();
+    applyNewVarFormRules(new_form);
 }
 
+function calculateRealVarName(var_or_static,datatype,userText){ //var_or_static is static or variable
+        /*replace space and other things to construct valid name*/
+        const regex = / /ig; //[^A-Z1-9]
+        var real_name = userText.replaceAll(regex,"_");
+        real_name = datatype + real_name;
+        if (var_or_static == "static")
+            real_name = real_name.toUpperCase();
+        return real_name;
+    }
 
-
-
-
-
-
-
-
-
-
+function applyNewVarFormRules(new_form){
+    var v = new_form.getValue();
+    if (v.var_or_static == "static"){
+        new_form.setProperties("description", {label: "Value"})
+    }
+    else{
+        new_form.setProperties("description", {label: "Description"})
+    }
+    if (v.datatype == "s_webui_"){
+        new_form.setProperties("description", {readOnly: "not relevant",css:"displayNone"})
+    }else{
+        new_form.setProperties("description", {readOnly: "",css:""})
+    }
+}
 
 
 /* -------- webui variable editor -------- */
 
 function editWebUiTypeVar(){
     
-    try{
-        window.parent.window.parent.hideHeader(); //the root index html is 2 iframes up ;-)
-    }catch(ex){}
-
     const selectedCells = m_maingrid.selection.getCells();
+
     if (selectedCells.length == 0){
         return;
     }
+
+    try{
+        window.parent.window.parent.hideHeader(); //the root index html is 2 iframes up ;-)
+    }catch(ex){}
 
     var selected_var = selectedCells[0].row;
     console.log("Selected Variable:",selected_var);
@@ -734,9 +779,14 @@ function editWebUiTypeVar(){
             }
 
         //FINALLY CONSTRUCT FORM
-        var label_text = selected_var.name.match(/^s_|^i_|^f_/) ? "Description" : "Value"; //statics have uppercase sif, they have value instead of description
-        top_form_rows.push({type: "input",  label: label_text,name: "data",value: selected_var.original_object.data,labelPosition: "left",
-                                            preMessage:"Note this is only Variable Description, it is not important for your Workflow. Actual Variable Values are calculated only while a job is running. Use 'static' if you need variables with fixed values." 
+        var is_static = !selected_var.name.match(/^s_|^i_|^f_/)
+        var label_text = is_static ? "Value" : "Description"; //statics have uppercase sif, they have value instead of description
+        var preMsg = is_static ? "" : "Note this is only Variable Description, it is not important for your Workflow. Actual Variable Values are calculated only while a job is running. Use 'static' if you need variables with fixed values." 
+        top_form_rows.push({type: "input",  label: label_text,
+                                            name: "data",
+                                            value: selected_var.original_object.data,
+                                            labelPosition: "left",
+                                            preMessage: preMsg
                             });
         top_form_rows.push(form_btns);
 
@@ -1071,8 +1121,8 @@ async function init_options_grid(layout,top_form){
         autoWidth: true,
         multiselection:true,
         columns: [
-            { id: "value", header: [{ text: "Display Name" }],gravity:100 },
-            { id: "content", header: [{ text: "Value" }],gravity:200 }
+            { id: "value", header: [{ text: "Value" }],gravity:100 },
+            { id: "content", header: [{ text: "Display Name" }],gravity:100 }
         ],
         
         editable: true,

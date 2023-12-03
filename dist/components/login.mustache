@@ -17,7 +17,7 @@
         justify-content: center;
         width: 100%;
         display: flex;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     #center {
@@ -29,6 +29,38 @@
         -webkit-transform: translate(-50%, -50%);
         transform: translate(-50%, -50%);
     }
+
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 8px solid #3498db;
+        -webkit-animation: spin 2s linear infinite;
+        position: fixed;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 30;
+        height: 30;
+        z-index: 100;
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        margin-left: -25px;
+        margin-top: 0px;
+        visibility: hidden;
+    }
+
+        /* Safari */
+    @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
 
 </style>
 <script>
@@ -52,23 +84,25 @@ function init(){
     
     //we use mustache to render the page in order to have access to protected data like instancename
 
-    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Login", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
-    m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10, labelWidth: 70}); 
-    m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70}); 
-    m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 100}); 
+    m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Login", inputWidth : 300, position : "label-top", width: 400, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
+    m_mainForm.addItem("data", {type: "input",name: "username", label:"Username:", value: "",  offsetLeft:10, labelWidth: 70,width:250}); 
+    m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70,width:250}); 
+    m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 150}); 
     m_mainForm.setItemFocus("username");
+    console.log(document.referrer)
     m_mainForm.attachEvent("onButtonClick", function(){
-        m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
-                                            if (response.xmlDoc.status == 200){
-                                                //login says ok, redirect to referrer or /
-                                                if (document.referrer)
-                                                    window.location.href = document.referrer;
-                                                else
-                                                    window.location.replace("/");
-                                            }else{
-                                                dhtmlx.message(response.xmlDoc.responseText)
-                                            }
-                                        } );
+        submitForm()
+        // m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
+        //                                     if (response.xmlDoc.status == 200){
+        //                                         //login says ok, redirect to referrer or /
+        //                                         if (document.referrer)
+        //                                             window.location.href = document.referrer;
+        //                                         else
+        //                                             window.location.replace("/");
+        //                                     }else{
+        //                                         dhtmlx.message(response.xmlDoc.responseText)
+        //                                     }
+        //                                 } );
     });
     
     m_mainForm.attachEvent("onEnter", function(){
@@ -81,9 +115,31 @@ function init(){
 		m_mainForm.setItemValue("password",query["password"]);
 		submitForm();
 	}
+
+    var referrer_query = parse_query_string(document.referrer)
+    if ("username" in referrer_query){
+		m_mainForm.setItemValue("username",referrer_query["username"]);
+		m_mainForm.setItemValue("password",referrer_query["password"]);
+		submitForm();
+	}
 }
 
+
+function showLoading(){
+    console.log("showLoading")
+    document.getElementById("spinner").style.visibility = "visible";
+}
+
+function hideLoading(){
+    console.log("hideLoading")
+    document.getElementById("spinner").style.visibility = "hidden";
+}
+
+
 function submitForm(){
+
+        showLoading();
+
         m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){
                                             if (response.xmlDoc.status == 200){
                                                 //login says ok, redirect to referrer or /
@@ -95,8 +151,10 @@ function submitForm(){
                                                 console.log(response.xmlDoc.responseText)
                                                 dhtmlx.message(response.xmlDoc.responseText)
                                             }
+                                            hideLoading()
                                         } );
 }
+
 
 function parse_query_string(query) {
   var vars = query.split("&");
@@ -122,9 +180,11 @@ function parse_query_string(query) {
 </script>
 
 <body onload="init()">
+    <div id="spinner" class="loader"></div>
     <div id="center">
         <div id="welcome_message">{{{instanceName}}}</div>
         <div id="mainform" >
+        
     </div>
 </body>
     

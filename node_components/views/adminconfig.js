@@ -142,6 +142,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
     
     //SAVE back to database
     app.post('/adminconfig', (req, res) => {
+        /* TODO: migrate to global config and await configServer.saveAsync(); */
        console.log("Saving admin config in database");
        var data = req.body;
        var toSave = {};
@@ -179,4 +180,24 @@ var configServer = require(global.approot  + '/node_components/server_config');
 
     })
 	
+    app.post('/adminconfig_update_parts', async (req, res) => {
+        //var current_config = await configServer.getAsync();
+        try{
+            var new_fields = req.body;
+            //update global config with the keys to store
+            Object.keys(new_fields).forEach(function(key) {
+                global.config[key] = new_fields[key];
+            });
+            await configServer.saveAsync(); //saves the whole global config
+            res.status(200);
+            res.end();
+        }catch(ex){
+            console.error("Error, could not save global config, ", ex);
+            res.write("Error, could not save database, " + ex);
+            res.status(500);
+            res.end();
+        }
+        
+     })
+
 }

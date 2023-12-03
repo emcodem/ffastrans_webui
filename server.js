@@ -20,6 +20,7 @@ const socket = require('socket.io');
 
 const socketwildcard = require('socketio-wildcard');
 const configmgr = require( './node_components/server_config')
+const database_controller = require('./node_components/common/database_controller')
 const ffastrans_new_rest_api = require("./rest_service");
 
 const { Player } = require( './node_components/player')
@@ -367,7 +368,12 @@ async function init(conf){
         }
     }));
 
-    app.use('/grafana_proxy', proxy("http://localhost:3004", {
+    function selectGrafanaProxy(req){
+        /* this "calculates" target url for proxy request. A parameter named url has to be in get parameters*/
+        return global.config.grafana_base;
+    }
+    app.use('/grafana_proxy', proxy(selectGrafanaProxy, {
+        /* use like: /grafana_proxy?url=http://grafanaserver/pad... */
         logLevel: "info", // TODO : configure grafana serve_from_sub_path 
         proxyTimeout: 2000,
         onProxyReq: function (proxyReq, req, res) {
@@ -548,10 +554,10 @@ function initSocketIo(created_httpserver){
                 }
                 return;
 			}
-			if (cmd == "deletealljobs"){
-				jobcontrol.deletealljobs();
-				return;
-			}
+			// if (cmd == "deletealljobs"){ //removed since mongodb
+			// 	jobcontrol.deletealljobs();
+			// 	return;
+			// }
 
 		})
 		

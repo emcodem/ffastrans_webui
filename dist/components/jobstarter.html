@@ -248,6 +248,7 @@ function registerHoverFunc(){
     })(jQuery);
 }
 
+
 /* build basic page layout and init periodic job loading*/
 function init(){
     /* jquery tooltip helper for global use*/
@@ -364,8 +365,8 @@ function init(){
             {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
 			{id:"player", text:"<div style='width:45px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
             {id:"download", text:"<div style='width:70px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
-            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Add Selected <i class='fas fa-angle-right'></i></span></div>"},
-            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>Add All <i class='fas fa-angle-double-right'></i></span></div>"},
+            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Select<i class='fas fa-angle-right'></i></span></div>"},
+            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>SelectAll<i class='fas fa-angle-double-right'></i></span></div>"},
             
 		]
 
@@ -446,16 +447,26 @@ function init(){
     });
 
     m_mainLayout.cells("b").setText("Job Configuration");
+
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
 			
                  {id:"add_customfile", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
-                 {id:"remove", text:"<i class='fa fa-folder-minus'></i>Delete"},
-                 
-				 
+                 {id:"delete_selected_file", text:"<i class='fa fa-folder-minus'></i>Delete"},
 			]
         });
-    
+        
+    if (_filter.length > 0){
+        //apply userpermissions, hide non allowed items
+            menu_items = [];
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            for (var _itm of ["add_customfile","delete_selected_file"]){
+                if (!regex.test(_itm)){
+                    headerMenu.hideItem(_itm);
+                }
+            }
+    }
+
 	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
     
     var vault = new dhx.Vault('vault', {
@@ -487,17 +498,27 @@ function init(){
                 close:false //emcodem:set disabled if urlparam is set
             },
             {
-                id:"variabletab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
+                id:"job_setup_tab",text:"Job Setup",width:null,index:1,active:false,enabled:false,close:false 
             },
         ]
     });
     
+    if (_filter.length > 0){
+        //apply userpermissions, hide non allowed items
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            for (var _itm of ["workflowtab","job_setup_tab"]){
+                if (!regex.test(_itm)){
+                    m_workflowTabBar.tabs(_itm).hide();
+                }
+            }
+    }
+    
     //add workflow selection components
     m_workflowTabBar.tabs("workflowtab").showInnerScroll();
-    m_workflowTabBar.tabs("variabletab").showInnerScroll();    
+    m_workflowTabBar.tabs("job_setup_tab").showInnerScroll();    
     
-    m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="variables_form" style="width:100%;height:100%;overflow:visible">');
-    //m_workflowTabBar.tabs("variabletab").attachHTMLString('<div id="mainform" style="width:100%;height:70px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
+    m_workflowTabBar.tabs("job_setup_tab").attachHTMLString('<div id="variables_form" style="width:100%;height:100%;overflow:visible">');
+    //m_workflowTabBar.tabs("job_setup_tab").attachHTMLString('<div id="mainform" style="width:100%;height:70px;overflow:visible"></div><div id="subform" style="width:100%;height:400px;"></div>');
     
 //     //mainform is for workflow and processor selection, subform for variables
 //     m_mainForm  = new dhtmlXForm("mainform");
@@ -674,7 +695,7 @@ function init(){
                     }
                 });
             }
-            if (id == "remove") {
+            if (id == "delete_selected_file") {
                 if (!m_selectedFileGrid.getSelectedRowId()){
                     dhtmlx.alert("Please select a File to delete");
                 }
@@ -815,7 +836,7 @@ function init(){
     
     m_workflowTabBar.attachEvent("onTabClick", function(id, lastId){ 
         if (id=="workflowtab"){
-            //m_workflowTabBar.cells("variabletab").setText("Job Setup");
+            //m_workflowTabBar.cells("job_setup_tab").setText("Job Setup");
             if (m_fileAddedEventId){
                 m_selectedFileGrid.detachEvent(m_fileAddedEventId);
             }
@@ -1191,7 +1212,8 @@ async function getBrowseLocations(restore_saved = true){
             var path = locations[displayname];
             m_fileBrowseGridMenu.addNewChild("location", new Date(), path, displayname, false,"","");
         });
-
+        if (Object.keys(locations).length == 0)
+            return;
         // for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
                 
         // }
@@ -1232,9 +1254,9 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     //called from select event of grid select
     //populates start processor drowdown
     localStorage.setItem("lastselectedworkflow",wf_object["wf_id"]);
-    m_workflowTabBar.cells("variabletab").setActive();
+    m_workflowTabBar.cells("job_setup_tab").setActive();
     m_selectedFileGrid.detachEvent(m_fileAddedEventId);//if workflow was started before file selected, this event is attached and starts a job for each new file, here we reset it
-    m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
+    m_workflowTabBar.cells("job_setup_tab").setText("Job Setup ["+wf_object["wf_name"]+"]");
     
     wf_object.variable["start_procs"] = []
     for (i=0;i<wf_object["nodes"].length;i++){
@@ -1487,21 +1509,48 @@ function getWorkflows(){
 
 async function startJobs(form,selectedWorkflow){
 
-    function collectVariables(form){
-        var formvars = form.getValue();
-        var keys = Object.keys(formvars);
-        var ffasvars = [];
-        for (var i=0;i<keys.length;i++){
-            if (typeof(formvars[keys[i]]) != "string")
-                formvars[keys[i]] = JSON.stringify(formvars[keys[i]]); //generic dhtmlx form elements can return objects/arrays
-            if (keys[i] == "start_proc")
-                continue
-            ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+        function collectVariables(form){
+            var formvars = form.getValue();
+            var keys = Object.keys(formvars);
+            var ffasvars = [];
+            for (var i=0;i<keys.length;i++){
+                if (typeof(formvars[keys[i]]) != "string")
+                    formvars[keys[i]] = JSON.stringify(formvars[keys[i]]); //generic dhtmlx form elements can return objects/arrays
+                if (keys[i] == "start_proc")
+                    continue
+                ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+            }
+
+            //if we got vars from url params, prefer them
+            var vars_from_urlparam = getQueryVariable("user_variables");
+            if (vars_from_urlparam){
+                try{
+                    vars_from_urlparam = JSON.parse(vars_from_urlparam)
+                    //two way merge existing variables and the ones from url param
+                    var new_vars = vars_from_urlparam;
+                    //vars_from_urlparam=JSON.parse(vars_from_urlparam)
+                    for (var i=0;i<ffasvars.length;i++){
+                    var existing_var = ffasvars[i];
+                    if (new_vars.findIndex(x => x.name === existing_var.name) == -1){
+                            new_vars.push(existing_var);
+                    }
+                    }                
+                    ffasvars = new_vars;
+                }catch(ex){
+                    console.log(ex)
+                    console.log("user_variables:",vars_from_urlparam);
+                    alert("Got user_variables from URL parameter but they are not a valid json array of objects. Contact administrator, see Console.")
+                }
+            }
+
+            return ffasvars;
         }
-        return ffasvars;
-    }
+
     var ffasvars = collectVariables(form);
-    ffasvars.push({"name":"s_job_submit_username","data":m_logged_in_username});
+    if (ffasvars.findIndex(x => x.name === "s_job_submit_username") == -1){
+        ffasvars.push({"name":"s_job_submit_username","data":m_logged_in_username});
+    }
+    
     console.log("FFASVars: ",ffasvars);
     //validate form 
     

@@ -5,6 +5,15 @@ const defaultConfig = require("./serverconfig_defaults")
 //require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every console log
 module.exports = {
     //set object to config obj
+    getAsync: async() => {
+        var current_config = await global.db.config.findOne({"global.config":{$exists:true}});
+        return current_config.global.config;
+    },
+    saveAsync: async() => {
+        /* new strategy is that the rest of code just changes global config so no parameter here */
+        await global.db.config.update({"global.config":{$exists:true}},{global:{config:global.config}});
+        return global.config;
+    },
     get: (callback) => {
         //check if we have a config in db, otherwise serve defaultConfig
 		/* this is called at server startup and also some modules use it to get the latest valid config */

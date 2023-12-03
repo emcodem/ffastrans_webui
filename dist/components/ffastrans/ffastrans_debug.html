@@ -168,7 +168,7 @@ async function buildLayout(){
         css: "ffas_tabbar",
         views: [
             { id: "general",  tab: "General"},
-            { id: "email",    tab: "Email" },
+            { id: "email",    tab: "Email" }, //email disabled because of password encryption problems
             { id: "debug",    tab: "Debug" }
         ],
         // more config options
@@ -204,12 +204,14 @@ function initForms(tabbar,layout){
     tabbar.getCell("general").attach(generalform);
 
 
-    //emailform
+    //emailform disabled because of issues with password encryption
+    
     var formrows = constructAllFormInputs(m_last_data.about,"email","email",130);
     console.log("email formrows",formrows)
     formrows.push(constrcutFormSaveButton());
     const emailform = new dhx8.dhx.Form(null, constructFormConfig(formrows));
     tabbar.getCell("email").attach(emailform);
+    
 
     //Debug Form
     formrows = constructAllFormInputs(m_last_data.about,"debug","debug",130);
@@ -252,6 +254,7 @@ async function formSaveButtonClick(form){
     console.log("saving form",updated_props);
     try{
         await saveAboutSection(updated_props);
+        dhx8.dhx.message({ expire: 3000, text: "Success..." + msg, icon: "dxi-close" });
     }catch(ex){
         console.log(ex);
         alert("Unexpected Error saving about secion, see console");
@@ -368,6 +371,11 @@ function apply_known_config(form_widget){
         "general.versions.manager" :    {disabled:true},
         "general.versions.queuer" :     {disabled:true},
         "general.versions.service" :    {disabled:true},
+
+        "email.ssl" :    {disabled:true},
+        "email.username" :    {disabled:true},
+        "email.signature" :    {disabled:true},
+        "email.password" :    {disabled:true},
 
     }
     try{

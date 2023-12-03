@@ -705,7 +705,7 @@ function editWebUiTypeVar(){
     try{
         window.parent.window.parent.hideHeader(); //the root index html is 2 iframes up ;-)
     }catch(ex){}
-    
+
     var selected_var = selectedCells[0].row;
     console.log("Selected Variable:",selected_var);
     var o_var = JSON.parse(m_last_data);
@@ -1121,8 +1121,8 @@ async function init_options_grid(layout,top_form){
         autoWidth: true,
         multiselection:true,
         columns: [
-            { id: "value", header: [{ text: "Display Name" }],gravity:100 },
-            { id: "content", header: [{ text: "Value" }],gravity:200 }
+            { id: "value", header: [{ text: "Value" }],gravity:100 },
+            { id: "content", header: [{ text: "Display Name" }],gravity:100 }
         ],
         
         editable: true,

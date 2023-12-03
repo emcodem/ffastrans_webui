@@ -351,7 +351,7 @@ async function parseWorkflowVariables(wf_id){
         // for (var i=0;i<wf.user_variables.length;i++){
         //     var _cur = wf.user_variables[i];
         //     if(_cur.name.indexOf("webui") != -1){
-        //         //parse from string into object if variable name is webui_*
+        //         parse from string into object if variable name is webui_*
         //         try{
         //             var var_obj = _cur.data;
         //             try{
@@ -362,14 +362,14 @@ async function parseWorkflowVariables(wf_id){
         //                 try{
         //                     var_obj = eval("var eval_data = " + var_obj);
         //                     var_obj = eval_data;
-        //                     //var_obj.id = _cur.name;
+        //                     var_obj.id = _cur.name;
         //                     var_obj.name = _cur.name; //puts the actual ffastrans variable name to form name for later name-value mapping
                             
         //                 }catch(exc){
         //                     throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
         //                 }
         //                 console.log("form input: ",var_obj)
-        //                 //FINALLY push the stuff into form rows
+        //                 FINALLY push the stuff into form rows
         //                 dhx8_form_rows.push(var_obj);
         //             }
         //         }catch(exc){
@@ -431,12 +431,13 @@ async function afterStage1Select(outbound){
             
             //gets list of all configured webui_ workflow variables
             var all_variables = await parseWorkflowVariables(outbound.ticket.workflow.wf_id);
-
+            console.log("---------------all vars",outbound.gui_config)
             for (var i=0;i<all_variables.length;i++){
                 var current_var_name = "%" + all_variables[i].name + "%";
                 //iterate all variables in processor config
                 const regexp = /(%.+?%)/g;
                 const matches = outbound.gui_config.matchAll(regexp);
+                console.log("matches",matches)
                 for (const match of matches) {
                     if (match[1] == current_var_name){
                         configured_variables.push(translateDhx5To8Vars(all_variables[i]))
