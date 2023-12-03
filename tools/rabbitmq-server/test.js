@@ -1,1 +1,0 @@
-const rabbitmq_server = require("rabbitmq-server")();
