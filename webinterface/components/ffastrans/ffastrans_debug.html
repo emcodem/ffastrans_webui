@@ -254,7 +254,7 @@ async function formSaveButtonClick(form){
     console.log("saving form",updated_props);
     try{
         await saveAboutSection(updated_props);
-        dhx8.dhx.message({ expire: 3000, text: "Success..." + msg, icon: "dxi-close" });
+        dhx8.dhx.message({ expire: 3000, text: "Success...", icon: "dxi-close" });
     }catch(ex){
         console.log(ex);
         alert("Unexpected Error saving about secion, see console");
@@ -278,14 +278,15 @@ function constructAllFormInputs(_rootobj,_currentKey,_absoluteKey,labelW = 130){
     for (var _k of Object.keys(_rootobj[_currentKey])){
         //loops through object and tries to find out how to draw the item in a form
         var _value = _rootobj[_currentKey][_k];
-        if (typeof(_value) === "string"){
+        if (typeof(_value) === "string" || typeof(_value) === "number"){
             var constructed = constructFormInput(_absoluteKey + "." + _k,_value,labelW,"text");
             formrows.push(constructed);
         }
-        if (typeof(_value) === "number"){
-            var constructed = constructFormInput(_absoluteKey + "." + _k,_value,labelW,"number");
-            formrows.push(constructed);
-        }
+        //Type number does not display 0 value in dhx8.0.3
+        // if (typeof(_value) === "number"){
+        //     var constructed = constructFormInput(_absoluteKey + "." + _k,_value,labelW,"number");
+        //     formrows.push(constructed);
+        // }
         if (typeof(_value) === "boolean"){
             var constructed = constructFormBool(_absoluteKey + "." + _k,_value,labelW);
             formrows.push(constructed);
