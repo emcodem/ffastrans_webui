@@ -99,27 +99,16 @@
 
 function check_install(){
 
-<!-- $.ajax("/grafana_proxy", { -->
-  <!-- statusCode: { -->
-    <!-- 404: function() { -->
-      <!-- alert('Not working'); -->
-    <!-- }, -->
-    <!-- 200: function() { -->
-      <!-- alert('Working'); -->
-    <!-- } -->
-  <!-- } -->
-<!-- }); -->
-
     $.ajax({
         //url: ("/grafana_proxy"),
-        url: "/grafana_proxy",
+        url: getGrafanaUrl(),
         type: "GET",
         timeout: 2000,
         success: function(response) {
             
             document.getElementById("installer").style.display = "none";
             document.getElementById("i_grafana").style.display = "block";
-            document.getElementById("i_grafana").src = "http://" +window.location.hostname+ ":3004/d/Jlcx_u8Gz/ffastrans-running?orgId=1"
+            document.getElementById("i_grafana").src = getGrafanaUrl()
             
         },
         error: function(xhr, status) {
@@ -139,7 +128,7 @@ function submit(){
             success: function(response) {
                 document.getElementById("installer").style.display = "none"
                 document.getElementById("i_grafana").style.display = "block";
-                document.getElementById("i_grafana").src= "http://" +window.location.hostname+ ":3004/d/Jlcx_u8Gz/ffastrans-running?orgId=1"
+                document.getElementById("i_grafana").src= getGrafanaUrl()
             
             },
             error: function(xhr, status) {
@@ -149,6 +138,10 @@ function submit(){
         });
 }
 
+function getGrafanaUrl(){
+    var url =  m_serverconfig["grafana_url_jobs"];
+    return url;
+}
 </script>
 
 <body onload="loadserverconfig()" >
@@ -157,6 +150,7 @@ function submit(){
 
 <div id="installer" style="display:none">
     FFAStrans Metrics Services (Prometheus and Grafana) are not reachable on port 3004, do you want to install the Services?
+    <br/><b>You must run webinterface application as service or as administrator!</b><br/>
     <input value="Install Windows Service" type="submit" onclick="submit()" onclick="" ></input>
     Note that Prometheus is a Data Collector, it might require some Gigabytes of data on your harddrive
 </div>
