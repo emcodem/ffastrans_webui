@@ -1,0 +1,112 @@
+This cert is an example certificate, you should not use it in production.
+You can replace the files cert.pem and key.pem by your own ones.
+Enable https and your key password in admin settings on webinterface.
+
+cert.pem: file containing full cert chain
+key.pem: private key 
+myserver.cnf: this is useless to you unless you want to play around and recreate what we did using openssl.
+
+Private Key password: webserver
+Openssl commands used to generate the self-signed example cert:
+
+openssl genrsa -aes256 -out key.pem 2048
+openssl req -config C:\Temp\myserver.cnf -key key.pem -new -x509 -days 7300 -sha256 -out cert.pem
+
+
+
+
+### Notes from FranceBB: ###
+
+The certificate provided in this directory serves as an example, so please DO NOT use it in production.
+You'll need to generate your own and there are essentially two ways of doing it: self signed certificates or CA Signed certificates.
+For both options, you'll need OpenSSL which you can download from https://wiki.openssl.org/index.php/Binaries
+
+### Self signed certificates ###
+Those kind of certificates will be signed by yourself, which means that you'll both create and sign the certificate yourself.
+Certificates are generally used to validate the authenticity of a host, which means that if you self-sign this certificate,
+any client accessing the webinterface will need to have it saved as trusted, otherwise the browser will report a big red warning.
+If you're the administrator of a domain and you're planning to use the webinterface on an internal network only, 
+then you can easily use this option and deploy the cert via Group Policy to all machines registered to the domain.
+If not, then go to option 2, CA Signed Certificates down below.
+
+To generate a self signed certificate, first open cmd (run as administrator).
+Then cd to wherever you installed OpenSSL, in my case:
+
+cd \Program Files\OpenSSL-Win64\bin
+
+Generate a private key that you will never ever share with anyone else.
+This will be generated based on a password you'll choose (memorize the password and store it safely) using AES256:
+
+openssl genrsa -aes256 -out "C:\Temp\key.pem" 2048
+
+(when prompted to choose a password, type it and confirm it)
+
+Once you have the key.pem, you need to edit the default example configuration file, namely myserver.cnf.
+Edit it with notepad and under "ORGNAME" insert the name of your company (or your own name), then save it.
+
+At this point you're almost done, all you need is to generate the certificate.
+To do that, put the edited myserver.cnf in C:\Temp\, then go back to the same cmd as before and type:
+
+openssl req -config "C:\Temp\myserver.cnf" -key "C:\Temp\key.pem" -new -x509 -days 7300 -sha256 -out "C:\Temp\cert.pem"
+
+you're all done, you can now just collect the key.pem, cert.pem and myserver.cnf, 
+put them in the cert folder of the webinterface by replacing the example one 
+and after that you can easily go settings, fill the password field with the password you picked during the creation of the key.pem
+and enable the HTTPS mode.
+
+
+### Notes from FranceBB: CA Signed certs ###
+Those kind of certificates will be released by a CA Authority, which means that they will be trusted by all modern OS and computers on the web.
+CA Authorities are trustworthy organizations which are recognized across the world and are stored in the Trusted Root by various OS.
+To do this, we will need to create a CSR (Certificate Signing Request) in which we will ask the Certificate Authority to trust us.
+
+They'll review it and decide whether they'll grant you the certificate or not.
+If everything checks out, you'll get a new cert.pem which you'll be able to put in the cert folder of the webinterface 
+by replacing the example one and you can do the same with the key.pem that you find in C:\Temp.
+After that you can easily go to the Webinterface, click on settings, fill the "PK_PASSWORD" field.
+with the password you picked during the creation of the key.pem and enable the HTTPS mode on webinterface GUI.
+Restart the service (or reboot the host) and you're done.
+
+First things first, let's fire up OpenSSL.
+Open cmd (run as administrator) and cd to wherever you installed OpenSSL, in my case:
+
+cd \Program Files\OpenSSL-Win64\bin
+
+Generate a private key that you will never ever share with anyone else.
+This will be generated based on a password you'll choose (memorize the password and store it safely) using AES256:
+
+openssl genrsa -aes256 -out "C:\Temp\key.pem" 2048
+
+(when prompted to choose a password, type it and confirm it)
+
+Once you have the key.pem, you need to generate a CSR (Certificate Signing Request).
+The CA (Certificate Authority) will need a few info from you:
+
+1) Country Name (2 letter code)
+2) State or Province Name (full)
+3) Locality Name (eg, city)
+4) Organization Name (eg, company)
+5) Organizational Unit Name (eg, section)
+6) Common Name (eg, your name)
+7) Email Address (your email)
+8) A challenge password (a safe password that you can share with the CA, NOT the one you used to generate the key!)
+9) An optional company name
+
+As soon as you type the following command, OpenSSL will ask you to fill the info above and it will generate the CSR:
+
+openssl req -new -key "C:\Temp\key.pem" -out "C:\Temp\ffastrans_webinterface_csr.txt"
+
+You're all done, grab the code signing request .txt file from C:\Temp and send it to the CA along with the URL of the webinterface.
+They'll review it and decide whether they'll grant you the certificate or not.
+If everything checks out, you'll get a new shiny cert.pem which you'll be able to put in the cert folder of the webinterface 
+by replacing the example one and you can do the same with the key.pem that you find in C:\Temp.
+After that you can easily go settings, fill the password field with the password you picked during the creation of the key.pem
+and enable the HTTPS mode.
+
+
+Side note:
+Sometimes the CA might not send back a .pem as certificate but rather an x509 .cer certificate.
+If that's the case, don't despair, you just need to convert it to .pem first.
+To do so, you can just:
+
+openssl x509 -in "C:\Temp\cert.cer" -outform PEM -out "C:\Temp\cert.pem"

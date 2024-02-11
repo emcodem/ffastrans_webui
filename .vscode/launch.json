@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "outputCapture": "std",
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Launch URL Shortener",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/server.js",
+            "program_rest_only_rename_me_to_program": "${workspaceFolder}/rest_service/app.js"
+        },
+        {
+            "type": "chrome",
+            "name": "http://localhost:3002/webinterface/components/reviewqueue.html",
+            "request": "launch",
+            "url": "http://localhost:3002/webinterface/components/reviewqueue.html"
+        },
+        {
+            "type": "chrome",
+            "name": "http://localhost:3002/webinterface/components/jobstarter.html",
+            "request": "launch",
+            "url": "http://localhost:3002/webinterface/components/jobstarter.html"
+        }
+    ]
+}

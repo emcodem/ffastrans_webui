@@ -1,0 +1,5 @@
+process.on('message', (parameters) => { //backend will send job details as "message" at script startup
+  var wf = JSON.parse(parameters.self.workflow);
+  var startproc = wf.start_proc_name;
+  process.send([startproc + " " +datestring]);//start one job named %startproc% %date%
+});

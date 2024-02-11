@@ -1,0 +1,807 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+
+
+<script src="../dependencies/jquery/jquery.js"></script>
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
+<script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+<link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+<script src="common/webuiVariables.js"></script> 
+
+ <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
+ <link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+    }
+    ul.fancytree-container {
+        border: none;
+        outline:none !important;
+    }
+    /* menu buttons */
+    .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal {
+        display:inline-block;
+        color:#444; !important
+        border:2px solid #AAA !important;
+        background:#DDD;
+        box-shadow: 1px 1px 1px 1px rgb(0 0 0 / 30%) !important;
+        cursor:pointer;
+        vertical-align:middle;
+        max-width: 100px;
+        padding: 5px;
+        text-align: center;
+        margin-left: 3px !important;
+    }
+
+    .dhtmlxMenu_dhx_skyblue_Middle{
+        height:35px;
+        padding-top:3px !important;
+    }
+
+    .dhxform_label{
+        min-width: 150px;
+    }
+
+    .dhxform_control{
+        width: auto;
+    }
+
+    .celltext_rtl {
+		direction:rtl;
+		text-align:left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: text;
+        margin-left: 6px;
+		margin-right: 6px;
+        display:block;
+    }
+    .dhx_grid-cell{
+        font-family: Tahoma !important;
+        font-size: 12px !important;
+    }
+    .dhx_grid-footer-cell, .dhx_grid-header-cell {
+        font-family: Tahoma !important;
+        font-size: 12px !important;
+    }
+
+
+</style>
+
+<script>
+/* init SOCKET.IO */
+var socket = io(); 
+
+/* GLOBALS */
+//dhtmlx ui
+var m_serverconfig,m_mainLayout,m_maingrid;
+var m_realUploadpath = "";
+var m_lastResponse = "";
+
+
+
+/*load config from server*/
+function loadserverconfig(){
+   $.ajax({
+        url:  ("/getserverconfig"),
+        type: "GET",
+        success: function (response) {
+            m_serverconfig = JSON.parse(response)
+            init();
+        },
+        error: function (xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. " );
+            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+        }
+    });
+}
+
+/*load review queue server*/
+async function loadqueue(){
+    
+    const result = await $.ajax({
+        url: "/review",
+        type: 'GET',
+    });
+    
+    return result;
+}
+
+function build_new_api_url(what) {
+    if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+        return "/new_proxy" + what;
+    } else {
+        var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+        var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+        return _url;
+    }
+}
+ 
+/* build basic page layout and init periodic job loading*/
+async function init(){
+    //main layout
+    m_mainLayout = new dhx.Layout(document.body, {
+    type: "space",
+    header:"Review Queue",
+        rows:[
+            //{ id: "toolbar", height: "content" },
+            {
+            cols: [
+                {
+                    id: "left",
+                    resizable:true,
+                    
+                    width:"50%"
+                },
+                {
+                    
+                    id: "right",
+                },
+                ]
+            }
+        ]
+    });
+
+    m_layout_left = new dhx.Layout(null, {
+        type: "line",
+        rows: [
+            {
+                id: "left_content",
+                html: "2",
+            },
+        ]
+    });
+
+    m_layout_right = new dhx.Layout(null, {
+        type: "line",
+        rows: [
+            {
+                id: "right_header",
+                height:40,
+                css:"displayflex dhxlayout_base_dhx_skyblue dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr",
+            },
+            {
+                id: "right_content",
+            },
+        ]
+    });
+
+    m_mainLayout.getCell("left").attach(m_layout_left);
+    m_mainLayout.getCell("right").attach(m_layout_right);
+
+        //TOOLBAR
+
+    // const toolbar = new dhx.Toolbar(null, {
+    //     css:"dhx_widget--bordered"
+    //     });
+    
+    // const toolbarcfg = [
+    //     {
+    //         id: "btndel",
+    //         type: "button",
+    //         value: "Delete",
+    //         icon: "mdi mdi-trash-can-outline",
+    //         size: "small",
+    //         color: "secondary",
+    //         css: "dhxform_obj_dhx_skyblue"      
+    //     }
+    // ]
+    // toolbar.data.add(toolbarcfg);
+
+    // toolbar.events.on("click", function(id,e){
+    //     if(id == "btndel"){
+    //         var selected = getSelectedGridRows();
+    //         deleteReviewJob(selected[0].row.ticket.review_file);
+    //         m_maingrid.hideRow(selected[0].row.id);
+    //     }
+    // });
+
+    //m_mainLayout.getCell("toolbar").attach(toolbar);
+    //GRID
+    m_maingrid = new dhx.Grid("grid", {
+        css: "dhx8_grid_row_alternate dhx8_grid_row",
+        columns: [
+            { width: getGridSize("date",150),resize: true, align: "left", id: "date", type:"date",format: "%Y-%m-%d %H:%i:%s",header: [{ text: "Date" }, { content: "inputFilter" }] },
+            { width: getGridSize("wf_name",250),resize: true, id: "wf_name", header: [{ text: "Workflow" }, { content: "inputFilter" }],   },
+            { width: getGridSize("info",1150),resize: true, id: "info", header: [{ text: "Info" }, { content: "inputFilter" }] },
+            
+        ],
+        autoWidth: true,
+        resizable: true,//allow manual resize
+        selection:"row",
+        multiselection: false,
+        htmlEnable: true
+    });
+    m_maingrid.events.on("resize", function(col,e){
+        console.log("Saving grid size ",col.id,col.width )
+        localStorage.setItem("review_mgrid_" + col.id,col.width);
+    });
+
+    function getGridSize(id,_default){
+        var value = localStorage.getItem("review_mgrid_" + id);
+        console.log("Restoring gridsize ",id,value)
+        if (value)
+            return value;
+        return _default;
+        
+    }
+
+    //attaches content to cells
+    m_layout_left.getCell("left_content").attach(m_maingrid);
+    m_layout_right.getCell("right_content").attachHTML('<div id="dataview_container"  style="height: 600px; margin: 20px;"></div>');
+
+    m_maingrid.selection.events.on("AfterSelect", function(row, col){
+        afterRowSelect(row)
+    })
+
+
+    //init grid data loading
+    window.setInterval(async function(){        
+        var selected = getSelectedGridRows();
+        var selectedids = [];
+        selected.forEach(function(row){
+            //parses ids from gridrows
+            selectedids.push(row.row.id)
+        })
+        var q = await loadqueue();
+        updateGrid(q);
+        
+        selectedids.forEach(function(id){
+            m_maingrid.selection.setCell(id, m_maingrid.config.columns[0],true, false);
+        });
+    },3000)
+    var q = await loadqueue();
+    //load grid data
+    updateGrid(q);
+
+    /* global keypress handler */
+    function KeyPress(e) {
+                var evtobj = window.event ? event : e
+                //Do action on SHIFT + DELEETE
+                if (evtobj.keyCode == 46 && evtobj.shiftKey) {
+                    var selected = getSelectedGridRows();
+                    console.log("Deleting selected row",selected)
+                    deleteReviewJob(selected[0].row.ticket.review_file);
+                    m_maingrid.hideRow(selected[0].row.id);
+                    //alert("Shift + Delete Pressed");
+                }
+            }
+    document.onkeydown = KeyPress;
+
+    return ;
+}
+
+function getSelectedGridRows(){
+    var selcel = m_maingrid.selection.getCells();
+    if (selcel.length == 0){
+        var singlecel = m_maingrid.selection.getCell();
+        if (!singlecel)
+            return []
+        selcel = [singlecel];//we dont use col
+    }
+    if (selcel)
+        return selcel;
+    else
+        return []
+}
+
+
+async function afterRowSelect(row){
+    //GRID ROW SELECT, paint state1 view (processor outbounds)
+    //in short: each outbound is a dataview item and when clicked, we use it's (node) id and the ticket
+
+    var selcel = getSelectedGridRows();
+    //put ticket to every option for later use in onclick
+    selcel[0].row.ticket.outbounds.forEach(function(o){
+        o.ticket = selcel[0].row.ticket;
+    })
+
+    //reset current dataview
+    document.getElementById("dataview_container").innerHTML = "";
+    
+    m_layout_right.getCell("right_header").attachHTML("<div style='display:flex;width:100%;padding:2px'>" + getReviewProcessorInput(selcel[0].row.ticket,"info") + "</div>");
+    m_layout_right.getCell("right_content").paint()
+    const template = ({name, description }) => (`
+        <div>
+            <h3 style='margin: 0'>${name}</h3>
+            <p style='margin: 4px'>${description || ''}</p>
+        </div>
+    `);
+    
+    var is_there = m_layout_right.getCell("right_content").getWidget();
+
+    const dataview = new dhx.DataView("dataview_container", {
+                itemsInRow: 1,
+                template: template,
+                data: selcel[0].row.ticket.outbounds
+            });
+
+    dataview.events.on("click", function(id, e){
+        var outbound = dataview.getFocusItem();
+        afterStage1Select(outbound);
+    });
+}
+
+async function parseWorkflowVariables(wf_id){
+    //filters webui* variables, translates from dhtmlx5 to 7 compatible, returns
+    try{ 
+        const result = await $.ajax({
+                        url: "/getworkflowdetails" + "?workflowid=" + wf_id,
+                        type: 'GET',
+                    });
+        
+        var wf = JSON.parse(result);
+        console.log("workflowdetails",wf);
+        if (!wf.user_variables || wf.user_variables == "undefined")
+            return false;
+
+        var dhx8_form_rows = [];
+        dhx8_form_rows = webuiVariables_processVariables(wf.user_variables)
+        // for (var i=0;i<wf.user_variables.length;i++){
+        //     var _cur = wf.user_variables[i];
+        //     if(_cur.name.indexOf("webui") != -1){
+        //         parse from string into object if variable name is webui_*
+        //         try{
+        //             var var_obj = _cur.data;
+        //             try{
+        //                 var_obj = JSON.parse(var_obj);
+        //                 var_obj.name = _cur.name;
+        //                 dhx8_form_rows.push(var_obj);
+        //             }catch(ex){
+        //                 try{
+        //                     var_obj = eval("var eval_data = " + var_obj);
+        //                     var_obj = eval_data;
+        //                     var_obj.id = _cur.name;
+        //                     var_obj.name = _cur.name; //puts the actual ffastrans variable name to form name for later name-value mapping
+                            
+        //                 }catch(exc){
+        //                     throw new Error("Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
+        //                 }
+        //                 console.log("form input: ",var_obj)
+        //                 FINALLY push the stuff into form rows
+        //                 dhx8_form_rows.push(var_obj);
+        //             }
+        //         }catch(exc){
+        //             throw new Error("#2 Contact FFAStrans Administrator. Error parsing description of webui type variable into JSON object. Error:" + exc);
+        //         }
+        //     }
+        // }
+        return dhx8_form_rows;
+    }catch(ex){
+        alert("there was an error getting workflow variables for wf_id " +wf_id + " Error: "+ ex.stack)
+    }
+}
+
+
+
+
+function getReviewProcessorConfig(outbound){
+    //match 
+    console.log("proc_Data",outbound.ticket.job.proc_data)
+    var configured_opts = outbound.ticket.job.proc_data.inputs;
+    console.log("configured opts",configured_opts)
+    for(var i=0;i<configured_opts.length;i++){
+        if (configured_opts[i].value == outbound.name){
+            return configured_opts[i+1].value;
+        }
+    }
+}
+
+function getReviewProcessorInput(ticket,id){
+    //gets input from UI of ffastrans processor
+    var configured_opts = ticket.job.proc_data.inputs;
+    for(var i=0;i<configured_opts.length;i++){
+        if (configured_opts[i].id == id){
+            return configured_opts[i].value;
+        }
+    }
+}
+
+async function afterStage1Select(outbound){
+        //attaches dhtmlx5 form for variable display, backward compatibility to jobstarter
+        var html = 'Error, please check browser console';
+        var configured_variables = []; //the list of finally rendered dhtmlx form items
+        var final_layout_config = {
+                        type: "none",//"line" | "wide" | "space" | "none";
+                        rows: [
+                                    
+                                   
+                                ]
+                    };
+        try{
+            /* Find Selected option corresponding processor config
+                If there are webui_ variables, render them as dhtmlx form fields
+                the rest is rendered as html
+            */
+
+            //get config for the selected outbound from review processor list of configs
+            outbound.gui_config = getReviewProcessorConfig(outbound);
+            //manual step processorvariables
+            
+            //gets list of all configured webui_ workflow variables
+            var all_variables = await parseWorkflowVariables(outbound.ticket.workflow.wf_id);
+            console.log("---------------all vars",outbound.gui_config)
+            for (var i=0;i<all_variables.length;i++){
+                var current_var_name = "%" + all_variables[i].name + "%";
+                //iterate all variables in processor config
+                const regexp = /(%.+?%)/g;
+                const matches = outbound.gui_config.matchAll(regexp);
+                console.log("matches",matches)
+                for (const match of matches) {
+                    if (match[1] == current_var_name){
+                        configured_variables.push(translateDhx5To8Vars(all_variables[i]))
+                        outbound.gui_config = outbound.gui_config.replace(current_var_name,""); //remove this var name from gui_config string so the remaining stuff can be displayed as text/html(if any)
+                    }
+                }
+            }
+            //if anything is left at the end, add as text/html
+            if (outbound.gui_config != ""){
+                final_layout_config.rows.push( {
+                                        height: "auto",
+                                        cols: [{id: i,resizable:false,html:outbound.gui_config }]
+                                    })
+            }
+
+        }catch(ex){
+            html = "No options to display.";
+        }
+        console.log("selected outpboud",outbound);
+        console.log("winding up window",outbound);
+            const dhxWindow = new dhx.Window({
+                header: true,
+                title: outbound.name,
+                modal: false,
+                movable: true,
+                closable:true,
+                modal:true,
+                resizable:true,
+                customFullScreen:false
+            });
+            //window dimensions
+            dhxWindow.setSize(window.innerWidth/100*70, window.innerHeight/100*70);
+            //dhxWindow.header.data.add({icon: "mdi mdi-fullscreen", id: "fullscreen"}, 2);
+            dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
+            var isFullScreen = false;
+            dhxWindow.header.events.on("click", function (id) {
+                if (id === "fullscreen") {
+                    if (isFullScreen) {
+                        isFullScreen = false;
+                        dhxWindow.unsetFullScreen();
+                    } else {
+                        isFullScreen = true;
+                        dhxWindow.setFullScreen();
+                    }
+                }
+            });
+            
+            console.log("formrows",configured_variables);
+
+            //add submit btn
+            configured_variables.push({view:"link",circle:true,full:true,type: "button",name: "button",text: "Send",view: "flat",color: "primary"});
+            
+            //init form
+            var form = null;
+            try{
+                form = new dhx.Form(null, {
+                    css: "dhx_widget--bordered",
+                    rows: configured_variables
+                });
+            }catch(ex){
+                alert("Error, contact Administrator. Message: Error initializing form, are your variable definitions ok? Check console for more info.")
+                console.error(ex);
+                return;
+            }
+            //store config with button
+            form.getItem("button")["outbound"] = outbound;
+            //form events
+            form.getItem("button").events.on("click", async function(events){
+                //validate form 
+                const result = form.validate(true); 
+                if (!result){
+                    alert("Error, please check Form fields");
+                    return;
+                }
+                //SUBMIT THE JOB(s)
+                var final_vars_to_submit = collectVariables(form);
+                console.log("final vars:",final_vars_to_submit)
+                var outbound = form.getItem("button")["outbound"];
+                var api_job = {
+                    "wf_id": "<workflow id>",
+                    "inputfile": "<full path to file>",
+                    "start_proc": "<processor node id>",
+                    "variables": final_vars_to_submit,
+                    "system" : "FFAStrans Web Interface"
+                    }
+                api_job.wf_id       = outbound.ticket.workflow.wf_id;
+                api_job.start_proc  = outbound.id;
+                api_job.inputfile   = outbound.ticket.job.sources.current_file;
+                try{
+                    //todo: parse and add variables from form
+                    await submitJob(api_job,outbound);
+                }catch(ex){
+                    alert("Error submitting review ticket, check console. "+ JSON.stringify(ex));
+                    console.log("Error submitting",outbound,ex)
+                }
+                try{
+                    await deleteReviewJob(outbound.ticket["review_file"])
+                }catch(ex){
+                    alert("Error deleting review ticket, check console. "+ JSON.stringify(ex));
+                    console.log("Error deleting",outbound,ex)
+                }
+                    dhxWindow.destructor();
+                    var q = await loadqueue();
+                    updateGrid(q);
+                    document.getElementById("dataview_container").innerHTML = "";
+                    //clear right header
+                    m_layout_right.getCell("right_header").attachHTML("");
+                    m_layout_right.getCell("right_header").paint();
+
+
+            });
+
+            try{
+
+
+                //LAYOUT
+                final_layout_config.rows.push( {
+                                        height: "auto",
+                                        cols: [{id: "form",resizable:false}]
+                                    })
+                var _layout = new dhx.Layout(null, final_layout_config);
+                //_layout.getCell("top").attachHTML("<div style='background-color:black;height:3000px;width:300px'/>"); 
+                _layout.getCell("form").attach(form);
+                dhxWindow.attach(_layout);
+                dhxWindow.show();
+            }catch(exc){
+                alert("Unexpected error parsing form items, check your variable descriptions ")
+            }
+}
+
+function collectVariables(form){
+    var formvars = form.getValue();
+    var keys = Object.keys(formvars);
+    var ffasvars = [];
+    console.log("form values",);
+    for (var i=0;i<keys.length;i++){
+        ffasvars.push({name:keys[i],data:formvars[keys[i]]});
+    }
+    return ffasvars;
+}
+
+async function deleteReviewJob(file){
+        var del_url = build_new_api_url("/review/?filename=" + encodeURIComponent(file));
+        var delres = await $.ajax({
+            url: del_url,
+            type: "DELETE"
+        });
+}
+
+async function submitJob(apiJob,outbound){
+        var url = build_new_api_url("/api/json/v2/jobs");
+        var result = await $.ajax({
+            url: build_new_api_url("/api/json/v2/jobs"),
+            type: "POST",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            data: JSON.stringify(apiJob)
+        });
+        
+        return result;
+}
+
+function displayVariables(m_subForm){
+    m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10});
+    
+    function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
+        var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
+        
+        //parse from string into object
+        try{
+            var_obj = JSON.parse(var_obj);
+        }catch(ex){
+            try{
+                var_obj = eval("var eval_data = " + var_obj);
+                var_obj = eval_data;
+            }catch(exc){
+                throw new Error(errormsg);
+            }
+        }
+        if (var_obj.length == 0){
+            throw new Error(errormsg);
+        };
+
+        try{
+            if (var_obj.type){
+                //calendar, multiselect, any native dhtmlx form control
+                var_obj.name = var_name;
+                var_obj.offsetLeft = 10;
+                dhxForm.addItem(var_obj.type , var_obj);
+                dhxForm.enableLiveValidation(true);
+                return;
+            }
+            else{
+                //simple key value list without type goes into dropdown (legacy)
+                var var_display_name = var_name;
+                var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
+                var options=[];
+                for (y=0;y<var_obj.length;y++){
+                    options.push({text:var_obj[y].key,value:var_obj[y].value});
+                }
+                var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
+                dhxForm.addItem("data", itemData);
+
+            }
+            
+        }catch(e){
+            dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
+        }
+    }
+
+
+}
+
+async function updateGrid(q){
+    try{
+        var a = JSON.stringify(m_lastResponse);
+        var b = JSON.stringify(q)
+    
+        if (a == b)
+            return
+    }catch(ex){
+        console.log(ex,m_lastResponse);
+    }
+
+    m_lastResponse = JSON.parse(JSON.stringify(q));
+    var gridData = [];
+    //Save selection
+    var selected = getSelectedGridRows();
+    var sorting = m_maingrid.getSortingState(); 
+    var selectedids = [];
+    selected.forEach(function(row){
+        //parses ids from gridrows
+        selectedids.push(row.row.id)
+    })
+    
+    //update rows
+    q.forEach(function(ticket){
+        try{
+            var s_source = "<span class='celltext_rtl'>" + ticket.job.sources.current_file + "</span>";
+
+            var row = {height:30,"id":ticket.review_file,"wf_name":ticket.workflow.wf_name,"info":getReviewProcessorInput(ticket,"info"),"date":new Date(ticket.job.submit.time),"ticket":ticket};
+            gridData.push(row)
+        }catch(e){
+            alert("Could not parse q ticket, see console.");
+            console.log("ticket",ticket);
+            console.log("error",e);
+        }
+    });
+    
+    //load new data
+    m_maingrid.data.parse(gridData);
+    await dhx.awaitRedraw();
+    //restore selection
+    selectedids.forEach(function(id){
+            m_maingrid.selection.setCell(id, m_maingrid.config.columns[0],true, false);
+    });
+
+    //restore sorting
+    if (!sorting.dir){
+        console.log("sorting dir not defined, sorcing desc date")
+        m_maingrid.data.sort({dir: 'desc', by: 'date', as: function (value) { return value.toISOString() }});
+        
+    }else{
+        console.log("Sorting was defined, restoring ",sorting);
+        var as = function(v){return v};
+        if (sorting.by == 'date'){
+            as = function (value) { return value.toISOString() }
+        }
+        sorting.as = as;
+        m_maingrid.data.sort(sorting);
+    }
+    
+    
+}
+
+function saveLayoutSizes(dhxLayout,name){
+//store layout cells height and with into html5 storage (in percentage of document height)
+    var aw = (dhxLayout.cells("a").getWidth()/document.body.scrollWidth ) ;
+    var ah = (dhxLayout.cells("a").getHeight()/document.body.scrollHeight ) ;
+    var bw = (dhxLayout.cells("b").getWidth()/document.body.scrollWidth ) ;
+    var bh = (dhxLayout.cells("b").getHeight()/document.body.scrollHeight ) ;
+    localStorage.setItem(name+"_aw",aw);
+    localStorage.setItem(name+"_ah",ah);
+    localStorage.setItem(name+"_bw",bw);
+    localStorage.setItem(name+"_bh",bh);
+    
+}
+
+function restoreLayoutSizes(dhxLayout,name){
+    if (localStorage.getItem(name+"_aw")){
+        var aw = localStorage.getItem(name+"_aw");
+        var ah = localStorage.getItem(name+"_ah");
+        var bw = localStorage.getItem(name+"_bw");
+        var bh = localStorage.getItem(name+"_bh");
+        dhxLayout.cells("a").setWidth(aw*document.body.scrollWidth);
+        dhxLayout.cells("a").setHeight(ah*document.body.scrollHeight);
+        dhxLayout.cells("b").setWidth(bw*document.body.scrollWidth);
+        dhxLayout.cells("b").setHeight(bh*document.body.scrollHeight);
+    }
+}
+
+async function getWorkflows(){
+
+    $.ajax({
+        url:  "/getworkflowlist",
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        success: function (response) {
+            if (response['workflows'].length == 0){
+                alert("Did not get any workflows from FFASTRANS API");
+            }else{
+                m_workflowArray = response['workflows'];
+                
+                m_mainLayout.cells("b").progressOff();
+                m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
+                m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+                //search button 
+                $("input[name=wf_filter]").keyup(function(e){
+                  var n,
+                        tree = $.ui.fancytree.getTree(),
+                        opts = {},
+                        filterFunc = tree.filterNodes,
+                        match = $(this).val();
+                        if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                            tree.clearFilter();
+                            return;
+                        }
+                    // Pass a string to perform case insensitive matching
+                    n = filterFunc.call(tree, match, opts);
+                }).focus();
+                
+                //finally build workflow tree
+                parseWorkflows(m_workflowArray,{"selectMode":1,"extensions":["filter"],"dom_id":"workflowtree"},function(){/*no select func*/},on_gridWorkflowSelected);
+                //restore user selection from last time
+                if (localStorage.getItem("lastselectedworkflow")){
+                    var tree = $("#workflowtree").fancytree("getTree");
+                    var n = localStorage.getItem("lastselectedworkflow")
+                    if (n && n!= "undefined"){
+                        //var node = tree.findAll(n)[0]
+                        var node = tree.getNodeByKey(localStorage.getItem("lastselectedworkflow"))
+                        if (node && node!= "undefined"){
+                            node.setSelected(true);
+                            node.parent.setExpanded(true);            
+                        }
+                    }
+                }
+                
+            }
+        },
+        error: function (xhr, status) {
+            m_mainLayout.cells("b").progressOff();
+            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you have an invalid expression in filter regex");
+        }
+    });
+}
+
+function buildActionView(){
+
+}
+
+</script>
+
+</head>
+<body onload="loadserverconfig()">
+
+</body>

@@ -1,0 +1,20 @@
+.ffastransheadertext{
+	display:none !important;
+}
+
+button[name=b_delsel] {
+	display:unset;
+}
+
+.context-menu-list,.btn, .div_incoming_jobs,.helmet,.brand_image{
+	display:none;
+}
+
+#GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS, #GROUPRIGHT_MENU_VIEW_FARM_ADMIN, #GROUPRIGHT_MENU_VIEW_SCHEDULER{
+	display:none !important;
+	
+}
+
+.div_active_jobs{
+	margin-left:450px !important
+}

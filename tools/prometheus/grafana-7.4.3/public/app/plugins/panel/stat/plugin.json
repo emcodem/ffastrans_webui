@@ -1,0 +1,17 @@
+{
+  "type": "panel",
+  "name": "Stat",
+  "id": "stat",
+
+  "info": {
+    "description": "Singlestat Panel for Grafana",
+    "author": {
+      "name": "Grafana Labs",
+      "url": "https://grafana.com"
+    },
+    "logos": {
+      "small": "img/icn-singlestat-panel.svg",
+      "large": "img/icn-singlestat-panel.svg"
+    }
+  }
+}

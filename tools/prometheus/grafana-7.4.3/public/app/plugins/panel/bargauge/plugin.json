@@ -1,0 +1,16 @@
+{
+  "type": "panel",
+  "name": "Bar gauge",
+  "id": "bargauge",
+
+  "info": {
+    "author": {
+      "name": "Grafana Labs",
+      "url": "https://grafana.com"
+    },
+    "logos": {
+      "small": "img/icon_bar_gauge.svg",
+      "large": "img/icon_bar_gauge.svg"
+    }
+  }
+}

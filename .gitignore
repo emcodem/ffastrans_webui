@@ -1,0 +1,14 @@
+#untrack database
+
+release
+tools/prometheus/data
+tools/prometheus/data/wal/
+database/
+server.exe
+alternate-server/
+alternate-server.old/
+*.log
+*.zip
+*.db
+*.log.*
+/dist
