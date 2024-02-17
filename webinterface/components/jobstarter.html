@@ -127,7 +127,7 @@ var socket = io();
 //dhtmlx ui
 var m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
-
+var m_noBrowseMode = false;
 /* Global unhandled error handler */
 window.onerror = function(msg, url, line, col, error) {
    // Note that col & error are new to the HTML 5 spec and may not be 
@@ -304,7 +304,10 @@ function init(){
                 show_upload = false;
             }
     }
-   
+    if (!(show_browse && show_upload)){
+        m_noBrowseMode = true;
+        hideFileSelector();
+    }
 
     var _cfg = {
         mode:               "top",
@@ -342,7 +345,7 @@ function init(){
 
 	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,preview");//the headers of columns  
+    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,Preview");//the headers of columns  
     m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
     m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0,0");          //the widths of columns  
@@ -903,19 +906,23 @@ function init(){
             newrowdata["source_of_adding"] = "URL";
             m_selectedFileGrid.addRow(newId,[]);
             m_selectedFileGrid.setRowData(newId,newrowdata);
-            
-            //m_selectedFileGrid.addRow(newId,[_f]);
-            m_mainLayout.cells("a").setMinWidth(0);
-            m_mainLayout.cells("a").setWidth(0);
+
+            hideFileSelector()
             jobLayout.cells("a").setHeight(150)
-            
         }
     }
 
 }
 
+function hideFileSelector(){
+    m_mainLayout.cells("a").setMinWidth(0);
+    m_mainLayout.cells("a").setWidth(0);
+    
+}
 
 function saveLayoutSizes(dhxLayout,name){
+    if (m_noBrowseMode)
+        return
 //store layout cells height and with into html5 storage (in percentage of document height)
     var aw = (dhxLayout.cells("a").getWidth()/document.body.scrollWidth ) ;
     var ah = (dhxLayout.cells("a").getHeight()/document.body.scrollHeight ) ;
@@ -929,6 +936,8 @@ function saveLayoutSizes(dhxLayout,name){
 }
 
 function restoreLayoutSizes(dhxLayout,name){
+    if (m_noBrowseMode)
+        return
     if (localStorage.getItem(name+"_aw")){
         var aw = localStorage.getItem(name+"_aw");
         var ah = localStorage.getItem(name+"_ah");
@@ -1742,6 +1751,9 @@ async function startJobApiCall(postBody){
 
 function saveRestoreUserState(tabbarId){
 //stores/restores some user settings
+    if (m_noBrowseMode)
+        return
+
     if (!tabbarId){
         if (localStorage.getItem("tabbaritemselected")){
             if (m_mainTabBar.tabs(localStorage.getItem("tabbaritemselected"))){
