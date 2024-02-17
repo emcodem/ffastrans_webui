@@ -84,18 +84,9 @@ global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
 //Before DB init, we need socket.io
 var jobcontrol = require("./node_components/jobcontrol_socketio");
-//var jobfetcher = require('./node_components/cron_tasks/jobfetcher');
- 
+
 //init DB
 global.db={};
-
-
-
-// global.db.jobs = new AsyncNedb({ filename: global.approot  + "/database/jobs" });
-// global.db.jobs.loadDatabase(function (err) {    //database is vacuumed at startup
-//   assert.equal(null, err);
-
-// });
 
 global.db.config = new AsyncNedb({ filename: global.approot  + "/database/config" });
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
@@ -130,11 +121,12 @@ async function connectDb(){
         //todo:restart DB? Anyway, we must inform clients continuously...
 		setTimeout(function(){
             dblogger.info("Initiating connect retry in 3 seconds");
-            //connectDb()
+            global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
+            connectDb()
         },3000);
         // setInterval(function(){
 		// 	//show errormsg forever as we do not attempt to reconnect
-		// 	global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
+		// 	
 		// }, 3000);
     }
 
@@ -147,11 +139,12 @@ async function connectDb(){
 	}catch(ex){
 		// var myInterval = setInterval(function(){
 		// 	//show errormsg forever as we do not attempt to reconnect
-		// 	global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
+		// 	
 		// }, 3000);
         setTimeout(function(){
             dblogger.info("Initiating connect retry in 3 seconds");
-            //connectDb()
+            global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
+            connectDb()
         },3000);
 	}
     

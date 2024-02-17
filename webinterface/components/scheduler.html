@@ -497,7 +497,7 @@ async function init(){
         }
         if (id=="clone"){
             if (m_mainGrid.getSelectedRowId()){
-                
+                var oldId = m_mainGrid.getSelectedRowId()
 				var newId = Math.random();
 				m_mainGrid.addRow(newId,[newId,"false", "New Job", "No Condition","","","", "*/5 * * * *",  "", "", new Date().toMysqlFormat()]);
 				m_mainGrid.copyRowContent(m_mainGrid.getSelectedRowId(),newId);
@@ -505,9 +505,9 @@ async function init(){
 				var currentName = m_mainGrid.cells(newId,2).getValue();
 				m_mainGrid.cells(newId,2).setValue(currentName + "_copy");
 				//copy userdata, e.g. script, workflow, variables
-				m_mainGrid.setUserData(newId,"script",m_mainGrid.getUserData(newId,"script"));
-				m_mainGrid.setUserData(newId,"workflow",m_mainGrid.getUserData(newId,"workflow"));
-				m_mainGrid.setUserData(newId,"variables",m_mainGrid.getUserData(newId,"variables"));
+				m_mainGrid.setUserData(newId,"script",m_mainGrid.getUserData(oldId,"script"));
+				m_mainGrid.setUserData(newId,"workflow",m_mainGrid.getUserData(oldId,"workflow"));
+				m_mainGrid.setUserData(newId,"variables",m_mainGrid.getUserData(oldId,"variables"));
             }else{
                 dhtmlx.message("No Row selected!")
             }
