@@ -15,7 +15,7 @@ module.exports = function(app, express){
             }
             //filter based on user permissions
             var allowedWorkflows = [];
-            var allWorkflows = await global.db.jobs.distinct("workflow");
+            var allWorkflows = lastactive.map(wf => {return wf.wf_name})
             if (req.user){
               //serve only workflows the user has rights for
               for (let _wf of allWorkflows){

@@ -128,10 +128,14 @@ async function connectDb(){
     global.db.mongod.onExit = function(data){
         dblogger.info("database process exited, code: ",data);
         //todo:restart DB? Anyway, we must inform clients continuously...
-		setInterval(function(){
-			//show errormsg forever as we do not attempt to reconnect
-			global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
-		}, 3000);
+		setTimeout(function(){
+            dblogger.info("Initiating connect retry in 3 seconds");
+            //connectDb()
+        },3000);
+        // setInterval(function(){
+		// 	//show errormsg forever as we do not attempt to reconnect
+		// 	global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
+		// }, 3000);
     }
 
     //connect to database, store connection in global object
@@ -141,10 +145,14 @@ async function connectDb(){
 	try{ 
 		mongoclient = await MongoClient.connect(url)
 	}catch(ex){
-		setInterval(function(){
-			//show errormsg forever as we do not attempt to reconnect
-			global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
-		}, 3000);
+		// var myInterval = setInterval(function(){
+		// 	//show errormsg forever as we do not attempt to reconnect
+		// 	global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
+		// }, 3000);
+        setTimeout(function(){
+            dblogger.info("Initiating connect retry in 3 seconds");
+            //connectDb()
+        },3000);
 	}
     
     const db = mongoclient.db("webinterface");
