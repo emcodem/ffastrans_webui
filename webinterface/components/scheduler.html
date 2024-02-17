@@ -371,7 +371,9 @@ async function init(){
     m_mainLayout.cells("a").setMinHeight(50);
     m_mainLayout.cells("b").setMinHeight(50);  
     m_mainLayout.cells("b").setText("Documentation");
-
+    var autoSizes = m_mainLayout.listAutoSizes();
+    console.log("auto",autoSizes)
+    m_mainLayout.setAutoSize("b","a;b");
     m_mainLayout.cells("a").setText("Scheduled Jobs");//<a href='google.com'>Help</a>
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
