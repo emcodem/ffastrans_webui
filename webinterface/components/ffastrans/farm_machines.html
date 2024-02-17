@@ -168,8 +168,8 @@ async function buildLayout(){
             {  readonly:true, id: "cpu_roof",        header: [{ content: "inputFilter" },{ text: label_map("farm_cpu_roof") }],width:100},
             {  readonly:true, id: "cpu",     header: [{ content: "inputFilter" },{ text: label_map("farm_cpu_info") }],
                 template:function(cpu_data){
-                    return JSON.stringify(cpu_data);
-                   ///return cpu_data["cores"] + " " +cpu_data["architecture"] + " " +"" +cpu_data["identifier"] 
+                    //return JSON.stringify(cpu_data);
+                   return cpu_data["cores"] + " Cores, " +cpu_data["architecture"] + ", ID: " +cpu_data["identifier"]  + ", Rev: " + cpu_data["revision"] 
                 }
             },
             {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }]},

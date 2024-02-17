@@ -37,7 +37,7 @@ module.exports = function(app, express){
             res.json(allowed);//Send error response here
             
       }catch (ex){
-        console.error("getactivejobsajax_treegrid error calling fetcher "+ ex);
+        console.error("getactivejobsajax_treegrid error calling fetcher ", ex);
         res.status(500);//Send error response here
         res.end();
       }

@@ -188,7 +188,7 @@ function start_cron(){
             try{
                 await global.jobfetcher.fetchjobs();
             }catch (ex){
-                console.trace("Error, jobfetcher exception. " + ex)
+                console.trace("Error, jobfetcher exception. ", ex)
             }
             global.dbfetcheractive = false;
         }else{

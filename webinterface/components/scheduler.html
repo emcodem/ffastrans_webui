@@ -371,7 +371,8 @@ async function init(){
     m_mainLayout.cells("a").setMinHeight(50);
     m_mainLayout.cells("b").setMinHeight(50);  
     m_mainLayout.cells("b").setText("Documentation");
-    m_mainLayout.cells("a").setText("Scheduled Jobs ");//<a href='google.com'>Help</a>
+
+    m_mainLayout.cells("a").setText("Scheduled Jobs");//<a href='google.com'>Help</a>
 	m_mainGrid = m_mainLayout.cells("a").attachGrid();
     m_mainGrid.setImagePath("/webinterface/dependencies/dhtmlx/imgs/");                 
     m_mainGrid.setHeader("id, Enabled, Name, Description, Condition, Workflow, Variables,Frequency,  Last Start, Next Start, Created on,Last Message,Errors");
@@ -517,9 +518,11 @@ async function init(){
     var detailsLayout = m_mainLayout.cells("b").attachLayout({
             pattern: "1C"  
     })
-    
-    //detailsLayout.cells("a").setText("Documentation");
+    //need to call showheader on outer layout after attaching inner layout
+    m_mainLayout.cells("b").showArrow()
+    m_mainLayout.cells("b").showHeader()
     detailsLayout.cells("a").hideHeader()
+    //detailsLayout.cells("a").hideHeader()
     document.getElementById("documentation").style.visibility = "visible";
     detailsLayout.cells("a").attachObject("documentation");
     detailsLayout.cells("a").setWidth(380);
@@ -1130,7 +1133,8 @@ function downloadStringAsFile(content, mimeType, filename){
 <div id="documentation" style="visibility:hidden;height:100%;width:100%;font-family:Tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap;overflow:scroll">
 <p>
 <b>General:</b>
-Scheduled jobs are used to start workflows in a specific frequency. 
+Scheduled jobs are used to kick off jobs in a specific frequency. 
+<b>Note, we do not start/stop the workflow's watchfolder processors, </b> instead we start a job and set the source File by default ot "Scheduled Job"
 A simple usecase is for example to start a Job that executes some Batch for file deletion every night. 
 In more complex usecases, you can use the "Condition" script and check if the workflow really needs to be executed.
 

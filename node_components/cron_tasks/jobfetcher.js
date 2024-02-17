@@ -210,7 +210,7 @@ async function loadHistoryJobs(URLS){
 	}
 	
 	if (failed_count >= URLS.length)
-		global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
+		global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? '    );
 
 	await parseHistoryJobs(all_jobs);
 
@@ -627,7 +627,7 @@ function doRequest(url) {
 
 
 async function sendEmailAlert(subject, body){
-		if (!"email_alert_config" in global.config){
+		if (!("email_alert_config" in global.config)){
 			return;
 		}
 		try{
