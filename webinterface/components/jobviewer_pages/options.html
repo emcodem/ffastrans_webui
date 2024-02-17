@@ -50,7 +50,7 @@
 /* stores jobviewer config in localStorage, reloads page on change */
 $(document).ready(function(){
     var m_subForm  = new dhtmlXForm("optsform");
-    m_subForm.addItem("data", {type: "input", width:40,name: "jobviewer_rows_per_page", label: "Rows per Page:",  offsetLeft:10, value: localStorage.getItem("jobviewer_rows_per_page") || 100});
+    m_subForm.addItem("data", {type: "input", width:40,name: "jobviewer_rows_per_page", label: "Rows per Page:",  offsetLeft:10, value: localStorage.getItem("jobviewer_rows_per_page") || "100"});
     m_subForm.addItem("data", {type: "checkbox", name: "jobviewer_showrowcolors_history", label: "Row Colors:",  offsetLeft:10,checked:localStorage.getItem("jobviewer_showrowcolors_history") });
     m_subForm.addItem("data", {type: "button", value:"Save",offsetLeft:10 });
       
@@ -59,6 +59,7 @@ $(document).ready(function(){
         m_subForm.forEachItem(function(name){
         //collect user_variables
             var value = m_subForm.getItemValue(name);
+            console.log("Saving Options: ",name,value)
             if (name == "jobviewer_showrowcolors_history"){
                 localStorage.setItem(name,value);
             }
