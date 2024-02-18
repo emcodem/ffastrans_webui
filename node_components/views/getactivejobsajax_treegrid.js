@@ -8,6 +8,10 @@ module.exports = function(app, express){
 	app.get('/getactivejobsajax_treegrid', async (req, res) => {
       //BEWARE, there can potentially be many requests per second to this
       try{
+            if (!global.hasOwnProperty("lastactive")){
+              res.json([]);
+              return;
+            }
             var lastactive = JSON.parse(global.lastactive);
             if (lastactive.length == 0){
               res.json([]);

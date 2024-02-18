@@ -347,7 +347,7 @@ async function init(conf){
     app.use('/new_proxy', proxy(protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
         limit: '100mb',
         logLevel: "info",
-        proxyTimeout: 1000,
+        proxyTimeout: global.config.STATIC_API_TIMEOUT,
         onProxyReq: function (proxyReq, req, res) {
                                     console.log("proxying request to:",protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT) 
                                 },

@@ -8,7 +8,7 @@ module.exports = async function(app, passport){
             var search_for_id = req.query.id;
             var last_active     = JSON.parse(global.lastactive);
             var last_history    = JSON.parse(global.lasthistory);
-            var hjobs = last_history.history;
+            var hjobs = last_history;
             var ajobs = last_active;
 
             var all = [...hjobs, ...ajobs];

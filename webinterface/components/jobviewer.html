@@ -1293,11 +1293,26 @@
                 var parsedFileName = node.data.source;
                 try{
                     //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store this
-                    if (node.data.source.match(/[^\\]+$/).length == 1 && node.data.source.match(/[^\\]+$/)[0] != "")
-                        parsedFileName = node.data.source.match(/[^\\]+$/)[0];
+                    try{
+                        if (Array.isArray(JSON.parse(parsedFileName))){
+                            parsedFileName = JSON.parse(parsedFileName)[0] + " (List: " + JSON.parse(parsedFileName).length + ")"; 
+                        }
+                    }catch(ex){}
+                    if (parsedFileName.match(/ffconcat version 1.0/)){
+                        console.log("GOT FFCONCAT",parsedFileName.match(/'(.*?)'/))
+                        parsedFileName = parsedFileName.match(/file '(.*?)'/)[1];
+                        console.log("concat parsed fname",parsedFileName)
+                        
+                    }
+                    //try to get filename
+                    if (parsedFileName.match(/[^\\]+$/).length == 1 && parsedFileName.match(/[^\\]+$/)[0] != "")
+                        
+                        parsedFileName = parsedFileName.match(/[^\\]+$/)[0]; //remove everything before last backslash
+                    console.log("final fname",parsedFileName)
+
                 }catch(ex){}
 
-                $tdList.eq(5).html("<div class='celltext_rtl' title='"+outcome+"'><bdi>" + parsedFileName + "</bdi></div>");
+                $tdList.eq(5).html("<div class='celltext_rtl' title='"+parsedFileName+"'><bdi>" + parsedFileName + "</bdi></div>");
                 
                 var outcome = node.data.result || node.data.outcome;
                 outcome = decodeEntities(outcome)
@@ -1659,15 +1674,17 @@
                     postBody.wf_id = response["workflow"]["id"];
                     postBody.inputfile = response["sources"]["localized_file"];
                     postBody.variables = response["variables"];
+                    postBody.system = "FFAStrans Web Interface";
+                    
 					console.log("submitting wf: ",postBody)
                     $.ajax({
-                        url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                        url: "/proxy" + m_serverconfig['STATIC_START_JOB_URL'],//buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
                         type: "POST",
                         crossDomain: true,
                         contentType: "application/json",
                         data: JSON.stringify(postBody),
                         success: function(response) {
-                            dhtmlx.message(postBody.inputfile + " was submitted")
+                            dhtmlx.message("Sucess")
                         },
                         error: function(xhr, status) {
                             console.log(xhr.responseText)

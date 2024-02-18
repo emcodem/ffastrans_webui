@@ -253,7 +253,8 @@ class Player
 						"--play-and-pause", //pause at last frame 
 						//"--start-paused",
 						"--audio-track=" + this.selectedAudioTrack,//  in encode below dont work but only here, so we have to restart the player for selecting tracks
-						':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=288}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
+						':sout=#transcode{vcodec=mp1v,vb=5256k,vfilter=canvas{width=512,height=288}}:std{access=file,mux=avformat{mux=matroska},dst="-"}',//canvas filter for keep aspect
+						//':sout=#transcode{vcodec=mp1v,vb=5256k,width=512,height=288}:std{access=file,mux=avformat{mux=matroska},dst="-"}',
 						"--sout-avcodec-keyint=1",// I frame only
 						"--http-host" ,"127.0.0.1",
 						"--http-port", this.port,

@@ -547,16 +547,18 @@ function init(){
 
     m_selectedFileGrid = jobLayout.cells("a").attachGrid();
     m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
-    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,Status,Outcome");
+    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
+    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,Status,Outcome");
     m_selectedFileGrid.setColumnHidden(1,true);
     m_selectedFileGrid.setColumnHidden(2,true);
     m_selectedFileGrid.setColumnHidden(6,true);
     m_selectedFileGrid.setColumnHidden(7,true);
-    m_selectedFileGrid.setInitWidthsP("45,0,0,0,0,0,0,0,10,*");
-    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left");
-    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str");   
+    m_selectedFileGrid.setColumnHidden(8,true);
+    m_selectedFileGrid.setColumnHidden(9,true);
+    m_selectedFileGrid.setInitWidthsP("45,0,0,0,0,0,0,0,0,0,10,*");
+    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left,left");
+    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str");   
     m_selectedFileGrid.enableMultiselect(true);
     m_selectedFileGrid.enableDragAndDrop(true);
     m_selectedFileGrid.enableStableSorting(true);
@@ -691,8 +693,8 @@ function init(){
     headerMenu.attachEvent("onClick", function(id, zoneId, cas){
             if (id == "add_customfile") {
                 var box = dhtmlx.modalbox({
-                    title:"New File",
-                    text: "Enter a Full Path (e.g. UNC) as seen by FFAStrans Server<br/><br/><input class='inform' type='text'>",
+                    title:"Add Source",
+                    text: "Enter full path or URL accessible by FFAStrans Server<br/><br/><input class='inform' type='text'>",
                     buttons:["OK",  "Cancel"],
                     callback: function(result){
                         if (result == 0){
@@ -1629,10 +1631,21 @@ async function startJobs(form,selectedWorkflow){
     postBody.variables = ffasvars;
     postBody.system = "FFAStrans Web Interface";
     
+    var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+
+    var force_ffconcat = false;
+    for (var i = 0; i<gridrows_sorted.length;i++){ //check if segments, if yes, force ffconcat mode
+        var id = gridrows_sorted[i];
+        var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
+        if (source == "Segment"){
+            force_ffconcat = true;
+        }
+    }
+
     if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){
         //stitch mode, submit all files as array!
         var all_files = [];
-        var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+        
         for (var i = 0; i<gridrows_sorted.length;i++){
             var id = gridrows_sorted[i];
             var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
@@ -1642,12 +1655,28 @@ async function startJobs(form,selectedWorkflow){
             if (source == "Upload"){
                 _filepath = m_realUploadpath + _filepath;
             }
+            if (source == "Segment"){
+                var inpoint = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
+                var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
+                _filepath = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint + "\n";
+            }else{
+                if (force_ffconcat){//add file without in and outpoint to ffconcat list
+                    _filepath = "file '" + _filepath + "'\n"
+                }
+            }
+
             all_files.push(_filepath.replace(/&amp;/g, '&'));
+            
             m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
             m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
         }//foreach gridrow
         //start one job for all files
-        postBody.inputfile = JSON.stringify(all_files); 
+        if (force_ffconcat){
+            all_files.unshift("ffconcat version 1.0")
+            postBody.inputfile = all_files.join("\n");
+        }else{
+            postBody.inputfile = JSON.stringify(all_files); 
+        }
         var jobid = await startJobApiCall(postBody);
         var firstId = gridrows_sorted[0]
         waitForJobToFinish(firstId,jobid);
@@ -1655,8 +1684,7 @@ async function startJobs(form,selectedWorkflow){
     }else{
         
         //one job per file mode
-        var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
-        console.log("rowid3es:",gridrows_sorted)
+        
         m_selectedFileGrid.forEachRow(async function(id){
             var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
             var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
@@ -1670,6 +1698,20 @@ async function startJobs(form,selectedWorkflow){
                 console.log("Source is upload:",_filepath)
                 _filepath = m_realUploadpath + _filepath;
             }
+            if (source == "Segment"){
+                var inpoint = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
+                var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
+                _filepath = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint;
+            }else{
+                if (force_ffconcat){
+                    _filepath = "file '" + _filepath + "'\n"
+                }
+            }
+            
+            if (force_ffconcat){
+                _filepath = "ffconcat version 1.0\n" + _filepath
+            }
+
             //in foreach file mode, we create a copy of postbody otherwise foobar will happen
             var postBody_clone = JSON.stringify(postBody);
             postBody_clone = JSON.parse(postBody_clone);
@@ -1716,6 +1758,46 @@ async function waitForJobToFinish(rowId,jobId){
     },3000);
 }
 
+function addSegmentRow(fullpath,inpoint,outpoint){ //for ffconcat, called from player
+    var a_dirs      = (fullpath.split(/\\|\//));
+    var name_only   = a_dirs[a_dirs.length-1];
+
+    var newId = (new Date()).valueOf() + Math.random();
+    var newrowdata = {};
+    newrowdata["Filename"] = inpoint + "-" + outpoint + " " + name_only;
+    newrowdata["Path"] = fullpath;
+    newrowdata["is_folder"] = false;
+    newrowdata["Modified"] =  "";
+    newrowdata["Created"] = "";
+    newrowdata["original_size"] = "";
+    newrowdata["Size"] = "";
+    newrowdata["source_of_adding"] = "Segment";
+    newrowdata["segment_inpoint"] = inpoint;
+    newrowdata["segment_outpoint"] = outpoint;
+    m_selectedFileGrid.addRow(newId,[]);
+    m_selectedFileGrid.setRowData(newId,newrowdata);
+
+}
+
+function addFileRow(fullpath){ //for ffconcat, called from player
+    var a_dirs      = (fullpath.split(/\\|\//));
+    var name_only   = a_dirs[a_dirs.length-1];
+
+    var newId = (new Date()).valueOf() + Math.random();
+    var newrowdata = {};
+    newrowdata["Filename"]  = name_only;
+    newrowdata["Path"]      = fullpath;
+    newrowdata["is_folder"] = false;
+    newrowdata["Modified"]  =  "";
+    newrowdata["Created"]   = "";
+    newrowdata["original_size"] = "";
+    newrowdata["Size"]      = "";
+    newrowdata["source_of_adding"]  = "Manual";
+    m_selectedFileGrid.addRow(newId,[]);
+    m_selectedFileGrid.setRowData(newId,newrowdata);
+
+}
+
 function decodeEntities(encodedString) {
     var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
     var translate = {
@@ -1734,6 +1816,7 @@ function decodeEntities(encodedString) {
 }
 
 async function startJobApiCall(postBody){
+    console.trace()
     try{
         var response =  await $.ajax({
             url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),

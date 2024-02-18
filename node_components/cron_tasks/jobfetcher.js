@@ -14,6 +14,7 @@ var helpers = require("../common/helpers")
 
 var alert_sent = false;
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
+var history_error_count = 0;
 process.env.UV_THREADPOOL_SIZE = 128;
 
 var executioncount = 0;
@@ -79,8 +80,8 @@ module.exports = {
 		getQueuedJobs();
 
 		//fetch HISTORY jobs from api
-		var HISTORY_URLS = [buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=100")]
-		await loadHistoryJobs(HISTORY_URLS);
+		
+		await loadHistoryJobs();
 
   }
 };
@@ -199,19 +200,27 @@ async function loadHistoryJobs(URLS){
 	//supports loading history from multiple hosts
 	var all_jobs = [];
 	var failed_count = 0;
-	for (var _currentUrl of URLS){
+	
+	var HISTORY_URLS = [helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100")]
+
+	for (var _currentUrl of HISTORY_URLS){
 		try{
-			let response = await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
-			response = await response.json();
-			all_jobs.push(...response.history);
+			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
+			let response = await axios.get(_currentUrl)//await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
+			response = response.data;
+			all_jobs.push(...response.history); //old api, get rid of this
 		}catch(ex){
+			console.error("loadHistoryJobs",ex)
 			failed_count++;
 		}
 	}
 	
-	if (failed_count >= URLS.length)
-		global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? '    );
-
+	if (failed_count >= HISTORY_URLS.length){
+		history_error_count ++;
+		if (history_error_count%10 == 0)
+			global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? '    );
+		history_error_count = 0;
+	}
 	await parseHistoryJobs(all_jobs);
 
 }
@@ -367,7 +376,7 @@ async function parseHistoryJobs(all_jobs){
 }
 
 function getRunningJobs(){
-	
+	//todo: refactor to use tickets
 	Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
 		if(error) {
 			try{
@@ -379,8 +388,8 @@ function getRunningJobs(){
 			}catch(ex){
 				console.error("Could not send email alert message: ", ex.stack)
 			}
-			global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
-			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+			global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
+			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
 			console.error(error);
 			return;
 		}
@@ -569,13 +578,10 @@ function hashCode (string) {
 };
 
 function buildApiUrl(what){
+	//return "/proxy" + what;
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
 }
 
-function buildNewApiUrl(){
-	var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
-    return protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + "/tickets"
-}
 
 /* STRUCTS */
 Object.defineProperty(String.prototype, 'hashCode', {
