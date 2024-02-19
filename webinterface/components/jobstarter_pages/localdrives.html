@@ -107,7 +107,8 @@ function selectRow(grid){
     }
 
     var grid_row = selectedCells[0].row;
-    parent.postMessage(grid_row.mount);
+	var cmd = {"getFileList":grid_row.mount}
+    parent.postMessage(JSON.stringify(cmd));
 }
 
 function showAlert(msg){

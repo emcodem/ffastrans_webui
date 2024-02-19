@@ -1906,12 +1906,22 @@ function buildUrl(what){
     return  _url;
 }
 
-window.addEventListener("message",function(msg){
+window.addEventListener("message",function(cmd){
     //iframe localdrive can access functions using parent.postMessage("E:");
-    console.log("message from iframe",msg)
-    var where = msg.data;
-    getFileList(m_fileBrowserGrid,where);
-    m_listDriveWindow.close();
+    console.log("message from iframe",cmd)
+	try{
+		cmd = JSON.parse(cmd.data)
+		if (cmd.hasOwnProperty("getFileList")){
+			getFileList(m_fileBrowserGrid,cmd.getFileList);
+			if (m_listDriveWindow)
+				m_listDriveWindow.close();
+		}
+	}catch(ex){
+		return;
+	}
+    
+
+
 }, false);
 
 

@@ -13,20 +13,27 @@ module.exports = async function(app, passport){
                     let cmd = "get-partition -DriveLetter "+_cur.mount.replace(":","")+" | get-disk |Select-Object -ExpandProperty FriendlyName"
                     _cur.sizeFriendly = formatBytes(_cur.size);
                     let worker = async function(){
-                        let name = await (execPowerShellCommand(cmd));
-                        name = name.replace(/\r?\n|\r/g, " ");
-                        current_drives[i].name = name;
+						try{
+							let name = await (execPowerShellCommand(cmd));
+							name = name.replace(/\r?\n|\r/g, " ");
+							current_drives[i].name = name;
+							
+						}catch(exc){
+							current_drives[i].name = "";
+						}
                     } 
                     running_in_background.push(worker());
                 }catch(ex){
-                    current_drives[i].name = "";
+                    console.error(ex)
                 } 
             }
-
+			
+			
             await Promise.all(running_in_background);
             //get-partition -DriveLetter C | get-disk |Select-Object -ExpandProperty FriendlyName
 
             res.json(current_drives);
+			
         }catch(ex){
             console.json(ex);
             res.status(500);
