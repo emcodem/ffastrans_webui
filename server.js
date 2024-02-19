@@ -399,7 +399,7 @@ async function init(conf){
         next();
     });
 
-    //allow access to dynamic stuff
+    //"routes"
 
     require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
     require('./node_components/passport/passport')(passport); // pass passport for configuration
@@ -409,9 +409,9 @@ async function init(conf){
     require("./node_components/filebrowser")(app, express);
     require("./node_components/getserverconfig")(app, express);
     require("./node_components/logparser")(app, express);
+
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobsajax_treegrid")(app, express);
-    require("./node_components/views/getactivejobsajax_treegrid")(app, express);
     require("./node_components/views/userlist")(app, express);
     require("./node_components/views/usergrouplist")(app, express);
     require("./node_components/views/usergrouprightslist")(app, express);
@@ -420,6 +420,8 @@ async function init(conf){
     require("./node_components/views/scheduledjobs")(app, passport);
     require("./node_components/views/browselocations")(app, express);
     require("./node_components/views/getjobstate")(app, express);
+    require("./node_components/views/localdrives")(app, express);
+
     require("./node_components/get_userpermissions")(app, passport);
     require("./node_components/resumeable_backend.js")(app, passport);
     require("./node_components/mediainfo.js")(app, passport);
@@ -428,6 +430,7 @@ async function init(conf){
 	require("./node_components/farmadmin_install_service.js")(app, passport);
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/databasemaintenance_views")(app, passport);
+
     
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));

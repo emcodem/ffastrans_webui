@@ -128,6 +128,7 @@ var socket = io();
 var m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 var m_noBrowseMode = false;
+var m_listDriveWindow = false;
 /* Global unhandled error handler */
 window.onerror = function(msg, url, line, col, error) {
    // Note that col & error are new to the HTML 5 spec and may not be 
@@ -343,7 +344,7 @@ function init(){
             localStorage["tabbaritemselected"] = "" //user had permissions for this tab before but not anymore
     }
 
-	m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
+    m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,Preview");//the headers of columns  
     m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
@@ -381,6 +382,7 @@ function init(){
 
    
     var all_menu_items = [
+            {id:"localdrives", text:"<div style='width:80px'><span >Drives <i class='fa-brands fa-usb'></i></span></div>"},
             {id:"location", text:"<div style='width:80px'><span >Locations <i class='fas fa-list'></i></span></div>"},
 			{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
             {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
@@ -734,6 +736,11 @@ function init(){
 	});
     
 	m_fileBrowseGridMenu.attachEvent("onClick", async function(id, zoneId, cas){
+        if (id == "localdrives"){
+            openLocalDrivesWindow();
+            return;
+        }
+
         if (id == "delete_browsercache") { 
 			dhtmlx.message({
 				type:"confirm",
@@ -794,6 +801,7 @@ function init(){
             return;
         }
         
+
         if (id == "mediainfo"){
 			var rId = m_fileBrowserGrid.getSelectedRowId()
 			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
@@ -914,6 +922,16 @@ function init(){
         }
     }
 
+}
+
+function openLocalDrivesWindow(){
+        var dhxwins = new dhtmlXWindows("localDrives");
+        var win = dhxwins.createWindow("",20, 30, 800, 600);
+        win.height =  300;
+        win.setText("Local Drives");
+        win.showInnerScroll(true);
+        win.attachURL("jobstarter_pages/localdrives.html");
+        m_listDriveWindow = win;
 }
 
 function hideFileSelector(){
@@ -1887,6 +1905,16 @@ function buildUrl(what){
     var _url = "http://" + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_PORT'] + what;
     return  _url;
 }
+
+window.addEventListener("message",function(msg){
+    //iframe localdrive can access functions using parent.postMessage("E:");
+    console.log("message from iframe",msg)
+    var where = msg.data;
+    getFileList(m_fileBrowserGrid,where);
+    m_listDriveWindow.close();
+}, false);
+
+
 
 </script>
 

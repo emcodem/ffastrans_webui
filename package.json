@@ -56,6 +56,7 @@
     "socket.io": "^4.5.4",
     "socketio-wildcard": "^2.0.0",
     "strip-bom": "^5.0.0",
+    "systeminformation": "^5.22.0",
     "tableify": "^1.1.0",
     "tail": "^2.2.4",
     "tmp": "^0.2.1",
