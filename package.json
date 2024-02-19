@@ -43,7 +43,7 @@
     "nedb-promise": "^2.0.1",
     "node-cron": "^3.0.0",
     "node-mediainfo": "^1.0.3",
-    "nodemailer": "^6.7.5",
+    "nodemailer": "^6.9.9",
     "npm": "^7.11.1",
     "opn": "^5.5.0",
     "passport": "^0.4.1",
