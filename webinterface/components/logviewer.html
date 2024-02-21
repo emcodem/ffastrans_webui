@@ -391,7 +391,7 @@
                         postBody.wf_id = m_jobobject["workflow"]["id"];
                         postBody.inputfile = m_jobobject["sources"]["original_file"];
                         postBody.variables = m_jobobject["variables"];
-                    
+                        postBody.system = "FFAStrans Web Interface";
                          $.ajax({
                             url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
                             type: "POST",

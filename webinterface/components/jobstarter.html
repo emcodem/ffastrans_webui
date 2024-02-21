@@ -267,12 +267,30 @@ function registerHoverFunc(){
     })(jQuery);
 }
 
+function registerKeyboardShortcuts(){
+    
+    function handleShortCuts(e) {
+        var key = e.which || e.keyCode;
+        if (e.ctrlKey && key == 68) {
+            e.preventDefault()
+            //reset selected files state to allow resubmit
+            var gridrows_sorted = m_selectedFileGrid.getAllRowIds().split(",");
+            for (var i = 0; i<gridrows_sorted.length;i++){
+                var id = gridrows_sorted[i];
+                m_selectedFileGrid.getCellByName(id,"Status").setValue("");
+                m_selectedFileGrid.getCellByName(id,"Outcome").setValue("");
+            }
+        } 
+        return true;
+    };
+    document.addEventListener("keydown", handleShortCuts);
+}
 
 /* build basic page layout and init periodic job loading*/
 function init(){
     /* jquery tooltip helper for global use*/
     registerHoverFunc()
-
+    registerKeyboardShortcuts()
     //load config data from server
     m_realUploadpath = m_serverconfig['STATIC_UPLOADPATH'];
     //main layout
@@ -472,8 +490,9 @@ function init(){
     var headerMenu = m_mainLayout.cells("b").attachMenu({                                               
             items:[
 			
-                 {id:"add_customfile", text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
-                 {id:"delete_selected_file", text:"<i class='fa fa-folder-minus'></i>Delete"},
+                 {id:"add_customfile",          width:"10px",text:"<div style='width:50px'><i class='fa fa-folder-plus'></i>Add</div>"},
+                 {id:"delete_selected_file",    width:40,text:"<div style='width:50px'><i class='fa fa-folder-minus'></i>Delete</div>"},
+                 {id:"clear_all",               width:40,text:"<div style='width:50px'><i class='fa fa-trash'></i>Clear</div>"},
 			]
         });
         
@@ -481,7 +500,7 @@ function init(){
         //apply userpermissions, hide non allowed items
             menu_items = [];
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
-            for (var _itm of ["add_customfile","delete_selected_file"]){
+            for (var _itm of ["add_customfile","delete_selected_file","clear_all"]){
                 if (!regex.test(_itm)){
                     headerMenu.hideItem(_itm);
                 }
@@ -723,6 +742,9 @@ function init(){
                     dhtmlx.alert("Please select a File to delete");
                 }
                 m_selectedFileGrid.deleteSelectedRows();
+            }
+            if (id == "clear_all"){
+                m_selectedFileGrid.clearAll();
             }
          
     });
@@ -1613,34 +1635,6 @@ async function startJobs(form,selectedWorkflow){
         return;
     }
 
-    // //kick off one workflow per file in grid
-    // if (m_selectedFileGrid.getRowsNum() == 0){
-        
-    //     if (selectedWorkflow.description.indexOf("webui_stitch") != -1){
-    //         dhtmlx.alert("The selected workflow supports multiple input files, please add files to the list before starting.");
-    //         return;
-    //     }
-
-    //     dhtmlx.message("Workflow will be started as soon as files are added (e.g. Drag/drop from left or Upload finished)")
-    //     m_subForm.disableItem("submit");
-    //     //m_subForm.getInput("submit");
-    //     m_subForm.setItemLabel("submit", "Waiting for new Files...");
-    //     m_subForm.addItem(null, {type: "button", name:"stop",offsetLeft:10,width:200,value: "Stop auto Job submit"});
-    //     m_subForm.attachEvent("onButtonClick", function(name){
-    //         if (name == "stop"){
-    //             m_selectedFileGrid.detachEvent(m_fileAddedEventId);
-    //             m_subForm.removeItem("stop");
-    //             m_subForm.enableItem("submit");
-    //             m_subForm.setItemLabel("submit", "Start");
-    //         }
-    //     })
-    //     m_fileAddedEventId = m_selectedFileGrid.attachEvent("onRowAdded", function(id,ind){
-    //         //auto start jobs when new file added
-    //         startJobs();
-    //     });
-    //     return;
-    // }
-
     //construct submit job POST Body template
     var postBody = {}; //the JSON Structure for start job api
     postBody.wf_id = selectedWorkflow.wf_id;
@@ -1655,94 +1649,73 @@ async function startJobs(form,selectedWorkflow){
     for (var i = 0; i<gridrows_sorted.length;i++){ //check if segments, if yes, force ffconcat mode
         var id = gridrows_sorted[i];
         var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
-        if (source == "Segment"){
-            force_ffconcat = true;
-        }
     }
+
+    //SUBMIT JOBS
+    var a_all_files = []; //simple json array output
+    var o_all_files = []; //object for concat output {file,inpoint,outpoint....}
+    var a_row_ids   = []; //rowid and 
+
+    for (var i = 0; i<gridrows_sorted.length;i++){
+        let id = gridrows_sorted[i];
+        var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
+        var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
+        var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue().replace(/&amp;/g, '&');
+        if (_state){
+            //row was already submitted
+            dhtmlx.message("Already submitted " + _filepath);
+            continue;
+        }
+
+        if (source == "Upload"){
+            _filepath = m_realUploadpath + _filepath;
+        }
+        if (source == "Segment"){
+            var inpoint  = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
+            var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
+            var s_concat = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint + "\n";
+            var o_concat = {"source":_filepath,"inpoint": inpoint, "outpoint" : outpoint, "ffconcat": s_concat}
+            o_all_files.push(o_concat);
+            
+        }else{
+            var s_concat = "file '" + _filepath + "\n";
+            o_all_files.push({"source":_filepath, "ffconcat": s_concat});
+        }
+
+        a_all_files.push(_filepath);
+        a_row_ids.push(id);
+
+    }//foreach gridrow
+
+    //decide how to submit the files to the job
 
     if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){
-        //stitch mode, submit all files as array!
-        var all_files = [];
-        
-        for (var i = 0; i<gridrows_sorted.length;i++){
-            var id = gridrows_sorted[i];
-            var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
-            var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
-            var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
-            
-            if (source == "Upload"){
-                _filepath = m_realUploadpath + _filepath;
-            }
-            if (source == "Segment"){
-                var inpoint = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
-                var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
-                _filepath = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint + "\n";
-            }else{
-                if (force_ffconcat){//add file without in and outpoint to ffconcat list
-                    _filepath = "file '" + _filepath + "'\n"
-                }
-            }
-
-            all_files.push(_filepath.replace(/&amp;/g, '&'));
-            
-            m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
-            m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
-        }//foreach gridrow
-        //start one job for all files
-        if (force_ffconcat){
-            all_files.unshift("ffconcat version 1.0")
-            postBody.inputfile = all_files.join("\n");
-        }else{
-            postBody.inputfile = JSON.stringify(all_files); 
-        }
+        //submit all files to single job
+        postBody.inputfile = a_all_files[0];
+        postBody.variables.push({name:"webui_a_source",data:JSON.stringify(a_all_files)});
+        postBody.variables.push({name:"webui_o_source",data:JSON.stringify(o_all_files)});
+        console.log("submitting job",postBody);
         var jobid = await startJobApiCall(postBody);
-        var firstId = gridrows_sorted[0]
-        waitForJobToFinish(firstId,jobid);
-
+        
+        for (let j=0;j<a_all_files.length;j++){
+            waitForJobToFinish(a_row_ids[j],jobid);
+            m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Starting");
+            m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
+        }
     }else{
-        
-        //one job per file mode
-        
-        m_selectedFileGrid.forEachRow(async function(id){
-            var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
-            var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
-            var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue();
-            if (_state){
-                //row was already submitted
-                dhtmlx.message("Already submitted " + _filepath);
-                return;
-            }
-            if (source == "Upload"){
-                console.log("Source is upload:",_filepath)
-                _filepath = m_realUploadpath + _filepath;
-            }
-            if (source == "Segment"){
-                var inpoint = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
-                var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
-                _filepath = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint;
-            }else{
-                if (force_ffconcat){
-                    _filepath = "file '" + _filepath + "'\n"
-                }
-            }
-            
-            if (force_ffconcat){
-                _filepath = "ffconcat version 1.0\n" + _filepath
-            }
-
-            //in foreach file mode, we create a copy of postbody otherwise foobar will happen
-            var postBody_clone = JSON.stringify(postBody);
-            postBody_clone = JSON.parse(postBody_clone);
-            postBody_clone.inputfile = _filepath.replace(/&amp;/g, '&');
-            m_selectedFileGrid.getCellByName(id,"Status").setValue("Starting");
-            m_selectedFileGrid.getCellByName(id,"Outcome").setValue("Created");
-            
-            //start one job per file
-            var jobid = await startJobApiCall(postBody_clone);
-            waitForJobToFinish(id,jobid);
-
-        });
+        //submit one job per file
+        for (let j=0;j<a_all_files.length;j++){
+            postBody.inputfile = JSON.stringify(a_all_files[j]);
+            postBody.variables.push({name:"webui_a_source",data:JSON.stringify([a_all_files[j]])});
+            postBody.variables.push({name:"webui_o_source",data:JSON.stringify([o_all_files[j]])});
+            console.log("submitting job",postBody)
+            var jobid = await startJobApiCall(postBody);
+            waitForJobToFinish(a_row_ids[j],jobid);
+            m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Starting");
+            m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
+        }
     }
+
 }
 
 async function waitForJobToFinish(rowId,jobId){
@@ -1750,29 +1723,31 @@ async function waitForJobToFinish(rowId,jobId){
     console.log("waiting for finish",jobId)
     //m_selectedFileGrid.setUserData(rId,"fullpath",));
     var this_interval = window.setInterval(async function(){
-        var response =  await $.ajax({url:  "/getjobstate?id=" + jobId});
-        if (!("jobs" in response))
-            return;
+        try{
+            var response =  await $.ajax({url:  "/getjobstate?id=" + jobId});
+            if (!("jobs" in response))
+                return;
 
-        var statefield = m_selectedFileGrid.getCellByName(rowId,"Status");
-        statefield.setValue("Running");
-        if (response.all_finished)
-            statefield.setValue("Success");
-        if (response.all_failed)
-            statefield.setValue("Error");
+            var statefield = m_selectedFileGrid.getCellByName(rowId,"Status");
+            statefield.setValue("Running");
+            if (response.all_finished)
+                statefield.setValue("Success");
+            if (response.all_failed)
+                statefield.setValue("Error");
 
-        if (response.jobs.length == 0)
-            return;
-        var statusText = response.all_messages;
-        if (response.progress)
-            statusText = response.progress+"% " + statusText; 
-        
-        if(statusText != "" && statusText != " ")
-            m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(decodeEntities(statusText));
-        console.log("statustext",statusText)
-        //stop job polling if all are finished
-        if (response.all_finished)
-            window.clearInterval(this_interval)
+            if (response.jobs.length == 0)
+                return;
+            var statusText = response.all_messages;
+            if (response.progress)
+                statusText = response.progress+"% " + statusText; 
+            
+            if(statusText != "" && statusText != " ")
+                m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(decodeEntities(statusText));
+            console.log("statustext",statusText)
+            //stop job polling if all are finished
+            if (response.all_finished)
+                window.clearInterval(this_interval)
+        }catch(ex){}
     },3000);
 }
 
