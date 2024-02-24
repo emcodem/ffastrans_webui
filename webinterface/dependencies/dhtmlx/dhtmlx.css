@@ -8391,7 +8391,7 @@ div.dhx_modal_cover {
   border-width: 0 1px 0 1px;
 }
 
-/* non dhtmlx styles for webinterface, we change from dhtmlx to bootstrap! */
+/* non dhtmlx styles for webinterface, we change from dhtmlx to bootstrap! ok, 2 years after saying this we change back to dhtmlx and hate bootstrap */
 .bootstrap_tab_text {
 	color: #333333;
 	font-weight: bold;

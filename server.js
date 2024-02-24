@@ -50,8 +50,8 @@ process.on('uncaughtException', function(err) {
       err.stackTraceLimit = Infinity;
       console.error(err.stack);
     }
-    
 });
+
 process.on('unhandledRejection', (reason, promise) => {
     console.trace('Global unexpected error: ' , reason);
     if (reason.stack) {
@@ -73,11 +73,11 @@ if (fs.existsSync(path.join(global.approot, "/database/"))) {
 
 //fire up logger, overrides console log
 var logger = logfactory.getLogger("webint");
-console.log = (...args) => logger.info.call(logger, ...args);
-console.info = (...args) => logger.info.call(logger, ...args);
-console.warn = (...args) => logger.warn.call(logger, ...args);
-console.error = (...args) => logger.error.call(logger, ...args);
-console.debug = (...args) => logger.debug.call(logger, ...args);
+console.log = (...args)     => logger.info.call(logger, ...args);
+console.info = (...args)    => logger.info.call(logger, ...args);
+console.warn = (...args)    => logger.warn.call(logger, ...args);
+console.error = (...args)   => logger.error.call(logger, ...args);
+console.debug = (...args)   => logger.debug.call(logger, ...args);
 
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
@@ -262,11 +262,7 @@ async function init(conf){
 
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
-    //app.use(flash());            // use connect-flash for flash messages stored in session for this crappy ejs stuff
-    
-    //redirect views - for passport
-    //app.set('views', path.join(__dirname, '.f/node_components/passport/views/'));
-
+   
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
 	
 	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))
@@ -303,28 +299,8 @@ async function init(conf){
             }
         }
         connectApi();
-        
-		// //we need to get install directory when running as part of webinterface, before we can start new api
-		// _request(about_url, {noResponseRetries:1000000,timeout:1000}, (error, response, body) => {
-		// 	console.log("Email config retrieved from ffastrans.")
-		// 	if (error) {
-		// 		console.log("Fatal error, cannot start new_rest_api, did not get about page from ffastrans " + error);
-		// 		return;
-		// 	};
-			
-		// 	try{
-		// 		global["ffastrans-about"] = JSON.parse(body);
-		// 		console.log("FFAStrans config:",global["ffastrans-about"])
-		// 	}catch(exception){
-		// 		console.error("Could not parse about JSON from ffastrans url: ",about_url,exception);
-		// 	}
-		// 	//startup our own rest API
-		// 	console.log("Starting up REST API on Port " + global.config["STATIC_API_NEW_PORT"]);
-			
-		// 	ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"]);
-			
-		// })
 	}
+
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY
     app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
@@ -373,6 +349,7 @@ async function init(conf){
         /* this "calculates" target url for proxy request. A parameter named url has to be in get parameters*/
         return global.config.grafana_base;
     }
+
     app.use('/grafana_proxy', proxy(selectGrafanaProxy, {
         /* use like: /grafana_proxy?url=http://grafanaserver/pad... */
         logLevel: "info", // TODO : configure grafana serve_from_sub_path 
@@ -392,7 +369,6 @@ async function init(conf){
         }
     }));
 	
-
     //log all requests
     app.use(function(req, res, next) {
         //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
@@ -436,15 +412,6 @@ async function init(conf){
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
-    
-    //init hanlebars for dynamic page rendering
-    // const errorHandling = (err, req, res, next) => {
-    //     res.status(500).json({
-    //       msg: err.message,
-    //       success: false,
-    //     });
-    //   };
-    //  app.use(errorHandling);
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans')
 	// Listen both http & https ports if configured
@@ -463,20 +430,7 @@ async function init(conf){
 			console.log('HTTPS Server running on port',global.config.STATIC_WEBSERVER_LISTEN_PORT);
 			initSocketIo(httpsServer);
 		});
-		
-		/*
-		//normal http server with redirect to https
-		var httpapp = express();
-		const http = require('http').Server(httpapp);
-		http.listen(parseInt(global.config.STATIC_WEBSERVER_LISTEN_PORT), () => {
-			console.log('HTTP Server running on port',parseInt(global.config.STATIC_WEBSERVER_LISTEN_PORT)-1);
-		});
-		
-		httpapp.get("*", function (req, res, next) {
-			res.redirect("https://" + req.headers.host + ":" + req.headers.port + "/" + req.path);
-		});
-		*/
-		
+
 	}else{
 		const http = require('http').Server(app);
 		
@@ -559,11 +513,6 @@ function initSocketIo(created_httpserver){
                 }
                 return;
 			}
-			// if (cmd == "deletealljobs"){ //removed since mongodb
-			// 	jobcontrol.deletealljobs();
-			// 	return;
-			// }
-
 		})
 		
 		//client disconnected
