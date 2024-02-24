@@ -1,11 +1,27 @@
 <html>
 <head>
 <script src="/socket.io/socket.io.js"></script>
-<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
 
 <link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
-<script src="../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+
 
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
@@ -23,8 +39,6 @@
 
 <script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
 
-<link href="../dependencies/bootstrap/bootstrap-4.6.0-dist/css/bootstrap.min.css" rel="stylesheet" >
-<script src="../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
 
 <script src="common/buildWorkflowTree.js"></script>
 <script src="common/webuiVariables.js"></script> 
@@ -229,7 +243,7 @@ async function openVariableSelector(rId,savedVariables){
     m_variableSelectionWindow.setText("Variables");
     m_variableSelectionWindow.attachHTMLString("<div id='subform'></div>");
     
-    var layout = new dhx.Layout("subform", {
+    var layout = new dhx8.dhx.Layout("subform", {
                                         type: "space",
                                         rows: [
                                             {id: "top"},
@@ -296,7 +310,7 @@ async function openVariableSelector(rId,savedVariables){
     var formItems = webuiVariables_processVariables(workflowdetails["workflows"][0]["user_variables"]["variables"]);
     console.log("user vars transformed for dhtmlx grid",formItems);
 
-    vars_form = new dhx.Form(null, {
+    vars_form = new dhx8.dhx.Form(null, {
             css: "dhx_widget--bordered",
             rows: [ 
                     ...formItems

@@ -2,7 +2,21 @@
 <head>
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <script src="/socket.io/socket.io.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/> 
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <link href="../dependencies/bootstrap/5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet" >

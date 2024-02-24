@@ -8549,12 +8549,14 @@ ul.fancytree-container{/* workflow selection */
 }
 
 /* various dhx8 theme changes, need to delete when using builtin dark theme */
+/*
 :root,[data-dhx-theme]{
   --dhx-s-grid-header-background: #e0e0e0
-}
+}*/
+/*
 :root,[data-dhx-theme]{
 --dhx-font-color-primary:-webkit-linear-gradient(#e0e0e0, #d9d9d9)
-}
+}*/
 
 /* review right header */
 [data-cell-id="right_header"]{

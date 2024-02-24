@@ -9,8 +9,23 @@
 <script src="../../../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
 <script src="../../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
-<link rel="stylesheet" href="../../../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
 <script src="../../../dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="../../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */

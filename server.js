@@ -372,6 +372,9 @@ async function init(conf){
     //log all requests
     app.use(function(req, res, next) {
         //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
+        if (req.url.indexOf("dhtmlx.css") != -1){
+            var stop = 1;
+        }
         next();
     });
 

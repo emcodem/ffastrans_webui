@@ -13,7 +13,21 @@
 <link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 <script src="common/webuiVariables.js"></script> 
 
- <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"/>
+ <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+ <script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
  <link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
 <style>
