@@ -3641,13 +3641,7 @@ div.gridbox .filter input::-ms-clear {
   display: none;
 }
 div.gridbox_dhx_skyblue.gridbox .ftr,
-div.gridbox_dhx_skyblue.gridbox .xhdr {
-  color: #FFFFFF;
-  background-color: #515151;
-  background: linear-gradient(#515151, #4a4a4a);
-  background: -webkit-linear-gradient(#515151, #4a4a4a);
-  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#515151, endColorStr=#4a4a4a) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
-}
+
 div.gridbox_dhx_skyblue.isModern table.hdr tr td {
   color: #FFFFFF;
   background-color: #515151;
@@ -5936,14 +5930,7 @@ div.dhxvault_skin_detect {
 .dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_h div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_hb {
   background-position: -32px -4px;
 }
-.dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_v div.dhx_cell_hdr {
-  width: 18px;
-  background: -moz-linear-gradient(left, #515151, #4a4a4a);
-  background: -webkit-linear-gradient(left, #515151, #4a4a4a);
-  background: -o-linear-gradient(left, #515151, #4a4a4a);
-  background: -ms-linear-gradient(left, #515151, #4a4a4a);
-  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=1, startColorStr=#515151, endColorStr=#4a4a4a) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
-}
+
 .dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_v div.dhx_cell_hdr div.dhx_cell_hdr_text {
   position: absolute;
   left: 3px;
@@ -8407,13 +8394,16 @@ span.fancytree-title {
 body  {
 	color:hsla(0, 0%, 100%, .9) ;
 }
+
 .btn.jobviewer_menu {
 	color:black;
 	background-color:red;
 	border: 1px solid #ebebeb;
 	background: #DDD;
 }
-
+.btn.jobviewer_menu:disabled {
+	color: #999;
+}
 /* menu buttons*/
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
 	background-color:rgb(221, 221, 221);
@@ -8465,21 +8455,21 @@ div.gridbox_dhx_skyblue.isModern table.hdr tr td { /*jobstarter browse table*/
 
 /*jobstarter */
 div.gridbox .objbox{ /* selected files grid*/
-	background-color: var(--dhx-background-primary) !important;
+	background-color: var(--dhx-background-primary) ;
 }
 .dhx-dropable-area .drop-area-bold-text { /*uploader*/
 	color: hsla(0, 0%, 100%, .9) !important;
 }
 .vault.dhx_widget {/*uploader*/
-	background-color: var(--dhx-background-primary) !important;
+	background-color: var(--dhx-background-primary) ;
 	
 }
 
-.dhxtabbar_base_dhx_skyblue div.dhx_cell_tabbar{
+.dhxtabbar_base_dhx_skyblue div.dhx_cell_tabbar{/*tabs*/
 	background-color: var(--dhx-background-primary) ;
 }
 
-.dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs div.dhxtabbar_tab{
+.dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs div.dhxtabbar_tab{/*tabs*/
 	background: var(--dhx-background-primary) ;
 }
 
@@ -8489,7 +8479,7 @@ div.gridbox .objbox{ /* selected files grid*/
 
 /* dhx 8 mdi images in nav menues*/
 .dhx_widget .fa, .dhx_widget .fas, .dhx_widget .mdi, .dhx_widget .dxi{
-	color:unset !important;
+	color:unset 
 }
 
 .dhx_layout-cell.dhxlayout_base_dhx_skyblue.dhxlayout_cont  {
@@ -8501,3 +8491,52 @@ div.gridbox .objbox{ /* selected files grid*/
 ul.fancytree-container{
 	border:none;
 }
+
+/*grid rows*/
+.css_jobviewer_history_row_status_Error{
+	background-color:hsla(360,100%,60%,.3);
+}
+
+/* old dhtmlx non used grid cell (preview in file browser) */
+div.gridbox_dhx_skyblue.gridbox .xhdr {
+  color: #FFFFFF;
+  background-color: background-color: var(--dhx-background-primary) ;
+
+  }
+
+.dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_v div.dhx_cell_hdr {
+  width: 18px;
+  background: var(--dhx-background-primary) ;
+ }
+
+/* THE BUTTONS */
+
+.dhxform_obj_dhx_skyblue>button  {
+  font-family: Tahoma;
+  font-size: 12px;
+  color: #000000;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  border: 1px solid #c3c3c3;
+  background-color: #e0e0e0;
+  background: linear-gradient(#e0e0e0, #d9d9d9);
+  background: -webkit-linear-gradient(#e0e0e0, #d9d9d9);
+  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#e0e0e0, endColorStr=#d9d9d9) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
+  margin: 5px 2px;
+  border-radius: 2px;
+  float: left;
+  cursor: default;
+  clear: both;
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  text-transform: none;
+}
+ div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue{
+	 background:#222
+ }
+
