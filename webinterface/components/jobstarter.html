@@ -63,6 +63,9 @@
     }
     /* menu buttons */
     .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal {
+        margin-left:3px;
+    }
+    /* .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal {
         display:inline-block;
         color:#444 !important;
         background:#DDD;
@@ -73,7 +76,7 @@
         padding: 5px;
         text-align: center;
         margin-left: 3px !important;
-    }
+    } */
 
     .dhtmlxMenu_dhx_skyblue_Middle{
         height:35px;
@@ -136,6 +139,10 @@
     [id$="previews_menuitem"] {
         margin-left:auto !important;
         margin-right:10px !important;
+    }
+
+    .dir_left.dhtmlxMenu_dhx_skyblue_Middle {/*top left menu*/
+        padding-left: 6 !important;
     }
 
 </style>
@@ -383,9 +390,15 @@ function init(){
             localStorage["tabbaritemselected"] = "" //user had permissions for this tab before but not anymore
     }
 
+    function getCurrentFolderHtml(){
+        var html = '<button id="savelocation" onclick="saveLocation()" class="dhxform_obj_dhx_skyblue" style="margin-right: 3;margin-left: -5;">'+
+            '<div class="top_level_text"><div style="width:15px"><span title="Save Current Location"> <i class="fas fa-save"></i></span></div></div></button>'+
+            "<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,Preview"
+            return html;
+    }
     m_fileBrowserGrid = m_mainTabBar.tabs("browse").attachGrid();
     m_fileBrowserGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_fileBrowserGrid.setHeader("<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,Preview");//the headers of columns  
+    m_fileBrowserGrid.setHeader(getCurrentFolderHtml());//the headers of columns  
     m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
     m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0,0");          //the widths of columns  
@@ -421,14 +434,14 @@ function init(){
 
    
     var all_menu_items = [
-            {id:"localdrives", text:"<div style='width:80px'><span >Drives <i class='fa-brands fa-usb'></i></span></div>"},
-            {id:"location", text:"<div style='width:80px'><span >Locations <i class='fas fa-list'></i></span></div>"},
-			{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
-            {id:"mediainfo", text:"<div style='width:45px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
-			{id:"player", text:"<div style='width:45px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
-            {id:"download", text:"<div style='width:70px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
-            {id:"select", text:"<div style='width:80px'><span title='Add the selected files to processing List'>Select<i class='fas fa-angle-right'></i></span></div>"},
-            {id:"selectall", text:"<div style='width:80px'><span title='Add all files from current folder to processing List'>SelectAll<i class='fas fa-angle-double-right'></i></span></div>"},
+            {id:"localdrives", text:"<div style='width:65px'><span >Drives <i class='fa-brands fa-usb'></i></span></div>"},
+            {id:"location", text:"<div style='width:70px'><span>Locations <i class='fas fa-list'></i></span></div>"},
+			//{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
+            {id:"mediainfo", text:"<div style='width:65px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
+			{id:"player", text:"<div style='width:65px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
+            {id:"download", text:"<div style='width:65px'><span style='font-size:16px' class='mdi mdi-download'></span><span style='float:right'>Download</span></div>"},
+            {id:"select", text:"<div style='width:65px'><span title='Add the selected files to processing List'>Select<i class='fas fa-angle-right'></i></span></div>"},
+            {id:"selectall", text:"<div style='width:65px'><span title='Add all files from current folder to processing List'>SelectAll<i class='fas fa-angle-double-right'></i></span></div>"},
             
 		]
 
@@ -456,7 +469,7 @@ function init(){
 
     //preview checkbox
     if (show_preview){
-        var prev_chkbox_html = createElementFromHTML("<div id='chkcont' class='' style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><input type='checkbox' id='chk_previews'></input><label for='chk_previews'>Preview</label></div>");
+        var prev_chkbox_html = createElementFromHTML("<div id='chkcont' class='' style='width:80px;font-size:12px;margin-left:auto;margin-top:5px'><label><input type='checkbox' style='vertical-align:middle;' id='chk_previews'></input>Preview</label></div>");
         document.querySelector(".align_left").appendChild(prev_chkbox_html)
         function prevCheckChanged(){
             if (document.querySelector("#chk_previews").checked) {
@@ -1019,7 +1032,7 @@ function saveLocation(){
     if (localStorage.getItem("lastVisitedBrowseLocation")){
         //check if location is already there
         if (m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")) != -1){
-            dhtmlx.alert("This path is already stored in Locations on Position: " + m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation")))
+            dhtmlx.alert("This path is already stored in Locations on Position: " + m_fileBrowseGridMenu.getItemPosition(localStorage.getItem("lastVisitedBrowseLocation") + 1))
             return;
         }
         var _path = localStorage.getItem("lastVisitedBrowseLocation");
@@ -1676,6 +1689,8 @@ async function startJobs(form,selectedWorkflow){
     var a_all_files = []; //simple json array output
     var o_all_files = []; //object for concat output {file,inpoint,outpoint....}
     var a_row_ids   = []; //rowid and 
+    var ignore_segment_not_used_warning = false;
+    var segments_used = false;
 
     for (var i = 0; i<gridrows_sorted.length;i++){
         let id = gridrows_sorted[i];
@@ -1691,7 +1706,9 @@ async function startJobs(form,selectedWorkflow){
         if (source == "Upload"){
             _filepath = m_realUploadpath + _filepath;
         }
+        
         if (source == "Segment"){
+            segments_used = true;
             var inpoint  = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
             var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
             var s_concat = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint + "\n";
@@ -1708,6 +1725,21 @@ async function startJobs(form,selectedWorkflow){
 
     }//foreach gridrow
 
+    if (segments_used && JSON.stringify(selectedWorkflow).indexOf("webui_o_source") == -1){
+        if (!ignore_segment_not_used_warning){
+            ignore_segment_not_used_warning = await dhx8.dhx.confirm({
+                "header": "Warning",
+                "text": "Workflow ["+selectedWorkflow.name+"] does not support segments. (Details: variable webui_o_source is not used)",
+                "buttons": [
+                    "Cancel",
+                    "Continue"
+                ],
+                "buttonsAlignment": "center"
+            });
+            if (!ignore_segment_not_used_warning)
+                return
+        }
+    }
     //decide how to submit the files to the job
 
     if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){

@@ -8615,3 +8615,9 @@ ul.fancytree-container{/* workflow selection */
 .down-arrow-dis{
 	border-top: solid 7px #BBB;
 }
+
+.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
+	background-color:rgb(221, 221, 221);
+	border:1px solid #CCC !important;
+	color:hsla(0, 0%, 100%, .9);
+}

@@ -8564,7 +8564,7 @@ bootstrap stuff on metrics
 }
 /* THE BUTTONS */
 
-.dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn,.dhx_button--view_flat.dhx_button--color_primary  {
+.dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn,.dhx_button--view_flat.dhx_button--color_primary,.dhx_button--view_link,.dhx_button--view_link.dhx_button--color_primary  {
   font-family: Tahoma;
   font-size: 12px;
   color: #000000;
@@ -8589,6 +8589,7 @@ bootstrap stuff on metrics
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   text-transform: none;
 }
+
  div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue{
 	 background:#222
  }
