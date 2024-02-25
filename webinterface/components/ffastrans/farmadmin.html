@@ -1,19 +1,7 @@
 <html>
 <head>
  <link rel="stylesheet" href="/alternate-server/css/override.css"/>
- <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
- <script>
-     //theme changeer
-     try{
-             document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
-         }catch(ex){}
-         try{
-             dhx.setTheme("dark");
-         }catch(ex){}
-         try{
-             dhx8.dhx.setTheme("dark");
-         }catch(ex){}
- </script>
+
 
 
 
@@ -40,13 +28,27 @@
 <script src="../../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 <script src="../../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
 
-<link href="../../dependencies/bootstrap/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" >
-<script src="../../dependencies/bootstrap/bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" ></script>
 
 <!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
 <link rel="stylesheet"
       href="../../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
 <script src="../../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.js">
+</script>
+
+<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
 </script>
 
 <style>
@@ -148,6 +150,8 @@
         
     /* build basic page layout and init periodic job loading*/
     function init() {
+        buildLayout()
+        return;
         var contentiframe = document.getElementById("content_iframe");
         
         //tabs change
@@ -185,17 +189,38 @@
     }
     
 
+async function buildLayout(){
+    
+    const tabbar = new dhx8.dhx.Tabbar(document.body,{
+        mode: "top",
+        css: "ffas_tabbar",
+        views: [
+            { id: "hosts",      tab: "Hosts", html: '<iframe src="farmadmin/host_metrics.html"  class="farm_iframe"></iframe>'},
+            { id: "jobs",       tab: "Jobs" , html: '<iframe src="farmadmin/job_metrics.html"   class="farm_iframe"></iframe>'}, //email disabled because of password encryption problems
+            { id: "setup",      tab: "Setup", html: '<iframe src="farmadmin/metrics_setup.html" class="farm_iframe"></iframe>'}
+        ],
+        // more config options
+    });
+
+    //layout.getCell("main").attach(tabbar);
+    // tabbar.events.on("change", function () {
+    //     tabbarTabChanged(arguments );
+    // });
+    tabbar.events.on("beforeClose", function () {
+        //eventHandler(event, arguments);
+    });
+
+    initForms(tabbar,layout);
+
+}
+
 
 </script>
 <body onload="loadserverconfig()">
-
+<!-- 
 <div class="dhxtabbar_base_dhx_skyblue dhxtabbar_tabs dhxtabbar_tab_text">
   <ul class="nav nav-tabs bootstrap_tab_header" id="myTab" role="tablist">
-    <!-- <li class="nav-item bootstrap_tab_pane bootstrap_tab_item">
-      <a data-target="farmadmin/farm_machines.html" class="nav-link bootstrap_tab_item bootstrap_tab_text" id="machines-tab" data-toggle="tab" href="#machines" role="tab" aria-controls="machines" aria-selected="false">
-        <div class="bootstrap_tab_text  ">Machines</div>
-        </a>
-    </li> -->
+ 
     <li class="nav-item bootstrap_tab_item">
       <a data-target="farmadmin/job_metrics.html" class="nav-link bootstrap_tab_text bootstrap_tab_item" id="metrics-tab" data-toggle="tab" href="#metrics" role="tab" aria-controls="metrics" aria-selected="false">
 		<div class="bootstrap_tab_text">Job Metrics</div>
@@ -221,8 +246,7 @@
         </div>       
     </div>
 
-    <!-- copy above div to crate new tab (dont forget to add new li item class nav-item -->
   </div>
-  
+   -->
    
   </body>

@@ -8370,12 +8370,26 @@ div.dhx_modal_cover {
 	background: black
 }
 
-.counter_jobs {
-	background-color: black !important;
+/*leftmost nav menueue stays light because of images have same color*/
+/* .dhx_layout-cell.dhxlayout_base_dhx_skyblue.dhxlayout_cont  { */
+	/* background-color: #ebebeb !important; */
+/* } */
+.btn.jobviewer_menu{
+    width:120px;
 }
+
+.counter_jobs {
+	background-color: black !important;/* todo:get rid of important*/
+}
+
 /* fas images in buttons*/
 .fas.disabled {
-    color: #999 !important;
+    color: #999 !important;/* todo:get rid of important*/
+}
+
+/* "bugfix" or dhx8 when there is a toolbar without icons, we see half line black */
+.dhx_toolbar{
+	background-color:unset;
 }
 
 /* dhx */
@@ -8393,27 +8407,10 @@ span.fancytree-title {
 
 body  {
 	color:hsla(0, 0%, 100%, .9) ;
+	background: var(--dhx-background-primary);
 }
 
-.btn.jobviewer_menu {
-	color:black;
-	background-color:red;
-	border: 1px solid #ebebeb;
-	background: #DDD;
-}
-.btn.jobviewer_menu:disabled {
-	color: #999;
-}
-/* menu buttons*/
-.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
-	background-color:rgb(221, 221, 221);
-	color:hsla(0, 0%, 100%, .9);
-}
 
-.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled{
-	background-color:rgb(221, 221, 221);
-	color:hsla(0, 0%, 100%, .9);
-}
 
 /* layout cells and big areas*/
 .dhx_cell_cont_layout {
@@ -8444,6 +8441,13 @@ ul.fancytree-container {
 	background-color: unset;
 }
 
+
+span.fancytree-active span.fancytree-title, span.fancytree-selected span.fancytree-title{/* selected tree item (inactive)*/
+	background-color:#848484;
+}
+
+
+/* tabbar */
 .dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs{
 	background-image:unset;
 	background: var(--dhx-background-primary);
@@ -8458,8 +8462,13 @@ div.gridbox .objbox{ /* selected files grid*/
 	background-color: var(--dhx-background-primary) ;
 }
 .dhx-dropable-area .drop-area-bold-text { /*uploader*/
-	color: hsla(0, 0%, 100%, .9) !important;
+	color: hsla(0, 0%, 100%, .9);
 }
+
+.dhx-dropable-area .drop-area-light-text{
+	color: hsla(0, 0%, 100%, .9);
+}
+
 .vault.dhx_widget {/*uploader*/
 	background-color: var(--dhx-background-primary) ;
 	
@@ -8482,11 +8491,6 @@ div.gridbox .objbox{ /* selected files grid*/
 	color:unset 
 }
 
-.dhx_layout-cell.dhxlayout_base_dhx_skyblue.dhxlayout_cont  {
-	/*leftmost nav menueue stays light because of images have same color*/
-	background-color: #ebebeb !important;
-}
-
 /* removes dotted lines around fancytree workflow selecor*/
 ul.fancytree-container{
 	border:none;
@@ -8504,14 +8508,63 @@ div.gridbox_dhx_skyblue.gridbox .xhdr {
 
   }
 
-.dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_v div.dhx_cell_hdr {
+.dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_v div.dhx_cell_hdr { /*jobviewer workflows collapsed*/
   width: 18px;
   background: var(--dhx-background-primary) ;
  }
 
+.sub_item_text {
+	color:hsla(0, 0%, 100%, .9) ;
+}
+
+/* old dhtx confirm message buttons */
+
+.dhtmlx_popup_button {
+  color: #2e3947;
+    border: 1px solid #c3c3c3;
+  background-color: #e0e0e0;
+  background: linear-gradient(#e0e0e0, #d9d9d9);
+}
+
+.dhtmlx_popup_button:active,
+.dhtmlx_popup_button:hover {
+  border: 1px solid #CCCCCC;
+  background-color: #CCCCCC;
+  background: linear-gradient(#CCCCCC, #d9d9d9);
+}
+
+/* confirm window title */
+.dhtmlx-alert .dhtmlx_popup_title, .dhtmlx-confirm .dhtmlx_popup_title{
+  border: 1px solid #CCCCCC;
+  background-color: #CCCCCC;
+  background: linear-gradient(#CCCCCC, #d9d9d9);
+}
+
+/*
+bootstrap stuff on metrics
+*/ 
+.dhxtabbar_base_dhx_skyblue{
+	background: var(--dhx-background-primary) ;
+}
+.bootstrap_tab_header {
+  position: relative;
+  height: 38px;
+  line-height: 26px;
+  font-family: Tahoma;
+  font-size: 11px;
+  color: #333333;
+  font-weight: bold;
+  border: 1px solid #c3c3c3;
+  background-color: #e0e0e0;
+  background: linear-gradient(#e0e0e0, #d9d9d9);
+  background: -webkit-linear-gradient(#e0e0e0, #d9d9d9);
+  filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#e0e0e0, endColorStr=#d9d9d9) progid:DXImageTransform.Microsoft.Alpha(opacity=100);
+  overflow: hidden;
+  cursor: default;
+}
 /* THE BUTTONS */
 
-.dhxform_obj_dhx_skyblue>button  {
+.dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn  {
   font-family: Tahoma;
   font-size: 12px;
   color: #000000;
@@ -8540,3 +8593,60 @@ div.gridbox_dhx_skyblue.gridbox .xhdr {
 	 background:#222
  }
 
+.dhxform_obj_dhx_skyblue>button:hover,.dhxform_obj_dhx_skyblue div.dhxform_btn:hover,.btn.jobviewer_menu:hover{
+	border: 1px solid #CCCCCC;
+	background-color: #CCCCCC;
+	background: linear-gradient(#CCCCCC, #d9d9d9);
+}
+
+.btn.jobviewer_menu {
+	color:black;
+	background-color:red;
+	border: 1px solid #ebebeb;
+	background: #DDD;
+}
+
+.btn.jobviewer_menu:disabled {
+	color: #999;
+}
+/* menu buttons*/
+.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
+	background-color:rgb(221, 221, 221);
+	color:hsla(0, 0%, 100%, .9);
+}
+
+.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled{
+	background-color:rgb(221, 221, 221);
+	color:hsla(0, 0%, 100%, .9);
+}
+
+
+/* jobviewer updown sort arrow*/
+.up-arrow {
+	width: 0;
+	height: 0;
+	border: solid 5px transparent;
+	background: transparent;
+	border-bottom: solid 7px #EEE;
+	border-top-width: 0;
+	cursor: pointer;
+}
+
+.down-arrow {
+	width: 0;
+	height: 0;
+	border: solid 5px transparent;
+	background: transparent;
+	border-top: solid 7px #EEE;
+	border-bottom-width: 0;
+	margin-top:1px;
+	cursor: pointer;
+}
+
+.up-arrow-dis{
+	border-bottom: solid 7px #999;
+}
+
+.down-arrow-dis{
+	border-top: solid 7px #999;
+}

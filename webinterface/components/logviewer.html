@@ -40,14 +40,29 @@
 
     <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css"></link>
 
+    <!-- FONTAWESOME -->
+    <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" ></link>
+
     <!-- DHTMLX dependencies -->
     <script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
     <link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"></link>
 
     <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
-    <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" type="text/css"></link>
-    <!-- FONTAWESOME -->
-    <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" ></link>
+    <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+    <script>
+       //theme changeer disabled for jobviewer
+    //    if (localStorage.global_skin_dark == "1"){
+    //        try{
+    //            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+    //        }catch(ex){}
+    //        try{
+    //            dhx.setTheme("dark");
+    //        }catch(ex){}
+    //        try{
+    //            dhx8.dhx.setTheme("dark");
+    //        }catch(ex){}
+    //    }
+   </script>
 
     <style type="text/css" id="customstyle">
         /* it's important to set width/height to 100% for full-screen init */

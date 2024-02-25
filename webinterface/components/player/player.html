@@ -7,9 +7,10 @@
 			
 			<script src="/socket.io/socket.io.js"> </script>
 			<script src="jsmpeg-master/jsmpeg.min.js"> </script>
-			<link rel="stylesheet" type="text/css" href="css/main.css" ></link>
+
+
 			<link rel="stylesheet" type="text/css" href="../../dependencies/fontawesome/css/all.css"></link>
-			
+
 			<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 			<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
 				<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
@@ -69,6 +70,36 @@
 				font-size:2.9em;
 			}
 
+			.flexContainer{
+				display: flex;
+			}
+			.flexFixed{
+				width: 150px;
+			}
+			.flexGrow{
+				flex-grow: 1;
+			}
+
+			.canvasContainer{
+				width: calc(100vw - 150px) ;
+				height: calc(100vh - 100px) ;
+				background-color: black ;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				/*
+				
+    			aspect-ratio: 16 / 9 !important; */
+			}
+
+			.playerControls{
+				position:static
+			}
+			.vertical-center{
+				justify-content: center;
+    			display: flex;
+			}
+
 			</style>
 			
 			<script>
@@ -92,7 +123,7 @@ function load(){
 					audioBufferSize: 256*1024 * 10,
 					disableWebAssembly:false,
 					pauseWhenHidden:false,
-					canvas:document.getElementById('myCanvas'),
+					canvas:document.getElementById('playerCanvas'),
 					loop: true, 
 					autoplay: true, 
 					onVideoDecode:function(what,time){
@@ -156,7 +187,6 @@ function load(){
 				// pretend you are getting data as follows
 				var status = data;	
 				status.root.position //navbar in percent
-				console.log(status)
 				
 				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,g_framerate));
 				document.getElementById("currentTime").value = _timecode;
@@ -212,15 +242,35 @@ function getFirstTrack(ffprobe,type="video"){
 
 function attachEvents(){
 			//slider
-			document.getElementById("slider").addEventListener ('change', function (evt) {
-			   console.log("Slider change",evt)
-			   playerCommandSeek(document.getElementById("slider").value + '%');
-			   //TODO: find a way to get current pos from event instead of dom element. dom ele can be cancelled
-			   evt.cancelBubble = true;
-			   evt.preventDefault();
-			});
-			
-			//
+	document.getElementById("slider").addEventListener ('change', function (evt) {
+		console.log("Slider change",evt)
+		playerCommandSeek(document.getElementById("slider").value + '%');
+		//TODO: find a way to get current pos from event instead of dom element. dom ele can be cancelled
+		evt.cancelBubble = true;
+		evt.preventDefault();
+	});
+
+	const playerCanvasResizeObserver = new ResizeObserver(entries => {
+		//keep video aspect ration when resizing
+		console.log(document.getElementById("canvasContainer").style.height);
+		let containerHeight = entries[0].target.offsetHeight;//bottom controls always stay
+		let containerWidth = entries[0].target.offsetWidth; //right side width always stays
+		
+		//check if height or width needs to be altered to match 16x9
+		if (containerHeight * 16 / 9 > containerWidth){
+			console.log("reducing canvas height to match width",containerWidth,containerWidth * 9 / 16)
+			document.getElementById("playerCanvas").style.width 	= containerWidth;
+			document.getElementById("playerCanvas").style.height 	= containerWidth * 9 / 16 ;
+		}else{
+			console.log("reducing canvas width to match height",containerHeight * 16 / 9,containerHeight)
+			document.getElementById("playerCanvas").style.width 	= containerHeight * 16 / 9;
+			document.getElementById("playerCanvas").style.height 	= containerHeight ;
+		}
+	});
+
+	const md = document.getElementById("canvasContainer");
+	playerCanvasResizeObserver.observe(md);
+
 }
 
 function playerChangeAtrackCommand(newTracknum){
@@ -353,7 +403,7 @@ function SMPTEToString(timecode) {
     if (timecode.m < 10) { timecode.m = "0" + timecode.m; }
     if (timecode.s < 10) { timecode.s = "0" + timecode.s; }
     if (timecode.f < 10) { timecode.f = "0" + timecode.f; }
-	console.log(timecode.f)
+	
     return timecode.h + ":" + timecode.m + ":" + timecode.s;// + ":" + timecode.f;
 }
 
@@ -381,85 +431,86 @@ function changeAudioTrack(option){
 
 		</head>
 		<body onload="load()">
-			<div style="display: flex;">
-			<div style="flex: 1;">
-				<div width="540px" height="300px" style="text-align: center;">
-					<canvas id="myCanvas" width="540px" height="288px" style="width:100%;border-style: inset" class=""></canvas>
-					
-					<div id="controlTable" class="controltable">
-						<div id="seekContainer">
-							<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
-							<div style="display:inline">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
-							<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
-							<div class="slidecontainer">
-								<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
-							</div>
-						</div>
-						<div id="controlButtons" class="vertical-center noSelect">
-							<div class="player-btns">
-								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('-10s')"></i>
-								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i>
-								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
-								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i>
-								<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="+10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('+10s')"></i>
-							</div>
-						<!-- </div> -->
-
-						</div>
-
-					</div>
-				</div><!-- player -->
-
-
-				
-				</div><!-- dev -->
-				<div style="flex: 0 0 140px;margin-left: 10px;margin:5px">
-					<div style="" class="gridbox_dhx_skyblue gridbox">
-						<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">
-							<tbody>
-								<tr class=" odd_dhx_skyblue">
-									<td align="left" valign="middle" id="info-res"></td>
-								</tr>
-								<tr class=" ev_dhx_skyblue">
-									<td align="left" valign="middle" id="info-fps"></td>
-								</tr>
-								<tr class=" odd_dhx_skyblue">
-									<td align="left" valign="middle" id="info-interlacing"></td>
-								</tr>
-								<tr class=" ev_dhx_skyblue">
-									<td align="left" valign="middle" id="info-atracks"></td>
-								</tr>
-								<tr class=" odd_dhx_skyblue">
-									<td align="left" valign="middle">
-										Select Track: <select style="max-width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					<div style="height:20px"></div>
-					<div id="markInOutButtons" class="gridbox_dhx_skyblue gridbox" style="padding:5px;">
-						<span style="color:#666666;margin-bottom:3px">Segment</span><br/>
-						<table style="font-size:12px">
-							<tr>
-								<td><input type="submit" onclick="setInPoint()" style="font-size:10px;width:30px;height: 20px" value="In"></input></td><td>
-									<input style="width:70px" id="markIn" ></input></td>
-							</tr>
-							<tr>
-								<td><input type="submit" onclick="setOutPoint()" style="font-size:10px;width:30px;height: 20px" value="Out"></input></td><td>
-									<input style="width:70px" id="markOut" ></input></td>
-							</tr>
-						 
+			<div id="maindiv" style="width: 100%; overflow: hidden;" class="flexContainer">
+				<div style="float:left" id="video_and_controls" class="flexGrow">
 						
-						</table>
-						<input type="submit" value="Take Segment" onclick="takeSegment()" style="margin-top:5px;height: 20px;margin-left:27px;font-size:10px"></input>
+						<div id="canvasContainer" class="canvasContainer">
+							<canvas id="playerCanvas"  class="playerCanvas"></canvas>
+						</div>
+						<div id="playerControls" class="playerControls">
+							<div id="seekContainer" style="margin-top:5px">
+								<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+								<div style="display:inline">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
+								<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+								<div class="slidecontainer">
+									<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
+								</div>
+							</div>
+							<div id="controlButtons" class="vertical-center noSelect">
+								<div class="player-btns">
+									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('-10s')"></i>
+									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i>
+									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
+									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i>
+									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="+10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('+10s')"></i>
+								</div>
+							<!-- </div> -->
+
+							</div>
+
+						</div>
 					
-					</div>
-					<input type="submit" value="Take File" onclick="takeFile()" style="position:absolute;bottom:2;;height: 20px;right:4;margin:5px"></input>
-					<!-- <div style="height:10%;position:relative;">
-						<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
-					</div> -->
+
 				</div>
+
+			<!--right side-->
+			<div style="margin-left: 10px;margin:5px;width:150px" id="rightSide" class="flexFixed">
+				<div style="" class="gridbox_dhx_skyblue gridbox">
+					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">
+						<tbody>
+							<tr class=" odd_dhx_skyblue">
+								<td align="left" valign="middle" id="info-res"></td>
+							</tr>
+							<tr class=" ev_dhx_skyblue">
+								<td align="left" valign="middle" id="info-fps"></td>
+							</tr>
+							<tr class=" odd_dhx_skyblue">
+								<td align="left" valign="middle" id="info-interlacing"></td>
+							</tr>
+							<tr class=" ev_dhx_skyblue">
+								<td align="left" valign="middle" id="info-atracks"></td>
+							</tr>
+							<tr class=" odd_dhx_skyblue">
+								<td align="left" valign="middle">
+									Select Track: <select style="max-width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div style="height:20px"></div>
+				<div id="markInOutButtons" class="gridbox_dhx_skyblue gridbox" style="padding:5px;">
+					<span style="margin-bottom:5px" class="player_text_segment">Segment</span><br/>
+					<table style="font-size:12px">
+						<tr>
+							<td><input type="submit" onclick="setInPoint()" style="font-size:10px;width:30px;height: 20px" value="In"></input></td><td>
+								<input style="width:70px" id="markIn" ></input></td>
+						</tr>
+						<tr>
+							<td><input type="submit" onclick="setOutPoint()" style="font-size:10px;width:30px;height: 20px" value="Out"></input></td><td>
+								<input style="width:70px" id="markOut" ></input></td>
+						</tr>
+					 
+					
+					</table>
+					<input type="submit" value="Take Segment" onclick="takeSegment()" style="margin-top:5px;height: 20px;margin-left:27px;font-size:10px"></input>
+				
+				</div>
+				<input type="submit" value="Take File" onclick="takeFile()" style="position:absolute;bottom:2;;height: 20px;right:4;margin:5px"></input>
+				<!-- <div style="height:10%;position:relative;">
+					<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
+				</div> -->
 			</div>
+		</div>
 			</body>
 		</html>

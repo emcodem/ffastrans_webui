@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="../../../dependencies/fontawesome/css/all.css" />
 <link href="../../../dependencies/bootstrap/bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" >
 <script src="../../../dependencies/bootstrap/bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" ></script>
+<script src="../../../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<link rel="stylesheet" href="../../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 <link rel="stylesheet" href="../../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
     //theme changeer
@@ -29,6 +31,7 @@
 	
         margin: 0 px;
         overflow: hidden;
+        font-family:"Tahoma";
     }
 
 	hr {
@@ -43,6 +46,9 @@
     }
     form{
         width:100%
+    }
+    .prometheus_installer{
+        margin:10px;
     }
 </style>
 
@@ -162,12 +168,13 @@ function getGrafanaUrl(){
 
 <iframe style="display:none" width="100%" height="100%" id="i_grafana" src=""> </iframe>
 
-<div id="installer" style="display:none">
-    FFAStrans Metrics Services (Prometheus and Grafana) are not reachable on port 3004, do you want to install the Services?
-    <br/><b>You must run webinterface application as service or as administrator!</b><br/>
+<div id="installer" class="prometheus_installer" style="display:none">
+    FFAStrans Metrics Service UI (Grafana) is not reachable, do you want to install the Services?
+    <br/><br/><b>You must run webinterface application as service or as administrator!</b><br/><br/>
     <input value="Install Windows Service" type="submit" onclick="submit()" onclick="" ></input>
-    Note that Prometheus is a Data Collector, it might require some Gigabytes of data on your harddrive
+    
 </div>
+
 
 <!-- <form class="dhxform_obj_dhx_skyblue" > -->
 
