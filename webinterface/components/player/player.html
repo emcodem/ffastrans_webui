@@ -18,15 +18,18 @@
 				<script>
 					//theme changeer
 					if (localStorage.global_skin_dark == "1"){
-						try{
-							document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
-						}catch(ex){}
-						try{
-							dhx.setTheme("dark");
-						}catch(ex){}
-						try{
-							dhx8.dhx.setTheme("dark");
-						}catch(ex){}
+						window.setTimeout(function(){
+							try{
+								document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+							}catch(ex){}
+							try{
+								dhx.setTheme("dark");
+							}catch(ex){}
+							try{
+								dhx8.dhx.setTheme("dark");
+							}catch(ex){}
+						},100)
+						
 					}
 				</script>
 			<style>
@@ -383,6 +386,13 @@ function setOutPoint(){
 function takeSegment(){
 	let inpoint 	= document.getElementById("markIn").value;
 	let outpoint 	= document.getElementById("markOut").value;
+	if (outpoint < inpoint){
+		dhx8.dhx.alert({
+            header: "Error",
+            text: "out < in",
+            buttons: ["Ok"]
+        })
+	}
 	if (!inpoint.match(/^\d\d:\d\d:\d\d$/) || !outpoint.match(/^\d\d:\d\d:\d\d$/)){
 		dhtmlx.alert("Inpoint and Outpoint must be in format 00:00:00");
 		return
@@ -439,9 +449,22 @@ function changeAudioTrack(option){
 						</div>
 						<div id="playerControls" class="playerControls">
 							<div id="seekContainer" style="margin-top:5px">
-								<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
-								<div style="display:inline">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
-								<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+								<table style="width:100%;font-size:11px">
+									<tr>
+										<td>
+											<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+										</td>
+										<td>
+											<div style="width: 100%;text-align: center;">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
+										</td>
+										<td>
+											<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+										</td>
+									</tr>
+								</table>
+								
+								
+								
 								<div class="slidecontainer">
 									<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
 								</div>

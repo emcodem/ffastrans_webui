@@ -8564,7 +8564,7 @@ bootstrap stuff on metrics
 }
 /* THE BUTTONS */
 
-.dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn  {
+.dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn,.dhx_button--view_flat.dhx_button--color_primary  {
   font-family: Tahoma;
   font-size: 12px;
   color: #000000;
@@ -8649,4 +8649,8 @@ bootstrap stuff on metrics
 
 .down-arrow-dis{
 	border-top: solid 7px #999;
+}
+
+table {
+	color:hsla(0, 0%, 100%, .9);
 }
