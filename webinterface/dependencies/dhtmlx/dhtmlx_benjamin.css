@@ -8405,6 +8405,10 @@ span.fancytree-title {
 	color:hsla(0, 0%, 100%, .9) ;
 }
 
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td span.fancytree-title{/*job viewer status row state selected*/
+	color:#000
+}
+
 body  {
 	color:hsla(0, 0%, 100%, .9) ;
 	background: var(--dhx-background-primary);
