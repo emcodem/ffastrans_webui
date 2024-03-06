@@ -8370,6 +8370,10 @@ div.dhx_modal_cover {
 	background: black
 }
 
+.menuitem{
+	opacity:1 !important; /*main menu items*/
+}
+
 /*leftmost nav menueue stays light because of images have same color*/
 /* .dhx_layout-cell.dhxlayout_base_dhx_skyblue.dhxlayout_cont  { */
 	/* background-color: #ebebeb !important; */
@@ -8394,15 +8398,15 @@ div.dhx_modal_cover {
 
 /* dhx */
 .dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr{
-	color:hsla(0, 0%, 100%, .9) ;
+	color:hsla(0, 0%, 100%, .99) ;
 }
 
 div.gridbox_dhx_skyblue.gridbox table.obj {
-	color:hsla(0, 0%, 100%, .9) ;
+	color:hsla(0, 0%, 100%, .99) ;
 }
 
 span.fancytree-title {
-	color:hsla(0, 0%, 100%, .9) ;
+	color:hsla(0, 0%, 100%, .99) ;
 }
 
 div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td span.fancytree-title{/*job viewer status row state selected*/
@@ -8410,7 +8414,7 @@ div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td span.fancytree-title
 }
 
 body  {
-	color:hsla(0, 0%, 100%, .9) ;
+	color:hsla(0, 0%, 100%, .99) ;
 	background: var(--dhx-background-primary);
 }
 
@@ -8466,11 +8470,11 @@ div.gridbox .objbox{ /* selected files grid*/
 	background-color: var(--dhx-background-primary) ;
 }
 .dhx-dropable-area .drop-area-bold-text { /*uploader*/
-	color: hsla(0, 0%, 100%, .9);
+	color: hsla(0, 0%, 100%, .99);
 }
 
 .dhx-dropable-area .drop-area-light-text{
-	color: hsla(0, 0%, 100%, .9);
+	color: hsla(0, 0%, 100%, .99);
 }
 
 .vault.dhx_widget {/*uploader*/
@@ -8518,7 +8522,7 @@ div.gridbox_dhx_skyblue.gridbox .xhdr {
  }
 
 .sub_item_text {
-	color:hsla(0, 0%, 100%, .9) ;
+	color:hsla(0, 0%, 100%, .99) ;
 }
 
 /* old dhtx confirm message buttons */
@@ -8617,12 +8621,12 @@ bootstrap stuff on metrics
 /* menu buttons*/
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
 	background-color:rgb(221, 221, 221);
-	color:hsla(0, 0%, 100%, .9);
+	color:hsla(0, 0%, 100%, .99);
 }
 
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled{
 	background-color:rgb(221, 221, 221);
-	color:hsla(0, 0%, 100%, .9);
+	color:hsla(0, 0%, 100%, .99);
 }
 
 
@@ -8657,5 +8661,5 @@ bootstrap stuff on metrics
 }
 
 table {
-	color:hsla(0, 0%, 100%, .9);
+	color:hsla(0, 0%, 100%, .99);
 }

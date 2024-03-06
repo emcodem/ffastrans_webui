@@ -12,13 +12,13 @@
 <link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
 
 
-
+<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> <!-- special loading order because vault css overrides text colors of other items -->
 <link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 
 <script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script><!-- special loading order because otherwise vault causes error-->
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> 
+
 
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
@@ -1699,7 +1699,9 @@ async function startJobs(form,selectedWorkflow){
         var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue().replace(/&amp;/g, '&');
         if (_state){
             //row was already submitted
-            dhtmlx.message("Already submitted " + _filepath);
+            dhx8.dhx.message({ expire: 3000, text: "Already submitted " + _filepath, "node": "form_wf_form"});
+            
+            //dhtmlx.message();
             continue;
         }
 
