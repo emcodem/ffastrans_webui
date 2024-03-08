@@ -8,7 +8,7 @@
     "@supercharge/promise-pool": "^2.4.0",
     "activedirectory2": "^2.1.0",
     "archiver": "^5.3.1",
-    "axios": "^0.24.0",
+    "axios": "^0.28.0",
     "bcrypt-nodejs": "^0.0.3",
     "blocked-at": "^1.2.0",
     "bunyan": "^1.8.15",
