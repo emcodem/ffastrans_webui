@@ -4,8 +4,7 @@ const regFetch = require('npm-registry-fetch')
 const semver = require('semver')
 
 const otplease = require('./utils/otplease.js')
-const readLocalPkgName = require('./utils/read-local-package.js')
-const getWorkspaces = require('./workspaces/get-workspaces.js')
+const readPackageName = require('./utils/read-package-name.js')
 const BaseCommand = require('./base-command.js')
 
 class DistTag extends BaseCommand {
@@ -64,7 +63,7 @@ class DistTag extends BaseCommand {
       // should be listing the existing tags
       return this.list(cmdName, opts)
     } else
-      throw this.usage
+      throw this.usageError()
   }
 
   execWorkspaces (args, filters, cb) {
@@ -102,7 +101,7 @@ class DistTag extends BaseCommand {
     log.verbose('dist-tag add', defaultTag, 'to', spec.name + '@' + version)
 
     if (!spec.name || !version || !defaultTag)
-      throw this.usage
+      throw this.usageError()
 
     const t = defaultTag.trim()
 
@@ -135,7 +134,7 @@ class DistTag extends BaseCommand {
     log.verbose('dist-tag del', tag, 'from', spec.name)
 
     if (!spec.name)
-      throw this.usage
+      throw this.usageError()
 
     const tags = await this.fetchTags(spec, opts)
     if (!tags[tag]) {
@@ -157,9 +156,11 @@ class DistTag extends BaseCommand {
 
   async list (spec, opts) {
     if (!spec) {
-      const pkg = await readLocalPkgName(this.npm)
+      if (this.npm.config.get('global'))
+        throw this.usageError()
+      const pkg = await readPackageName(this.npm.prefix)
       if (!pkg)
-        throw this.usage
+        throw this.usageError()
 
       return this.list(pkg, opts)
     }
@@ -178,10 +179,9 @@ class DistTag extends BaseCommand {
   }
 
   async listWorkspaces (filters) {
-    const workspaces =
-      await getWorkspaces(filters, { path: this.npm.localPrefix })
+    await this.setWorkspaces(filters)
 
-    for (const [name] of workspaces) {
+    for (const name of this.workspaceNames) {
       try {
         this.npm.output(`${name}:`)
         await this.list(npa(name), this.npm.flatOptions)

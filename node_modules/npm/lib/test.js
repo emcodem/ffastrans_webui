@@ -12,14 +12,12 @@ class Test extends LifecycleCmd {
     return 'test'
   }
 
-  exec (args, cb) {
-    super.exec(args, er => {
-      if (er && er.code === 'ELIFECYCLE') {
-        /* eslint-disable standard/no-callback-literal */
-        cb('Test failed.  See above for more details.')
-      } else
-        cb(er)
-    })
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  static get params () {
+    return [
+      'ignore-scripts',
+      'script-shell',
+    ]
   }
 }
 module.exports = Test

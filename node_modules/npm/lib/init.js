@@ -5,8 +5,8 @@ const initJson = require('init-package-json')
 const npa = require('npm-package-arg')
 const rpj = require('read-package-json-fast')
 const libexec = require('libnpmexec')
-const parseJSON = require('json-parse-even-better-errors')
 const mapWorkspaces = require('@npmcli/map-workspaces')
+const PackageJson = require('@npmcli/package-json')
 
 const getLocationMsg = require('./exec/get-workspace-location-msg.js')
 const BaseCommand = require('./base-command.js')
@@ -19,7 +19,7 @@ class Init extends BaseCommand {
 
   /* istanbul ignore next - see test/lib/load-all-commands.js */
   static get params () {
-    return ['workspace', 'workspaces']
+    return ['yes', 'force', 'workspace', 'workspaces']
   }
 
   /* istanbul ignore next - see test/lib/load-all-commands.js */
@@ -106,15 +106,19 @@ class Init extends BaseCommand {
     }
 
     const newArgs = [packageName, ...otherArgs]
-    const cache = this.npm.config.get('cache')
     const { color } = this.npm.flatOptions
     const {
       flatOptions,
       localBin,
       log,
       globalBin,
-      output,
     } = this.npm
+    // this function is definitely called.  But because of coverage map stuff
+    // it ends up both uncovered, and the coverage report doesn't even mention.
+    // the tests do assert that some output happens, so we know this line is
+    // being hit.
+    /* istanbul ignore next */
+    const output = (...outputArgs) => this.npm.output(...outputArgs)
     const locationMsg = await getLocationMsg({ color, path })
     const runPath = path
     const scriptShell = this.npm.config.get('script-shell') || undefined
@@ -123,7 +127,6 @@ class Init extends BaseCommand {
     await libexec({
       ...flatOptions,
       args: newArgs,
-      cache,
       color,
       localBin,
       locationMsg,
@@ -196,35 +199,16 @@ class Init extends BaseCommand {
       return
     }
 
-    let manifest
-    try {
-      manifest =
-        fs.readFileSync(resolve(this.npm.localPrefix, 'package.json'), 'utf-8')
-    } catch (error) {
-      throw new Error('package.json not found')
-    }
+    const pkgJson = await PackageJson.load(this.npm.localPrefix)
 
-    try {
-      manifest = parseJSON(manifest)
-    } catch (error) {
-      throw new Error(`Invalid package.json: ${error}`)
-    }
+    pkgJson.update({
+      workspaces: [
+        ...(pkgJson.content.workspaces || []),
+        relative(this.npm.localPrefix, workspacePath),
+      ],
+    })
 
-    if (!manifest.workspaces)
-      manifest.workspaces = []
-
-    manifest.workspaces.push(relative(this.npm.localPrefix, workspacePath))
-
-    // format content
-    const {
-      [Symbol.for('indent')]: indent,
-      [Symbol.for('newline')]: newline,
-    } = manifest
-
-    const content = (JSON.stringify(manifest, null, indent) + '\n')
-      .replace(/\n/g, newline)
-
-    fs.writeFileSync(resolve(this.npm.localPrefix, 'package.json'), content)
+    await pkgJson.save()
   }
 }
 

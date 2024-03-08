@@ -103,6 +103,8 @@
     			display: flex;
 			}
 
+
+
 			</style>
 			
 			<script>
@@ -113,15 +115,12 @@ reversePlayInterval = null;
 var m_query_params = new URLSearchParams(window.location.search);
 
 function load(){
-			
-			//let's kick off mediainfo ajax call first
-			
+
 			//now initialize the player stuff
 			var buf = [];
 		    player = new JSMpeg.Player(null,//null
 				{
 					source: JSMpegWritableSource,
-					
 					videoBufferSize: 1024*1024 * 10,
 					audioBufferSize: 256*1024 * 10,
 					disableWebAssembly:false,
@@ -134,10 +133,6 @@ function load(){
 					}
 				});
 				
-			var statusInterval = window.setInterval(function(){
-				socket.emit("player", JSON.stringify({"getstatus":true})); 
-			},250);
-			
 			socket.emit("player", JSON.stringify({
                 "file":m_query_params.get("file")
 			})); 
@@ -158,6 +153,7 @@ function load(){
 							_interlacing = firstVstream["field_order"];
 						}
 					}
+
 					document.getElementById("info-interlacing").innerHTML = "Interlaced: " + _interlacing || "";
 					document.getElementById("info-fps").innerHTML = "FPS: " + parseFloat(g_framerate.toFixed(2)) || "";
 					document.getElementById("info-res").innerHTML = _resolution || "";
@@ -176,6 +172,7 @@ function load(){
 						}
 					}	
 			});
+
 			socket.on('binarydata', function (data) {
 				// pretend you are getting data as follows
 					player.source.write(data,function(){});
@@ -186,16 +183,15 @@ function load(){
 					dhtmlx.alert("Player Error: " + JSON.stringify(data))
 					
 			});
-			socket.on('setstatus', function (data) {
+
+			socket.on('property-change', function (data) {
 				// pretend you are getting data as follows
-				var status = data;	
-				status.root.position //navbar in percent
-				
-				var _timecode = SMPTEToString(secondsToSMPTE(status.root.time,g_framerate));
-				document.getElementById("currentTime").value = _timecode;
-				var _duration = SMPTEToString(secondsToSMPTE(status.root.length,g_framerate));
-				document.getElementById("totalTime").value = _duration;
-				
+				var status = data;
+				var _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
+				document.getElementById("currentTime").value = _timecode
+				var _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
+				document.getElementById("totalTime").value = _duration
+				document.getElementById("slider").setAttribute("max", status.duration)
 				try{
 					if (status.root.rate >= 1){
 						document.getElementById("rate_display").innerHTML = Math.round(status.root.rate);					
@@ -208,16 +204,19 @@ function load(){
 				}
 				if ($('#slider:hover').length == 0){
 					//prevent slider update on hover
-					var percentage = status.root.position * 100;
+					var percentage = status["time-pos"];
 					document.getElementById("slider").value = percentage;
 				}
 		
-				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.root.state != "playing" );
-				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", status.root.state == "playing" );
-				
-
-
+				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.pause );
+				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", !status.pause );
 			});
+			
+			document.addEventListener("visibilitychange", function() {
+				//if page is hidden, do not continue playing, otherwise jsmpeg just caches frames and when page is visible again, it tries to slow forward to now because pauseWhenHidden does not work for our usecase
+				console.log(document.hidden, document.visibilityState);
+				playPause();
+			}, false);
 			
 			//EVENTS
 			attachEvents()
@@ -246,9 +245,8 @@ function getFirstTrack(ffprobe,type="video"){
 function attachEvents(){
 			//slider
 	document.getElementById("slider").addEventListener ('change', function (evt) {
-		console.log("Slider change",evt)
-		playerCommandSeek(document.getElementById("slider").value + '%');
-		//TODO: find a way to get current pos from event instead of dom element. dom ele can be cancelled
+		console.log("Slider change to ",document.getElementById("slider").value)
+		playerCommandSeek(document.getElementById("slider").value );
 		evt.cancelBubble = true;
 		evt.preventDefault();
 	});
@@ -337,8 +335,10 @@ function playerCommandSeek(where){
 
 		socket.emit("player", JSON.stringify({
                 "command": "seek",
-                "val": encodeURIComponent(where)
+                "val": where
             }));
+		playPause();
+		playPause();
 		
 		//playerCommand("pl_forceresume");
 		//window.setTimeout(	function(){playerCommand("pl_forcepause")},300);
@@ -353,22 +353,17 @@ function playPause(){
 	socket.emit("player", JSON.stringify({
                 "command": "play"
             }));
-	<!-- TODO: this does not catch up with vlc but makes the impression that we pause immediately -->
-	<!-- if (player.isPlaying) --> -->
-		<!-- <!-- player.pause(); --> -->
-	<!-- else -->
-		<!-- setTimeout(function(){player.play()},1000); -->
+	
 }
 
 /** Convert seconds to SMPTE timecode JSON object, example input is html video.currentTime */
 function secondsToSMPTE(seconds, framerate) {
-    var f = Math.floor((seconds % 1) * framerate);
+    var f = Math.floor((seconds % 1)  * framerate);
     var s = Math.floor(seconds);
     var m = Math.floor(s / 60);
     var h = Math.floor(m / 60);
     m = m % 60;
     s = s % 60;
-
     return {h: h, m: m, s: s, f: f};
 }
 
@@ -414,7 +409,7 @@ function SMPTEToString(timecode) {
     if (timecode.s < 10) { timecode.s = "0" + timecode.s; }
     if (timecode.f < 10) { timecode.f = "0" + timecode.f; }
 	
-    return timecode.h + ":" + timecode.m + ":" + timecode.s;// + ":" + timecode.f;
+    return timecode.h + ":" + timecode.m + ":" + timecode.s + ":" + timecode.f;// + ":" + timecode.f;
 }
 
 function capitalizeFirstLetter(string) {
@@ -452,13 +447,13 @@ function changeAudioTrack(option){
 								<table style="width:100%;font-size:11px">
 									<tr>
 										<td>
-											<div style="float:left">Position: <input style="width:60px" id="currentTime"  value='00:00:00'/></div>
+											<div style="float:left">Position: <input style="width:67px" id="currentTime"  value='00:00:00'/></div>
 										</td>
 										<td>
 											<div style="width: 100%;text-align: center;">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
 										</td>
 										<td>
-											<div style="float:right">Duration: <input style="width:60px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+											<div style="float:right">Duration: <input style="width:67px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
 										</td>
 									</tr>
 								</table>
@@ -466,7 +461,7 @@ function changeAudioTrack(option){
 								
 								
 								<div class="slidecontainer">
-									<input type="range" id="slider" style="width:100%" min="1" max="100" value="0" class="slider" onchange="">
+									<input type="range" id="slider" style="width:100%" min="0" max="100" value="0" class="slider" onchange="">
 								</div>
 							</div>
 							<div id="controlButtons" class="vertical-center noSelect">

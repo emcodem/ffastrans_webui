@@ -286,12 +286,10 @@ Certain files are always included, regardless of settings:
 
 * `package.json`
 * `README`
-* `CHANGES` / `CHANGELOG` / `HISTORY`
 * `LICENSE` / `LICENCE`
-* `NOTICE`
 * The file in the "main" field
 
-`README`, `CHANGES`, `LICENSE` & `NOTICE` can have any case and extension.
+`README` & `LICENSE` can have any case and extension.
 
 Conversely, some files are always ignored:
 
@@ -341,9 +339,12 @@ install into the PATH. npm makes this pretty easy (in fact, it uses this
 feature to install the "npm" executable.)
 
 To use this, supply a `bin` field in your package.json which is a map of
-command name to local file name. On install, npm will symlink that file
-into `prefix/bin` for global installs, or `./node_modules/.bin/` for local
-installs.
+command name to local file name. When this package is installed
+globally, that file will be linked where global bins go so it is
+available to run by name.  When this package is installed as a
+dependency in another package, the file will be linked where it will be
+available to that package either directly by `npm exec` or by name in other
+scripts when invoking them via `npm run-script`.
 
 
 For example, myapp could have this:
@@ -385,6 +386,11 @@ would be the same as this:
 Please make sure that your file(s) referenced in `bin` starts with
 `#!/usr/bin/env node`, otherwise the scripts are started without the node
 executable!
+
+Note that you can also set the executable files using [directories.bin](#directoriesbin).
+
+See [folders](/configuring-npm/folders#executables) for more info on
+executables.
 
 ### man
 
@@ -547,12 +553,8 @@ had the following:
 }
 ```
 
-and then had a "start" command that then referenced the
-`npm_package_config_port` environment variable, then the user could
-override that by doing `npm config set foo:port 8001`.
-
-See [`config`](/using-npm/config) and [`scripts`](/using-npm/scripts) for
-more on package configs.
+It could also have a "start" command that referenced the
+`npm_package_config_port` environment variable.
 
 ### dependencies
 
@@ -564,7 +566,7 @@ tarball or git URL.
 **Please do not put test harnesses or transpilers or other "development"
 time tools in your `dependencies` object.**  See `devDependencies`, below.
 
-See [semver](/using-npm/semver#versions) for more details about specifying version ranges.
+See [semver](https://github.com/npm/node-semver#versions) for more details about specifying version ranges.
 
 * `version` Must match `version` exactly
 * `>version` Must be greater than `version`

@@ -4,7 +4,7 @@ const npmFetch = require('npm-registry-fetch')
 const pacote = require('pacote')
 
 const otplease = require('./utils/otplease.js')
-const readLocalPkg = require('./utils/read-local-package.js')
+const readLocalPkgName = require('./utils/read-package-name.js')
 const BaseCommand = require('./base-command.js')
 
 class Owner extends BaseCommand {
@@ -15,6 +15,14 @@ class Owner extends BaseCommand {
   /* istanbul ignore next - see test/lib/load-all-commands.js */
   static get name () {
     return 'owner'
+  }
+
+  /* istanbul ignore next - see test/lib/load-all-commands.js */
+  static get params () {
+    return [
+      'registry',
+      'otp',
+    ]
   }
 
   /* istanbul ignore next - see test/lib/load-all-commands.js */
@@ -39,7 +47,9 @@ class Owner extends BaseCommand {
 
     // reaches registry in order to autocomplete rm
     if (argv[2] === 'rm') {
-      const pkgName = await readLocalPkg(this.npm)
+      if (this.npm.config.get('global'))
+        return []
+      const pkgName = await readLocalPkgName(this.npm.prefix)
       if (!pkgName)
         return []
 
@@ -76,7 +86,10 @@ class Owner extends BaseCommand {
 
   async ls (pkg, opts) {
     if (!pkg) {
-      const pkgName = await readLocalPkg(this.npm)
+      if (this.npm.config.get('global'))
+        throw this.usageError()
+
+      const pkgName = await readLocalPkgName(this.npm.prefix)
       if (!pkgName)
         throw this.usageError()
 
@@ -105,7 +118,9 @@ class Owner extends BaseCommand {
       throw this.usageError()
 
     if (!pkg) {
-      const pkgName = await readLocalPkg(this.npm)
+      if (this.npm.config.get('global'))
+        throw this.usageError()
+      const pkgName = await readLocalPkgName(this.npm.prefix)
       if (!pkgName)
         throw this.usageError()
 
@@ -123,7 +138,9 @@ class Owner extends BaseCommand {
       throw this.usageError()
 
     if (!pkg) {
-      const pkgName = await readLocalPkg(this.npm)
+      if (this.npm.config.get('global'))
+        throw this.usageError()
+      const pkgName = await readLocalPkgName(this.npm.prefix)
       if (!pkgName)
         throw this.usageError()
 

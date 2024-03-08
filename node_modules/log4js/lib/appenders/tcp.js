@@ -1,5 +1,3 @@
-
-
 const debug = require('debug')('log4js:tcp');
 const net = require('net');
 
@@ -18,16 +16,22 @@ function appender(config, layout) {
   function emptyBuffer() {
     let evt;
     debug('emptying buffer');
-    /* eslint no-cond-assign:0 */
     while ((evt = buffer.shift())) {
       write(evt);
     }
   }
 
   function createSocket() {
-    debug(`appender creating socket to ${config.host || 'localhost'}:${config.port || 5000}`);
+    debug(
+      `appender creating socket to ${config.host || 'localhost'}:${
+        config.port || 5000
+      }`
+    );
     endMsg = `${config.endMsg || '__LOG4JS__'}`;
-    socket = net.createConnection(config.port || 5000, config.host || 'localhost');
+    socket = net.createConnection(
+      config.port || 5000,
+      config.host || 'localhost'
+    );
     socket.on('connect', () => {
       debug('socket connected');
       emptyBuffer();
@@ -39,7 +43,11 @@ function appender(config, layout) {
       emptyBuffer();
     });
     socket.on('timeout', socket.end.bind(socket));
-    // don't bother listening for 'error', 'close' gets called after that anyway
+    socket.on('error', (e) => {
+      debug('connection error', e);
+      canWrite = false;
+      emptyBuffer();
+    });
     socket.on('close', createSocket);
   }
 

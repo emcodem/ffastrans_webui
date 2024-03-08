@@ -1,4 +1,4 @@
-import { TokenProvider } from "@aws-sdk/types";
+import { TokenIdentityProvider } from "@aws-sdk/types";
 import { FromSsoInit } from "./fromSso";
 /**
  * Creates a token provider that will attempt to find token from the
@@ -15,4 +15,4 @@ import { FromSsoInit } from "./fromSso";
  * @see fromSso                 The function used to source credentials from
  *                              SSO cache or ssoOidc.createToken() call
  */
-export declare const nodeProvider: (init?: FromSsoInit) => TokenProvider;
+export declare const nodeProvider: (init?: FromSsoInit) => TokenIdentityProvider;
