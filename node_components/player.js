@@ -4,6 +4,7 @@ const { spawn,execSync } = require('child_process');
 const ffprobeApi = require("ffprobe");
 const path = require("path");
 const mpvAPI = require('node-mpv');
+const fs = require("fs")
 
 class Player
 {
@@ -16,7 +17,10 @@ class Player
 		this.config = null;
 		this.mpvexe = "C:\\dev\\mpv-installer-messed\\mpv.exe",
 		this.mpv = null;
-
+		this.senderInterval = null;
+		this.outCounter = 0;
+		this.arewrap = 0;
+		this.vrewrap = 0;
     }
 	
 	async initiate(_websocket,_config){ //initobj has field file
@@ -27,26 +31,42 @@ class Player
 		//get free udp localhost port for this instance
 		try{
 			
-			playerInstance.execFfprobe(playerInstance.config)
-			let udpServer = await playerInstance.startUdpServer();
-			playerInstance.port = udpServer.address().port;	
+			let ffprobe = await playerInstance.execFfprobe(playerInstance.config)
+			playerInstance.config.ffprobe = ffprobe;
+			let udpServer = await playerInstance.startUdpServer()
+			playerInstance.port = udpServer.address().port;
+			udpServer.close();
+			this.startFFRewrap(playerInstance.port,true);
+			this.startFFRewrap(playerInstance.port,false);
+			
 			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port)
 			console.log("Current Players port:",playerInstance.port)
+			var udpbuffer =  Buffer.concat([])
+			playerInstance.senderInterval = setInterval(function(){
+				//collect some udp data and only send out every x ms
+				if (udpbuffer.byteLength != 0){
+					playerInstance.websocket.emit("binarydata",udpbuffer)
+					udpbuffer = Buffer.concat([])
+				}
+			},44)
 
 			//pipe player data to websocket
 			udpServer.on("message", function (msg, rinfo) {
 			  //console.log("udpServer got: " + msg + " from " + rinfo.address + ":" + rinfo.port);
-			  playerInstance.websocket.emit("binarydata",msg)
+			  //playerInstance.websocket.emit("binarydata",msg)
+			  udpbuffer = Buffer.concat([udpbuffer,msg]);
 			})
+
 			udpServer.on('close', (err) => {
-			  console.log("udpServer closed")
+			  console.log("udpServer closed");
+			  
 			})
-			
 			
 			playerInstance.websocket.on('disconnect', function(){
-				//user closed player
-				playerInstance.mpv.mpvPlayer.kill();
-				udpServer.close();
+				//user closed player, important to clean up resources
+				clearInterval(playerInstance.senderInterval)
+				playerInstance.mpv.quit();
+				//udpServer.close();
 				console.log("PLAYER DISCONNECT");
 			})
 
@@ -77,35 +97,81 @@ class Player
 	async playerCommand(data){
 
 		let playerInstance = this;
+		if (data.command == "forceplay"){
+			playerInstance.mpv.setProperty ("speed", 1)
+			playerInstance.mpv.setProperty ("play-direction", "+")
+			playerInstance.mpv.play()
+		}
+		if (data.command == "forcepause"){
+			playerInstance.mpv.setProperty ("speed", 1)
+			playerInstance.mpv.pause()
+		}
 		if (data.command == "play"){
-			playerInstance.mpv.togglePause ()
+			playerInstance.mpv.setProperty ("speed", 1)
+			playerInstance.mpv.setProperty ("play-direction", "+")
+			playerInstance.mpv.togglePause()
 		}
 		if (data.command == "seek"){
 			playerInstance.mpv.goToPosition (data.val)
 		}
-
+		if (data.command == "fastbackward"){
+			//--speed=<0.01-100>
+			playerInstance.mpv.play()
+			playerInstance.mpv.setProperty ("play-direction", "-")
+			playerInstance.mpv.setProperty ("speed", data.val)
+		}
+		if (data.command == "fastforward"){
+			playerInstance.mpv.play()
+			playerInstance.mpv.setProperty ("play-direction", "+")
+			playerInstance.mpv.setProperty ("speed", data.val)
+		}
+		if (data.command == "frameStepBack"){
+			playerInstance.mpv.setProperty ("play-direction", "-")
+			playerInstance.mpv.command("frame-step")
+		}
+		if (data.command == "frameStepForward"){
+			playerInstance.mpv.setProperty ("play-direction", "+")
+			playerInstance.mpv.command("frame-step")
+		}
 	}
 
 
 	async startmpv(config,port){
 		let playerInstance = this;
 		let mpvopts = [
-			"--profile=myencprofile", 
 			"--log-file=mpvoutput.log",
-			"--o=udp://127.0.0.1:" + port//+ playerInstance.port ,	//prevent downmix all channels
+			"--o=udp://127.255.255.255:" + port//+ playerInstance.port ,	//prevent downmix all channels
 			]
-
+			if (JSON.stringify(playerInstance.config.ffprobe).indexOf('height":') != -1){
+				//it is a video, link the corresponding mpv conf section
+				mpvopts.push(
+					"--profile=ffasVidProfile", 
+				)
+			}else if (JSON.stringify(playerInstance.config.ffprobe).indexOf('audio') != -1){
+				mpvopts.push(
+					"--profile=ffasAudProfile", 
+				)
+			}else{
+				playerInstance.websocket.emit("playererror","No Video or Audio");
+				return;
+			}
+				
 			const mpv = new mpvAPI({
 				"binary": playerInstance.mpvexe,
-				debug:true,
+				debug:false,
 				"socket": "\\\\.\\pipe\\mpv_" + port, // Windows
 				//"ipcCommand": "--input-ipc-server.",   
 			},mpvopts);
 			mpv.unobserveProperty("filename")
 			mpv.observeProperty("time-pos")
+			mpv.observeProperty("speed")
+			mpv.observeProperty("play-direction")
+			mpv.observeProperty("eof-reached")
+			
 			
 			await mpv.load(config.file, "replace");
-			mpv.play()
+			mpv.setProperty ("keep-open", "always");
+			mpv.play();
 
 			// setInterval(function(){
 			// 	console.log("timepos",mpv.currentTimePos)
@@ -144,6 +210,7 @@ class Player
 			console.error(msg);
 			playerInstance.websocket.emit("playererror",e.message);
 		}
+		return ffprobe
 	}
 
 	async startUdpServer(){
@@ -168,6 +235,62 @@ class Player
 		})
 	}
 
+	async startFFRewrap(port,is_audio = false){
+
+		var ffmpegexe = path.join(global.approot,"tools","ffmpeg","ffmpeg.exe");
+		let playerInstance = this;
+		let myconfig = {is_audio:is_audio}
+		var args = 	[	
+			"-re",
+			"-reuse","1",
+			"-i","udp://127.0.0.1:"+port,
+			"-ar","48000",
+			"-codec",(is_audio ? "copy" : "copy"),
+			//"-bufsize","1064k",
+			"-map","0:" + (is_audio ? "a" : "v"),
+			//"-buffer_size","6553600",
+			"-f",(is_audio ? "mpegts" : "mpegts"),
+			"-"
+		]
+		//check if there is video
+		// probe_streams.forEach(function(str){
+		// 	if (str["codec_type"] == "video"){
+		// 		selected_args = standard_args;
+		// 	}
+		// });
+
+		let ffrewrap = spawn(ffmpegexe, args); 
+		if (is_audio)
+			playerInstance.arewrap = this.ffrewrap
+		else
+			playerInstance.vrewrap = this.ffrewrap
+		ffrewrap.stdout.on('data', data => {
+			if (myconfig.is_audio){
+				playerInstance.websocket.emit("audiodata",data)
+				fs.appendFile("c:\\temp\\raw.bin", data,  "binary",function(err) { });
+			}else{
+				playerInstance.websocket.emit("videodata",data)
+			}
+		});
+
+		ffrewrap.stderr.on('data', data => {
+			console.log(`${data}`);
+		});
+
+		ffrewrap.on('exit', returncode => { 
+			console.log ("ffmpeg rewrapper end, returncode: "+returncode  )
+			if (returncode != "0"){
+				console.log("ffmpeg failed, return code: ",returncode)
+			}
+		});
+
+		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
+		ffrewrap.on('error', data => {
+		  socket.emit("playererror","Error spawning ffmpeg on webinterface server, check if ffmpeg is in the PATH");
+		});
+
+		
+	}
 	// async startmpv(sourceUrl,udpPort){
 	// 	//C:\dev\mpv-installer-messed\mpv.com  --profile=myencprofile --o=udp://127.0.0.1:12345 C:\temp\fjolla.mp4 --demuxer-seekable-cache=yes --cache=yes --demuxer-max-back-bytes=10000M --hr-seek=yes --demuxer-cache-wait=yes
 	// 	let playerInstance = this;

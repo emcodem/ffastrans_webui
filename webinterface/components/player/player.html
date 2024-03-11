@@ -4,13 +4,13 @@
 		<meta charset="UTF-8">
 
 			<script src="../../dependencies/jquery/jquery.js"></script>
-			
+			<script src="../../dependencies/jquery/jquery_timecode_mask.js"></script>
 			<script src="/socket.io/socket.io.js"> </script>
 			<script src="jsmpeg-master/jsmpeg.min.js"> </script>
-
+			<script src="jsmpeg-master/pcmplayer.js"> </script>
 
 			<link rel="stylesheet" type="text/css" href="../../dependencies/fontawesome/css/all.css"></link>
-
+			<link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 			<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 			<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
 				<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
@@ -51,7 +51,15 @@
 
 			.player-btns {
 				display:inline-block;
-
+				white-space: nowrap;
+				
+			} 
+			.player-btns .mdi {
+				font-size:35px;
+				margin:-3px;
+			} 
+			.player-btns .mdi:hover{
+				font-size:32px;
 			} 
 			
 			.noSelect {
@@ -113,18 +121,34 @@ var player;
 var g_framerate = 0;
 reversePlayInterval = null;
 var m_query_params = new URLSearchParams(window.location.search);
+var m_last_player_status = {};
+var m_forcePauseAfterNext = false;
 
 function load(){
+			// Listen for visibility change events
+				document.addEventListener("visibilitychange", handleVisibilityChange);
 
+				function handleVisibilityChange() {
+				if (document.hidden) {
+					// The tab is now hidden
+					// Send a message to the background script to keep running the JavaScript code
+					postMessage("continue-processing");
+				} else {
+					// The tab is now visible
+					// Send a message to the background script to stop running the JavaScript code
+					postMessage("stop-processing");
+				}
+			}
 			//now initialize the player stuff
 			var buf = [];
-		    player = new JSMpeg.Player(null,//null
+		    var player = new JSMpeg.Player(null,//null
 				{
 					source: JSMpegWritableSource,
-					videoBufferSize: 1024*1024 * 10,
-					audioBufferSize: 256*1024 * 10,
-					disableWebAssembly:false,
-					pauseWhenHidden:false,
+					videoBufferSize: 0,
+					audioBufferSize: 0,
+					streaming: true,
+					disableWebAssembly:true,
+					pauseWhenHidden:false,//does not work, chrome doesnt want to do this
 					canvas:document.getElementById('playerCanvas'),
 					loop: true, 
 					autoplay: true, 
@@ -132,7 +156,10 @@ function load(){
 						//console.log("Videodecode",what,time)
 					}
 				});
-				
+			// var player = new JSMpeg.Player('pipe',{
+			// 	canvas:document.getElementById('playerCanvas')
+			// });
+			
 			socket.emit("player", JSON.stringify({
                 "file":m_query_params.get("file")
 			})); 
@@ -173,25 +200,171 @@ function load(){
 					}	
 			});
 
-			socket.on('binarydata', function (data) {
-				// pretend you are getting data as follows
-					player.source.write(data,function(){});
-					
+			let inCounter = 0;
+			//let samplebuffer = []
+			socket.on('videodata', function (data) {
+				// push binary ts stream to player
+				inCounter ++;
+				//samplebuffer.push(data);
+				player.source.write(data,function(){});
+				//player.write(data,function(){}); //for jsmpegpipe
 			});
+
+
+			// var pcmplayer = new PCMPlayer({
+			// 	encoding: '32bitFloat',
+			// 	channels: 2,
+			// 	sampleRate: 48000,
+			// 	flushingTime: 500
+			// });
+
+			
+			socket.on('audiodata', function (data) {
+
+				//this works but with clicks, thats the reason why we actually split the audio on server side and play below with mediasource and co.
+				player.source.write(data,function(){});
+				//pcmplayer.feed(new Float32Array(data));
+				
+			})
+
+			// //mediasource experimente
+			// const mediaSource = new MediaSource()
+			// document.getElementById("audioplayer").src = window.URL.createObjectURL(mediaSource);
+			// mediaSource.addEventListener('sourceopen', onMediaSourceOpen);
+			// var sourceBuffer ;
+			// function onMediaSourceOpen() {
+			// 	console.log("SOURCE OPEN")
+			// 	sourceBuffer = mediaSource.addSourceBuffer('audio/webm;codecs="opus"');
+			// 	//sourceBuffer.addEventListener('updateend', nextSegment);
+				
+			// }
+
+			// socket.on('audiodata', function (data) {
+			// 	sourceBuffer.appendBuffer(data) // Repeat this for each chunk as ArrayBuffer
+			// 	document.getElementById("audioplayer").play();
+			// })
+
+
+
+
+
+// 			//FLOAT PCM experimente, incomment return in audiodata evt
+// 			const sampleRate = 48000;
+// 			const audioContext = new AudioContext({sampleRate});
+// 			var last_buffersource = false;
+// 			socket.on('audiodata', function (data) {
+// 				return
+// 				console.log(data)
+// 				// push binary ts stream to player
+// 				//buffer to float32 array
+// 				var data = new Float32Array(data)
+				
+// 				var left = new Float32Array(data.length/2)
+// 				var right = new Float32Array(data.length/2)
+// 				var counter = 0;
+// 				for (var c=0;c<data.length;c+=2){
+// 					left[counter] = data[c]
+// 					right[counter] = data[c+1]
+// 					counter++
+// 				}
+				
+// 				const channels = 2;
+				
+// 				//myScriptProcessor = audioCtx.createScriptProcessor(16384, channels, channels);
+				
+// 				// create audio buffer of the same length as our array
+
+
+// // to play 1 second we need array of 44100 numbers
+
+// 				// // create a typed array of size 44100 float numbers
+// 				// const sineWaveArray = new Float32Array(sampleRate);
+// 				// const hz = 440;
+// 				// // fill all 44100 elements of array with Math.sin() values
+// 				// for (i = 0; i < sineWaveArray.length; i++) {
+// 				// 	sineWaveArray[i] = Math.sin(i * Math.PI * 2 / hz);
+// 				// }
+							
+// 				const audioBuffer = audioContext.createBuffer(channels, left.length, sampleRate);
+// 				// this copies our sine wave to the audio buffer
+// 				audioBuffer.copyToChannel(left, 0);
+// 				audioBuffer.copyToChannel(left, 1);
+// 				// some JavaScript magic to actually play the sound
+// 				if (last_buffersource){
+// 					console.log("stopping last")
+// 					//last_buffersource.stop()
+// 				}
+// 				last_buffersource = audioContext.createBufferSource();
+// 				last_buffersource.connect(audioContext.destination);
+// 				last_buffersource.buffer = audioBuffer;
+// 				last_buffersource.start();
+// 			});
+
+
+			// for (i=0;i<1;i++){
+			// 	const sineWaveArray = new Float32Array(sampleRate);
+			// 	const hz = 440;
+			// 	// fill all 44100 elements of array with Math.sin() values
+			// 	for (i = 0; i < sineWaveArray.length; i++) {
+			// 	sineWaveArray[i] = Math.sin(i * Math.PI * 2 / hz);
+			// 	}
+
+			// 	const audioBuffer = audioContext.createBuffer(2, sineWaveArray.length, sampleRate);
+			// 	// this copies our sine wave to the audio buffer
+			// 	audioBuffer.copyToChannel(sineWaveArray, 0);
+			// 	audioBuffer.copyToChannel(sineWaveArray, 1);
+			// 	// some JavaScript magic to actually play the sound
+			// 	if (last_buffersource){
+			// 		console.log("stopping last")
+			// 		//last_buffersource.stop()
+			// 	}
+			// 	last_buffersource = audioContext.createBufferSource();
+			// 	last_buffersource.connect(audioContext.destination);
+			// 	last_buffersource.buffer = audioBuffer;
+			// 	last_buffersource.start();
+			// }
+
+
+			// We have to start with creating AudioContext
+			// var buffering = true
+			// window.setInterval(function(){
+			// 	if (buffering && samplebuffer.length <4)
+			// 		return
+			// 	buffering = false
+			// 	console.log(samplebuffer.length)
+			// 	if (samplebuffer.length > 0){
+			// 		const firstElement = samplebuffer.shift();
+			// 		console.time('adecode');
+			// 		player.source.write(firstElement,function(){});
+			// 		console.timeEnd('adecode');
+			// 	}
+			// },171,666666666666)
+
 			socket.on('playererror', function (data) {
-				// pretend you are getting data as follows
+
 					dhtmlx.alert("Player Error: " + JSON.stringify(data))
 					
 			});
 
 			socket.on('property-change', function (data) {
-				// pretend you are getting data as follows
+
 				var status = data;
+				m_last_player_status = status;
+				
 				var _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
 				document.getElementById("currentTime").value = _timecode
 				var _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
 				document.getElementById("totalTime").value = _duration
 				document.getElementById("slider").setAttribute("max", status.duration)
+
+				if (status.speed){
+					if (status["play-direction"] == "forward")
+						document.getElementById("rate_display").innerHTML = status.speed
+					else			
+						document.getElementById("rate_display").innerHTML = "- "+status.speed
+				}else{
+					document.getElementById("rate_display").innerHTML = ""
+				}
 				try{
 					if (status.root.rate >= 1){
 						document.getElementById("rate_display").innerHTML = Math.round(status.root.rate);					
@@ -202,20 +375,28 @@ function load(){
 				}catch(ex){
 				
 				}
-				if ($('#slider:hover').length == 0){
+				//if ($('#slider:hover').length == 0){
 					//prevent slider update on hover
-					var percentage = status["time-pos"];
-					document.getElementById("slider").value = percentage;
-				}
+					//update slider positon
+					 var percentage = status["time-pos"];
+					 document.getElementById("slider").value = percentage;
+				//}
 		
 				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.pause );
 				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", !status.pause );
+				if (m_forcePauseAfterNext){
+					socket.emit("player", JSON.stringify({"command": "forcepause"}));
+					m_forcePauseAfterNext = false;
+				}
+
 			});
 			
 			document.addEventListener("visibilitychange", function() {
 				//if page is hidden, do not continue playing, otherwise jsmpeg just caches frames and when page is visible again, it tries to slow forward to now because pauseWhenHidden does not work for our usecase
 				console.log(document.hidden, document.visibilityState);
-				playPause();
+				// if (document.hidden){
+				// 	socket.emit("player", JSON.stringify({"command": "forcepause"}));
+				// }
 			}, false);
 			
 			//EVENTS
@@ -244,7 +425,7 @@ function getFirstTrack(ffprobe,type="video"){
 
 function attachEvents(){
 			//slider
-	document.getElementById("slider").addEventListener ('change', function (evt) {
+	document.getElementById("slider").addEventListener ('input', function (evt) {
 		console.log("Slider change to ",document.getElementById("slider").value)
 		playerCommandSeek(document.getElementById("slider").value );
 		evt.cancelBubble = true;
@@ -281,14 +462,7 @@ function playerChangeAtrackCommand(newTracknum){
 			}));
 }
 
-function simplePlayerCommand(what){
-	socket.emit("player", JSON.stringify({
-                "command": what
-			}));
-}
-
 function playerCommandSetRate(newRate){
-	//simplePlayerCommand("pl_forceresume");
 	socket.emit("player", JSON.stringify({
                 "command": "rate",
                 "val": encodeURIComponent(newRate)
@@ -296,52 +470,54 @@ function playerCommandSetRate(newRate){
 }
 
 function slower(){
-	var maxspeed = 0.24;
 	var currentRate = document.getElementById("rate_display").innerHTML;
+	currentRate = currentRate.replace("-","")
+	if (currentRate > 3)
+		return
 	currentRate = parseFloat(currentRate);
-	if (currentRate - 0.25 <= maxspeed){
-		//cannot play reverse
-		return;
-	}
-	try{
-		currentRate = currentRate - 0.25;
-		console.log("Setting rate to ", currentRate)
-		playerCommandSetRate(currentRate);
-		
-	}catch(ex){
-		dhtmlx.alert("Current Rate is not a number: " +currentRate);
-	}
+	if (currentRate < 0 || currentRate == 1)
+		currentRate = 0.2
+	else
+		currentRate *= 2
+	socket.emit("player", JSON.stringify({"command": "fastbackward","val": currentRate}));
+
 }
 
 function faster(){
-	var maxspeed = 32;
 	var currentRate = document.getElementById("rate_display").innerHTML;
-	currentRate = parseInt(currentRate);
-	if (currentRate + 1  >= maxspeed){
-	
-		return;
-	}
-	try{
-		currentRate = currentRate * 2;
-		playerCommandSetRate(currentRate);
-	}catch(ex){
-		dhtmlx.alert("Current Rate is not a number: " +currentRate);
-	}
+	currentRate = parseFloat(currentRate);
+	if (currentRate > 3)
+		return
+	if (currentRate < 0 || currentRate == 1)
+		currentRate = 0.2
+	else
+		currentRate *= 2
+	currentRate * 2;
+	socket.emit("player", JSON.stringify({"command": "fastforward","val": currentRate}));
+}
+
+function frameStepBack(){
+	socket.emit("player", JSON.stringify({
+                "command": "frameStepBack",
+                "val": 1
+            }));
+}
+
+function frameStepForward(){
+	socket.emit("player", JSON.stringify({
+                "command": "frameStepForward",
+                "val": 1
+            }));
 }
 
 function playerCommandSeek(where){
 
 		//disable slider updates, otherwise seek only works sporadically
-
+		console.log("emit seek",where)
 		socket.emit("player", JSON.stringify({
                 "command": "seek",
                 "val": where
             }));
-		playPause();
-		playPause();
-		
-		//playerCommand("pl_forceresume");
-		//window.setTimeout(	function(){playerCommand("pl_forcepause")},300);
 		
 }
 
@@ -353,7 +529,17 @@ function playPause(){
 	socket.emit("player", JSON.stringify({
                 "command": "play"
             }));
-	
+}
+
+function seekToFirst(){
+	playerCommandSeek(0);
+	socket.emit("player", JSON.stringify({"command": "forceplay"}));
+	m_forcePauseAfterNext = true;
+}
+
+function seekToLast(){
+	playerCommandSeek(m_last_player_status.duration-0.2);
+	socket.emit("player", JSON.stringify({"command": "forceplay"}));
 }
 
 /** Convert seconds to SMPTE timecode JSON object, example input is html video.currentTime */
@@ -388,8 +574,8 @@ function takeSegment(){
             buttons: ["Ok"]
         })
 	}
-	if (!inpoint.match(/^\d\d:\d\d:\d\d$/) || !outpoint.match(/^\d\d:\d\d:\d\d$/)){
-		dhtmlx.alert("Inpoint and Outpoint must be in format 00:00:00");
+	if (!inpoint.match(/^\d\d:\d\d:\d\d:\d\d$/) || !outpoint.match(/^\d\d:\d\d:\d\d:\d\d$/)){
+		dhtmlx.alert("Inpoint and Outpoint must be in format 00:00:00:00");
 		return
 	}
 	let file = m_query_params.get("file");
@@ -447,13 +633,13 @@ function changeAudioTrack(option){
 								<table style="width:100%;font-size:11px">
 									<tr>
 										<td>
-											<div style="float:left">Position: <input style="width:67px" id="currentTime"  value='00:00:00'/></div>
+											<div style="float:left">Position: <input style="width:70px" id="currentTime"  readonly value='00:00:00:00'/></div>
 										</td>
 										<td>
 											<div style="width: 100%;text-align: center;">Rate: <div id="rate_display" style="display:inline">1</div><div style="display:inline">x</div></div>
 										</td>
 										<td>
-											<div style="float:right">Duration: <input style="width:67px" id="totalTime" style="float:right" class="" value="00:00:00" style="display:flex;float:right"/></div>
+											<div style="float:right">Duration: <input style="width:70px" id="totalTime" readonly style="float:right" class="" value="00:00:00:00" style="display:flex;float:right"/></div>
 										</td>
 									</tr>
 								</table>
@@ -466,11 +652,17 @@ function changeAudioTrack(option){
 							</div>
 							<div id="controlButtons" class="vertical-center noSelect">
 								<div class="player-btns">
-									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('-10s')"></i>
-									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i>
+									<span class="mdi mdi-page-first" 	title="First Frame" 	onclick="seekToFirst()"></span>
+									<span class="mdi mdi-rewind" 		title="Fast backward"	onclick="slower()"></span>
+									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i> -->
+									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="frameStepBack()"></i> -->
+									<span class="mdi mdi-step-backward" title="Frame backward" 	onclick="frameStepBack()"></span>
 									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
-									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i>
-									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="+10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="playerCommandSeek('+10s')"></i>
+									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="+10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="frameStepForward()"></i> -->
+									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i> -->
+									<span class="mdi mdi-step-forward" 	title="Frame forward"	onclick="frameStepForward()"></span>
+									<span class="mdi mdi-fast-forward" 	title="Fast forward"	onclick="faster()"></span>
+									<span class="mdi mdi-page-last" 	title="Last Frame" 		onclick="seekToLast()"></span>
 								</div>
 							<!-- </div> -->
 
@@ -511,12 +703,12 @@ function changeAudioTrack(option){
 					<span style="margin-bottom:5px" class="player_text_segment">Segment</span><br/>
 					<table style="font-size:12px">
 						<tr>
-							<td><input type="submit" onclick="setInPoint()" style="font-size:10px;width:30px;height: 20px" value="In"></input></td><td>
-								<input style="width:70px" id="markIn" ></input></td>
+							<td><input type="submit" onclick="setInPoint()" style="font-size:10px;width:30px;height: 20px" value="In"  ></input></td><td><!-- data-timecodeinputmask is from jquery_timecode_mask.js -->
+								<input style="width:70px" id="markIn" data-timecodeinputmask data-timecodeinputmask-framerate="60"></input></td>
 						</tr>
 						<tr>
-							<td><input type="submit" onclick="setOutPoint()" style="font-size:10px;width:30px;height: 20px" value="Out"></input></td><td>
-								<input style="width:70px" id="markOut" ></input></td>
+							<td><input type="submit" onclick="setOutPoint()" style="font-size:10px;width:30px;height: 20px" value="Out" ></input></td><td>
+								<input style="width:70px" id="markOut" data-timecodeinputmask data-timecodeinputmask-framerate="60"> </input></td>
 						</tr>
 					 
 					
@@ -525,10 +717,29 @@ function changeAudioTrack(option){
 				
 				</div>
 				<input type="submit" value="Take File" onclick="takeFile()" style="position:absolute;bottom:2;;height: 20px;right:4;margin:5px"></input>
+				<!-- <button id="create">Create file</button> <a download="info.txt" id="downloadlink" style="display: none">Download</a>
+				<script>
+					
+					var makeTextFile = function (text) {
+						var blob = new Blob([allAudioBuffer]);
+						datablob = window.URL.createObjectURL(blob);
+
+						return datablob;
+					
+					}
+
+					create.addEventListener('click', function () {
+						var link = document.getElementById('downloadlink');
+						link.href = makeTextFile();
+						link.style.display = 'block';
+					}, false);
+
+				</script> -->
 				<!-- <div style="height:10%;position:relative;">
 					<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
 				</div> -->
 			</div>
 		</div>
+			<video id="audioplayer" controls width="80%" style="display:none"></video>
 			</body>
 		</html>
