@@ -61,7 +61,7 @@ function buildSplitInfo(jobInfo,splitId){
         "end_time": jobInfo[splitId].end_time,
         "job_id": jobInfo.job_id,
         "result": result,
-        "source": jobInfo[splitId].sources.original_file,
+        "source": jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file,
         "split_id": splitId,
         "state": jobInfo[splitId].status, //TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         "workflow": jobInfo.workflow.name
