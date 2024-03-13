@@ -15,7 +15,7 @@ class Player
 		this.selectedAudioTrack = 0;
 		this.websocket = null;
 		this.config = null;
-		this.mpvexe = "C:\\dev\\mpv-installer-messed\\mpv.exe",
+		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.exe");
 		this.mpv = null;
 		this.senderInterval = null;
 		this.outCounter = 0;
@@ -24,6 +24,7 @@ class Player
     }
 	
 	async initiate(_websocket,_config){ //initobj has field file
+
 		this.websocket 	= _websocket;
 		this.config 	= _config;
 		let playerInstance = this;
@@ -35,9 +36,9 @@ class Player
 			playerInstance.config.ffprobe = ffprobe;
 			let udpServer = await playerInstance.startUdpServer()
 			playerInstance.port = udpServer.address().port;
-			udpServer.close();
-			this.startFFRewrap(playerInstance.port,true);
-			this.startFFRewrap(playerInstance.port,false);
+			//udpServer.close();
+			//this.startFFRewrap(playerInstance.port,true);
+			//this.startFFRewrap(playerInstance.port,false);
 			
 			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port)
 			console.log("Current Players port:",playerInstance.port)
@@ -45,7 +46,7 @@ class Player
 			playerInstance.senderInterval = setInterval(function(){
 				//collect some udp data and only send out every x ms
 				if (udpbuffer.byteLength != 0){
-					playerInstance.websocket.emit("binarydata",udpbuffer)
+					playerInstance.websocket.emit("videodata",udpbuffer)
 					udpbuffer = Buffer.concat([])
 				}
 			},44)
@@ -133,6 +134,10 @@ class Player
 			playerInstance.mpv.setProperty ("play-direction", "+")
 			playerInstance.mpv.command("frame-step")
 		}
+		if (data.command == "aid"){
+			playerInstance.mpv.setProperty ("aid", data.val)
+			//playerInstance.mpv.command("frame-step")
+		}
 	}
 
 
@@ -178,7 +183,7 @@ class Player
 			// },250)
 	
 			mpv.on('stopped', function() {
-				console.log("Your favorite song just finished, let's start it again!");
+				console.log("mpv stopped");
 				
 			});
 
@@ -228,7 +233,7 @@ class Player
 			});
 			srv.on('error', (err) => {
 				reject(`udp server error:\n${err.stack}`);
-				srv.close();
+				srv.close();x
 			});
 
 			srv.bind(0,"127.0.0.1");//gets a random port
@@ -246,9 +251,9 @@ class Player
 			"-i","udp://127.0.0.1:"+port,
 			"-ar","48000",
 			"-codec",(is_audio ? "copy" : "copy"),
-			//"-bufsize","1064k",
-			"-map","0:" + (is_audio ? "a" : "v"),
-			//"-buffer_size","6553600",
+			"-map","0",
+			//"-map","0:" + (is_audio ? "a" : "v"),
+			
 			"-f",(is_audio ? "mpegts" : "mpegts"),
 			"-"
 		]

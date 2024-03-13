@@ -94,7 +94,7 @@
 			.canvasContainer{
 				width: calc(100vw - 150px) ;
 				height: calc(100vh - 100px) ;
-				background-color: black ;
+				background-color: #2D3039 ;
 				display: flex;
 				align-items: center;
 				justify-content: center;
@@ -124,7 +124,25 @@ var m_query_params = new URLSearchParams(window.location.search);
 var m_last_player_status = {};
 var m_forcePauseAfterNext = false;
 
+//global hotkeys
+window.addEventListener("keydown", hotKey);
+
+function hotKey(event){
+   if (event.isComposing || event.keyCode === 32) //space
+    	playPause()
+   if (event.isComposing || event.keyCode === 39) //right arrow
+    	frameStepForward()
+   if (event.isComposing || event.keyCode === 37) //right arrow
+    	frameStepBack()
+   if (event.isComposing || event.keyCode === 38) //up arrow
+    	faster()
+   if (event.isComposing || event.keyCode === 40) //down arrow
+    	slower()
+  	  // do something
+}
+
 function load(){
+				document.getElementById("iconPlay").focus();
 			// Listen for visibility change events
 				document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -147,7 +165,7 @@ function load(){
 					videoBufferSize: 0,
 					audioBufferSize: 0,
 					streaming: true,
-					disableWebAssembly:true,
+					disableWebAssembly:false,
 					pauseWhenHidden:false,//does not work, chrome doesnt want to do this
 					canvas:document.getElementById('playerCanvas'),
 					loop: true, 
@@ -222,7 +240,7 @@ function load(){
 			socket.on('audiodata', function (data) {
 
 				//this works but with clicks, thats the reason why we actually split the audio on server side and play below with mediasource and co.
-				player.source.write(data,function(){});
+				//player.source.write(data,function(){});
 				//pcmplayer.feed(new Float32Array(data));
 				
 			})
@@ -457,8 +475,8 @@ function attachEvents(){
 
 function playerChangeAtrackCommand(newTracknum){
 	socket.emit("player", JSON.stringify({
-                "command": "changeAtrack",
-				"value" : newTracknum
+                "command": "aid",
+				"val" : newTracknum
 			}));
 }
 
@@ -604,16 +622,7 @@ function capitalizeFirstLetter(string) {
 
 function changeAudioTrack(option){
 	
-	dhtmlx.confirm({
-		
-		type:"confirm",
-		text: "Changing Audio track causes reloading the clip.",
-		callback: function(result){
-			console.log("result",result)
-			if (result)
-				playerChangeAtrackCommand(option.value);
-		}
-	});
+	playerChangeAtrackCommand(option.value);
 	
 }
 
@@ -621,7 +630,7 @@ function changeAudioTrack(option){
 </script>
 
 		</head>
-		<body onload="load()">
+		<body onload="load();"><!-- this contentwindow enables hotkeys -->
 			<div id="maindiv" style="width: 100%; overflow: hidden;" class="flexContainer">
 				<div style="float:left" id="video_and_controls" class="flexGrow">
 						

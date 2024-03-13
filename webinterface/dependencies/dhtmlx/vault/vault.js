@@ -7556,6 +7556,8 @@ var KeyManager = /** @class */ (function () {
         this._keysStorage = {};
         document.addEventListener("keydown", function (e) {
             var comp = (e.ctrlKey ? 4 : 0) + (e.shiftKey ? 2 : 0) + (e.altKey ? 1 : 0);
+            if (!e.key)
+                return
             var code = comp + e.key.toLowerCase();
             var action = _this._keysStorage[code];
             if (action) {
