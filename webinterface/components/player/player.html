@@ -59,7 +59,8 @@
 				margin:-3px;
 			} 
 			.player-btns .mdi:hover{
-				font-size:32px;
+				/*font-size:37px;*/
+				transform: scale(1.1)
 			} 
 			
 			.noSelect {
@@ -127,7 +128,13 @@ var m_forcePauseAfterNext = false;
 //global hotkeys
 window.addEventListener("keydown", hotKey);
 
+var m_closefunc=function(){alert("close function not attached")}
+
 function hotKey(event){
+	if (event.isComposing || event.keyCode === 27){//esc
+		m_closefunc();
+	} //space
+    	
    if (event.isComposing || event.keyCode === 32) //space
     	playPause()
    if (event.isComposing || event.keyCode === 39) //right arrow
@@ -144,19 +151,19 @@ function hotKey(event){
 function load(){
 				document.getElementById("iconPlay").focus();
 			// Listen for visibility change events
-				document.addEventListener("visibilitychange", handleVisibilityChange);
+			// 	document.addEventListener("visibilitychange", handleVisibilityChange);
 
-				function handleVisibilityChange() {
-				if (document.hidden) {
-					// The tab is now hidden
-					// Send a message to the background script to keep running the JavaScript code
-					postMessage("continue-processing");
-				} else {
-					// The tab is now visible
-					// Send a message to the background script to stop running the JavaScript code
-					postMessage("stop-processing");
-				}
-			}
+			// 	function handleVisibilityChange() {
+			// 	if (document.hidden) {
+			// 		// The tab is now hidden
+			// 		// Send a message to the background script to keep running the JavaScript code
+			// 		postMessage("continue-processing");
+			// 	} else {
+			// 		// The tab is now visible
+			// 		// Send a message to the background script to stop running the JavaScript code
+			// 		postMessage("stop-processing");
+			// 	}
+			// }
 			//now initialize the player stuff
 			var buf = [];
 		    var player = new JSMpeg.Player(null,//null
@@ -165,7 +172,7 @@ function load(){
 					videoBufferSize: 0,
 					audioBufferSize: 0,
 					streaming: true,
-					disableWebAssembly:false,
+					disableWebAssembly:true,
 					pauseWhenHidden:false,//does not work, chrome doesnt want to do this
 					canvas:document.getElementById('playerCanvas'),
 					loop: true, 
@@ -220,12 +227,30 @@ function load(){
 
 			let inCounter = 0;
 			//let samplebuffer = []
+
+			var currentReportingSecondStart;
+			var initReporting = {bytespersecond:0} //count per second
+			var firstPacketDate;
+			var reporting;
+
 			socket.on('videodata', function (data) {
 				// push binary ts stream to player
-				inCounter ++;
-				//samplebuffer.push(data);
+				if (!firstPacketDate){
+					firstPacketDate = new Date();
+					currentReportingSecondStart = firstPacketDate;
+					reporting = initReporting;
+				}
+				if (new Date() - currentReportingSecondStart > 1000 ){
+					//throw out reporting, reset "one second (time)" check
+					currentReportingSecondStart = new Date();
+					//Megabits per second = Bytes per second x 0.000008
+					console.log( parseFloat(reporting.bytespersecond * 0.000008).toFixed(2) + " Mbit/s packets from mpv");
+					reporting = JSON.parse(JSON.stringify(initReporting));
+				}
+				reporting.bytespersecond += data.byteLength
+				
+				//Write transport stream packet to players decoder
 				player.source.write(data,function(){});
-				//player.write(data,function(){}); //for jsmpegpipe
 			});
 
 
@@ -369,12 +394,13 @@ function load(){
 				var status = data;
 				m_last_player_status = status;
 				
-				var _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
-				document.getElementById("currentTime").value = _timecode
-				var _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
-				document.getElementById("totalTime").value = _duration
-				document.getElementById("slider").setAttribute("max", status.duration)
-
+				if (status.duration){
+					var _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
+					document.getElementById("currentTime").value = _timecode
+					var _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
+					document.getElementById("totalTime").value = _duration
+					document.getElementById("slider").setAttribute("max", status.duration)
+				}
 				if (status.speed){
 					if (status["play-direction"] == "forward")
 						document.getElementById("rate_display").innerHTML = status.speed
@@ -412,6 +438,7 @@ function load(){
 			document.addEventListener("visibilitychange", function() {
 				//if page is hidden, do not continue playing, otherwise jsmpeg just caches frames and when page is visible again, it tries to slow forward to now because pauseWhenHidden does not work for our usecase
 				console.log(document.hidden, document.visibilityState);
+				socket.emit("player", JSON.stringify({"command": "forcepause"}));
 				// if (document.hidden){
 				// 	socket.emit("player", JSON.stringify({"command": "forcepause"}));
 				// }
@@ -532,10 +559,16 @@ function playerCommandSeek(where){
 
 		//disable slider updates, otherwise seek only works sporadically
 		console.log("emit seek",where)
+		if (m_last_player_status.pause){
+			socket.emit("player", JSON.stringify({"command": "forceplay"}));
+			m_forcePauseAfterNext = true;
+		}
+
 		socket.emit("player", JSON.stringify({
                 "command": "seek",
                 "val": where
             }));
+
 		
 }
 
@@ -582,22 +615,33 @@ function setOutPoint(){
 
 }
 
-function takeSegment(){
+async function takeSegment(){
 	let inpoint 	= document.getElementById("markIn").value;
 	let outpoint 	= document.getElementById("markOut").value;
 	if (outpoint < inpoint){
-		dhx8.dhx.alert({
+		await dhx8.dhx.alert({
             header: "Error",
             text: "out < in",
             buttons: ["Ok"]
         })
+		return
 	}
 	if (!inpoint.match(/^\d\d:\d\d:\d\d:\d\d$/) || !outpoint.match(/^\d\d:\d\d:\d\d:\d\d$/)){
 		dhtmlx.alert("Inpoint and Outpoint must be in format 00:00:00:00");
 		return
 	}
 	let file = m_query_params.get("file");
-	parent.window.addSegmentRow(file,inpoint,outpoint);
+
+	//convert to ffmpeg compatible
+	g_framerate
+	var in_frames 	= inpoint.match(/(\d\d)$/)[1]
+	var out_frames 	= outpoint.match(/(\d\d)$/)[1]
+	var in_seconds 	=  ((1000/g_framerate) * in_frames * 0.001).toFixed(2).replace(/^0./,"") ;
+	var out_seconds	=  ((1000/g_framerate) * out_frames * 0.001).toFixed(2).replace(/^0./,"") ;
+	var final_in 	= inpoint.match(/^(........)/)[1] + "." + in_seconds
+	var final_out 	= outpoint.match(/^(........)/)[1] + "." + out_seconds
+
+	parent.window.addSegmentRow(file,final_in,final_out);
 }
 
 function takeFile(){
@@ -712,11 +756,11 @@ function changeAudioTrack(option){
 					<span style="margin-bottom:5px" class="player_text_segment">Segment</span><br/>
 					<table style="font-size:12px">
 						<tr>
-							<td><input type="submit" onclick="setInPoint()" style="font-size:10px;width:30px;height: 20px" value="In"  ></input></td><td><!-- data-timecodeinputmask is from jquery_timecode_mask.js -->
+							<td><input type="submit" onclick="setInPoint();this.blur()" style="font-size:10px;width:30px;height: 20px" value="In"  ></input></td><td><!-- data-timecodeinputmask is from jquery_timecode_mask.js -->
 								<input style="width:70px" id="markIn" data-timecodeinputmask data-timecodeinputmask-framerate="60"></input></td>
 						</tr>
 						<tr>
-							<td><input type="submit" onclick="setOutPoint()" style="font-size:10px;width:30px;height: 20px" value="Out" ></input></td><td>
+							<td><input type="submit" onclick="setOutPoint();this.blur()" style="font-size:10px;width:30px;height: 20px" value="Out" ></input></td><td>
 								<input style="width:70px" id="markOut" data-timecodeinputmask data-timecodeinputmask-framerate="60"> </input></td>
 						</tr>
 					 

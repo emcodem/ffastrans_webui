@@ -162,21 +162,22 @@ class Player
 			}
 				
 			const mpv = new mpvAPI({
-				"binary": playerInstance.mpvexe,
+				"binary": playerInstance.mpvexe, 
 				debug:false,
 				"socket": "\\\\.\\pipe\\mpv_" + port, // Windows
 				//"ipcCommand": "--input-ipc-server.",   
 			},mpvopts);
+
 			mpv.unobserveProperty("filename")
 			mpv.observeProperty("time-pos")
 			mpv.observeProperty("speed")
 			mpv.observeProperty("play-direction")
 			mpv.observeProperty("eof-reached")
 			
-			
-			await mpv.load(config.file, "replace");
-			mpv.setProperty ("keep-open", "always");
-			mpv.play();
+			// setTimeout(async () => {
+
+			// }, 2000);
+
 
 			// setInterval(function(){
 			// 	console.log("timepos",mpv.currentTimePos)
@@ -184,11 +185,18 @@ class Player
 	
 			mpv.on('stopped', function() {
 				console.log("mpv stopped");
-				
+							
 			});
 
-			mpv.on('statuschange', function(what) {
-				//console.log("property-change",what);
+			let firstPropchange = false;
+			mpv.on('statuschange', async function(what) {
+				if (!firstPropchange){
+					//only after first message load the file
+					await mpv.load(config.file, "replace");
+					mpv.setProperty ("keep-open", "always"); //!! if we dont do this, end will jump to start, even if this is set in conf
+					firstPropchange= true;
+					//mpv.play();
+				}
 				playerInstance.websocket.emit("property-change",what)	
 			});		
 			return mpv;	

@@ -866,7 +866,7 @@ function init(){
 				var dhxwins = new dhtmlXWindows();
 				//dhxwins.attachViewportTo(window.parent.document.body);
 				win_offset = 0;
-				var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/2);
+				var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/3*2);
 				win_offset+=30;
 				win.setText("File [" + file.name + "]");
 				win.attachHTMLString(minfo_html);
@@ -880,8 +880,8 @@ function init(){
 			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
 			var fullfilepath = m_fileBrowserGrid.getUserData(rId,"fullpath");
 			if (fullfilepath.match(/C\$|D\$|E\$|F\$|G\$/gi)){
-				dhtmlx.alert("Sorry, VLC Player does not support files on Administrative shares (e.g. \\\\server\\c$\\). Alter your webinterface admin settings and a normal share instead, e.g. '\\\\server\\C_drive'");
-				return;
+				//dhtmlx.alert("Sorry, VLC Player does not support files on Administrative shares (e.g. \\\\server\\c$\\). Alter your webinterface admin settings and a normal share instead, e.g. '\\\\server\\C_drive'");
+				//return;
 			}
 
             var _playerUrl = "player/player.html?file=" + encodeURIComponent(fullfilepath) + "&mediainfo_url="+encodeURIComponent(build_new_api_url("/getmediainfo?do_html=false&filepath=" + encodeURIComponent(fullfilepath)));
@@ -889,18 +889,30 @@ function init(){
 			var dhxWins = new dhtmlXWindows();
 			//dhxwins.attachViewportTo(window.parent.document.body);
 			win_offset = 0;
-			var win = dhxWins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, window.innerWidth/2,window.innerHeight/2);
+			var win = dhxWins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, window.innerWidth/3*2,window.innerHeight/3*2);
 			win_offset+=30;
 			win.setText("File [" + file.name + "]");
 			console.log("Constructed url",encodeURIComponent(fullfilepath))
 			
-            win.attachURL(_playerUrl) ;
+            win.attachURL(_playerUrl);
+			dhxWins.attachEvent("onContentLoaded", function(win){
+                
+				var ifr = win.getFrame();
+                ifr.contentWindow.focus();
+                var elem = ifr.contentWindow.m_closefunc = function(){
+                    win.close()
+                }
+			});
+			
+            
+
             //win.attachHTMLString(playerhtml);
 			win.showInnerScroll(true);
+            
 			dhxWins.attachEvent("onFocus", function(win){
 				console.log("global event onFocus was called for "+win.getText());
 			});
-
+			
 			win.attachEvent("onBeforeMoveStart", function(whut){
 				win.bringToTop();
 				return true;
