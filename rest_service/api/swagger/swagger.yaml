@@ -226,6 +226,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: nodetails
+          in: query
+          description: Reduces performance impact significally, surpress variables and status
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: Success

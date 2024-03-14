@@ -4,6 +4,8 @@ const { uuid } = require('uuidv4');
 const moment = require('moment-timezone');
 var md2 = require('js-md2');
 var fs = require('fs');
+
+
 function _JoSearch(obj,jsonpath,fieldname,defaultval){
     const found = obj.find(element => jsonpath > 10);
 }
@@ -28,8 +30,8 @@ class JobTicket {
     variables       = 	    []
 
     async init_ticket(wf_id,start_proc_id){
-        var $o_workflow = await readfile_cached(locateWorkflowFile(wf_id));
-        $o_workflow = JSON.parse($o_workflow);
+        var $o_workflow = await readfile_cached(locateWorkflowFile(wf_id),true);
+        
         var $i_index = $o_workflow.nodes.findIndex(node => node.id == start_proc_id);
         if ($i_index < 0)
             $i_index = 0
@@ -108,30 +110,58 @@ async function get_wf_name(wf_id){
 	/* do not catch errors here, the caller must do */
             var workflow_folder =  path.join(global.api_config["s_SYS_CACHE_DIR"], "../configs/workflows/");
             var wf_path = path.join(workflow_folder,wf_id) + ".json";
-            var wf_obj = await readfile_cached(wf_path);
-            wf_obj = JSON.parse(wf_obj);
+            var wf_obj = await readfile_cached(wf_path,true);
+            
             return wf_obj["wf_name"];
 }
 
 
 //all files in all directories to array
+var m_cached_directories = {} //{directoryname:[...files],[...stats_enrichedby_filenames] }
+
+
+
+
+
+// async function dirContentChanged(dir){
+//     //check if anything changed in the specified directory
+//     if (! dir in m_cached_directories){
+//         return true;
+//     }
+//     var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+//     if (allfiles.length != m_cached_directories[dir].files.length)
+//         return true
+
+//     //check if stats of all files still match existing stats
+//     for (var _idx in allfiles){
+//         var _stat = await fsPromises.stat(path.join(dir,allfiles[_idx]));
+//         var checkstat = _stat.birthtimeMs + _stat.ctimeMs + _stat.mtimeMs + _stat.size;
+
+//     }
+
+//     return true;
+
+// }
+
 async function json_files_to_array_cached(dir) {
     if (!dir){return}
+
     var returnarray=[];
+    console.time("readdir")
     var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+    
     for (var _idx in allfiles){
         try{
             var fullpath = path.join(dir,allfiles[_idx]);
-            var newitem = (JSON.parse(await readfile_cached(fullpath)))//removes BOM	;
+            var newitem = await readfile_cached(fullpath,true)//removes BOM;
             returnarray.push(newitem)
         }catch(ex){
             console.log("Could not parse Json from file:",path.join(dir,allfiles[_idx]),ex)
         }
     }
-    
+    console.timeEnd("readdir")
     return returnarray;
 }
-
 
 //all ffastrans tickets in all directories to array
 async function ticket_files_to_array(dir) {
@@ -141,7 +171,7 @@ async function ticket_files_to_array(dir) {
         
         for (var _idx in allfiles){
             try{
-                var newitem = (JSON.parse(await readfile_cached(path.join(dir,allfiles[_idx]), 'utf8')))//removes BOM	;
+                var newitem = await readfile_cached(path.join(dir,allfiles[_idx]),true)//removes BOM	;
                 
                 var wf_id =  allfiles[_idx].split("~")[3]; //ffastrans <1.3
                 if (!wf_id.match(/........-/)){
@@ -174,8 +204,10 @@ async function ticket_files_to_array(dir) {
 		return returnarray;
 }
 
-async function readfile_cached(fullpath){
-    
+
+async function readfile_cached(fullpath, jsonparse = false){
+    var prevent_delete = fullpath.indexOf("\\configs\\workflows" != -1);
+
     if (! ("filecache" in global)){
 		global.filecache = {};
 	}
@@ -188,12 +220,13 @@ async function readfile_cached(fullpath){
         var now = new Date( );
         var birth = new Date(global.filecache.tickets[key]["birth"]);
         var birth_plus_ten = new Date(birth.getTime() + 10000);
-        if( birth_plus_ten < now){
+        if( birth_plus_ten < now && !prevent_delete){
             delete global.filecache.tickets[key]
         }
+        
     }
         
-    if (Object.keys(global.filecache.tickets).length > 500){
+    if (Object.keys(global.filecache.tickets).length > 5000){
         cache_cleaner(); //deletes non existing files from cache
     }
 
@@ -218,7 +251,7 @@ async function readfile_cached(fullpath){
     global.filecache.tickets[fullpath] = {};
     global.filecache.tickets[fullpath]["mtimeMs"] = stats.mtimeMs;
     global.filecache.tickets[fullpath]["birth"] = new Date();
-    global.filecache.tickets[fullpath]["content"] = contents;
+    global.filecache.tickets[fullpath]["content"] = jsonparse ? JSON.parse(contents) : contents;
     
     return global.filecache.tickets[fullpath]["content"] ;
 	

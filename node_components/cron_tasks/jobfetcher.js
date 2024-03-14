@@ -27,8 +27,9 @@ module.exports = {
 	//we want jobfetcher to be able to run as alternate-server, thus the getworkflowjobcount method asks ticket not directly from api but from jobfetcher
 	//in alternate-server mode you have to rebuild and simulate the returned structure
 
-	getWorkflowList: async function(){
-		return await axios.get(helpers.build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
+	getWorkflowList: async function(nodetails){
+		var get_details = nodetails ? "nodetails=true" : "";
+		return await axios.get(helpers.build_new_api_url("/workflows?" + get_details), { timeout: 7000, agent: false, maxSockets: Infinity });
 	},
 
 	tickets:async function(){

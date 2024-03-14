@@ -108,8 +108,8 @@ async function get_incoming(returnarray){
                                 
                                 var newitem = {};
                                 //read the incoming json to get details about watched file
-                                var f_contents = await common.readfile_cached(fullpath);
-                                var _readout = (JSON.parse(f_contents))//removes BOM	;
+                                var f_contents = await common.readfile_cached(fullpath,true);
+                                var _readout = f_contents//removes BOM	;
                                 newitem["host"] = _readout["host"]
                                 var _realfile = _readout["source"];
                                 var myRegexp = /\\wfs\\(.*?)\\mons/gi; //TODO: support workflows that do not have a guid //C:\ffastrans\Processors\db\cache\wfs\20190516132025\mons\20190516-132046-729-69eeea0438bf\i\Die Sofa-Richter F_ 4_d1de.mpg_8D44AB5FBB8AE5D5B00184D9CEDB382B6D243383.json

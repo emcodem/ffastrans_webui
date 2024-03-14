@@ -24,9 +24,9 @@ async function get(req, res) {
             try{
                 if (actual_count > max_count)
                   continue;
-                var contents = await common.readfile_cached(path.join(s_path,allfiles[_idx]), 'utf8');
-                contents = contents.replace(/^\uFEFF/, '');
-                var _j = JSON.parse(contents);
+                var contents = await common.readfile_cached(path.join(s_path,allfiles[_idx]), true);
+                
+                var _j = contents;
                 _j["review_file"] = allfiles[_idx];
                 returnjson.push(_j);
                 actual_count++;

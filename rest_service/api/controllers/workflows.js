@@ -120,42 +120,28 @@ async function updateWorkflow(wf){
         throw new Exception ("wf_id or wf_name was empty or not existent");
     }
 
-    // $o = _JoGet($o_import, 'workflow')
-	// 	$s_id = _JoGet($o, 'wf_id')
-	// 	If $s_id <> '' And _JoGet($o, 'wf_name') <> '' Then
-	// 		$s = $s_SYS_CONFIGS_DIR & '\workflows\' & $s_id & '.json'
-	// 		If FileExists($s) Then
-	// 			If $bExistsFail Then Return SetError(409)
-	// 			FileCopy($s, $s_SYS_CONFIGS_DIR & '\archive\workflows\' & $s_id & '\' & @YEAR & '-' & @MON & '-' & @MDAY & ' ' & @HOUR & '_' & @MON & '_' & @SEC & '.json')
-	// 		EndIf
-	// 		_MyFileCreate($s, _joCode($o), 138)
-	// 		$bExistsFail = False
-	// 		$b_valid = True
-	// 	EndIf
-	// 	If $b_valid = False Then
-	// 		Return -1
-	// 	EndIf
-
-   //FileCopy($s, $s_SYS_CONFIGS_DIR & '\archive\workflows\' & $s_id & '\' & @YEAR & '-' & @MON & '-' & @MDAY & ' ' & @HOUR & '_' & @MON & '_' & @SEC & '.json')
 }
 
 async function getWorkflows(req, res) {
-
+    console.time("getWorkflows")
     var o_req = req.body;
 	try {
         var o_return = {discovery:req.headers.referer,workflows:[]};
         //read all workflows 
         var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
-        o_return.workflows = await common.json_files_to_array_cached(s_wf_path);
+        o_return.workflows = await common.json_files_to_array_cached(s_wf_path,true);
+        console.timeEnd("getWorkflows")
+        if (!req.query.nodetails){
+            await add_user_vars (o_return);
+            await add_status    (o_return.workflows);
+        }
         
-        await add_user_vars (o_return);
-        await add_status    (o_return.workflows);
-
         if (req.query.id){
             o_return.workflows = o_return.workflows.filter(wf=>{
                 return wf.wf_id == req.query.id;
             })
         }
+        
         res.json(o_return);
         res.end();
 	} catch(err) {
@@ -163,6 +149,7 @@ async function getWorkflows(req, res) {
 		console.debug(err);
         return res.status(500).send(err.stack.toString());
 	}
+    
 }
 
 async function add_status(a_workflows){
@@ -187,7 +174,7 @@ async function add_status(a_workflows){
 async function add_user_vars(o_return){
     // enrich all_user_vars by use count 
     // enrich workflow by the user_vars that it uses
-    
+    console.time("add_user_vars")
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
     var all_vars_readout = await fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
     all_vars_readout = all_vars_readout.replace(/^\uFEFF/, '');
@@ -202,13 +189,10 @@ async function add_user_vars(o_return){
     o_return.user_variables = all_vars_report;
 
     //loop through workflow nodes, count usage, attach used variables to workflow...
-
+    
     for (var _wfidx=0; _wfidx<o_return.workflows.length;_wfidx++){
         try{
             var _wf = o_return.workflows[_wfidx];
-            //ffastrans uses $a = StringRegExp($s_wf_readout, '(?i)%[ifs]_.+?%', 3)
-            if (_wf.wf_name == "Sleep_te")
-                var stop =1 
             _wf.user_variables = {"variables":[],"statics":[]};
 
             var vars_in_this_wf = []; //filters duplicates
@@ -221,9 +205,6 @@ async function add_user_vars(o_return){
                 
                 if (vars_in_this_node != null){
                     //vars_in_this_node = new Set(vars_in_this_node); //filters duplicates
-
-                    if (_wf.wf_name == "Transcribe Test")
-                        var stop = 1
                     for (var _vname of vars_in_this_node){
                         var used_var = all_vars.find(o => o.name ===  _vname.replaceAll("%",""));
                         var report_var = all_vars_report.find(o => o.name ===  _vname.replaceAll("%",""));
@@ -251,6 +232,7 @@ async function add_user_vars(o_return){
         }
     }
     //original obj has been inline modified
+    
 }
 
 
