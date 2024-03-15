@@ -46,10 +46,18 @@ module.exports = async function (app, passport) {
 
             //get filtered list of workflow names
             var all_permissions = await userpermissions.getpermissionlistAsync(username);
-            var all_workflows = await global.jobfetcher.getWorkflowList(true);//we ask from jobfetcher instead of api to allow alternate-server providing it's own workflkow list
+            
+            //var all_workflows = await global.jobfetcher.getWorkflowList(true);//massive performance issue, blocks main loop when the system has many workflows
+            
+            //saves lots of performance when reading distinct workflows from db. construct face wf api response for getPermittedWorkflowList
+            var all_workflows_in_db = await global.db.jobs.distinct("workflow")
+            var all_workflows = all_workflows_in_db.map(wf_name => { return {"wf_name":wf_name}})
+            all_workflows = {data:{workflows:all_workflows}}
+            //todo: add the worfklows from running jobs, maybe we dont have them in the db already
+
             var allowed_workflows = getPermittedWorkflowList(all_permissions, all_workflows);
             var allowed_wfnames = allowed_workflows.map(wf => wf.wf_name); //objects to name array
-
+            
             //ask database for success,error,cancelled 
             async function countDocs(_state, since_days, wf_names) {
                 var targetDate = moment(new Date()).subtract(since_days, 'day').format("YYYY-MM-DD 00:00:00"); // date object
