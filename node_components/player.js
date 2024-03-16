@@ -21,6 +21,7 @@ class Player
 		this.outCounter = 0;
 		this.arewrap = 0;
 		this.vrewrap = 0;
+		this.lastPlayerProps ={}
     }
 	
 	async initiate(_websocket,_config){ //initobj has field file
@@ -36,11 +37,20 @@ class Player
 			playerInstance.config.ffprobe = ffprobe;
 			let udpServer = await playerInstance.startUdpServer()
 			playerInstance.port = udpServer.address().port;
+			let mpvExtraOpts = []
+			try{
+				var vstreams = ffprobe.streams.filter(s => s.height)
+				var _framerate = eval(vstreams[0].r_frame_rate)
+				if (_framerate > 30)
+					mpvExtraOpts.push("--vf-add=fps="+_framerate/2 + ":round=near")
+				 
+			}catch(ex){}
 			//udpServer.close();
 			//this.startFFRewrap(playerInstance.port,true);
 			//this.startFFRewrap(playerInstance.port,false);
 			
-			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port)
+			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port,mpvExtraOpts)
+			
 			console.log("Current Players port:",playerInstance.port)
 			var udpbuffer =  Buffer.concat([])
 			playerInstance.senderInterval = setInterval(function(){
@@ -135,18 +145,43 @@ class Player
 			playerInstance.mpv.command("frame-step")
 		}
 		if (data.command == "aid"){
-			playerInstance.mpv.setProperty ("aid", data.val)
+			//apply-profile to non transcode output, and back again
+			
+			// playerInstance.mpv.setProperty ("watch-later-dir", "c:\\temp\\watch")
+			// playerInstance.mpv.setProperty ("watch-later-options-add", "aid",data.val)
+			// playerInstance.mpv.setProperty ("write-filename-in-watch-later-config","yes")
+			// playerInstance.mpv.command ("write-watch-later-config")
+			//playerInstance.mpv.command ("quit-watch-later");
+			await this.mpv.quit()
+			
+			playerInstance.mpv = await playerInstance.startmpv(
+				playerInstance.config,
+				playerInstance.port,["--aid="+data.val],
+				playerInstance.lastPlayerProps["time-pos"]
+			)
+			
+
+			// write-watch-later-config
+			// delete-watch-later-config
+			// 
+			// watch-later-options
+			// -- (aid)
+
+			//playerInstance.mpv.setProperty("apply-profile","ffasAudProfile")
+			//playerInstance.mpv.setProperty ("aid", data.val)
 			//playerInstance.mpv.command("frame-step")
 		}
 	}
 
 
-	async startmpv(config,port){
+	async startmpv(config,port,extraopts = [],seekToSec = false){
 		let playerInstance = this;
 		let mpvopts = [
 			"--log-file=mpvoutput.log",
-			"--o=udp://127.255.255.255:" + port//+ playerInstance.port ,	//prevent downmix all channels
+			"--o=udp://127.255.255.255:" + port,//+ playerInstance.port ,	//prevent downmix all channels
+			
 			]
+			mpvopts.push(...extraopts)
 			if (JSON.stringify(playerInstance.config.ffprobe).indexOf('height":') != -1){
 				//it is a video, link the corresponding mpv conf section
 				mpvopts.push(
@@ -173,6 +208,7 @@ class Player
 			mpv.observeProperty("speed")
 			mpv.observeProperty("play-direction")
 			mpv.observeProperty("eof-reached")
+			mpv.observeProperty("demux-fps")
 			
 			// setTimeout(async () => {
 
@@ -188,17 +224,46 @@ class Player
 							
 			});
 
+			mpv.on('started', async function() {
+				//add half fps filter when fps > 50
+				var mpv_streams = await mpv.getProperty("track-list");
+				var video_stream = mpv_streams.filter(str => str.type=="video");
+				if (video_stream.length > 0){
+					var vstream = video_stream[0]
+					if (vstream["demux-fps"] > 30){
+						mpv.setProperty("vf-append", "hue=s=0");
+						
+						//mpv.setProperty("vf-add", "fps="+vstream["demux-fps"]/2 + ":round=near");
+					}
+				}
+
+				//if framerate is > 30, do vf-add=fps=30:round=near
+				if (seekToSec){
+					console.log("MPV Started, seeking to ", seekToSec)
+					mpv.goToPosition (seekToSec)
+					seekToSec = false;
+				}
+							
+			});
+
 			let firstPropchange = false;
+			//vf-add=fps=30:round=near
 			mpv.on('statuschange', async function(what) {
 				if (!firstPropchange){
 					//only after first message load the file
 					await mpv.load(config.file, "replace");
 					mpv.setProperty ("keep-open", "always"); //!! if we dont do this, end will jump to start, even if this is set in conf
 					firstPropchange= true;
-					//mpv.play();
+
+				}
+				if (what["time-pos"]){
+					playerInstance.lastPlayerProps = what
 				}
 				playerInstance.websocket.emit("property-change",what)	
-			});		
+			});	
+			
+
+
 			return mpv;	
 	}
 
