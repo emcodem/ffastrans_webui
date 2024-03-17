@@ -179,8 +179,10 @@ class Player
 
 			playerInstance.mpv = await playerInstance.startmpv(
 				playerInstance.config,
-				playerInstance.port,["--aid="+ data.val],
-				playerInstance.lastPlayerProps["time-pos"]
+				playerInstance.port,
+				false,
+				playerInstance.lastPlayerProps["time-pos"],
+				data.val
 			)
 			
 
@@ -201,53 +203,83 @@ class Player
 
 	}
 
-	async startmpv(config,port,extraopts = [],seekToSec = false){
+	getAudioVuFilterString(aid_pad_prefix = "aid",audio_track = 1){
+		var audio_filters = "";
+		let playerInstance = this;
+		try{
+			//add audio VU meters on the right
+			var atracks = playerInstance.config.ffprobe.streams.filter(s => s.codec_type=="audio")
+			var audio_bars = []
+			for (let aid=1;aid<atracks.length+1;aid++){
+				var bar_width = atracks[aid-1].channels * 40
+				var vwidth = 1920;
+				var vheight = 1080;
+				var current_bar_filter = ""
+				//for the selected track, we need to create the ao pad for mpv to play
+				if (aid.toString().indexOf(audio_track) != -1)
+					current_bar_filter = '['+aid_pad_prefix+aid+']asplit[a'+aid+'][ao],'
+				else
+					current_bar_filter = '['+aid_pad_prefix+aid+']acopy[a'+aid+'],'
+
+				current_bar_filter += '[a'+aid+']showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[va],[va]pad=iw+6:ih:-1:-1:[va],[withaudiobars][va]hstack[withaudiobars]'
+
+				audio_bars.push(current_bar_filter)
+			}
+			audio_filters = audio_bars.join(",")
+			return audio_filters
+		}catch(ex){
+			
+		}
+	}
+
+	async startmpv(config,port,extraopts = [],seekToSec = false,audio_track = 1){
 		let playerInstance = this;
 		let mpvopts = [
 			"--log-file=mpvoutput.log",
 			"--o=-",//+ playerInstance.port ,	//prevent downmix all channels
 			]
-			mpvopts.push(...extraopts)
+			if (extraopts)
+				mpvopts.push(...extraopts)
 			var vtracks = playerInstance.config.ffprobe.streams.filter(s => s.height)
 			if (vtracks.length != 0){
+				//VIDEO only or VIDEO+AUDIO
 				//it is a video, link the corresponding mpv conf section
 				mpvopts.push(
 					"--profile=ffasVidProfile", 
 				)
+
+				var final_filter = "[vid1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[withaudiobars]"
+
+				var audio_filters = playerInstance.getAudioVuFilterString("aid",audio_track)
+				if (audio_filters)
+					final_filter += "," + audio_filters
+
+				final_filter += ",[withaudiobars]copy[vo]" //mpv looks for vo pad
+	
+				mpvopts.push("--lavfi-complex=" + final_filter)
+
 			}else if (JSON.stringify(playerInstance.config.ffprobe).indexOf('audio') != -1){
+				//AUDIO ONLY
 				mpvopts.push(
-					"--profile=ffasAudProfile", 
+					"--profile=ffasVidProfile", 
 				)
+				//attach Audio VU Bars on right side of video
+				
+				var final_filter = "[aid1]asplit[copy0][copy1],[copy0]avectorscope=draw=line:s=1920x1080[withaudiobars]"
+				var audio_filters = playerInstance.getAudioVuFilterString("copy",audio_track)
+				 if (audio_filters)
+				 	final_filter += "," + audio_filters
+
+				
+
+				final_filter += ",[withaudiobars]copy[vo]" //mpv looks for vo pad	
+				mpvopts.push("--lavfi-complex=" + final_filter)
+
 			}else{
 				playerInstance.websocket.emit("playererror","No Video or Audio");
 				return;
 			}
 			
-			//make sure we always output the same resolution
-			//[aid1]showvolume=t=0:o=v:m=r:ds=log:f=0,scale=150:1080[va],[vo][va]hstack[vo],[aid2]showvolume=t=0:o=v:m=r:ds=log:f=0,scale=150:1080[va],[vo][va]hstack[vo]
-			var audio_filters = "";
-			try{
-				var atracks = playerInstance.config.ffprobe.streams.filter(s => s.codec_type=="audio")
-				var audio_bars = []
-				for (let aid=1;aid<atracks.length+1;aid++){
-					var bar_width = atracks[aid-1].channels * 40
-					var vwidth = 1920;
-					var vheight = 1080;
-					//c=-2+0xFF000000 is white, i did not manage to get any other color playing besides the default ones 
-					audio_bars.push('[aid'+aid+']showvolume=c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[va],[va]pad=iw+10:ih:-1:-1:[va],[beforeaudio][va]hstack[beforeaudio]')
-				}
-				audio_filters = audio_bars.join(",")
-			}catch(ex){}
-
-			var final_filter = "[vid1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[beforeaudio]"
-			if (audio_filters != "")
-				final_filter += "," + audio_filters
-		    final_filter += ",[beforeaudio]copy[vo]"
-
-			//final_filter = "[aid1]asetrate=r=44100,showvolume=w=1030:h=40:o=1:f=0:r=10:dm=0:dmc=yellow:v=0:ds=log:b=5:p=0.5[vol1];[aid2]asetrate=r=44100,showvolume=w=1030:h=40:o=1:f=0:r=10:dm=0:dmc=yellow:v=0:ds=log:b=5:p=0.5[vol2];[vid1][vol1]overlay=eval=0:x=35:y=15[v2];[v2][vol2]overlay=eval=0:x=1750:y=15[vo]"
-
-			mpvopts.push("--lavfi-complex=" + final_filter)
-
 			
 			console.log("Starting MPV with opts ", mpvopts)
 			const mpv = new mpvAPI({

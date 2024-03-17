@@ -920,6 +920,9 @@ function init(){
                 if (!win)
                     return
                 
+                if (!win.isMaximized)
+                    return
+                
                 if (win.isMaximized()){
                     win.minimize()
                     win.maximize()
