@@ -56,11 +56,12 @@
 			} 
 			.player-btns .mdi {
 				font-size:35px;
-				margin:-3px;
+				/* margin:-3px; */
 			} 
 			.player-btns .mdi:hover{
-				/*font-size:37px;*/
-				transform: scale(1.1)
+				/* font-size:37px; */
+				/* position:fixed; */
+				/* transform: scale(1.1) */
 			} 
 			
 			.noSelect {
@@ -112,7 +113,17 @@
     			display: flex;
 			}
 
-
+			.Row {
+				display: table;
+				width: 270px; /*Optional*/
+				table-layout: fixed; /*Optional*/
+				
+			}
+			.Column {
+				display: table-cell;
+				width:20px;
+				max-width:20px
+			}
 
 			</style>
 			
@@ -124,7 +135,7 @@ reversePlayInterval = null;
 var m_query_params = new URLSearchParams(window.location.search);
 var m_last_player_status = {};
 var m_forcePauseAfterNext = false;
-
+var allAudioBuffer = new ArrayBuffer(0)
 //global hotkeys
 window.addEventListener("keydown", hotKey);
 
@@ -147,6 +158,14 @@ function hotKey(event){
     	slower()
   	  // do something
 }
+
+var concatTypedArrays = function(buffer1, buffer2) {
+  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+  tmp.set(new Uint8Array(buffer1), 0);
+  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+  return tmp.buffer;
+};
+
 
 function load(){
 				document.getElementById("iconPlay").focus();
@@ -171,6 +190,7 @@ function load(){
 					source: JSMpegWritableSource,
 					videoBufferSize: 0,
 					audioBufferSize: 0,
+					
 					streaming: true,
 					disableWebAssembly:true,
 					pauseWhenHidden:false,//does not work, chrome doesnt want to do this
@@ -235,6 +255,7 @@ function load(){
 
 			socket.on('videodata', function (data) {
 				// push binary ts stream to player
+				//allAudioBuffer = concatTypedArrays(allAudioBuffer,data)
 				if (!firstPacketDate){
 					firstPacketDate = new Date();
 					currentReportingSecondStart = firstPacketDate;
@@ -503,7 +524,7 @@ function attachEvents(){
 function playerChangeAtrackCommand(newTracknum){
 	socket.emit("player", JSON.stringify({
                 "command": "aid",
-				"val" : newTracknum
+				"val" : newTracknum //mpv track starts at 1
 			}));
 }
 
@@ -665,8 +686,10 @@ function capitalizeFirstLetter(string) {
 }
 
 function changeAudioTrack(option){
+	var aid = parseInt(option.value) + 1
+	console.log("switch atrack to "+ aid)
 	
-	playerChangeAtrackCommand(option.value);
+	playerChangeAtrackCommand(aid);
 	
 }
 
@@ -704,18 +727,18 @@ function changeAudioTrack(option){
 								</div>
 							</div>
 							<div id="controlButtons" class="vertical-center noSelect">
-								<div class="player-btns">
-									<span class="mdi mdi-page-first" 	title="First Frame" 	onclick="seekToFirst()"></span>
-									<span class="mdi mdi-rewind" 		title="Fast backward"	onclick="slower()"></span>
+								<div class="player-btns Row">
+									<div class="column"><span class="mdi mdi-page-first" 	title="First Frame" 	onclick="seekToFirst()"></span></div>
+									<div class="column"><span class="mdi mdi-rewind" 		title="Fast backward"	onclick="slower()"></span></div>
 									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i> -->
 									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="frameStepBack()"></i> -->
-									<span class="mdi mdi-step-backward" title="Frame backward" 	onclick="frameStepBack()"></span>
-									<i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i>
+									<div class="column"><span class="mdi mdi-step-backward" title="Frame backward" 	onclick="frameStepBack()"></span></div>
+									<div class="column"><i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="play/pause" id="iconPlay" 	class="fas fa-play-circle 			fa-3x grayBackgroundOnHover" onclick="playPause()"></i></div>
 									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="+10s" id="iconStepPlus" 		class="fas fa-step-forward 	 		fa-3x grayBackgroundOnHover" onclick="frameStepForward()"></i> -->
 									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="faster" id="iconFaste" 		class="fas fa-forward 				fa-3x grayBackgroundOnHover" onclick="faster()"></i> -->
-									<span class="mdi mdi-step-forward" 	title="Frame forward"	onclick="frameStepForward()"></span>
-									<span class="mdi mdi-fast-forward" 	title="Fast forward"	onclick="faster()"></span>
-									<span class="mdi mdi-page-last" 	title="Last Frame" 		onclick="seekToLast()"></span>
+									<div class="column"><span class="mdi mdi-step-forward" 	title="Frame forward"	onclick="frameStepForward()"></span></div>
+									<div class="column"><span class="mdi mdi-fast-forward" 	title="Fast forward"	onclick="faster()"></span></div>
+									<div class="column"><span class="mdi mdi-page-last" 	title="Last Frame" 		onclick="seekToLast()"></span></div>
 								</div>
 							<!-- </div> -->
 
@@ -770,6 +793,10 @@ function changeAudioTrack(option){
 				
 				</div>
 				<input type="submit" value="Take File" onclick="takeFile()" style="position:absolute;bottom:2;;height: 20px;right:4;margin:5px"></input>
+
+
+
+
 				<!-- <button id="create">Create file</button> <a download="info.txt" id="downloadlink" style="display: none">Download</a>
 				<script>
 					
@@ -788,9 +815,7 @@ function changeAudioTrack(option){
 					}, false);
 
 				</script> -->
-				<!-- <div style="height:10%;position:relative;">
-					<input style="width:100%;height:100%"  type="submit" value="Add to List >>"></input>
-				</div> -->
+
 			</div>
 		</div>
 			<video id="audioplayer" controls width="80%" style="display:none"></video>

@@ -15,7 +15,7 @@ class Player
 		this.selectedAudioTrack = 0;
 		this.websocket = null;
 		this.config = null;
-		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.exe");
+		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.com");
 		this.mpv = null;
 		this.senderInterval = null;
 		this.outCounter = 0;
@@ -43,7 +43,7 @@ class Player
 				var _framerate = eval(vstreams[0].r_frame_rate)
 				if (_framerate > 30)
 					mpvExtraOpts.push("--vf-add=fps="+_framerate/2 + ":round=near")
-				 
+
 			}catch(ex){}
 			//udpServer.close();
 			//this.startFFRewrap(playerInstance.port,true);
@@ -52,20 +52,20 @@ class Player
 			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port,mpvExtraOpts)
 			
 			console.log("Current Players port:",playerInstance.port)
-			var udpbuffer =  Buffer.concat([])
-			playerInstance.senderInterval = setInterval(function(){
-				//collect some udp data and only send out every x ms
-				if (udpbuffer.byteLength != 0){
-					playerInstance.websocket.emit("videodata",udpbuffer)
-					udpbuffer = Buffer.concat([])
-				}
-			},44)
+			// var udpbuffer =  Buffer.concat([])
+			// playerInstance.senderInterval = setInterval(function(){
+			// 	//collect some udp data and only send out every x ms
+			// 	if (udpbuffer.byteLength != 0){
+			// 		playerInstance.websocket.emit("videodata",udpbuffer)
+			// 		udpbuffer = Buffer.concat([])
+			// 	}
+			// },44)
 
 			//pipe player data to websocket
 			udpServer.on("message", function (msg, rinfo) {
 			  //console.log("udpServer got: " + msg + " from " + rinfo.address + ":" + rinfo.port);
-			  //playerInstance.websocket.emit("binarydata",msg)
-			  udpbuffer = Buffer.concat([udpbuffer,msg]);
+			  playerInstance.websocket.emit("videodata",msg)
+			  //udpbuffer = Buffer.concat([udpbuffer,msg]);
 			})
 
 			udpServer.on('close', (err) => {
@@ -76,8 +76,9 @@ class Player
 			playerInstance.websocket.on('disconnect', function(){
 				//user closed player, important to clean up resources
 				clearInterval(playerInstance.senderInterval)
-				playerInstance.mpv.quit();
-				//udpServer.close();
+				//playerInstance.mpv.quit();
+				playerInstance.mpv.kill();
+				udpServer.close();
 				console.log("PLAYER DISCONNECT");
 			})
 
@@ -152,11 +153,13 @@ class Player
 			// playerInstance.mpv.setProperty ("write-filename-in-watch-later-config","yes")
 			// playerInstance.mpv.command ("write-watch-later-config")
 			//playerInstance.mpv.command ("quit-watch-later");
-			await this.mpv.quit()
 			
+			await playerInstance.mpv.kill()
+			//playerInstance.mpv.command ("quit")
+
 			playerInstance.mpv = await playerInstance.startmpv(
 				playerInstance.config,
-				playerInstance.port,["--aid="+data.val],
+				playerInstance.port,["--aid="+ data.val],
 				playerInstance.lastPlayerProps["time-pos"]
 			)
 			
@@ -178,8 +181,7 @@ class Player
 		let playerInstance = this;
 		let mpvopts = [
 			"--log-file=mpvoutput.log",
-			"--o=udp://127.255.255.255:" + port,//+ playerInstance.port ,	//prevent downmix all channels
-			
+			"--o=-",//+ playerInstance.port ,	//prevent downmix all channels
 			]
 			mpvopts.push(...extraopts)
 			if (JSON.stringify(playerInstance.config.ffprobe).indexOf('height":') != -1){
@@ -195,13 +197,18 @@ class Player
 				playerInstance.websocket.emit("playererror","No Video or Audio");
 				return;
 			}
-				
+			
+			console.log("Starting MPV with opts ", mpvopts)
 			const mpv = new mpvAPI({
 				"binary": playerInstance.mpvexe, 
 				debug:false,
 				"socket": "\\\\.\\pipe\\mpv_" + port, // Windows
 				//"ipcCommand": "--input-ipc-server.",   
 			},mpvopts);
+
+			 
+
+			
 
 			mpv.unobserveProperty("filename")
 			mpv.observeProperty("time-pos")
@@ -210,15 +217,19 @@ class Player
 			mpv.observeProperty("eof-reached")
 			mpv.observeProperty("demux-fps")
 			
-			// setTimeout(async () => {
 
-			// }, 2000);
-
-
-			// setInterval(function(){
-			// 	console.log("timepos",mpv.currentTimePos)
-			// },250)
 	
+			mpv.on('mpvProcessStarted', function() {
+				mpv.mpvPlayer.stdout.on('data', async function(data) {
+					//Here is where the output goes
+					playerInstance.websocket.emit("videodata",data)
+				});
+				mpv.mpvPlayer.stderr.on('data', async function(data) {
+					//Here is where the output goes
+					var stop = 1
+				});
+			});
+
 			mpv.on('stopped', function() {
 				console.log("mpv stopped");
 							
@@ -226,16 +237,9 @@ class Player
 
 			mpv.on('started', async function() {
 				//add half fps filter when fps > 50
+				console.log("started")
 				var mpv_streams = await mpv.getProperty("track-list");
 				var video_stream = mpv_streams.filter(str => str.type=="video");
-				if (video_stream.length > 0){
-					var vstream = video_stream[0]
-					if (vstream["demux-fps"] > 30){
-						mpv.setProperty("vf-append", "hue=s=0");
-						
-						//mpv.setProperty("vf-add", "fps="+vstream["demux-fps"]/2 + ":round=near");
-					}
-				}
 
 				//if framerate is > 30, do vf-add=fps=30:round=near
 				if (seekToSec){
@@ -246,10 +250,11 @@ class Player
 							
 			});
 
+
 			let firstPropchange = false;
 			//vf-add=fps=30:round=near
 			mpv.on('statuschange', async function(what) {
-				if (!firstPropchange){
+					if (!firstPropchange){
 					//only after first message load the file
 					await mpv.load(config.file, "replace");
 					mpv.setProperty ("keep-open", "always"); //!! if we dont do this, end will jump to start, even if this is set in conf
