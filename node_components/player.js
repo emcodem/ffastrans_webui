@@ -15,13 +15,14 @@ class Player
 		this.selectedAudioTrack = 0;
 		this.websocket = null;
 		this.config = null;
-		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.com");
+		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.exe");
 		this.mpv = null;
 		this.senderInterval = null;
 		this.outCounter = 0;
 		this.arewrap = 0;
 		this.vrewrap = 0;
-		this.lastPlayerProps ={}
+		this.lastPlayerProps ={};
+		this.lastPlayerCommand = "play"
     }
 	
 	async initiate(_websocket,_config){ //initobj has field file
@@ -38,17 +39,14 @@ class Player
 			let udpServer = await playerInstance.startUdpServer()
 			playerInstance.port = udpServer.address().port;
 			let mpvExtraOpts = []
-			try{
-				var vstreams = ffprobe.streams.filter(s => s.height)
-				var _framerate = eval(vstreams[0].r_frame_rate)
-				if (_framerate > 30)
-					mpvExtraOpts.push("--vf-add=fps="+_framerate/2 + ":round=near")
+			// try{
+			// 	var vstreams = ffprobe.streams.filter(s => s.height)
+			// 	var _framerate = eval(vstreams[0].r_frame_rate)
+			// 	if (_framerate > 30)
+			// 		mpvExtraOpts.push("--vf-add=fps="+_framerate/2 + ":round=near")
 
-			}catch(ex){}
-			//udpServer.close();
-			//this.startFFRewrap(playerInstance.port,true);
-			//this.startFFRewrap(playerInstance.port,false);
-			
+			// }catch(ex){}
+
 			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port,mpvExtraOpts)
 			
 			console.log("Current Players port:",playerInstance.port)
@@ -106,10 +104,22 @@ class Player
 		
 	}
 
+	async checkForPlayDirChange(newDir){
+		let playerInstance = this;
+		if (playerInstance.lastPlayerProps["play-direction"] != newDir){
+			//clears the cache to avoid overflow
+			playerInstance.mpv.setProperty ("cache", "no")
+			playerInstance.mpv.setProperty ("cache", "yes")
+		}
+	}
+
 	async playerCommand(data){
 
 		let playerInstance = this;
+		this.lastPlayerCommand = data;
+
 		if (data.command == "forceplay"){
+			playerInstance.checkForPlayDirChange("forward")
 			playerInstance.mpv.setProperty ("speed", 1)
 			playerInstance.mpv.setProperty ("play-direction", "+")
 			playerInstance.mpv.play()
@@ -119,6 +129,7 @@ class Player
 			playerInstance.mpv.pause()
 		}
 		if (data.command == "play"){
+			playerInstance.checkForPlayDirChange("forward")
 			playerInstance.mpv.setProperty ("speed", 1)
 			playerInstance.mpv.setProperty ("play-direction", "+")
 			playerInstance.mpv.togglePause()
@@ -127,22 +138,30 @@ class Player
 			playerInstance.mpv.goToPosition (data.val)
 		}
 		if (data.command == "fastbackward"){
+			playerInstance.checkForPlayDirChange("backward")
 			//--speed=<0.01-100>
 			playerInstance.mpv.play()
 			playerInstance.mpv.setProperty ("play-direction", "-")
 			playerInstance.mpv.setProperty ("speed", data.val)
 		}
 		if (data.command == "fastforward"){
+			playerInstance.checkForPlayDirChange("forward")
 			playerInstance.mpv.play()
 			playerInstance.mpv.setProperty ("play-direction", "+")
 			playerInstance.mpv.setProperty ("speed", data.val)
 		}
 		if (data.command == "frameStepBack"){
+			playerInstance.mpv.setProperty ("speed", 1)
+			playerInstance.checkForPlayDirChange("backward")
 			playerInstance.mpv.setProperty ("play-direction", "-")
+			playerInstance.mpv.pause()
 			playerInstance.mpv.command("frame-step")
 		}
 		if (data.command == "frameStepForward"){
+			playerInstance.mpv.setProperty ("speed", 1)
+			playerInstance.checkForPlayDirChange("forward")
 			playerInstance.mpv.setProperty ("play-direction", "+")
+			playerInstance.mpv.pause()
 			playerInstance.mpv.command("frame-step")
 		}
 		if (data.command == "aid"){
@@ -176,6 +195,10 @@ class Player
 		}
 	}
 
+	appendAudioBars(){
+		let playerInstance = this;
+
+	}
 
 	async startmpv(config,port,extraopts = [],seekToSec = false){
 		let playerInstance = this;
@@ -184,7 +207,8 @@ class Player
 			"--o=-",//+ playerInstance.port ,	//prevent downmix all channels
 			]
 			mpvopts.push(...extraopts)
-			if (JSON.stringify(playerInstance.config.ffprobe).indexOf('height":') != -1){
+			var vtracks = playerInstance.config.ffprobe.streams.filter(s => s.height)
+			if (vtracks.length != 0){
 				//it is a video, link the corresponding mpv conf section
 				mpvopts.push(
 					"--profile=ffasVidProfile", 
@@ -198,6 +222,30 @@ class Player
 				return;
 			}
 			
+			//make sure we always output the same resolution
+			//[aid1]showvolume=t=0:o=v:m=r:ds=log:f=0,scale=150:1080[va],[vo][va]hstack[vo],[aid2]showvolume=t=0:o=v:m=r:ds=log:f=0,scale=150:1080[va],[vo][va]hstack[vo]
+			var audio_filters = "";
+			try{
+				var atracks = playerInstance.config.ffprobe.streams.filter(s => s.codec_type=="audio")
+				var audio_bars = []
+				for (let aid=1;aid<atracks.length+1;aid++){
+					var bar_width = atracks[aid-1].channels * 40
+					var vwidth = 1920;
+					var vheight = 1080;
+					//c=-2+0xFF000000 is white, i did not manage to get any other color playing besides the default ones 
+					audio_bars.push('[aid'+aid+']showvolume=c=-2+0xFF000000:t=0:o=v:m=r:ds=log:f=0:w='+vheight+':h=20:b=2[va],[beforeaudio][va]hstack[beforeaudio]')
+				}
+				audio_filters = audio_bars.join(",")
+			}catch(ex){}
+
+			var final_filter = "[vid1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[beforeaudio]"
+			if (audio_filters != "")
+				final_filter += "," + audio_filters
+		    final_filter += ",[beforeaudio]copy[vo]"
+
+			mpvopts.push("--lavfi-complex=" + final_filter)
+
+			
 			console.log("Starting MPV with opts ", mpvopts)
 			const mpv = new mpvAPI({
 				"binary": playerInstance.mpvexe, 
@@ -206,27 +254,30 @@ class Player
 				//"ipcCommand": "--input-ipc-server.",   
 			},mpvopts);
 
-			 
-
-			
-
 			mpv.unobserveProperty("filename")
 			mpv.observeProperty("time-pos")
 			mpv.observeProperty("speed")
 			mpv.observeProperty("play-direction")
 			mpv.observeProperty("eof-reached")
 			mpv.observeProperty("demux-fps")
+			mpv.observeProperty("play-direction")
 			
-
-	
 			mpv.on('mpvProcessStarted', function() {
 				mpv.mpvPlayer.stdout.on('data', async function(data) {
 					//Here is where the output goes
 					playerInstance.websocket.emit("videodata",data)
 				});
 				mpv.mpvPlayer.stderr.on('data', async function(data) {
-					//Here is where the output goes
-					var stop = 1
+					//workaround mpv cache buffer overflow in backward play/fast mode
+					if (data.toString().indexOf("Backward playback is likely stuck/broken now") != -1){
+						console.log("mpv backward play cache overflow, initiating workaround")
+						playerInstance.checkForPlayDirChange("forward")
+						playerInstance.mpv.setProperty ("play-direction", "forward")
+						playerInstance.mpv.pause()
+						playerInstance.playerCommand(playerInstance.lastPlayerCommand)
+
+					}
+					//console.log("mpv stderr: ",data.toString())
 				});
 			});
 
@@ -244,7 +295,7 @@ class Player
 				//if framerate is > 30, do vf-add=fps=30:round=near
 				if (seekToSec){
 					console.log("MPV Started, seeking to ", seekToSec)
-					mpv.goToPosition (seekToSec)
+					mpv.goToPosition (seekToSec) 
 					seekToSec = false;
 				}
 							

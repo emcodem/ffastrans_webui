@@ -563,6 +563,7 @@ function faster(){
 }
 
 function frameStepBack(){
+	socket.emit("player", JSON.stringify({"command": "forcepause"}));
 	socket.emit("player", JSON.stringify({
                 "command": "frameStepBack",
                 "val": 1
@@ -570,6 +571,7 @@ function frameStepBack(){
 }
 
 function frameStepForward(){
+	socket.emit("player", JSON.stringify({"command": "forcepause"}));
 	socket.emit("player", JSON.stringify({
                 "command": "frameStepForward",
                 "val": 1
