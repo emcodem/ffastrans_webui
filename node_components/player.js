@@ -38,6 +38,7 @@ class Player
 			playerInstance.config.ffprobe = ffprobe;
 			let udpServer = await playerInstance.startUdpServer()
 			playerInstance.port = udpServer.address().port;
+			udpServer.close()
 			let mpvExtraOpts = []
 			// try{
 			// 	var vstreams = ffprobe.streams.filter(s => s.height)
@@ -233,7 +234,7 @@ class Player
 					var vwidth = 1920;
 					var vheight = 1080;
 					//c=-2+0xFF000000 is white, i did not manage to get any other color playing besides the default ones 
-					audio_bars.push('[aid'+aid+']showvolume=c=-2+0xFF000000:t=0:o=v:m=r:ds=log:f=0:w='+vheight+':h=20:b=2[va],[beforeaudio][va]hstack[beforeaudio]')
+					audio_bars.push('[aid'+aid+']showvolume=c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[va],[va]pad=iw+10:ih:-1:-1:[va],[beforeaudio][va]hstack[beforeaudio]')
 				}
 				audio_filters = audio_bars.join(",")
 			}catch(ex){}
@@ -242,6 +243,8 @@ class Player
 			if (audio_filters != "")
 				final_filter += "," + audio_filters
 		    final_filter += ",[beforeaudio]copy[vo]"
+
+			//final_filter = "[aid1]asetrate=r=44100,showvolume=w=1030:h=40:o=1:f=0:r=10:dm=0:dmc=yellow:v=0:ds=log:b=5:p=0.5[vol1];[aid2]asetrate=r=44100,showvolume=w=1030:h=40:o=1:f=0:r=10:dm=0:dmc=yellow:v=0:ds=log:b=5:p=0.5[vol2];[vid1][vol1]overlay=eval=0:x=35:y=15[v2];[v2][vol2]overlay=eval=0:x=1750:y=15[vo]"
 
 			mpvopts.push("--lavfi-complex=" + final_filter)
 
@@ -261,7 +264,8 @@ class Player
 			mpv.observeProperty("eof-reached")
 			mpv.observeProperty("demux-fps")
 			mpv.observeProperty("play-direction")
-			
+			mpv.observeProperty("video-out-params")
+
 			mpv.on('mpvProcessStarted', function() {
 				mpv.mpvPlayer.stdout.on('data', async function(data) {
 					//Here is where the output goes

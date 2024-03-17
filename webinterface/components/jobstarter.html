@@ -893,10 +893,11 @@ function init(){
 			win_offset+=30;
 			win.setText("File [" + file.name + "]");
 			console.log("Constructed url",encodeURIComponent(fullfilepath))
-			
             win.attachURL(_playerUrl);
+			win.showInnerScroll(true);
+
 			dhxWins.attachEvent("onContentLoaded", function(win){
-                
+                //support esc key for close window
 				var ifr = win.getFrame();
                 ifr.contentWindow.focus();
                 var elem = ifr.contentWindow.m_closefunc = function(){
@@ -904,10 +905,35 @@ function init(){
                 }
 			});
 			
-            
+            //support player window resize with page
+            var lastKnownWinWidthP = (100/window.innerWidth)    * window.innerWidth/3*2
+            var lastKnownWinHeightP = (100/window.innerHeight)  * window.innerHeight/3*2
+            win.attachEvent("onResizeFinish", function(win){
+                // code here
+                var currentSize = win.getDimension();//[w,h]
+                lastKnownWinWidthP = (100/window.innerWidth) * currentSize[0]
+                lastKnownWinHeightP = (100/window.innerHeight) * currentSize[1]
+            });
 
-            //win.attachHTMLString(playerhtml);
-			win.showInnerScroll(true);
+            //resize window with page
+            $( window ).on( "resize", function() {
+                if (!win)
+                    return
+                
+                if (win.isMaximized()){
+                    win.minimize()
+                    win.maximize()
+                    return
+                }
+                var winW = $(this).width();
+                var winH = $(this).height();
+                
+                console.log("resize, lastknown player size:",lastKnownWinWidthP,lastKnownWinHeightP);
+                console.log("new player size:",winW*lastKnownWinWidthP*0.01,winH*lastKnownWinHeightP*0.01);
+                if (win.setDimension)
+                    win.setDimension(winW*lastKnownWinWidthP*0.01, winH*lastKnownWinHeightP*0.01);
+
+            } );
             
 			dhxWins.attachEvent("onFocus", function(win){
 				console.log("global event onFocus was called for "+win.getText());

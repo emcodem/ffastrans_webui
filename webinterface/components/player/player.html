@@ -274,14 +274,6 @@ function load(){
 				player.source.write(data,function(){});
 			});
 
-
-			// var pcmplayer = new PCMPlayer({
-			// 	encoding: '32bitFloat',
-			// 	channels: 2,
-			// 	sampleRate: 48000,
-			// 	flushingTime: 500
-			// });
-
 			
 			socket.on('audiodata', function (data) {
 
@@ -413,6 +405,12 @@ function load(){
 			socket.on('property-change', function (data) {
 				
 				var status = data;
+				if (JSON.stringify(m_last_player_status["video-out-params"]) != JSON.stringify(status["video-out-params"])){
+					m_last_player_status = status;
+					//inform video canvas about new dimensions
+					console.log("status",m_last_player_status)
+					videoCanvasResize()
+				}
 				m_last_player_status = status;
 				
 				if (status.duration){
@@ -498,28 +496,39 @@ function attachEvents(){
 		evt.preventDefault();
 	});
 
-	const playerCanvasResizeObserver = new ResizeObserver(entries => {
-		//keep video aspect ration when resizing
-		console.log(document.getElementById("canvasContainer").style.height);
-		let containerHeight = entries[0].target.offsetHeight;//bottom controls always stay
-		let containerWidth = entries[0].target.offsetWidth; //right side width always stays
-		
-		//check if height or width needs to be altered to match 16x9
-		if (containerHeight * 16 / 9 > containerWidth){
-			console.log("reducing canvas height to match width",containerWidth,containerWidth * 9 / 16)
-			document.getElementById("playerCanvas").style.width 	= containerWidth;
-			document.getElementById("playerCanvas").style.height 	= containerWidth * 9 / 16 ;
-		}else{
-			console.log("reducing canvas width to match height",containerHeight * 16 / 9,containerHeight)
-			document.getElementById("playerCanvas").style.width 	= containerHeight * 16 / 9;
-			document.getElementById("playerCanvas").style.height 	= containerHeight ;
-		}
-	});
+	const playerCanvasResizeObserver = new ResizeObserver(entries => videoCanvasResize());
 
 	const md = document.getElementById("canvasContainer");
 	playerCanvasResizeObserver.observe(md);
 
 }
+
+function videoCanvasResize()
+{
+
+		var ar = 16/9 //aspect ratio default
+		try{
+			console.log("m_last_player_status",m_last_player_status["video-out-params"])
+			if (m_last_player_status["video-out-params"].aspect)
+				ar = m_last_player_status["video-out-params"].aspect
+		}catch(ex){}
+
+		let containerHeight = document.getElementById("canvasContainer").offsetHeight;//bottom controls always stay
+		let containerWidth = document.getElementById("canvasContainer").offsetWidth; //right side width always stays
+		
+		//check if height or width needs to be altered to match ar.numxar.den
+		if (containerHeight * ar < containerWidth){
+			//use full heigth but reduce width to ar
+			console.log("reducing canvas height to match container width",containerHeight,containerWidth)
+			document.getElementById("playerCanvas").style.width 	= containerHeight * ar;
+			document.getElementById("playerCanvas").style.height 	= containerHeight ;
+		}else{
+			console.log("reducing canvas width to match height",containerHeight,containerWidth)
+			//use full width we but reduce height
+			document.getElementById("playerCanvas").style.width 	= containerWidth;
+			document.getElementById("playerCanvas").style.height 	= containerWidth /ar;
+		}
+	}
 
 function playerChangeAtrackCommand(newTracknum){
 	socket.emit("player", JSON.stringify({
