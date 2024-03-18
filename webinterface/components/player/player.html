@@ -231,15 +231,21 @@ function load(){
 					document.getElementById("info-res").innerHTML = _resolution || "";
 
 					var num_audio_tracks = countTracks(data,"audio");
-					document.getElementById("info-atracks").innerHTML = "Audios: " + num_audio_tracks || "";
+					var atracks = data.streams.filter(s => s.codec_type=="audio")
+					var achannels = atracks.map(t=>t.channels);
+					function add(a, b) {
+						return a + b;
+					}
+					achannels = achannels.reduce(add, 0);
+					document.getElementById("info-atracks").innerHTML = "Audio Tracks: " + num_audio_tracks || "";
 
 					//construct select options for changing atrack
 					var selectEle = document.getElementById("changeAudioTrack");
 					if (selectEle.innerHTML == ""){
-						for (var trackNum = 0;trackNum<num_audio_tracks;trackNum++){
+						for (var chNum = 0;chNum<achannels;chNum++){
 							var myOption = document.createElement("option");
-							myOption.text = trackNum + 1;
-							myOption.value = trackNum;
+							myOption.text = chNum + 1;
+							myOption.value = chNum;
 							selectEle.add(myOption);
 						}
 					}	
@@ -530,10 +536,10 @@ function videoCanvasResize()
 		}
 	}
 
-function playerChangeAtrackCommand(newTracknum){
+function playerChangeAtrackCommand(trackArray){
 	socket.emit("player", JSON.stringify({
-                "command": "aid",
-				"val" : newTracknum //mpv track starts at 1
+                "command": "setAudioTrackArray",
+				"val" : trackArray //mpv track starts at 1
 			}));
 }
 
@@ -693,14 +699,13 @@ function SMPTEToString(timecode) {
 }
 
 function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
+  return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
 function changeAudioTrack(option){
-	var aid = parseInt(option.value) + 1
-	console.log("switch atrack to "+ aid)
-	
-	playerChangeAtrackCommand(aid);
+	var values = $('#changeAudioTrack').val()
+	console.log("selected achannels",values)
+	playerChangeAtrackCommand(values)
 	
 }
 
@@ -778,8 +783,10 @@ function changeAudioTrack(option){
 								<td align="left" valign="middle" id="info-atracks"></td>
 							</tr>
 							<tr class=" odd_dhx_skyblue">
+								
 								<td align="left" valign="middle">
-									Select Track: <select style="max-width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
+									<label for="changeAudioTrack" style="display:block">Channel Selection</label><br/>
+									<select multiple style="width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
 								</td>
 							</tr>
 						</tbody>

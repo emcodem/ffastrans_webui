@@ -165,7 +165,7 @@ class Player
 			playerInstance.mpv.pause()
 			playerInstance.mpv.command("frame-step")
 		}
-		if (data.command == "aid"){
+		if (data.command == "setAudioTrackArray"){
 			//apply-profile to non transcode output, and back again
 			
 			// playerInstance.mpv.setProperty ("watch-later-dir", "c:\\temp\\watch")
@@ -174,6 +174,7 @@ class Player
 			// playerInstance.mpv.command ("write-watch-later-config")
 			//playerInstance.mpv.command ("quit-watch-later");
 			
+			var selected_channels = data.val
 			await playerInstance.mpv.kill()
 			//playerInstance.mpv.command ("quit")
 
@@ -182,7 +183,7 @@ class Player
 				playerInstance.port,
 				false,
 				playerInstance.lastPlayerProps["time-pos"],
-				data.val
+				selected_channels
 			)
 			
 
@@ -203,36 +204,91 @@ class Player
 
 	}
 
-	getAudioVuFilterString(aid_pad_prefix = "aid",audio_track = 1){
+	getAudioVuFilterString(aid_pad_prefix = "aid",audio_channels = [1]){
+		//creates video pad [withaudiobars] which needs to be mapped by the caller to "vo" for mpv
+		//if there is audio, lines up all channels of all tracks, creates audio visual and VU meters as well as a track with selected audio channels, creating an [ao] pad for mpv
+
+		console.log("Selected Audio Channels",audio_channels)
 		var audio_filters = "";
 		let playerInstance = this;
+		var vheight = 1080; //todo: make flexible
+
 		try{
 			//add audio VU meters on the right
 			var atracks = playerInstance.config.ffprobe.streams.filter(s => s.codec_type=="audio")
-			var audio_bars = []
-			for (let aid=1;aid<atracks.length+1;aid++){
-				var bar_width = atracks[aid-1].channels * 40
-				var vwidth = 1920;
-				var vheight = 1080;
-				var current_bar_filter = ""
-				//for the selected track, we need to create the ao pad for mpv to play
-				if (aid.toString().indexOf(audio_track) != -1)
-					current_bar_filter = '['+aid_pad_prefix+aid+']asplit[a'+aid+'][ao],'
-				else
-					current_bar_filter = '['+aid_pad_prefix+aid+']acopy[a'+aid+'],'
+			var achannels = atracks.map(t=>t.channels);
+			var vtracks = playerInstance.config.ffprobe.streams.filter(s => s.height)
 
-				current_bar_filter += '[a'+aid+']showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[va],[va]pad=iw+6:ih:-1:-1:[va],[withaudiobars][va]hstack[withaudiobars]'
-
-				audio_bars.push(current_bar_filter)
+			if (atracks.length == 0){
+				//VID ONLY
+				return "[vid_right_border]copy[withaudiobars]" //just create withaudiobars label
 			}
-			audio_filters = audio_bars.join(",")
-			return audio_filters
+
+			//merge all channels from all track into one
+			let f_allChannelsInOneTrack = ""
+			var a_filters = [];
+			
+			//merge all channels of all tracks: [aid1][aid2][aid3]amerge=inputs=3[all]
+			if (atracks.length != 0){
+				for (let aid=1;aid<atracks.length+1;aid++){
+					f_allChannelsInOneTrack += '['+aid_pad_prefix+aid+']'
+				}
+				f_allChannelsInOneTrack += "amerge=inputs=" + atracks.length + "[all]"
+				a_filters.push(f_allChannelsInOneTrack)
+				//we got all channels of all tracks now in [all]
+
+				//push selected audio channels to pan filter, creating the final output for mpv [pc_audio]
+				let f_selected_channels = '[all]asplit[all_copy][all],[all_copy]pan=stereo'
+				if (audio_channels.length != 0){
+					var left = 	[]//"|c0="
+					var right = []//"|c1="
+					for (let c =0; c<audio_channels.length;c+=1){ //odd channels go left, even go right ear
+						if (audio_channels[c] %2 != 0){
+							right.push	("c"+ (audio_channels[c])) //mpv channel numbers start at 1, ffmpeg at 0
+						}else{
+							left.push	("c"+ (audio_channels[c])) //mpv channel numbers start at 1, ffmpeg at 0
+						}
+					}
+					
+					//as we only output stereo, we sum up left and right channels for final display
+					if (left.length != 0){
+						f_selected_channels += "|c0="+left.join("+")
+					}
+					if (right.length != 0){
+						f_selected_channels += "|c1="+right.join("+")
+					}
+					
+				}else{
+					//fallback, no selected audio channels then just play c1
+					console.error("ERROR, NO AUDIO CHANNELS SELECTED; CHECK YOUR CODE")
+					f_selected_channels += "|c0=c0"
+				}
+				f_selected_channels += "[pc_audio]" //output pad of selected channels
+				a_filters.push(f_selected_channels)
+			}
+			
+			//NO VIDEO create audio visualisation
+			if (vtracks.length == 0){
+				a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
+				var visual = "[vectorscopeaudio]avectorscope=draw=line:s=1920x1080[vid_right_border]"
+				a_filters.push(visual)
+			}
+
+			//AUDIO ONLY AND VIDEO WITH AUDIO, create bars on the right in_audio_pad [all] out_video_pad [withaudiobars]
+			if (atracks.length != 0){
+				var f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[withaudiobars]'
+				a_filters.push(f_show_volume)
+				a_filters.push("[pc_audio]acopy[ao]") //final audio output for mpv
+			}
+
+			return a_filters.join(",")
+
 		}catch(ex){
 			
 		}
 	}
 
-	async startmpv(config,port,extraopts = [],seekToSec = false,audio_track = 1){
+	async startmpv(config,port,extraopts = [],seekToSec = false,selected_audio_channels = [0,1]){
 		let playerInstance = this;
 		let mpvopts = [
 			"--log-file=mpvoutput.log",
@@ -248,9 +304,8 @@ class Player
 					"--profile=ffasVidProfile", 
 				)
 
-				var final_filter = "[vid1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[withaudiobars]"
-
-				var audio_filters = playerInstance.getAudioVuFilterString("aid",audio_track)
+				var final_filter = "[vid1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[vid_right_border]"
+				var audio_filters = playerInstance.getAudioVuFilterString("aid",selected_audio_channels)
 				if (audio_filters)
 					final_filter += "," + audio_filters
 
@@ -263,15 +318,7 @@ class Player
 				mpvopts.push(
 					"--profile=ffasVidProfile", 
 				)
-				//attach Audio VU Bars on right side of video
-				
-				var final_filter = "[aid1]asplit[copy0][copy1],[copy0]avectorscope=draw=line:s=1920x1080[withaudiobars]"
-				var audio_filters = playerInstance.getAudioVuFilterString("copy",audio_track)
-				 if (audio_filters)
-				 	final_filter += "," + audio_filters
-
-				
-
+				var final_filter = playerInstance.getAudioVuFilterString("aid",selected_audio_channels)
 				final_filter += ",[withaudiobars]copy[vo]" //mpv looks for vo pad	
 				mpvopts.push("--lavfi-complex=" + final_filter)
 
