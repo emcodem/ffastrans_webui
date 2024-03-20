@@ -8,6 +8,7 @@
 			<script src="/socket.io/socket.io.js"> </script>
 			<script src="jsmpeg-master/jsmpeg.min.js"> </script>
 			<script src="jsmpeg-master/pcmplayer.js"> </script>
+			<script src="jquery/dragcheck.js"> </script>
 
 			<link rel="stylesheet" type="text/css" href="../../dependencies/fontawesome/css/all.css"></link>
 			<link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
@@ -41,6 +42,7 @@
 				font-family: "Tahoma";
 				font-size: 11px;
 				--preview-display : "none";
+				user-select:none;
 			}
 			input{
 				font-size: 11px;
@@ -125,6 +127,36 @@
 				max-width:20px
 			}
 
+			/* Audio Checkbox*/
+						
+			.audio_check_td { 
+				border:0 !important;
+				padding:0 !important;
+				height:14px !important;
+			}
+
+			.audio_check_label{
+				outline:1px #6e6e6e solid !important;
+				display: inline-block;
+				width: 18px;
+				height: 12px;
+				font-size:12px;
+				text-align: center;
+				line-height: 1;
+			}
+
+			
+			.audio_check_td input[type=checkbox]{
+				display:none;
+				margin:0 !important;
+			}
+
+			.audio_check_td input[type=checkbox]:checked + .audio_check_label{
+				outline:1px #22B81C solid;
+				background-color: rgba(51, 159, 51, 0.557);
+				color:black;
+			}
+
 			</style>
 			
 			<script>
@@ -172,18 +204,7 @@ function load(){
 			// Listen for visibility change events
 			// 	document.addEventListener("visibilitychange", handleVisibilityChange);
 
-			// 	function handleVisibilityChange() {
-			// 	if (document.hidden) {
-			// 		// The tab is now hidden
-			// 		// Send a message to the background script to keep running the JavaScript code
-			// 		postMessage("continue-processing");
-			// 	} else {
-			// 		// The tab is now visible
-			// 		// Send a message to the background script to stop running the JavaScript code
-			// 		postMessage("stop-processing");
-			// 	}
-			// }
-			//now initialize the player stuff
+			//initialize the player stuff
 			var buf = [];
 		    var player = new JSMpeg.Player(null,//null
 				{
@@ -209,46 +230,39 @@ function load(){
                 "file":m_query_params.get("file")
 			})); 
 			
-			socket.on('ffprobe', function (data) {
+			socket.on('ffprobe', function (ffprobe) {
 					// player analyzes the file before starting vlc/ffmpeg
 					// we use this initial analysis data for display file props on UI
-					console.log("ffprobe",data);
-					var firstVstream = getFirstTrack(data,"video");
-					var _resolution = "0x0";
+					console.log("ffprobe",ffprobe);
+					var firstVstream = getFirstTrack(ffprobe,"video");
+					var firstAstream = getFirstTrack(ffprobe,"audio");
+					var _resolution = "";
 					g_framerate = 25;
 					var _interlacing = "";
 
 					if(firstVstream){
 						g_framerate = eval(firstVstream["r_frame_rate"]);
 						_resolution = firstVstream["width"] + "x" + firstVstream["height"] ;
+						document.getElementById("info-res").innerHTML = "Resolution: " + _resolution;
 						if (firstVstream["field_order"]){
-							_interlacing = firstVstream["field_order"];
+							_interlacing = firstVstream["field_order"]
+							if (_interlacing == "progressive")
+								_interlacing = "p"
+						}else{
+							_interlacing = "p";
 						}
+						document.getElementById("info-fps").innerHTML = "Framerate: " + g_framerate.toFixed(2) +  _interlacing;
+						
+					}else{
+						
+						document.getElementById("info-fps").innerHTML = "Sample Rate [0]: " + firstAstream.sample_rate || "";
+						document.getElementById("info-res").innerHTML = "Codec [0]: " + firstAstream.codec_name || "";
 					}
 
-					document.getElementById("info-interlacing").innerHTML = "Interlaced: " + _interlacing || "";
-					document.getElementById("info-fps").innerHTML = "FPS: " + parseFloat(g_framerate.toFixed(2)) || "";
-					document.getElementById("info-res").innerHTML = _resolution || "";
+					document.getElementById("info-atracks").innerHTML = "Audio Tracks: "+ ffprobe.streams.filter(stream => stream.codec_type=="audio").length;
 
-					var num_audio_tracks = countTracks(data,"audio");
-					var atracks = data.streams.filter(s => s.codec_type=="audio")
-					var achannels = atracks.map(t=>t.channels);
-					function add(a, b) {
-						return a + b;
-					}
-					achannels = achannels.reduce(add, 0);
-					document.getElementById("info-atracks").innerHTML = "Audio Tracks: " + num_audio_tracks || "";
+					buildAudioTable(ffprobe)
 
-					//construct select options for changing atrack
-					var selectEle = document.getElementById("changeAudioTrack");
-					if (selectEle.innerHTML == ""){
-						for (var chNum = 0;chNum<achannels;chNum++){
-							var myOption = document.createElement("option");
-							myOption.text = chNum + 1;
-							myOption.value = chNum;
-							selectEle.add(myOption);
-						}
-					}	
 			});
 
 			let inCounter = 0;
@@ -279,128 +293,6 @@ function load(){
 				//Write transport stream packet to players decoder
 				player.source.write(data,function(){});
 			});
-
-			
-			socket.on('audiodata', function (data) {
-
-				//this works but with clicks, thats the reason why we actually split the audio on server side and play below with mediasource and co.
-				//player.source.write(data,function(){});
-				//pcmplayer.feed(new Float32Array(data));
-				
-			})
-
-			// //mediasource experimente
-			// const mediaSource = new MediaSource()
-			// document.getElementById("audioplayer").src = window.URL.createObjectURL(mediaSource);
-			// mediaSource.addEventListener('sourceopen', onMediaSourceOpen);
-			// var sourceBuffer ;
-			// function onMediaSourceOpen() {
-			// 	console.log("SOURCE OPEN")
-			// 	sourceBuffer = mediaSource.addSourceBuffer('audio/webm;codecs="opus"');
-			// 	//sourceBuffer.addEventListener('updateend', nextSegment);
-				
-			// }
-
-			// socket.on('audiodata', function (data) {
-			// 	sourceBuffer.appendBuffer(data) // Repeat this for each chunk as ArrayBuffer
-			// 	document.getElementById("audioplayer").play();
-			// })
-
-
-
-
-
-// 			//FLOAT PCM experimente, incomment return in audiodata evt
-// 			const sampleRate = 48000;
-// 			const audioContext = new AudioContext({sampleRate});
-// 			var last_buffersource = false;
-// 			socket.on('audiodata', function (data) {
-// 				return
-// 				console.log(data)
-// 				// push binary ts stream to player
-// 				//buffer to float32 array
-// 				var data = new Float32Array(data)
-				
-// 				var left = new Float32Array(data.length/2)
-// 				var right = new Float32Array(data.length/2)
-// 				var counter = 0;
-// 				for (var c=0;c<data.length;c+=2){
-// 					left[counter] = data[c]
-// 					right[counter] = data[c+1]
-// 					counter++
-// 				}
-				
-// 				const channels = 2;
-				
-// 				//myScriptProcessor = audioCtx.createScriptProcessor(16384, channels, channels);
-				
-// 				// create audio buffer of the same length as our array
-
-
-// // to play 1 second we need array of 44100 numbers
-
-// 				// // create a typed array of size 44100 float numbers
-// 				// const sineWaveArray = new Float32Array(sampleRate);
-// 				// const hz = 440;
-// 				// // fill all 44100 elements of array with Math.sin() values
-// 				// for (i = 0; i < sineWaveArray.length; i++) {
-// 				// 	sineWaveArray[i] = Math.sin(i * Math.PI * 2 / hz);
-// 				// }
-							
-// 				const audioBuffer = audioContext.createBuffer(channels, left.length, sampleRate);
-// 				// this copies our sine wave to the audio buffer
-// 				audioBuffer.copyToChannel(left, 0);
-// 				audioBuffer.copyToChannel(left, 1);
-// 				// some JavaScript magic to actually play the sound
-// 				if (last_buffersource){
-// 					console.log("stopping last")
-// 					//last_buffersource.stop()
-// 				}
-// 				last_buffersource = audioContext.createBufferSource();
-// 				last_buffersource.connect(audioContext.destination);
-// 				last_buffersource.buffer = audioBuffer;
-// 				last_buffersource.start();
-// 			});
-
-
-			// for (i=0;i<1;i++){
-			// 	const sineWaveArray = new Float32Array(sampleRate);
-			// 	const hz = 440;
-			// 	// fill all 44100 elements of array with Math.sin() values
-			// 	for (i = 0; i < sineWaveArray.length; i++) {
-			// 	sineWaveArray[i] = Math.sin(i * Math.PI * 2 / hz);
-			// 	}
-
-			// 	const audioBuffer = audioContext.createBuffer(2, sineWaveArray.length, sampleRate);
-			// 	// this copies our sine wave to the audio buffer
-			// 	audioBuffer.copyToChannel(sineWaveArray, 0);
-			// 	audioBuffer.copyToChannel(sineWaveArray, 1);
-			// 	// some JavaScript magic to actually play the sound
-			// 	if (last_buffersource){
-			// 		console.log("stopping last")
-			// 		//last_buffersource.stop()
-			// 	}
-			// 	last_buffersource = audioContext.createBufferSource();
-			// 	last_buffersource.connect(audioContext.destination);
-			// 	last_buffersource.buffer = audioBuffer;
-			// 	last_buffersource.start();
-			// }
-
-
-			// We have to start with creating AudioContext
-			// var buffering = true
-			// window.setInterval(function(){
-			// 	if (buffering && samplebuffer.length <4)
-			// 		return
-			// 	buffering = false
-			// 	console.log(samplebuffer.length)
-			// 	if (samplebuffer.length > 0){
-			// 		const firstElement = samplebuffer.shift();
-			// 		console.time('adecode');
-			// 		player.source.write(firstElement,function(){});
-			// 		console.timeEnd('adecode');
-			// 	}
-			// },171,666666666666)
 
 			socket.on('playererror', function (data) {
 
@@ -471,6 +363,44 @@ function load(){
 			
 			//EVENTS
 			attachEvents()
+}
+
+
+function buildAudioTable(ffprobe){
+	//build audio checkboxes table
+	var atracks = ffprobe.streams.filter(s => s.codec_type=="audio")
+	console.log(atracks)
+	var allChCount = atracks.map(t=>t.channels);
+	function add(a, b) {
+		return a + b;
+	}
+
+	var tableContainer = document.getElementById('audio_selection_container');
+	tableContainer.innerHTML += "Channel Selection:"
+	var table = document.createElement('table');
+	table.id = "audio_check_table";
+	table.style = 'style="display:inline-block"';
+	var cCount = 0;
+
+	for (let t=0;t<atracks.length;t++){
+		var row = document.createElement('tr');
+		for (let c=0;c<atracks[t].channels;c++){
+			let td = document.createElement('td');
+			let checked = cCount < 2 ? "checked" : "";
+			let tdhtml 	 = '<input type="checkbox" value='+cCount+' id="'+cCount+'" '+checked+'/><label class="audio_check_label" for="'+cCount+'">'+(cCount+1)+'</label>';
+			td.innerHTML = tdhtml;
+			td.classList.add('audio_check_td');
+			row.appendChild(td);
+			cCount++;
+		}
+		table.appendChild(row);
+	}
+	
+    tableContainer.appendChild(table);            
+
+	tableContainer.innerHTML += '<div style="width:100%"><input value="Apply" id="applyAudioChannels" type="submit" style="margin:5; display: block;margin:0 auto;font-size:10px"  onclick="changeAudioTrack()"></div></div>';
+	$("#audio_check_table").dragCheck('.audio_check_td');
+
 }
 
 function countTracks(ffprobe,type="audio"){
@@ -702,12 +632,24 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
-function changeAudioTrack(option){
-	var values = $('#changeAudioTrack').val()
-	console.log("selected achannels",values)
-	playerChangeAtrackCommand(values)
+function changeAudioTrack(){
+	let checkboxes = $('#audio_check_table').find(':checkbox');
+	let selected_ch = checkboxes.filter(':checked');
+	console.log("checkboxes",selected_ch);
+	//selected_ch = selected_ch.map(box => function(box){return box.attr('id')+""}).get()
+	var ids = []
+	for(let i=0;i<selected_ch.length;i++){
+		ids.push(parseInt($(selected_ch[i]).attr("id")));
+	}
+
+	console.log("checkboxes",ids);
+	var values = $('#changeAudioTrack').val();
+	console.log("selected achannels",values);
+	playerChangeAtrackCommand(ids);
+	document.getElementById("applyAudioChannels").blur();
 	
 }
+
 
 
 </script>
@@ -739,7 +681,7 @@ function changeAudioTrack(option){
 								
 								
 								<div class="slidecontainer">
-									<input type="range" id="slider" style="width:100%" min="0" max="100" value="0" class="slider" onchange="">
+									<input type="range" id="slider" onfocus="this.blur()" style="width:100%" min="0" max="100" value="0" class="slider" onchange="">
 								</div>
 							</div>
 							<div id="controlButtons" class="vertical-center noSelect">
@@ -777,17 +719,14 @@ function changeAudioTrack(option){
 								<td align="left" valign="middle" id="info-fps"></td>
 							</tr>
 							<tr class=" odd_dhx_skyblue">
-								<td align="left" valign="middle" id="info-interlacing"></td>
-							</tr>
-							<tr class=" ev_dhx_skyblue">
 								<td align="left" valign="middle" id="info-atracks"></td>
 							</tr>
-							<tr class=" odd_dhx_skyblue">
+							<tr class=" ev_dhx_skyblue">
 								
-								<td align="left" valign="middle">
-									<label for="changeAudioTrack" style="display:block">Channel Selection</label><br/>
-									<select multiple style="width:60px" id="changeAudioTrack" onchange="changeAudioTrack(this)" name="changeAudioTrack"></select>	  
+								<td align="left" valign="middle" id="audio_selection_container">
+									<!-- AUDIO CHANNELS GO HERE -->
 								</td>
+								
 							</tr>
 						</tbody>
 					</table>
