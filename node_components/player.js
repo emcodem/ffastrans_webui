@@ -61,24 +61,15 @@ class Player
 			// },44)
 
 			//pipe player data to websocket
-			udpServer.on("message", function (msg, rinfo) {
-			  //console.log("udpServer got: " + msg + " from " + rinfo.address + ":" + rinfo.port);
-			  playerInstance.websocket.emit("videodata",msg)
-			  //udpbuffer = Buffer.concat([udpbuffer,msg]);
-			})
 
-			udpServer.on('close', (err) => {
-			  console.log("udpServer closed");
-			  
-			})
 			
 			playerInstance.websocket.on('disconnect', function(){
 				//user closed player, important to clean up resources
 				clearInterval(playerInstance.senderInterval)
 				//playerInstance.mpv.quit();
 				playerInstance.mpv.kill();
-				udpServer.close();
-				console.log("PLAYER DISCONNECT");
+				
+				console.log("Player disconnected, kill executed");
 			})
 
 			playerInstance.websocket.on('player', async function(data){
@@ -278,7 +269,7 @@ class Player
 			if (atracks.length != 0){
 				var f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[withaudiobars]'
 				a_filters.push(f_show_volume)
-				a_filters.push("[pc_audio]acopy[ao]") //final audio output for mpv
+				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]") //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
 			}
 
 			return a_filters.join(",")
@@ -344,8 +335,10 @@ class Player
 			mpv.observeProperty("demux-fps")
 			mpv.observeProperty("play-direction")
 			mpv.observeProperty("video-out-params")
+			mpv.observeProperty("demuxer-lavf-list")
 
 			mpv.on('mpvProcessStarted', function() {
+				
 				mpv.mpvPlayer.stdout.on('data', async function(data) {
 					//Here is where the output goes
 					playerInstance.websocket.emit("videodata",data)

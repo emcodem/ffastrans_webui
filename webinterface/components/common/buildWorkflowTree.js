@@ -74,6 +74,8 @@ function _defaultClick (data){
             }else{  //a workflow in a new folder 
                 treeObj[folder] = {};
                 treeObj[folder].title = folder;
+                if (!folder)
+                    var stop = 1
                 treeObj[folder].folder = true;
                 treeObj[folder].unselectable = true;
                 treeObj[folder].children = [{title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}}];//
@@ -89,9 +91,13 @@ function _defaultClick (data){
     
     $("#"+config["dom_id"]).fancytree(finalTreeObj); //finally render tree on page
     var cmp= function(a, b) {//sort by folder name but folders first
+        try{
         var x = (a.folder ? "0" : "1") + a.title.toLowerCase(),                    
             y = (b.folder ? "0" : "1") + b.title.toLowerCase();                 
             return x === y ? 0 : x > y ? 1 : -1;
+        }catch(ex){
+            return 1;
+        }
     };
     var node = $("#"+config["dom_id"]).fancytree("getRootNode");
     node.sortChildren(cmp,true);
