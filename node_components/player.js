@@ -295,7 +295,7 @@ class Player
 					"--profile=ffasVidProfile", 
 				)
 
-				var final_filter = "[vid1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[vid_right_border]"
+				var final_filter = "[vid1]sidedata=delete,metadata=delete,scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=2D3039[vid_right_border]"
 				var audio_filters = playerInstance.getAudioVuFilterString("aid",selected_audio_channels)
 				if (audio_filters)
 					final_filter += "," + audio_filters

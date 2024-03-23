@@ -7,7 +7,6 @@
 			<script src="../../dependencies/jquery/jquery_timecode_mask.js"></script>
 			<script src="/socket.io/socket.io.js"> </script>
 			<script src="jsmpeg-master/jsmpeg.min.js"> </script>
-			<script src="jsmpeg-master/pcmplayer.js"> </script>
 			<script src="jquery/dragcheck.js"> </script>
 
 			<link rel="stylesheet" type="text/css" href="../../dependencies/fontawesome/css/all.css"></link>
@@ -200,10 +199,9 @@ var concatTypedArrays = function(buffer1, buffer2) {
 
 
 function load(){
-				document.getElementById("iconPlay").focus();
-			// Listen for visibility change events
-			// 	document.addEventListener("visibilitychange", handleVisibilityChange);
 
+			document.getElementById("iconPlay").focus();
+			
 			//initialize the player stuff
 			var buf = [];
 		    var player = new JSMpeg.Player(null,//null
@@ -222,16 +220,13 @@ function load(){
 						//console.log("Videodecode",what,time)
 					}
 				});
-			// var player = new JSMpeg.Player('pipe',{
-			// 	canvas:document.getElementById('playerCanvas')
-			// });
 			
 			socket.emit("player", JSON.stringify({
                 "file":m_query_params.get("file")
 			})); 
 			
 			socket.on('ffprobe', function (ffprobe) {
-					// player analyzes the file before starting vlc/ffmpeg
+					// player analyzes the file before starting the process
 					// we use this initial analysis data for display file props on UI
 					console.log("ffprobe",ffprobe);
 					var firstVstream = getFirstTrack(ffprobe,"video");
@@ -660,7 +655,7 @@ function changeAudioTrack(){
 				<div style="float:left" id="video_and_controls" class="flexGrow">
 						
 						<div id="canvasContainer" class="canvasContainer">
-							<canvas id="playerCanvas"  class="playerCanvas"></canvas>
+							<canvas id="playerCanvas"  class="playerCanvas" onclick="" ></canvas>
 						</div>
 						<div id="playerControls" class="playerControls">
 							<div id="seekContainer" style="margin-top:5px">
@@ -697,6 +692,8 @@ function changeAudioTrack(){
 									<div class="column"><span class="mdi mdi-step-forward" 	title="Frame forward"	onclick="frameStepForward()"></span></div>
 									<div class="column"><span class="mdi mdi-fast-forward" 	title="Fast forward"	onclick="faster()"></span></div>
 									<div class="column"><span class="mdi mdi-page-last" 	title="Last Frame" 		onclick="seekToLast()"></span></div>
+									
+									<div class="column"><span class="mdi mdi-fullscreen" 	style="" title="Fullscreen" onclick="document.getElementById('playerCanvas').webkitRequestFullScreen();"></span></div>
 								</div>
 							<!-- </div> -->
 

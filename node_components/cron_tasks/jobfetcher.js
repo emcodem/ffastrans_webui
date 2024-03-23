@@ -378,7 +378,8 @@ async function parseHistoryJobs(all_jobs){
 
 function getRunningJobs(){
 	//todo: refactor to use tickets
-	Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
+	
+	Request.get(helpers.build_new_api_url("/api/json/v2/jobs"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
 		if(error) {
 			try{
 				/* take care about alert email */
@@ -410,42 +411,38 @@ function getRunningJobs(){
 		
 		var jobArray;	
 		try{
-			jobArray = JSON.parse(body).jobs;
+			jobArray = JSON.parse(body).active;
+			if (jobArray.length != 0)
+				stop = 1;
+
 		}catch(exc){
 			var msg = "FFAStrans sent out invalid active jobs data. Please contact developers. ";
 			console.error(msg);
 			global.socketio.emit("alert", msg );
 		}
 		
+		var all_jobs = []
 		for (i=0;i<jobArray.length;i++){
-			jobArray[i]["guid"] = jobArray[i]["job_id"] + "~" + jobArray[i]["split_id"];
-			var idx = jobArray[i]["guid"].split("~");
-			//data for client display
-			jobArray[i]["key"] = jobArray[i]["guid"];//for fancytree internal purpose
-			//jobArray[i].guid = jobArray[i]["guid"]
-			jobArray[i]._id = jobArray[i].guid;
-			jobArray[i].state = "Active";
-			jobArray[i].title = jobArray[i].state; //for fancytree internal purpose
-			//jobArray[i].source = jobArray[i]["source"]
-			jobArray[i].outcome = jobArray[i]["status"]
+			
+			current_job = jobArray[i];
 			try{
-				jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
+				current_job.job_start = getDateStr(jobArray[i]["start_time"]);//start_time
 			}catch(exc){
 				console.log("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
 			}
-			jobArray[i].wf_name = jobArray[i]["workflow"];
-			
+			current_job.wf_name = jobArray[i]["workflow"];
+			all_jobs.push(current_job);
+
 		}//for all jobs
 
 	//notify clients about 
 	try{
-		
-		global.socketio.emit("activejobs", JSON.stringify(jobArray));
+		global.socketio.emit("activejobs", JSON.stringify(all_jobs));
 	}catch(exc){
 		console.error("Error occured while sending activejobs to clients: " + exc + body)
 	}
 	//it is important to store the fancytree enhanced version of jobarray here, the rest of the code uses lastactive to serve the list.
-	global.lastactive = JSON.stringify(jobArray);
+	global.lastactive = JSON.stringify(all_jobs);
 	});
 }
 
@@ -583,6 +580,10 @@ function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
 }
 
+function buildNewApiUrl(what){
+	var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+    return protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + what
+}
 
 /* STRUCTS */
 Object.defineProperty(String.prototype, 'hashCode', {

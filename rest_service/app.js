@@ -120,6 +120,26 @@ async function start_server(_host, _hostport, _listenport){
             next();
         }
     });
+    
+    //logs request respondtimes 
+    const getDurationInMilliseconds = (start) => {
+        const NS_PER_SEC = 1e9
+        const NS_TO_MS = 1e6
+        const diff = process.hrtime(start)
+        return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS
+    }
+
+    app.use((req, res, next) => {
+
+      const start = process.hrtime()
+      res.on('finish', () => {            
+          const durationInMilliseconds = getDurationInMilliseconds (start)
+          if (durationInMilliseconds > 200){
+            console.warn("Over 200ms response Time (" + durationInMilliseconds.toLocaleString() + " ms),",req.method , req.originalUrl);
+          }
+      })
+      next();
+    })
 
     //must use bodyparser in order to retrieve post messages as req.body
     app.use(bodyParser.json())
@@ -168,7 +188,8 @@ async function start_server(_host, _hostport, _listenport){
         review:             require(_approot + "/api/controllers/review").get,
         review_delete:      require(_approot + "/api/controllers/review").do_delete,
         jobs :              require(_approot + "/api/controllers/jobs").post,
-        jobs_v2:           require(_approot + "/api/controllers/jobs").get,
+        jobs_put :          require(_approot + "/api/controllers/jobs").put,
+        jobs_v2:            require(_approot + "/api/controllers/jobs").get,
         workflow_post :     require(_approot + "/api/controllers/workflows").post,
         workflows :         require(_approot + "/api/controllers/workflows").get,
         workflows_v2 :      require(_approot + "/api/controllers/workflows").get,

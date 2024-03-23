@@ -4,8 +4,8 @@ const Request = require("request");
 const date = require('date-and-time');
 const moment = require('moment');
 const path = require("path");
-var smptMail = require("../common/send_smpt_email");
-var helpers = require("../common/helpers")
+var smptMail = require("../node_components/common/send_smpt_email");
+var helpers = require("../node_components/common/helpers")
 // const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
 
 //NOTE the rest of the code uses global.lasthistory and global.lastactive to access the joblists.
@@ -193,7 +193,7 @@ function getQueuedJobs(){
 }
 
 function getHistoryJobs(){
-    Request.get(buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=100"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
+    Request.get(buildNewApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL + "/?start=0&count=100"), {timeout: global.config.STATIC_API_TIMEOUT},async function(error, response, body) {
 		if (!global.db.deleted_jobs){
 			console.log("global.db.deleted_jobs not defined, is Database started yet?")
 			return;
@@ -203,7 +203,7 @@ function getHistoryJobs(){
 				return;
 			}
 			if(error) {
-				console.log("Error retrieving finished jobs",buildApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL),error)
+				console.log("Error retrieving finished jobs",buildNewApiUrl(global.config.STATIC_GET_FINISHED_JOBS_URL),error)
 				global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + error   );
 				return;
 			}
@@ -346,7 +346,7 @@ function getHistoryJobs(){
 
 function getRunningJobs(){
 	
-	Request.get(buildApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
+	Request.get(buildNewApiUrl(global.config.STATIC_GET_RUNNING_JOBS_URL), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
 		if(error) {
 			try{
 				/* take care about alert email */
@@ -357,8 +357,8 @@ function getRunningJobs(){
 			}catch(ex){
 				console.error("Could not send email alert message: ", ex.stack)
 			}
-			global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
-			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+			global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildNewApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
+			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ' + buildNewApiUrl(global.config.STATIC_GET_QUEUED_JOBS_URL));
 			console.error(error);
 			return;
 		}
@@ -551,9 +551,9 @@ function buildApiUrl(what){
     return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
 }
 
-function buildNewApiUrl(){
+function buildNewApiUrl(what){
 	var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
-    return protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + "/tickets"
+    return protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + what
 }
 
 /* STRUCTS */

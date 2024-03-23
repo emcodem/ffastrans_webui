@@ -565,8 +565,7 @@
                 url: "/getactivejobsajax_treegrid",
                 type: 'GET', 
             });
-            console.log(activejobs,msg)
-            console.log("Active jobs:",msg)
+
             addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
             mainLayout.cells("b").progressOff();
         });
@@ -915,6 +914,7 @@
             },
             renderColumns: function(event, data) {
                 var node = data.node;
+                
                 node.addClass("act_row"); //for context menu
                 if (data.node.getIndex() % 2 == 0) {
                     node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
@@ -939,6 +939,7 @@
                 $tdList.eq(3).html("<div class='celltext_rtl'><bdi>" + filename_to_display + "</bdi></div>");
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.status + "</div>");
+                
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');
 
 				//hide td if needed
@@ -950,7 +951,7 @@
 				}
 
                 data.tree.getRootNode().sortChildren(function(a, b) {
-                    return (a.data.state.localeCompare(b.data.state))
+                    return (a.title.localeCompare(b.title))
                 }, true);
 
             },
@@ -1237,11 +1238,10 @@
                         console.log("concat parsed fname",parsedFileName)
                         
                     }
-                    //try to get filename
-                    if (parsedFileName.match(/[^\\]+$/).length == 1 && parsedFileName.match(/[^\\]+$/)[0] != "")
-                        
+                    //try to get filename only
+                    if (parsedFileName.match(/[^\\]+$/).length == 1 && parsedFileName.match(/[^\\]+$/)[0] != "")    
                         parsedFileName = parsedFileName.match(/[^\\]+$/)[0]; //remove everything before last backslash
-                    console.log("final fname",parsedFileName)
+                    
 
                 }catch(ex){}
 
@@ -1635,20 +1635,24 @@
     function jobCommand(fancy_node_array, action, value) {
         //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
         console.log("jobcommand", fancy_node_array,action,value)
+        console.log(m_serverconfig)
         fancy_node_array.forEach(function(node) {
-            if (node["data"]["state"] == "Queued" || node["data"]["state"] == "Incoming") {
-                dhtmlx.message("Sorry, "+node["data"]["state"]+" Jobs cannot be controlled yet");
-                return;
-            }
+            //emcodem: check ffastrans version
+            // if (node["data"]["state"] == "Queued" || node["data"]["state"] == "Incoming") {
+            //     dhtmlx.message("Sorry, "+node["data"]["state"]+" Jobs cannot be controlled yet");
+            //     return;
+            // }
+            console.log(node.data)
             var postBody = {
                 "action": action,
+                "job"   : node.data.job_id,
                 "split_id": node.data.split_id
             };
             if (value){
                 postBody["value"] = value;
             }
             $.ajax({
-                url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
+                url: build_new_api_url("/jobs"),//("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
                 type: "PUT",
                 context: this,
                 contentType: "application/json",
@@ -1657,6 +1661,7 @@
                     dhtmlx.message("Success " + action + " " + node.data.job_id);
                 },
                 error: function(xhr, status) {
+                    console.log(xhr)
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
@@ -1664,29 +1669,6 @@
 
     }
 
-    function abortJob() {
-        if (!runningJobGrid.getSelectedRowId()) {
-            dhtmlx.alert("Please select a Job to abort");
-            return;
-        }
-        var selectedRowIds = runningJobGrid.getSelectedRowId().split(',');
-        selectedRowIds.forEach(function(rId) {
-            var rowId = rId;
-            var jobObj = runningJobGrid.getUserData(rowId, "jobobject");
-            $.ajax({
-                url: ("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + jobObj.job_id,
-                type: "DELETE",
-                contentType: "application/json",
-                context: this,
-                success: function(response) {
-                    dhtmlx.message("Aborted " + jobObj.job_id);
-                },
-                error: function(xhr, status) {
-                    dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
-                }
-            });
-        }) //foreachjob
-    }
 
     function applyWorkflowFilter(o_job) {
         /* DEPRECATED */
@@ -1714,19 +1696,20 @@
         var tree = $("#treetable_active").fancytree("getTree");
         //add or update new jobs
         var activeJobIds = [];
-        for (y = 0; y < jobArray.length; y++) {
+        for (let y = 0; y < jobArray.length; y++) {
             if (!search_history_check_new_row(jobArray[y])){
                 continue;
             }
             if (applyWorkflowFilter(jobArray[y]) == false) {
-                console.log("workflow filtered")
+                console.log("error ff471, please contact developer"); //should not come here because jobs must be already filtered on backend
                 continue;
             }
-
-            var key = jobArray[y]["key"].toString();
-            activeJobIds.push(key);
             
-            var existing = tree.getNodeByKey(key);
+            jobArray[y].key = jobArray[y]["job_id"] + "~" + jobArray[y]["split_id"]; //key is hardcoded in treegrid, its the row id
+            activeJobIds.push(jobArray[y].key );
+            jobArray[y].title = qstate;//Active/Queued...
+            
+            var existing = tree.getNodeByKey(jobArray[y].key);
             
             if (existing) {
 				//console.log("Node exists, updating",jobArray[y])
@@ -1736,7 +1719,8 @@
                     needrender = true;
                 }
                 existing.data = jobArray[y];
-				existing.title = jobArray[y]["title"];
+				//existing.title = qstate;
+                
 				try{
 				//update all children
 					for (var ec=0;ec<existing["children"].length;ec++){
@@ -1762,7 +1746,7 @@
         var oldnodes = rootNode.children;
         if (oldnodes) {
             for (a = 0; a < oldnodes.length; a++) {
-                if (oldnodes[a]["data"]["state"] == qstate) {
+                if (oldnodes[a].title == qstate) {
                     if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
                         oldnodes[a].remove();
                     }
@@ -1883,21 +1867,6 @@
                 type: 'GET', 
             });
         addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
-
-        // $.ajax({
-        //     url: buildUrl(m_serverconfig['STATIC_GET_RUNNING_JOBS_URL']),
-        //     type: "GET",
-        //     crossDomain: true,
-        //     dataType: "json",
-        //     context: this,
-        //     success: function(response) {
-        //         addActiveJobsToGrid(targetGridObj, response.jobs);
-        //         mainLayout.cells("b").progressOff();
-        //     },
-        //     error: function(xhr, status) {
-        //         dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
-        //     }
-        // });
     }
 
     function getFinishedJobs(targetGridObj) {

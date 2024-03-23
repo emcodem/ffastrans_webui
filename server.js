@@ -267,6 +267,8 @@ async function init(conf){
 	
 	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))
 	if (fs.existsSync(path.join(global.approot,"alternate-server/jobfetcher.js"))){
+
+        
 		/* alternate server allows to disable inbuild jobfetcher - so webint can be used with another system than ffastrans*/
 		console.log("detected alternate jobfetcher module");
 		global.jobfetcher = require(path.join(global.approot,"alternate-server/jobfetcher.js"));
