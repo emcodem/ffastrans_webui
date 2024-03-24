@@ -228,6 +228,12 @@
     var m_rowColorCancelled = "#ffcc80"
 	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
     var m_query = {}; //url parameters
+
+    /* global function override */
+    dhtmlx.message= function(what){
+        dhx8.dhx.message({ expire: 3000, text: what});
+    }
+
     /*load config from server*/
     function loadserverconfig() {
 
@@ -543,9 +549,9 @@
                 var q_obj = (JSON.parse(msg));
                 for (i=0;i<q_obj.length;i++){
                     //convert file time to time of user perspective
-                    //console.log(new Date(q_obj[i]["job_start"]  ))//TODO: Date dont work in FF und IE
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" );//if do not do this, time will be off from timezone
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" ).toISOString().replace("T"," ").replace(/\..*/,""); 
+                    q_obj[i]["job_id"] = q_obj[i].fullpath;
                 }
                 addActiveJobsToGrid(runningJobGrid, q_obj, "Incoming");
             }
@@ -758,24 +764,23 @@
             dhtmlx.alert("Please select row");
             return;
         }
-
+        
+        if (selected[0].data["state"].match(/queued|incoming/i) && id == "a_details"){
+                    dhtmlx.message("Sorry, no details to show for queued jobs available");
+                    return;
+        }
+        
         if (id == "a_details") {
-			if (selected[0].data["state"] == "Queued"){
-				dhtmlx.message("Sorry, no details to show for queued jobs available");
-				return;
-			}
-            var jobid = (selected[0].data["job_id"]); 
+            var jobid = (selected[0].data["job_id"]);
             var url = "logviewer.html?job_id=" + jobid;
             var dhxwins = new dhtmlXWindows();
             //dhxwins.attachViewportTo(window.parent.document.body);
             var win = dhxwins.createWindow("Job Details", 10, 10, window.innerWidth-20,window.innerHeight-20);
             win.setText("Job Details");
             win.attachURL(url);
-            
-            //window.open(url, '_blank');
         }
         if (id == "a_abort") {
-            jobCommand(selected, "abort");
+            jobCommand(selected, "abort");//jobid for incoming jobs is the filename of mons/i file
         }
         if (id == "a_pause") {
             jobCommand(selected, "pause");
@@ -783,6 +788,8 @@
         if (id == "a_resume") {
             jobCommand(selected, "resume");
         }
+        
+        
  
     }
     
@@ -1641,15 +1648,22 @@
             // if (node["data"]["state"] == "Queued" || node["data"]["state"] == "Incoming") {
             //     dhtmlx.message("Sorry, "+node["data"]["state"]+" Jobs cannot be controlled yet");
             //     return;
-            // }
-            console.log(node.data)
+            // 
+
             var postBody = {
                 "action": action,
                 "job"   : node.data.job_id,
                 "split_id": node.data.split_id
             };
+            var jobid = "";
+            if (node.data["ticket_path"]){
+                //incoming
+                postBody["value"] = node.data["ticket_path"];
+            }
+
             if (value){
                 postBody["value"] = value;
+                
             }
             $.ajax({
                 url: build_new_api_url("/jobs"),//("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
@@ -1658,10 +1672,11 @@
                 contentType: "application/json",
                 data: JSON.stringify(postBody),
                 success: function(response) {
+                    console.log("success")
                     dhtmlx.message("Success " + action + " " + node.data.job_id);
                 },
                 error: function(xhr, status) {
-                    console.log(xhr)
+                    console.error(xhr)
                     dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
                 }
             });
@@ -2128,7 +2143,8 @@
                     </div>
                 <div style="float:left;margin-top:10px;margin-left:10px;display:flex;max-width:180px;white-space:nowrap;overflow:hidden">
                     <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input> 
-                    <i class="fas fa-search" style="float:left;margin-top:3px;margin-left:5px"></i></div>
+                
+                </div>
            </div> 
             <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
         </div>

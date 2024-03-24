@@ -12,23 +12,59 @@ module.exports = {
     put:put
 };
 
+var jobs_cache = {is_refreshing:false,born:0,data:false}
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }   
+
 async function get(req, res) {
     try{
         
         var start,end;
         try{
-            start   = parseInt(req.query.start)
-            end     = parseInt(req.query.count)
+            start   = Number(req.query.start)
+            end     = Number(req.query.count)
+            if (Number.isNaN(start) || Number.isNaN(end)){
+                throw new Error("assume defaults")
+            }
         }catch(ex){
             start   = 0
             end     = 100
         }
 
-        var a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-        var a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
-        var returnob = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+        //if start and end was set, we cannot use cache mode
+        if (start != 0 || end != 100){
+            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end);
+            let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end);
+            let returnobj = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+            res.json(returnobj)
+            res.end();
+            return;
+        }
 
-        res.json(returnob)
+        /* ensure we only read the jobs from filesystem once every x seconds */
+        while (jobs_cache.is_refreshing){
+            await sleep(1);
+        }
+
+        const currentTime = new Date();
+        let maxAge = new Date(currentTime.getTime() - 3 * 1000);
+        if (jobs_cache.born < maxAge || !jobs_cache.data){
+            jobs_cache.is_refreshing = true;
+            try{
+                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
+                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
+                jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+            }catch(ex){
+                console.error("Error refreshing jobs:",ex)
+            }finally{
+                jobs_cache.is_refreshing = false;
+            }
+        }
+
+        res.json(jobs_cache.data)
         res.end();
 
     }catch(ex){
@@ -57,7 +93,7 @@ async function put(req, res){
     var s_user         = req.body.user;
     var s_host         = req.body.host;
     var s_system       = req.body.system;
-    var s_extra        = req.body.extra ? req.body.extra : false;
+    var s_extra        = req.body.value ? req.body.value : false;
 
     //var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
     var splitpart = split_id ? "~" + split_id : "";
@@ -75,8 +111,21 @@ async function put(req, res){
                 },s_extra)
             }
         }
-        else if ($s_action = 'abort'){
-            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".abort~" + job + splitpart ),"");
+        else if (s_action = 'abort'){
+            let done = false;
+            if (typeof s_extra === 'string') {
+                if (s_extra.match(/mons/)){
+                    //abort incoming by move from mons/i one level up
+                    const destinationPath = path.join(path.dirname(s_extra), '..', path.basename(s_extra));
+                    await fsPromises.rename(s_extra,destinationPath);
+                    done = true;
+                }
+            }
+            //by default just write the status abort file
+            if (!done)
+                await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".abort~" + job + splitpart ),"");
+
+
         }
         else if (s_action == 'resume'){
             await fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".pause~" + job + splitpart ))

@@ -324,7 +324,7 @@ paths:
           description: Error
     
     put:
-      description: "extra is job prio for priority and milliseconds for pause if you want auto-resume or resume with delay. job is job_id for already running jobs or full path to incoming file"
+      description: "value is job prio for priority and milliseconds for pause if you want auto-resume or resume with delay. job is job_id for already running jobs or full path to incoming file"
       operationId: jobs_put
       requestBody:
         content:
@@ -336,7 +336,7 @@ paths:
                   type: integer
                 name:
                   type: string
-              example: {"action": "pause resume abort priority","job": "","split_id": "","extra":5}
+              example: {"action": "pause resume abort priority","job": "","split_id": "","value":5}
       responses:
         "200":
           description: Success

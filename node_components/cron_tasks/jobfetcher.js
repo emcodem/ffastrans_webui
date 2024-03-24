@@ -159,8 +159,8 @@ function getQueuedJobs(){
 			if (q_obj !== undefined) {
 				for (i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
-
-							q_obj[i]["split_id"] = ""
+							q_obj[i]["ticket_path"] = q_obj[i]["ticket_path"];
+							q_obj[i]["split_id"] = "";
 							q_obj[i]["state"] = "Incoming";
 							q_obj[i]["title"] = "Incoming";
 							q_obj[i]["steps"] = "";
@@ -209,7 +209,7 @@ async function loadHistoryJobs(URLS){
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
 			let response = await axios.get(_currentUrl)//await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
 			response = response.data;
-			all_jobs.push(...response.history); //old api, get rid of this
+			all_jobs.push(...response.history); 
 		}catch(ex){
 			console.error("loadHistoryJobs",ex)
 			failed_count++;
@@ -233,32 +233,14 @@ async function parseHistoryJobs(all_jobs){
 			return;
 		}
 		try{
-			// if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
-			// 	return;
-			// }
-			// if(error) {
-
-			// 	return;
-			// }
+			
 			var jobArray = all_jobs;
 			if (global.lasthistory == JSON.stringify(jobArray)){
 				//console.log("History Jobs did not change since last fetch...")			
 				return;
 			}
 			global.lasthistory = JSON.stringify(jobArray);
-			
-			
-			// try{
-			// 	jobArray = JSON.parse(body).history;
-			// }catch(exc){
-			// 	//the statement is not 100% correct because the issue could also be caused by the caching ffastrans does.
-			// 	var msg = "FFAStrans sent out invalid history data. Please locate Processors\\db\\cache\\monitor\\log.txt, send a Copy to the developers and then delete the file and restart FFAStrans service/application. ";
-			// 	console.error(msg);
-			// 	global.socketio.emit("alert", msg );
-			// 	return;
-			// }
-			//store history jobs in database
-			var newjobsfound = 0;
+
 			
 			//TRY GET CHILDS FOR TREEGRID        
 			//filter deleted
@@ -279,9 +261,6 @@ async function parseHistoryJobs(all_jobs){
 					jobArray[i] = objectWithoutKey("result",jobArray[i]);
 					jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
 					jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
-					//jobArray[i].o_job_start = getDateObj(jobArray[i]["start_time"]);
-					//jobArray[i].o_job_end = getDateObj(jobArray[i]["end_time"]);
-					
 					//todo: remove start_time and end_time, we store as job_start and job_end
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
@@ -377,7 +356,7 @@ async function parseHistoryJobs(all_jobs){
 }
 
 function getRunningJobs(){
-	//todo: refactor to use tickets
+	//todo: merge with history jobs to avoid calling jobs api multiple times?
 	
 	Request.get(helpers.build_new_api_url("/api/json/v2/jobs"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
 		if(error) {
@@ -412,11 +391,8 @@ function getRunningJobs(){
 		var jobArray;	
 		try{
 			jobArray = JSON.parse(body).active;
-			if (jobArray.length != 0)
-				stop = 1;
-
 		}catch(exc){
-			var msg = "FFAStrans sent out invalid active jobs data. Please contact developers. ";
+			var msg = "Got invalid active jobs data. Please contact developers. ";
 			console.error(msg);
 			global.socketio.emit("alert", msg );
 		}
@@ -428,20 +404,20 @@ function getRunningJobs(){
 			try{
 				current_job.job_start = getDateStr(jobArray[i]["start_time"]);//start_time
 			}catch(exc){
-				console.log("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
+				console.error("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
 			}
 			current_job.wf_name = jobArray[i]["workflow"];
 			all_jobs.push(current_job);
 
 		}//for all jobs
 
-	//notify clients about 
+	//notify clients about it
 	try{
 		global.socketio.emit("activejobs", JSON.stringify(all_jobs));
 	}catch(exc){
 		console.error("Error occured while sending activejobs to clients: " + exc + body)
 	}
-	//it is important to store the fancytree enhanced version of jobarray here, the rest of the code uses lastactive to serve the list.
+	
 	global.lastactive = JSON.stringify(all_jobs);
 	});
 }
@@ -502,16 +478,6 @@ function getOldestJobEnd(a_children){
 	return oldest_end;
 }
 
-// async function countJobsAsync(countobj) {
-//     let count = await new Promise((resolve, reject) => {
-//         global.db.jobs.count(countobj, (err, count) => {
-//             if (err) reject(err);
-//             resolve(count);
-//         });
-//     });
-//     return count ;
-// }
-
 function getDateObj(str){
     //ffastrans date:2019-10-14T21:22:35.046-01.00
 	return moment(str).toDate();
@@ -549,10 +515,6 @@ function getDurationStringFromDates(start_date,end_date){
         var minutes = Math.floor(delta / 60) % 60;
         delta -= minutes * 60;// what's left is seconds
         var seconds = delta % 60;  // in theory the modulus is not required
-        //if (!hours) {
-        //    console.log("----------------------  hours is null");
-        //    console.log(Math.floor(delta / 3600) % 24)
-        //}
 
         return pad(hours) + ":" + pad (minutes) + ":" + pad ((seconds+"").replace(/\.\d+/,"")); //TODO: seconds now contain ms... split this off
 }
@@ -575,16 +537,6 @@ function hashCode (string) {
   return hash;
 };
 
-function buildApiUrl(what){
-	//return "/proxy" + what;
-    return "http://" + global.config.STATIC_API_HOST + ":" +  global.config.STATIC_API_PORT + what;  
-}
-
-function buildNewApiUrl(what){
-	var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
-    return protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + what
-}
-
 /* STRUCTS */
 Object.defineProperty(String.prototype, 'hashCode', {
   value: function() {
@@ -598,7 +550,6 @@ Object.defineProperty(String.prototype, 'hashCode', {
   }
 });
 
-//var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
 async function renewInstallInfo(about_url){
     //refresh ffastrans install info infinitely
     while (true){

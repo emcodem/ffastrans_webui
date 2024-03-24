@@ -177,15 +177,15 @@ function hotKey(event){
 		m_closefunc();
 	} //space
     	
-   if (event.isComposing || event.keyCode === 32) //space
+   if (event.isComposing || event.keyCode === 32 || event.keyCode === 75) //space
     	playPause()
    if (event.isComposing || event.keyCode === 39) //right arrow
     	frameStepForward()
    if (event.isComposing || event.keyCode === 37) //right arrow
     	frameStepBack()
-   if (event.isComposing || event.keyCode === 38) //up arrow
+   if (event.isComposing || event.keyCode === 38 || event.keyCode === 76) //up arrow or l
     	faster()
-   if (event.isComposing || event.keyCode === 40) //down arrow
+   if (event.isComposing || event.keyCode === 40 || event.keyCode === 74) //down arrow or j
     	slower()
   	  // do something
 }
@@ -247,7 +247,17 @@ function load(){
 							_interlacing = "p";
 						}
 						document.getElementById("info-fps").innerHTML = "Framerate: " + g_framerate.toFixed(2) +  _interlacing;
+						//resize video canvas to expected aspect ratio
+						console.log("initial canvas resize",firstVstream.coded_width,firstVstream.coded_height)
 						
+						var atracks 	= ffprobe.streams.filter(s => s.codec_type=="audio")
+						var allChCount 	= atracks.map(t=>t.channels);
+						m_last_player_status = {"video-out-params":{}}
+						m_last_player_status["video-out-params"].aspect = firstVstream.coded_width/firstVstream.coded_height; //fake video-out-params for canvas resize
+						videoCanvasResize()
+						//videoCanvasResize(firstVstream.coded_width/firstVstream.coded_height);
+						
+
 					}else{
 						
 						document.getElementById("info-fps").innerHTML = "Sample Rate [0]: " + firstAstream.sample_rate || "";
@@ -257,7 +267,8 @@ function load(){
 					document.getElementById("info-atracks").innerHTML = "Audio Tracks: "+ ffprobe.streams.filter(stream => stream.codec_type=="audio").length;
 
 					buildAudioTable(ffprobe)
-
+					
+					showLoadingDiv.style.display="none";
 			});
 
 			let inCounter = 0;
@@ -301,8 +312,8 @@ function load(){
 				if (JSON.stringify(m_last_player_status["video-out-params"]) != JSON.stringify(status["video-out-params"])){
 					m_last_player_status = status;
 					//inform video canvas about new dimensions
-					console.log("status",m_last_player_status)
-					videoCanvasResize()
+					if (m_last_player_status["video-out-params"] && m_last_player_status["video-out-params"].asepect)
+						videoCanvasResize()
 				}
 				m_last_player_status = status;
 				
@@ -311,7 +322,7 @@ function load(){
 					document.getElementById("currentTime").value = _timecode
 					var _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
 					document.getElementById("totalTime").value = _duration
-					document.getElementById("slider").setAttribute("max", status.duration)
+					document.getElementById("slider").setAttribute("max", status.duration*100)
 				}
 				if (status.speed){
 					if (status["play-direction"] == "forward")
@@ -335,7 +346,7 @@ function load(){
 					//prevent slider update on hover
 					//update slider positon
 					 var percentage = status["time-pos"];
-					 document.getElementById("slider").value = percentage;
+					 document.getElementById("slider").value = percentage*100;
 				//}
 		
 				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.pause );
@@ -364,7 +375,6 @@ function load(){
 function buildAudioTable(ffprobe){
 	//build audio checkboxes table
 	var atracks = ffprobe.streams.filter(s => s.codec_type=="audio")
-	console.log(atracks)
 	var allChCount = atracks.map(t=>t.channels);
 	function add(a, b) {
 		return a + b;
@@ -392,9 +402,10 @@ function buildAudioTable(ffprobe){
 	}
 	
     tableContainer.appendChild(table);            
-
-	tableContainer.innerHTML += '<div style="width:100%"><input value="Apply" id="applyAudioChannels" type="submit" style="margin:5; display: block;margin:0 auto;font-size:10px"  onclick="changeAudioTrack()"></div></div>';
-	$("#audio_check_table").dragCheck('.audio_check_td');
+	if (atracks.length != 0){
+		tableContainer.innerHTML += '<div style="width:100%"><input value="Apply" id="applyAudioChannels" type="submit" style="margin:5; display: block;margin:0 auto;font-size:10px"  onclick="changeAudioTrack()"></div></div>';
+		$("#audio_check_table").dragCheck('.audio_check_td');
+	}
 
 }
 
@@ -421,8 +432,8 @@ function getFirstTrack(ffprobe,type="video"){
 function attachEvents(){
 			//slider
 	document.getElementById("slider").addEventListener ('input', function (evt) {
-		console.log("Slider change to ",document.getElementById("slider").value)
-		playerCommandSeek(document.getElementById("slider").value );
+		console.log("Slider change to ",document.getElementById("slider").value/100)
+		playerCommandSeek(document.getElementById("slider").value/100 );
 		evt.cancelBubble = true;
 		evt.preventDefault();
 	});
@@ -441,7 +452,7 @@ function videoCanvasResize()
 		try{
 			console.log("m_last_player_status",m_last_player_status["video-out-params"])
 			if (m_last_player_status["video-out-params"].aspect)
-				ar = m_last_player_status["video-out-params"].aspect
+				ar = m_last_player_status["video-out-params"].aspect;
 		}catch(ex){}
 
 		let containerHeight = document.getElementById("canvasContainer").offsetHeight;//bottom controls always stay
@@ -450,11 +461,11 @@ function videoCanvasResize()
 		//check if height or width needs to be altered to match ar.numxar.den
 		if (containerHeight * ar < containerWidth){
 			//use full heigth but reduce width to ar
-			console.log("reducing canvas height to match container width",containerHeight,containerWidth)
+			console.log("reducing canvas height to match container width",containerWidth,containerHeight,ar)
 			document.getElementById("playerCanvas").style.width 	= containerHeight * ar;
 			document.getElementById("playerCanvas").style.height 	= containerHeight ;
 		}else{
-			console.log("reducing canvas width to match height",containerHeight,containerWidth)
+			console.log("reducing canvas width to match height",containerWidth,containerHeight,ar)
 			//use full width we but reduce height
 			document.getElementById("playerCanvas").style.width 	= containerWidth;
 			document.getElementById("playerCanvas").style.height 	= containerWidth /ar;
@@ -477,7 +488,13 @@ function playerCommandSetRate(newRate){
 
 function slower(){
 	var currentRate = document.getElementById("rate_display").innerHTML;
-	currentRate = currentRate.replace("-","")
+	if (currentRate.indexOf("-") != -1){
+		currentRate = currentRate.replace("-","")
+	}else{
+		//player is in forward mode, reset it
+		currentRate = 1;
+	}
+
 	if (currentRate > 3)
 		return
 	currentRate = parseFloat(currentRate);
@@ -491,6 +508,12 @@ function slower(){
 
 function faster(){
 	var currentRate = document.getElementById("rate_display").innerHTML;
+	if (currentRate.indexOf("-") != -1){
+		//player is in backward mode, reset it
+		currentRate = currentRate.replace("-","")
+		currentRate = 1;
+	}
+
 	currentRate = parseFloat(currentRate);
 	if (currentRate > 3)
 		return
@@ -676,7 +699,15 @@ function changeAudioTrack(){
 								
 								
 								<div class="slidecontainer">
-									<input type="range" id="slider" onfocus="this.blur()" style="width:100%" min="0" max="100" value="0" class="slider" onchange="">
+									<input type="range" id="slider" onfocus="this.blur()" style="width:100%" min="0" max="100" value="0" class="slider" onchange="" list=tickmarks></input>
+									<datalist id=tickmarks>
+										<option>0</option>
+										<option>20</option>
+										<option>40</option>
+										<option>60</option>
+										<option>80</option>
+										<option>100</option>
+									</datalist>
 								</div>
 							</div>
 							<div id="controlButtons" class="vertical-center noSelect">
@@ -773,5 +804,7 @@ function changeAudioTrack(){
 			</div>
 		</div>
 			<video id="audioplayer" controls width="80%" style="display:none"></video>
+
+			<div class="dhx_progress-bar" id="showLoadingDiv"><svg viewBox="25 25 50 50" class="dhx_spinner"><circle cx="50" cy="50" r="20" class="path"></circle></svg></div>
 			</body>
 		</html>

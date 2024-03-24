@@ -262,9 +262,9 @@ async function needsExecution(current_job){
         if (current_job["next_start"] != "")
             updateScheduledJob(current_job["id"],"next_start","");
 
-        var msg = "Job is disabled or has no crons";
-        if (current_job.last_message != msg)
-            updateScheduledJob(current_job["id"],"last_message",msg);
+        // var msg = "Job is disabled or has no crons";
+        // if (current_job.last_message != msg)
+        //     updateScheduledJob(current_job["id"],"last_message",msg);
         
         return false;
     }

@@ -45,7 +45,6 @@ async function get_running(){
             var _cur = a_running[key];
             if (! "internal_wf_name" in a_running[key]){//todo: the IF does not work, internal_wf_name is a guid in this case
                 a_running[key]["workflow"] = common.get_wf_name(a_running[key]["internal_wf_id"]);
-                
             }else{
                 a_running[key]["workflow"] = a_running[key]["internal_wf_name"];
             }
@@ -69,8 +68,8 @@ async function get_running(){
       return el != null;
     });
 	return filtered;
-	
 }
+
 //workaround the missing ability of ffastrans to tell us about watchfolder status
 async function get_incoming(returnarray){
 //todo: dont only read files from \i\ folder but also consider files in ..\i\ that are named *.json%shorthash%
@@ -104,20 +103,20 @@ async function get_incoming(returnarray){
                         for (var _incoming in _incoming_files){
                             try{
                                 //FOUND SOME INCOMING FILE, PUSH TO output array
-                                var fullpath = path.join(_mons  , _proc_guids[_proc].name , "i" , _incoming_files[_incoming]); 
+                                var ticket_path = path.join(_mons  , _proc_guids[_proc].name , "i" , _incoming_files[_incoming]); 
                                 
                                 var newitem = {};
                                 //read the incoming json to get details about watched file
-                                var f_contents = await common.readfile_cached(fullpath,true);
+                                var f_contents = await common.readfile_cached(ticket_path,true);
                                 var _readout = f_contents//removes BOM	;
                                 newitem["host"] = _readout["host"]
                                 var _realfile = _readout["source"];
                                 var myRegexp = /\\wfs\\(.*?)\\mons/gi; //TODO: support workflows that do not have a guid //C:\ffastrans\Processors\db\cache\wfs\20190516132025\mons\20190516-132046-729-69eeea0438bf\i\Die Sofa-Richter F_ 4_d1de.mpg_8D44AB5FBB8AE5D5B00184D9CEDB382B6D243383.json
-                                var _matches =  myRegexp.exec(fullpath);
-                                
+                                var _matches =  myRegexp.exec(ticket_path);
+                                newitem["ticket_path"] = ticket_path;
                                 newitem["fullpath"] = _realfile;
                                 newitem["sources"] = {"current_file": _realfile};
-                                var _stat = await fsPromises.stat(fullpath);
+                                var _stat = await fsPromises.stat(ticket_path);
                                 newitem["submit"] = {"time":_stat["birthtime"]};
                                 newitem["nodes"] = {"next":"Watchfolder","type":"Watchfolder"};
                                 console.log("INCOMING")
@@ -125,7 +124,7 @@ async function get_incoming(returnarray){
                                 found_incoming.push(newitem);
                             }catch(ex){
                                 console.log("If this error occurs only once, its OK but just for info: could not parse" + _mons + "\\" +_proc_guids[_proc].name + "\\i\\" + _incoming_files[_incoming]  , ex);
-                                console.log("contents",common.readfile_cached(fullpath))
+                                console.log("contents",common.readfile_cached(ticket_path))
                             }
                             if (_incoming > 100){
                                 console.warn("Incoming files is more than 100, your watchfolder is huge..." + _mons + "\\" +_proc_guids[_proc].name);
