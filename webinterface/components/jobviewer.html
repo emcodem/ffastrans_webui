@@ -209,6 +209,8 @@
     table.fancytree-ext-table tbody tr.fancytree-active {
         background-color: unset;  /* override default bg color #4169e1 of fancytree */;
     }
+
+
 </style>
 
 
@@ -268,6 +270,7 @@
 
     function toggleJobControl(id,selected_is_on){
         //enable/disable menu buttons
+        console.log("ToggleJobControl")
         var tree = $(id).fancytree('getTree');
         var all_selected_nodes = tree.getSelectedNodes();
         var element_names = [];
@@ -280,18 +283,29 @@
         element_names.forEach(function(name){
             try{
                 document.getElementsByName(name)[0].disabled = (all_selected_nodes == 0);
+                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];  
                 if (all_selected_nodes != 0){
-                    var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
                     icon.classList.remove("disabled")
                 }else{
-                    var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
                     icon.classList.add("disabled")
                 }
             }catch(ex){
-
+                console.trace(ex)
             }
         })
+
+        //show priorty only when a row was selected with non active state
         
+        // console.log("all_selected_nodes",all_selected_nodes);
+        // let havenon_active = all_selected_nodes.filter(n => n.title != "Active");
+        // document.getElementsByName("a_priority")[0].disabled = (havenon_active.length == 0);
+        // var icon = document.getElementsByName("a_priority")[0].getElementsByTagName("i")[0];
+        // console.log(icon)
+        // if (havenon_active.length == 0){
+        //     icon.classList.add("disabled");                       
+        // }else{
+        //     icon.classList.remove("disabled"); 
+        // }
         
     }
     
@@ -304,7 +318,8 @@
         var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i>Abort</button> ';
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
-        var a_opts =    '<button class="btn jobviewer_menu" name="b_options" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
+        // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
+        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
         
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
         
@@ -764,8 +779,7 @@
             dhtmlx.alert("Please select row");
             return;
         }
-        
-        if (selected[0].data["state"].match(/queued|incoming/i) && id == "a_details"){
+        if (selected[0]["title"].match(/queued|incoming/i) && id == "a_details"){
                     dhtmlx.message("Sorry, no details to show for queued jobs available");
                     return;
         }
@@ -788,14 +802,49 @@
         if (id == "a_resume") {
             jobCommand(selected, "resume");
         }
-        
+        if (id == "a_priority") {
+            show_priority_window();
+        }
         
  
     }
     
+    function show_priority_window(){
+        //currently not active because button a_priority is not active
+        const windowHTML = "Higher priority jobs will be processed before lower priority";
+        const dhxWindow = new dhx8.dhx.Window({
+            width: 440,
+            height: 520,
+            title: "New Priority",
+            modal: false,
+            closable: true,
+            movable: true
+        });
+        
+        const list = new dhx8.dhx.List(null, {
+        });
+
+        list.data.parse([
+            {text:"4 - Very high",value:4},
+            {text:"3 - High",    value:3},
+            {text:"2 - Normal",  value:2},
+            {text:"1 - Low",     value:1},
+            {text:"0 - Very low",value:0}
+        ]);
+
+        list.events.on("click", function (what) {
+            var selected_value = list.data.getIndex(list.selection.getId());
+            var tree = $('#treetable_active').fancytree('getTree');
+            var selected = tree.getSelectedNodes();
+            jobCommand(selected,"priority",selected_value);
+            dhxWindow.destructor();
+        });
+        dhxWindow.attach(list)
+        dhxWindow.show();
+    }   
+
     function show_options_window(){
         var dhxwins = new dhtmlXWindows();
-        //dhxwins.attachViewportTo(window.parent.document.body);
         var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 200);
         win.setText("View Options ");
         win.attachURL("jobviewer_pages/options.html");
@@ -944,7 +993,8 @@
                 $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext_rtl'><bdi>" + filename_to_display + "</bdi></div>");
-                $tdList.eq(4).html("<div class='celltext'>" + node.data.proc + "@" + node.data.host + "</div>");
+                console.log(node.data)
+                $tdList.eq(4).html("<div class='celltext'>" +  (node.data.priority || 1) + "|" + node.data.proc + "@" + node.data.host + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.status + "</div>");
                 
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');

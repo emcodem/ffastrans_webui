@@ -19,9 +19,14 @@ async function getActiveJobs(start=0,end=1000){
       
         try{
             var contents        = await fs.readFile(fullPath,"utf-8");
-            contents            = JSON.parse(contents.replace(/^\uFEFF/, ''))
+            contents            = JSON.parse(contents.replace(/^\uFEFF/, ''));
             contents.job_id     = file.name.split("~")[0];
-            contents.split_id   = file.name.split("~")[1];
+            contents.split_id   = file.name.split("~")[1].replace(".json","");
+            let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
+            let jobJson_Path = path.join(jobDir,contents.job_id,".json");
+            let jobJson = await fs.readFile(jobJson_Path,"utf-8");
+            jobJson = JSON.parse(jobJson.replace(/^\uFEFF/, ''));
+            contents.priority = jobJson.priority;
             returnArray.push(contents);
         }catch(ex){
             console.trace("Unexpected Error parsing jobfile",ex)

@@ -161,10 +161,11 @@
 			<script>
 var socket = io(); 
 var player;
+var m_ffprobe;
 var g_framerate = 0;
-reversePlayInterval = null;
+var reversePlayInterval = null;
 var m_query_params = new URLSearchParams(window.location.search);
-var m_last_player_status = {};
+var m_last_player_status;
 var m_forcePauseAfterNext = false;
 var allAudioBuffer = new ArrayBuffer(0)
 //global hotkeys
@@ -228,7 +229,7 @@ function load(){
 			socket.on('ffprobe', function (ffprobe) {
 					// player analyzes the file before starting the process
 					// we use this initial analysis data for display file props on UI
-					console.log("ffprobe",ffprobe);
+					m_ffprobe = ffprobe;
 					var firstVstream = getFirstTrack(ffprobe,"video");
 					var firstAstream = getFirstTrack(ffprobe,"audio");
 					var _resolution = "";
@@ -248,15 +249,22 @@ function load(){
 						}
 						document.getElementById("info-fps").innerHTML = "Framerate: " + g_framerate.toFixed(2) +  _interlacing;
 						//resize video canvas to expected aspect ratio
-						console.log("initial canvas resize",firstVstream.coded_width,firstVstream.coded_height)
-						
-						var atracks 	= ffprobe.streams.filter(s => s.codec_type=="audio")
-						var allChCount 	= atracks.map(t=>t.channels);
-						m_last_player_status = {"video-out-params":{}}
-						m_last_player_status["video-out-params"].aspect = firstVstream.coded_width/firstVstream.coded_height; //fake video-out-params for canvas resize
-						videoCanvasResize()
-						//videoCanvasResize(firstVstream.coded_width/firstVstream.coded_height);
-						
+						//start by count all audio channels
+						let atracks 	= ffprobe.streams.filter(s => s.codec_type=="audio")
+						let allTracks 	= atracks.map(t=>t.channels);
+						let allChannels = 0;
+						allTracks.forEach(function(t){allChannels+=t})
+
+						if (!m_last_player_status){
+							//try estimate target aspect to avoid visual aspect changing between showing first frame and receiving the final aspect from mpv
+							m_last_player_status = {"video-out-params":{}}
+							console.log(firstVstream)
+							//25 is what showvolume filter in player.js adds for each audio channel
+							m_last_player_status["video-out-params"].aspect = (firstVstream.width + (allChannels * 25))/firstVstream.height; 
+							console.log("--------------------",(firstVstream.width) )
+							videoCanvasResize()
+							m_last_player_status["video-out-params"] = {};
+						}
 
 					}else{
 						
@@ -310,19 +318,34 @@ function load(){
 				
 				var status = data;
 				if (JSON.stringify(m_last_player_status["video-out-params"]) != JSON.stringify(status["video-out-params"])){
-					m_last_player_status = status;
 					//inform video canvas about new dimensions
-					if (m_last_player_status["video-out-params"] && m_last_player_status["video-out-params"].asepect)
+					if (status["video-out-params"] && status["video-out-params"].aspect){
+						m_last_player_status = status;
 						videoCanvasResize()
+					}	
 				}
-				m_last_player_status = status;
+				//m_last_player_status = status;
 				
 				if (status.duration){
-					var _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
+					//duration from mpv can vary with every frame!
+					let _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
 					document.getElementById("currentTime").value = _timecode
-					var _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
+					let _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
 					document.getElementById("totalTime").value = _duration
-					document.getElementById("slider").setAttribute("max", status.duration*100)
+					let msPerFrame = 1000/g_framerate;
+					let sliderMax =  status.duration * 100 - msPerFrame;
+					if (document.getElementById("slider").max != sliderMax){
+						//update slider max and tickmarks
+						console.log("slidermax",sliderMax)
+						document.getElementById("slider").setAttribute("max",sliderMax);
+						let tickmarks = document.getElementById("tickmarks");
+						tickmarks.innerHTML = "";
+						for (let i=0;i<=sliderMax;i+=sliderMax/20){
+							tickmarks.appendChild(new Option('', i.toFixed(0)))
+						}
+						
+					}
+
 				}
 				if (status.speed){
 					if (status["play-direction"] == "forward")
@@ -701,12 +724,7 @@ function changeAudioTrack(){
 								<div class="slidecontainer">
 									<input type="range" id="slider" onfocus="this.blur()" style="width:100%" min="0" max="100" value="0" class="slider" onchange="" list=tickmarks></input>
 									<datalist id=tickmarks>
-										<option>0</option>
-										<option>20</option>
-										<option>40</option>
-										<option>60</option>
-										<option>80</option>
-										<option>100</option>
+										
 									</datalist>
 								</div>
 							</div>

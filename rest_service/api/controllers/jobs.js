@@ -111,7 +111,7 @@ async function put(req, res){
                 },s_extra)
             }
         }
-        else if (s_action = 'abort'){
+        else if (s_action == 'abort'){
             let done = false;
             if (typeof s_extra === 'string') {
                 if (s_extra.match(/mons/)){
@@ -125,14 +125,13 @@ async function put(req, res){
             if (!done)
                 await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".abort~" + job + splitpart ),"");
 
-
         }
         else if (s_action == 'resume'){
             await fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".pause~" + job + splitpart ))
         }
         else if (s_action == 'priority'){
             s_extra = Number(s_extra);
-            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".priority~" + job + splitpart ),s_extra);
+            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".priority~" + job + splitpart ),s_extra.toString());
         }
         else{
             throw new Error("Action not supported: ["+s_action + "]")
