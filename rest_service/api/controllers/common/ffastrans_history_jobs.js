@@ -18,15 +18,15 @@ async function getHistoryJobs(start,end){
       var subfolders = await getDirectories(jobDir)
       subfolders= subfolders.sort().reverse()
       var startcount = 0;
-      var outputcount = 0;
       for (let jobid of subfolders){
         startcount++;
-        if (! (await fs.exists(path.join(jobDir,jobid,"full_log.json"))))
-            continue
         if (startcount < start)
             continue
         if (returnArray.length >= end)
             continue
+        if (! (await fs.exists(path.join(jobDir,jobid,"full_log.json"))))
+            continue
+
         let finisheddir = path.join(jobDir,jobid,"finished")
         let splits = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
         for (let split of splits){
