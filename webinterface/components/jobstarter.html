@@ -42,6 +42,9 @@
 
 <script src="common/webuiVariables.js"></script> <!-- function translateDhx5To8Vars -->
 <script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
+
+<script src="../dependencies/jquery_lazyload/lazyload.js"></script>
+
 <style>
     /* it's important to set width/height to 100% for full-screen init */
     html, body {
@@ -316,6 +319,8 @@ function registerKeyboardShortcuts(){
 
 /* build basic page layout and init periodic job loading*/
 function init(){
+    
+
     /* jquery tooltip helper for global use*/
     registerHoverFunc()
     registerKeyboardShortcuts()
@@ -1250,6 +1255,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                     });
                 }
 			});
+            lazyload();
 
         },
         error: function (xhr, status) {
@@ -1265,7 +1271,7 @@ function addPreviewImage(dhxGrid,rowId){
         return;
     
     var fullpath = dhxGrid.getUserData(rowId,"fullpath")
-    var is_folder = dhxGrid.getCellByName(rowId,"preview").setValue("<div class='previewcontainer' style=''><img class='previewimg' alt='' loading='lazy' onclick='this.requestFullscreen()' src='/getjpeg?fullpath="+encodeURIComponent(fullpath)+"'></img></div>");
+    var is_folder = dhxGrid.getCellByName(rowId,"preview").setValue("<div class='previewcontainer' style=''><img class='previewimg lazyload' alt='' loading='lazy' onclick='this.requestFullscreen()' data-src='/getjpeg?fullpath="+encodeURIComponent(fullpath)+"'></img></div>");
 }
 
 function addAjaxTooltip(dhxGrid,rowId){
@@ -1801,7 +1807,7 @@ async function startJobs(form,selectedWorkflow){
     }else{
         //submit one job per file
         for (let j=0;j<a_all_files.length;j++){
-            postBody.inputfile = JSON.stringify(a_all_files[j]);
+            postBody.inputfile = a_all_files[j];
             postBody.variables.push({name:"webui_a_source",data:JSON.stringify([a_all_files[j]])});
             postBody.variables.push({name:"webui_o_source",data:JSON.stringify([o_all_files[j]])});
             console.log("submitting job",postBody)

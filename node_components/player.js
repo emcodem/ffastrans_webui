@@ -127,6 +127,7 @@ class Player
 			playerInstance.mpv.togglePause()
 		}
 		if (data.command == "seek"){
+			//if (!this.lastPlayerProps.seeking) //this causes output frames to not update
 			playerInstance.mpv.goToPosition (data.val)
 		}
 		if (data.command == "fastbackward"){
@@ -157,13 +158,6 @@ class Player
 			playerInstance.mpv.command("frame-step")
 		}
 		if (data.command == "setAudioTrackArray"){
-			//apply-profile to non transcode output, and back again
-			
-			// playerInstance.mpv.setProperty ("watch-later-dir", "c:\\temp\\watch")
-			// playerInstance.mpv.setProperty ("watch-later-options-add", "aid",data.val)
-			// playerInstance.mpv.setProperty ("write-filename-in-watch-later-config","yes")
-			// playerInstance.mpv.command ("write-watch-later-config")
-			//playerInstance.mpv.command ("quit-watch-later");
 			
 			var selected_channels = data.val
 			await playerInstance.mpv.kill()
@@ -327,11 +321,12 @@ class Player
 			},mpvopts);
 
 			mpv.unobserveProperty("filename")
+			
 			mpv.observeProperty("time-pos")
 			mpv.observeProperty("speed")
 			mpv.observeProperty("play-direction")
 			mpv.observeProperty("eof-reached")
-			mpv.observeProperty("demux-fps")
+			mpv.observeProperty("seeking")
 			mpv.observeProperty("play-direction")
 			mpv.observeProperty("video-out-params")
 			mpv.observeProperty("demuxer-lavf-list")

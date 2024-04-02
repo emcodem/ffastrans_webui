@@ -25,7 +25,9 @@
 
 </style>
 <script>
-var m_maingrid;m_last_data= null;
+var m_maingrid;
+var m_last_data= null;
+var m_alertmsg;
 
 async function loadBrowseLocations(){
     var locations = await  $.ajax({
@@ -143,20 +145,50 @@ function buildLayout(){
     
 }
 
+window.setInterval(function(){
+    /*display alert msg for unsaved changes*/
+    let gridrows = m_maingrid.data.serialize();
+    var got_changes = false;
+    gridrows.forEach(function (row){
+        //compare path and displayname, displayname must be unique
+        var existingEntry = (m_last_data.filter(entry => entry.displayname == row.displayname))
+        if (existingEntry.length != 1){
+            got_changes = true;
+        }
+        if (existingEntry[0].path != row.path){
+            got_changes = true;
+        }
+        console.log(row, "match",existingEntry[0])
+    })
+    
+    if (got_changes){
+        if (m_alertmsg)
+            return;
+        m_alertmsg = dhx.message({
+                text:"Unsaved changes",
+                css:"dhx_message--error",
+                icon:"dxi-close",
+                expire:1000000
+            });
+    }else{
+        if (m_alertmsg){
+            m_alertmsg.close();
+            m_alertmsg = null;
+        }
+    }
+
+},1000)
+
 async function saveGridData(){
     const state = m_maingrid.data.serialize();
-    console.log("gridstate",state)
-    saveBrowseLocations(state);
+    console.log("gridstate",state);
+    
+    await saveBrowseLocations(state);
+    m_last_data = JSON.parse(JSON.stringify(state));
 }
 
 async function loadGridData(){
     var locations = await(loadBrowseLocations());
-    console.log("result of loadBrowselocations:",locations)
-    if (JSON.stringify(locations) != m_last_data){
-        m_last_data = JSON.stringify(locations);
-    }else{
-        return;
-    }
     var gridData = [];
     Object.keys(locations).forEach(function(displayname) {
             var path = locations[displayname];
@@ -164,8 +196,9 @@ async function loadGridData(){
                 {path:path,displayname:displayname}
             ) 
         });
-
+    
     console.log("loading",gridData)
+    m_last_data = JSON.parse(JSON.stringify(gridData));
     m_maingrid.data.parse(gridData);
 }
 

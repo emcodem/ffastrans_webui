@@ -43,6 +43,21 @@
 				--preview-display : "none";
 				user-select:none;
 			}
+			/* ::-webkit-scrollbar {
+				width: 16px;
+				height: 16px;
+			}
+
+			::-webkit-scrollbar-thumb {
+				background: #434343;
+				border-radius: 16px;
+				box-shadow: inset 2px 2px 2px hsla(0,0%,100%,.25),inset -2px -2px 2px rgba(0,0,0,.25);
+			}
+
+			::-webkit-scrollbar-track {
+				background: linear-gradient(90deg,#434343,#434343 1px,#111 0,#111);
+			} */
+
 			input{
 				font-size: 11px;
 			}
@@ -167,6 +182,7 @@ var reversePlayInterval = null;
 var m_query_params = new URLSearchParams(window.location.search);
 var m_last_player_status;
 var m_forcePauseAfterNext = false;
+var m_seekTwice = false;
 var allAudioBuffer = new ArrayBuffer(0)
 //global hotkeys
 window.addEventListener("keydown", hotKey);
@@ -309,14 +325,16 @@ function load(){
 			});
 
 			socket.on('playererror', function (data) {
-
 					dhtmlx.alert("Player Error: " + JSON.stringify(data))
-					
 			});
 
 			socket.on('property-change', function (data) {
 				
 				var status = data;
+				if (!status)
+					return
+				if (!m_last_player_status)
+					m_last_player_status = {}
 				if (JSON.stringify(m_last_player_status["video-out-params"]) != JSON.stringify(status["video-out-params"])){
 					//inform video canvas about new dimensions
 					if (status["video-out-params"] && status["video-out-params"].aspect){
@@ -325,6 +343,7 @@ function load(){
 					}	
 				}
 				//m_last_player_status = status;
+				console.log("seeking",status.seeking)
 				
 				if (status.duration){
 					//duration from mpv can vary with every frame!
@@ -343,7 +362,6 @@ function load(){
 						for (let i=0;i<=sliderMax;i+=sliderMax/20){
 							tickmarks.appendChild(new Option('', i.toFixed(0)))
 						}
-						
 					}
 
 				}
@@ -375,8 +393,13 @@ function load(){
 				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.pause );
 				$( "#iconPlay" ).toggleClass( "fa-pause-circle ", !status.pause );
 				if (m_forcePauseAfterNext){
+					
 					socket.emit("player", JSON.stringify({"command": "forcepause"}));
 					m_forcePauseAfterNext = false;
+				}
+				if (m_forcePauseAfterZero && status["time-pos"] == 0){
+					socket.emit("player", JSON.stringify({"command": "forcepause"}));
+					m_forcePauseAfterZero = false;
 				}
 
 			});
@@ -455,7 +478,6 @@ function getFirstTrack(ffprobe,type="video"){
 function attachEvents(){
 			//slider
 	document.getElementById("slider").addEventListener ('input', function (evt) {
-		console.log("Slider change to ",document.getElementById("slider").value/100)
 		playerCommandSeek(document.getElementById("slider").value/100 );
 		evt.cancelBubble = true;
 		evt.preventDefault();
@@ -568,16 +590,16 @@ function playerCommandSeek(where){
 
 		//disable slider updates, otherwise seek only works sporadically
 		console.log("emit seek",where)
-		if (m_last_player_status.pause){
-			socket.emit("player", JSON.stringify({"command": "forceplay"}));
-			m_forcePauseAfterNext = true;
-		}
+
 
 		socket.emit("player", JSON.stringify({
                 "command": "seek",
                 "val": where
             }));
-
+		if (m_last_player_status.pause){
+			socket.emit("player", JSON.stringify({"command": "forceplay"}));
+			m_forcePauseAfterNext = true;
+		}
 		
 }
 
@@ -592,14 +614,24 @@ function playPause(){
 }
 
 function seekToFirst(){
-	playerCommandSeek(0);
+	//playerCommandSeek(0);
 	socket.emit("player", JSON.stringify({"command": "forceplay"}));
+	playerCommandSeek(0);
+	let seekToFirstDone = {value:false}
+	if (m_seekTwice){
+		m_seekTwice = false;
+		window.setTimeout(function(){seekToFirst()},500)
+	}
 	m_forcePauseAfterNext = true;
+	//m_forcePauseAfterZero = true;
 }
 
 function seekToLast(){
-	playerCommandSeek(m_last_player_status.duration-0.2);
-	socket.emit("player", JSON.stringify({"command": "forceplay"}));
+	playerCommandSeek(m_last_player_status.duration-0.5);
+	window.setTimeout(function(){
+		socket.emit("player", JSON.stringify({"command": "forceplay"}));
+	},500
+	)
 }
 
 /** Convert seconds to SMPTE timecode JSON object, example input is html video.currentTime */
@@ -730,7 +762,7 @@ function changeAudioTrack(){
 							</div>
 							<div id="controlButtons" class="vertical-center noSelect">
 								<div class="player-btns Row">
-									<div class="column"><span class="mdi mdi-page-first" 	title="First Frame" 	onclick="seekToFirst()"></span></div>
+									<div class="column"><span class="mdi mdi-page-first" 	title="First Frame" 	onclick="m_seekTwice=true;seekToFirst()"></span></div>
 									<div class="column"><span class="mdi mdi-rewind" 		title="Fast backward"	onclick="slower()"></span></div>
 									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="slower" id="iconSlow" 		class="fas fa-backward 				fa-3x grayBackgroundOnHover" onclick="slower()"></i> -->
 									<!-- <i style="margin:3px;text-shadow:-2px 2px rgb(0 0 0 / 15%);cursor:pointer" title="-10s" id="iconStepMinus" 	class="fas fa-step-backward 		fa-3x grayBackgroundOnHover" onclick="frameStepBack()"></i> -->
@@ -769,7 +801,7 @@ function changeAudioTrack(){
 							</tr>
 							<tr class=" ev_dhx_skyblue">
 								
-								<td align="left" valign="middle" id="audio_selection_container">
+								<td align="left" valign="middle" id="audio_selection_container" style="overflow:auto"> 
 									<!-- AUDIO CHANNELS GO HERE -->
 								</td>
 								

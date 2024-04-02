@@ -8436,7 +8436,7 @@ body  {
 }
 
 .dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr {
-	background: var(--dhx-background-primary);
+	background: var(--dhx-s-grid-header-background);
 }
   
 .workflow_filter_menu_item{
@@ -8458,11 +8458,11 @@ span.fancytree-active span.fancytree-title, span.fancytree-selected span.fancytr
 /* tabbar */
 .dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs{
 	background-image:unset;
-	background: var(--dhx-background-primary);
+	background: var(--dhx-s-grid-header-background);
 }
 
 div.gridbox_dhx_skyblue.isModern table.hdr tr td { /*jobstarter browse table*/
-	background: var(--dhx-background-primary);
+	background: var(--dhx-s-grid-header-background);
 }
 
 /*jobstarter */
@@ -8506,19 +8506,19 @@ ul.fancytree-container{
 
 /*grid rows*/
 .css_jobviewer_history_row_status_Error{
-	background-color:hsla(360,100%,60%,.3);
+	background-color:hsla(360,100%,60%,.3) !important; /*if not important, every odd rows not colored*/
 }
 
 /* old dhtmlx non used grid cell (preview in file browser) */
 div.gridbox_dhx_skyblue.gridbox .xhdr {
   color: #FFFFFF;
-  background-color: background-color: var(--dhx-background-primary) ;
+  background-color: var(--dhx-background-primary) ;
 
   }
 
 .dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_layout.dhxlayout_collapsed_v div.dhx_cell_hdr { /*jobviewer workflows collapsed*/
   width: 18px;
-  background: var(--dhx-background-primary) ;
+  background: var(--dhx-s-grid-header-background) ;
  }
 
 .sub_item_text {
@@ -8546,6 +8546,11 @@ div.gridbox_dhx_skyblue.gridbox .xhdr {
   border: 1px solid #CCCCCC;
   background-color: #CCCCCC;
   background: linear-gradient(#CCCCCC, #d9d9d9);
+}
+
+.dhx_cell_content > .vault-toolbar{
+  
+  background: var(--dhx-s-grid-header-background);
 }
 
 /*
