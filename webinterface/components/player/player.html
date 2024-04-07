@@ -47,6 +47,7 @@
 			input{
 				font-size: 11px;
 			}
+
 			div.gridbox_dhx_skyblue.gridbox table.obj{
 				font-size:11px;
 			}
@@ -54,11 +55,12 @@
 			.player-btns {
 				display:inline-block;
 				white-space: nowrap;
-				
 			} 
+
 			.player-btns .mdi {
 				font-size:35px;
 			} 
+
 			.player-btns .mdi:hover{
 				/* font-size:37px; */
 				/* position:fixed; */
@@ -165,6 +167,7 @@
 			.analyze_tools_label {
 				display: flex;
 				align-items: center;
+				pointer-events: none;
 			}
 			
 			.analyze_tools_led_green {   
@@ -174,18 +177,22 @@
 				box-shadow: #000 0 -1px 2px 1px;
 				width: 5px;
 				height: 5px;
+				pointer-events: none;
 			}
 			
-			div[data-state="on"] > analyze_tools_label > analyze_tools_led_green {  
+			.analyze_tools_led_on > .analyze_tools_label > .analyze_tools_led_green {/* */  
 				background-color: #80FF00;
 			}
 
+			.analyze_tools_led_off > .analyze_tools_label > .analyze_tools_led_green {/* */  
+				background-color: "unset"
+			}
 
 			</style>
 			
 			<script>
 var socket = io(); 
-var player;
+var m_player;
 var m_ffprobe;
 var g_framerate = 0;
 var reversePlayInterval = null;
@@ -226,24 +233,46 @@ var concatTypedArrays = function(buffer1, buffer2) {
 
 function initAnalyzeBtns(){
 	/* register events and restore defaults from localStore */
-	$(".analyze_tools_btn").on("click",function(evt){
-		console.log("el click",$(evt.target).attr("id"))
-	})
+	
+	$("button[class*='analyze_tools_btn']").on("click",function(evt){
+		$(evt.target).removeClass("analyze_tools_led_on");
+		$(evt.target).removeClass("analyze_tools_led_off");
+
+		if ($(evt.target).attr("data-state") == "on"){
+			//ON
+			$(evt.target).attr("data-state","off");
+			$(evt.target).addClass("analyze_tools_led_off");
+			//restart player with the new configuration
+			playerRemoveAnalyzeTool($(evt.target).attr("id").replace("analyze_",""));
+		}else{
+			//OFF
+			$(evt.target).attr("data-state","on");
+			$(evt.target).addClass("analyze_tools_led_on") ; //there is a css listening to this data attrr
+			//restart player with the new configuration
+			playerAddAnalyzeTool($(evt.target).attr("id").replace("analyze_",""));
+		}
+		//store state to localstorage
+		console.log("setting localstorage",$(evt.target).attr("id"),$(evt.target).attr("data-state"))
+		localStorage[$(evt.target).attr("id")] = $(evt.target).attr("data-state");
+	});
+
+	//restore user defaults on page load
+	if (localStorage["analyze_wfm"]){
+		$("#analyze_wfm").attr("data-state",localStorage["analyze_wfm"]);
+		$("#analyze_wfm").addClass("analyze_tools_led_" +localStorage ["analyze_wfm"]);
+	}
+	if (localStorage ["analyze_audioVu"]){
+		$("#analyze_audioVu").attr("data-state",localStorage["analyze_audioVu"]);
+		$("#analyze_audioVu").addClass("analyze_tools_led_" + localStorage ["analyze_audioVu"]);
+	}
 }
 
-function load(){
-
-			initAnalyzeBtns();
-			document.getElementById("iconPlay").focus();
-			
-			//initialize the player stuff
-			var buf = [];
-		    var player = new JSMpeg.Player(null,//null
+function initJsMpeg(){
+	m_player = new JSMpeg.Player(null,//null
 				{
 					source: JSMpegWritableSource,
 					videoBufferSize: 0,
 					audioBufferSize: 0,
-					
 					streaming: true,
 					disableWebAssembly:true,
 					pauseWhenHidden:false,//does not work, chrome doesnt want to do this
@@ -254,9 +283,22 @@ function load(){
 						//console.log("Videodecode",what,time)
 					}
 				});
+}
+
+function load(){
+			initAnalyzeBtns();
+			document.getElementById("iconPlay").focus();
+			
+			//initialize the player stuff
+			var buf = [];
+			initJsMpeg()
 			
 			socket.emit("player", JSON.stringify({
-                "file":m_query_params.get("file")
+                "file":	m_query_params.get("file"),
+				"analyzeTools":{
+					audioVu: 	$("#analyze_audioVu").attr("data-state") == "on"? true:false,
+					wfm:		$("#analyze_wfm").attr("data-state") == "on"? true:false
+				}
 			})); 
 			
 			socket.on('ffprobe', function (ffprobe) {
@@ -338,7 +380,7 @@ function load(){
 				reporting.bytespersecond += data.byteLength
 				
 				//Write transport stream packet to players decoder
-				player.source.write(data,function(){});
+				m_player.source.write(data,function(){});
 			});
 
 			socket.on('playererror', function (data) {
@@ -365,9 +407,9 @@ function load(){
 				if (status.duration){
 					//duration from mpv can vary with every frame!
 					let _timecode = SMPTEToString(secondsToSMPTE(status["time-pos"],g_framerate))
-					document.getElementById("currentTime").value = _timecode
+					document.getElementById("currentTime").value = _timecode;
 					let _duration = SMPTEToString(secondsToSMPTE(status.duration,g_framerate))
-					document.getElementById("totalTime").value = _duration
+					document.getElementById("totalTime").value = _duration;
 					let msPerFrame = 1000/g_framerate;
 					let sliderMax =  status.duration * 100 - msPerFrame;
 					if (document.getElementById("slider").max != sliderMax){
@@ -414,10 +456,10 @@ function load(){
 					socket.emit("player", JSON.stringify({"command": "forcepause"}));
 					m_forcePauseAfterNext = false;
 				}
-				if (m_forcePauseAfterZero && status["time-pos"] == 0){
-					socket.emit("player", JSON.stringify({"command": "forcepause"}));
-					m_forcePauseAfterZero = false;
-				}
+				// if (m_forcePauseAfterZero && status["time-pos"] == 0){
+				// 	socket.emit("player", JSON.stringify({"command": "forcepause"}));
+				// 	m_forcePauseAfterZero = false;
+				// }
 
 			});
 			
@@ -533,6 +575,26 @@ function videoCanvasResize()
 			document.getElementById("playerCanvas").style.height 	= containerWidth /ar;
 		}
 	}
+
+function playerAddAnalyzeTool(which){
+	socket.emit("player", JSON.stringify({
+                "command": "addAnalyzeTool",
+				"val" : which
+			}));
+	window.setTimeout(function(){
+		initJsMpeg()
+	},500)
+}
+
+function playerRemoveAnalyzeTool(which){
+	socket.emit("player", JSON.stringify({
+                "command": "removeAnalyzeTool",
+				"val" : which
+			}));
+	window.setTimeout(function(){
+		initJsMpeg()
+	},500)
+}
 
 function playerChangeAtrackCommand(trackArray){
 	socket.emit("player", JSON.stringify({
@@ -807,7 +869,7 @@ function changeAudioTrack(){
 			
 			<div style="margin-left: 10px;margin:5px;width:150px" id="rightSide" class="flexFixed">
 				<button class="analyze_tools_btn" id="analyze_wfm" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">WFM</div></div></button>
-				<button class="analyze_tools_btn" id="analyze_vu"  data-state="on"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
+				<button class="analyze_tools_btn" id="analyze_audioVu"  data-state="on"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
 
 				<div style="" class="gridbox_dhx_skyblue gridbox">
 					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">

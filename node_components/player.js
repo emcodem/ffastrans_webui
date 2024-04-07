@@ -12,9 +12,9 @@ class Player
     {
 		this.port = 8000;
 		this.playerProcess = null;
-		this.selectedAudioTrack = 0;
+		this.selected_channels = [0,1];
 		this.websocket = null;
-		this.config = null;
+		this.config = {"file":"",analyzeTools:{audioVu:true, wfm:false}};
 		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.exe");
 		this.mpv = null;
 		this.senderInterval = null;
@@ -22,14 +22,20 @@ class Player
 		this.arewrap = 0;
 		this.vrewrap = 0;
 		this.lastPlayerProps ={};
-		this.lastPlayerCommand = "play"
+		this.lastPlayerCommand = "play";
     }
 	
-	async initiate(_websocket,_config){ //initobj has field file
-
-		this.websocket 	= _websocket;
-		this.config 	= _config;
+	async initiate(_websocket,_config){ //_config has field file
+		//called from server.js on "player" socket event
+		
 		let playerInstance = this;
+		playerInstance.websocket 		   = _websocket;
+		playerInstance.config.file 		   = _config.file;
+		if (playerInstance.config.analyzeTools){
+			playerInstance.config.analyzeTools.audioVu 	= _config.analyzeTools.audioVu;
+			playerInstance.config.analyzeTools.wfm 		= _config.analyzeTools.wfm;
+		}
+
 		console.log("PLAYER INITATE", playerInstance.config);
 		//get free udp localhost port for this instance
 		try{
@@ -48,7 +54,7 @@ class Player
 
 			// }catch(ex){}
 
-			playerInstance.mpv = await this.startmpv(playerInstance.config,playerInstance.port,mpvExtraOpts)
+			playerInstance.mpv = await playerInstance.startmpv(playerInstance.config,playerInstance.port,mpvExtraOpts)
 			
 			console.log("Current Players port:",playerInstance.port)
 			// var udpbuffer =  Buffer.concat([])
@@ -158,30 +164,41 @@ class Player
 			playerInstance.mpv.command("frame-step")
 		}
 		if (data.command == "setAudioTrackArray"){
-			
-			var selected_channels = data.val
-			await playerInstance.mpv.kill()
-			//playerInstance.mpv.command ("quit")
-
-			playerInstance.mpv = await playerInstance.startmpv(
-				playerInstance.config,
-				playerInstance.port,
-				false,
-				playerInstance.lastPlayerProps["time-pos"],
-				selected_channels
-			)
-			
-
-			// write-watch-later-config
-			// delete-watch-later-config
-			// 
-			// watch-later-options
-			// -- (aid)
-
-			//playerInstance.mpv.setProperty("apply-profile","ffasAudProfile")
-			//playerInstance.mpv.setProperty ("aid", data.val)
-			//playerInstance.mpv.command("frame-step")
+			playerInstance.selected_channels = data.val;
+			playerInstance.restartPlayerAtCurrentPos();
 		}
+
+		if (data.command == "addAnalyzeTool"){
+			if (data.val == "audioVu"){
+				playerInstance.config.analyzeTools.audioVu = true;
+			}
+			if (data.val == "wfm"){
+				playerInstance.config.analyzeTools.wfm = true;
+			}
+			playerInstance.restartPlayerAtCurrentPos();
+		}
+		
+		if (data.command == "removeAnalyzeTool"){
+			if (data.val == "audioVu"){
+				playerInstance.config.analyzeTools.audioVu = false;
+			}
+			if (data.val == "wfm"){
+				playerInstance.config.analyzeTools.wfm = false;
+			}
+			playerInstance.restartPlayerAtCurrentPos();
+		}
+	}
+
+	async restartPlayerAtCurrentPos(){
+		let playerInstance = this;
+		await playerInstance.mpv.kill()
+			
+		playerInstance.mpv = await playerInstance.startmpv(
+			playerInstance.config,
+			playerInstance.port,
+			false,
+			playerInstance.lastPlayerProps["time-pos"]
+		)
 	}
 
 	appendAudioBars(){
@@ -189,12 +206,12 @@ class Player
 
 	}
 
+
 	getAudioVuFilterString(aid_pad_prefix = "aid",audio_channels = [1]){
 		//creates video pad [withaudiobars] which needs to be mapped by the caller to "vo" for mpv
 		//if there is audio, lines up all channels of all tracks, creates audio visual and VU meters as well as a track with selected audio channels, creating an [ao] pad for mpv
 
 		console.log("Selected Audio Channels",audio_channels)
-		var audio_filters = "";
 		let playerInstance = this;
 		var vheight = 1080; //todo: make flexible
 
@@ -213,7 +230,7 @@ class Player
 			let f_allChannelsInOneTrack = ""
 			var a_filters = [];
 			
-			//merge all channels of all tracks: [aid1][aid2][aid3]amerge=inputs=3[all]
+			//SECTION: merge all channels of all tracks: [aid1][aid2][aid3]amerge=inputs=3[all]
 			if (atracks.length != 0){
 				for (let aid=1;aid<atracks.length+1;aid++){
 					f_allChannelsInOneTrack += '['+aid_pad_prefix+aid+']'
@@ -223,7 +240,13 @@ class Player
 				//we got all channels of all tracks now in [all]
 
 				//push selected audio channels to pan filter, creating the final output for mpv [pc_audio]
-				let f_selected_channels = '[all]asplit[all_copy][all],[all_copy]pan=stereo'
+				let f_selected_channels = '[all]asplit[all_copy][all],[all_copy]pan=stereo';
+				if (!playerInstance.config.analyzeTools.audioVu){
+					//we dont need the [all] label in case of non audio VU display
+					f_selected_channels = '[all]pan=stereo';
+				}
+
+
 				if (audio_channels.length != 0){
 					var left = 	[]//"|c0="
 					var right = []//"|c1="
@@ -259,11 +282,19 @@ class Player
 				a_filters.push(visual)
 			}
 
-			//AUDIO ONLY AND VIDEO WITH AUDIO, create bars on the right in_audio_pad [all] out_video_pad [withaudiobars]
-			if (atracks.length != 0){
+			//is WFM filter active?
+
+			//AUDIO ONLY AND VIDEO WITH AUDIO, 
+			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
+				//audio analyzer active, build VU display
 				var f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[withaudiobars]'
-				a_filters.push(f_show_volume)
+				a_filters.push(f_show_volume);
 				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]") //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
+			}else{
+				//just foward video unmodified
+				a_filters.push ("[vid_right_border]copy[withaudiobars]");
+				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]"); //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
+				
 			}
 
 			return a_filters.join(",")
@@ -273,7 +304,9 @@ class Player
 		}
 	}
 
-	async startmpv(config,port,extraopts = [],seekToSec = false,selected_audio_channels = [0,1]){
+	
+
+	async startmpv(config,port,extraopts = [],seekToSec = false){
 		let playerInstance = this;
 		let mpvopts = [
 			"--log-file=mpvoutput.log",
@@ -290,7 +323,8 @@ class Player
 				)
 				
 				var final_filter = "[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale=1920:1080,pad=1920:1080:-1:-1:color=2D3039[vid_right_border]" //scale=1920:1080:force_original_aspect_ratio=decrease
-				var audio_filters = playerInstance.getAudioVuFilterString("aid",selected_audio_channels)
+				var audio_filters = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
+				
 				if (audio_filters)
 					final_filter += "," + audio_filters
 				
@@ -302,7 +336,7 @@ class Player
 				mpvopts.push(
 					"--profile=ffasVidProfile", 
 				)
-				var final_filter = playerInstance.getAudioVuFilterString("aid",selected_audio_channels)
+				var final_filter = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
 				final_filter += ",[withaudiobars]copy[vo]" //mpv looks for vo pad	
 				mpvopts.push("--lavfi-complex=" + final_filter)
 
