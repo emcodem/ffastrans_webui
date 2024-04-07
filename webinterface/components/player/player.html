@@ -43,21 +43,7 @@
 				--preview-display : "none";
 				user-select:none;
 			}
-			/* ::-webkit-scrollbar {
-				width: 16px;
-				height: 16px;
-			}
-
-			::-webkit-scrollbar-thumb {
-				background: #434343;
-				border-radius: 16px;
-				box-shadow: inset 2px 2px 2px hsla(0,0%,100%,.25),inset -2px -2px 2px rgba(0,0,0,.25);
-			}
-
-			::-webkit-scrollbar-track {
-				background: linear-gradient(90deg,#434343,#434343 1px,#111 0,#111);
-			} */
-
+			
 			input{
 				font-size: 11px;
 			}
@@ -72,7 +58,6 @@
 			} 
 			.player-btns .mdi {
 				font-size:35px;
-				/* margin:-3px; */
 			} 
 			.player-btns .mdi:hover{
 				/* font-size:37px; */
@@ -116,9 +101,6 @@
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				/*
-				
-    			aspect-ratio: 16 / 9 !important; */
 			}
 
 			.playerControls{
@@ -159,7 +141,6 @@
 				line-height: 1;
 			}
 
-			
 			.audio_check_td input[type=checkbox]{
 				display:none;
 				margin:0 !important;
@@ -170,6 +151,35 @@
 				background-color: rgba(51, 159, 51, 0.557);
 				color:black;
 			}
+			/* Analyze Buttons */
+			.analyze_tools_btn {
+				position: relative;
+				cursor: pointer;
+				padding-left:4px;
+				font-size: 9px;
+				width: 45px;
+				height:18px;
+				margin-bottom:4px;
+			}
+			
+			.analyze_tools_label {
+				display: flex;
+				align-items: center;
+			}
+			
+			.analyze_tools_led_green {   
+				margin-top: 2px;
+				margin-left: 0px;
+				border-radius: 50%;
+				box-shadow: #000 0 -1px 2px 1px;
+				width: 5px;
+				height: 5px;
+			}
+			
+			div[data-state="on"] > analyze_tools_label > analyze_tools_led_green {  
+				background-color: #80FF00;
+			}
+
 
 			</style>
 			
@@ -214,9 +224,16 @@ var concatTypedArrays = function(buffer1, buffer2) {
   return tmp.buffer;
 };
 
+function initAnalyzeBtns(){
+	/* register events and restore defaults from localStore */
+	$(".analyze_tools_btn").on("click",function(evt){
+		console.log("el click",$(evt.target).attr("id"))
+	})
+}
 
 function load(){
 
+			initAnalyzeBtns();
 			document.getElementById("iconPlay").focus();
 			
 			//initialize the player stuff
@@ -786,7 +803,12 @@ function changeAudioTrack(){
 				</div>
 
 			<!--right side-->
+			
+			
 			<div style="margin-left: 10px;margin:5px;width:150px" id="rightSide" class="flexFixed">
+				<button class="analyze_tools_btn" id="analyze_wfm" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">WFM</div></div></button>
+				<button class="analyze_tools_btn" id="analyze_vu"  data-state="on"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
+
 				<div style="" class="gridbox_dhx_skyblue gridbox">
 					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">
 						<tbody>
