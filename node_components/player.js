@@ -214,7 +214,7 @@ class Player
 		console.log("Selected Audio Channels",audio_channels)
 		let playerInstance = this;
 		var vheight = 1080; //todo: make flexible
-
+		var vwidth = 1920; //todo: make flexible
 		try{
 			//add audio VU meters on the right
 			var atracks = playerInstance.config.ffprobe.streams.filter(s => s.codec_type=="audio")
@@ -283,6 +283,11 @@ class Player
 			}
 
 			//is WFM filter active?
+			if (vtracks.length != 0 && playerInstance.config.analyzeTools.wfm){
+				a_filters.push("[vid_right_border]split[voriginal][vwfm]")
+				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9,scale="+vwidth+":"+512+"[vwfm]")
+				a_filters.push("[voriginal][vwfm]vstack,scale="+vwidth+":"+vheight+"[vid_right_border]")
+			}
 
 			//AUDIO ONLY AND VIDEO WITH AUDIO, 
 			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
@@ -300,7 +305,7 @@ class Player
 			return a_filters.join(",")
 
 		}catch(ex){
-			
+			var stop = 1
 		}
 	}
 
@@ -322,7 +327,10 @@ class Player
 					"--profile=ffasVidProfile", 
 				)
 				
-				var final_filter = "[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale=1920:1080,pad=1920:1080:-1:-1:color=2D3039[vid_right_border]" //scale=1920:1080:force_original_aspect_ratio=decrease
+				var vwidth  = 1920;
+				var vheight = 1080;
+
+				var final_filter = "[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale="+vwidth+":"+vheight+",pad="+vwidth+":"+vheight+":-1:-1:color=2D3039[vid_right_border]" //scale=1920:1080:force_original_aspect_ratio=decrease
 				var audio_filters = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
 				
 				if (audio_filters)
