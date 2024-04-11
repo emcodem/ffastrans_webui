@@ -45,7 +45,7 @@
     "node-mediainfo": "^1.0.3",
     "node-mpv": "^1.5.0",
     "nodemailer": "^6.7.5",
-    "npm": "^7.11.1",
+    "npm": "^10.5.2",
     "opn": "^5.5.0",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
