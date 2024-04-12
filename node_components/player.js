@@ -23,6 +23,10 @@ class Player
 		this.vrewrap = 0;
 		this.lastPlayerProps ={};
 		this.lastPlayerCommand = "play";
+		this.outputWidth = 1920;
+		this.outputHeight = 1080;
+		
+
     }
 	
 	async initiate(_websocket,_config){ //_config has field file
@@ -206,30 +210,59 @@ class Player
 
 	}
 
-
 	getAudioVuFilterString(aid_pad_prefix = "aid",audio_channels = [1]){
 		//creates video pad [withaudiobars] which needs to be mapped by the caller to "vo" for mpv
 		//if there is audio, lines up all channels of all tracks, creates audio visual and VU meters as well as a track with selected audio channels, creating an [ao] pad for mpv
 
 		console.log("Selected Audio Channels",audio_channels)
 		let playerInstance = this;
-		var vheight = 1080; //todo: make flexible
-		var vwidth = 1920; //todo: make flexible
+
 		try{
 			//add audio VU meters on the right
 			var atracks = playerInstance.config.ffprobe.streams.filter(s => s.codec_type=="audio")
 			var achannels = atracks.map(t=>t.channels);
 			var vtracks = playerInstance.config.ffprobe.streams.filter(s => s.height)
 
-			if (atracks.length == 0){
-				//VID ONLY
-				return "[vid_right_border]copy[withaudiobars]" //just create withaudiobars label
-			}
+			// if (atracks.length == 0){
+			// 	//VID ONLY
+			// 	return "[vid_right_border]copy[withaudiobars]" //just create withaudiobars label
+			// }
 
 			//merge all channels from all track into one
 			let f_allChannelsInOneTrack = ""
 			var a_filters = [];
 			
+			//we always produce video, 
+			a_filters.push("[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+",pad="+playerInstance.outputWidth+":"+playerInstance.outputHeight+":-1:-1:color=2D3039[vid_right_border]"); //scale=1920:1080:force_original_aspect_ratio=decrease
+			
+
+			//NO VIDEO create audio visualisation
+			if (vtracks.length == 0){
+				a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
+				var visual = "[vectorscopeaudio]avectorscope=draw=line:s="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
+				a_filters.push(visual)
+			}
+
+			//is WFM filter active?
+			if (vtracks.length != 0 && playerInstance.config.analyzeTools.wfm){
+				let oneQuater = playerInstance.outputHeight / 3;
+				let wfmHeight =  16.0*Math.ceil(oneQuater/16.0)
+				a_filters.push("[vid_right_border]split[voriginal][vwfm]")
+				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9:fitmode=size[vwfm]")//scale="+playerInstance.outputWidth+":"+wfmHeight+":sws_flags=bicublin
+				a_filters.push("[voriginal][vwfm]vstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]")
+			}
+
+			//is Audio VU analyzer active?
+			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
+				//audio analyzer active, build VU display
+				let singleBarWidth =  playerInstance.outputWidth / 120;
+				singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);//make sure its a multiple of 2
+				var f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[vid_right_border]'
+				a_filters.push(f_show_volume);
+			}
+
+			//handle Audio
+ 
 			//SECTION: merge all channels of all tracks: [aid1][aid2][aid3]amerge=inputs=3[all]
 			if (atracks.length != 0){
 				for (let aid=1;aid<atracks.length+1;aid++){
@@ -274,32 +307,13 @@ class Player
 				f_selected_channels += "[pc_audio]" //output pad of selected channels
 				a_filters.push(f_selected_channels)
 			}
-			
-			//NO VIDEO create audio visualisation
-			if (vtracks.length == 0){
-				a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
-				var visual = "[vectorscopeaudio]avectorscope=draw=line:s=1920x1080[vid_right_border]"
-				a_filters.push(visual)
-			}
 
-			//is WFM filter active?
-			if (vtracks.length != 0 && playerInstance.config.analyzeTools.wfm){
-				a_filters.push("[vid_right_border]split[voriginal][vwfm]")
-				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9,scale="+vwidth+":"+512+"[vwfm]")
-				a_filters.push("[voriginal][vwfm]vstack,scale="+vwidth+":"+vheight+"[vid_right_border]")
-			}
-
-			//AUDIO ONLY AND VIDEO WITH AUDIO, 
-			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
-				//audio analyzer active, build VU display
-				var f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+vheight+':h=20:b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[withaudiobars]'
-				a_filters.push(f_show_volume);
-				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]") //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
-			}else{
-				//just foward video unmodified
-				a_filters.push ("[vid_right_border]copy[withaudiobars]");
+			//Some final decisions
+			if (atracks.length != 0){
 				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]"); //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
-				
+			}
+			if (vtracks.length != 0){
+				a_filters.push ("[vid_right_border]copy[withaudiobars]"); //we dont know which path crated the final video out and we cannot re-use the same label as often as we wish
 			}
 
 			return a_filters.join(",")
@@ -308,6 +322,7 @@ class Player
 			var stop = 1
 		}
 	}
+
 
 	
 
@@ -326,18 +341,14 @@ class Player
 				mpvopts.push(
 					"--profile=ffasVidProfile", 
 				)
+				playerInstance.outputWidth = 1920; //todo: make flexible
+				playerInstance.outputHeight = 1080; //todo: make flexible
 				
-				var vwidth  = 1920;
-				var vheight = 1080;
 
-				var final_filter = "[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale="+vwidth+":"+vheight+",pad="+vwidth+":"+vheight+":-1:-1:color=2D3039[vid_right_border]" //scale=1920:1080:force_original_aspect_ratio=decrease
-				var audio_filters = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
-				
-				if (audio_filters)
-					final_filter += "," + audio_filters
-				
-				final_filter += ",[withaudiobars]copy[vo]" //mpv looks for vo pad
-				mpvopts.push("--lavfi-complex=" + final_filter)
+				var _filters = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
+			
+				_filters += ",[withaudiobars]copy[vo]" //mpv looks for vo pad
+				mpvopts.push("--lavfi-complex=" + _filters)
 
 			}else if (JSON.stringify(playerInstance.config.ffprobe).indexOf('audio') != -1){
 				//AUDIO ONLY

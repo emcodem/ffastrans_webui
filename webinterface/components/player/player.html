@@ -254,6 +254,7 @@ function initAnalyzeBtns(){
 		//store state to localstorage
 		console.log("setting localstorage",$(evt.target).attr("id"),$(evt.target).attr("data-state"))
 		localStorage[$(evt.target).attr("id")] = $(evt.target).attr("data-state");
+		$(evt.target).blur();
 	});
 
 	//restore user defaults on page load
@@ -402,7 +403,6 @@ function load(){
 					}	
 				}
 				//m_last_player_status = status;
-				console.log("seeking",status.seeking)
 				
 				if (status.duration){
 					//duration from mpv can vary with every frame!
