@@ -258,6 +258,10 @@ function initAnalyzeBtns(){
 	});
 
 	//restore user defaults on page load
+	if (localStorage["analyze_vec"]){
+		$("#analyze_wfm").attr("data-state",localStorage["analyze_vec"]);
+		$("#analyze_wfm").addClass("analyze_tools_led_" +localStorage ["analyze_vec"]);
+	}
 	if (localStorage["analyze_wfm"]){
 		$("#analyze_wfm").attr("data-state",localStorage["analyze_wfm"]);
 		$("#analyze_wfm").addClass("analyze_tools_led_" +localStorage ["analyze_wfm"]);
@@ -298,7 +302,8 @@ function load(){
                 "file":	m_query_params.get("file"),
 				"analyzeTools":{
 					audioVu: 	$("#analyze_audioVu").attr("data-state") == "on"? true:false,
-					wfm:		$("#analyze_wfm").attr("data-state") == "on"? true:false
+					wfm:		$("#analyze_wfm").attr("data-state") == "on"? true:false,
+					vec:		$("#analyze_vec").attr("data-state") == "on"? true:false
 				}
 			})); 
 			
@@ -868,6 +873,7 @@ function changeAudioTrack(){
 			
 			
 			<div style="margin-left: 10px;margin:5px;width:150px" id="rightSide" class="flexFixed">
+				<button class="analyze_tools_btn" id="analyze_vec" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">VEC</div></div></button>
 				<button class="analyze_tools_btn" id="analyze_wfm" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">WFM</div></div></button>
 				<button class="analyze_tools_btn" id="analyze_audioVu"  data-state="on"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
 

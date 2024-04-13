@@ -14,7 +14,7 @@ class Player
 		this.playerProcess = null;
 		this.selected_channels = [0,1];
 		this.websocket = null;
-		this.config = {"file":"",analyzeTools:{audioVu:true, wfm:false}};
+		this.config = {"file":"",analyzeTools:{audioVu:true, wfm:false, vec:true}};
 		this.mpvexe = path.join(global.approot,"tools","mpv","mpv.exe");
 		this.mpv = null;
 		this.senderInterval = null;
@@ -38,6 +38,7 @@ class Player
 		if (playerInstance.config.analyzeTools){
 			playerInstance.config.analyzeTools.audioVu 	= _config.analyzeTools.audioVu;
 			playerInstance.config.analyzeTools.wfm 		= _config.analyzeTools.wfm;
+			playerInstance.config.analyzeTools.vec 		= _config.analyzeTools.vec;
 		}
 
 		console.log("PLAYER INITATE", playerInstance.config);
@@ -179,6 +180,9 @@ class Player
 			if (data.val == "wfm"){
 				playerInstance.config.analyzeTools.wfm = true;
 			}
+			if (data.val == "vec"){
+				playerInstance.config.analyzeTools.vec = true;
+			}
 			playerInstance.restartPlayerAtCurrentPos();
 		}
 		
@@ -188,6 +192,9 @@ class Player
 			}
 			if (data.val == "wfm"){
 				playerInstance.config.analyzeTools.wfm = false;
+			}
+			if (data.val == "vec"){
+				playerInstance.config.analyzeTools.vec = false;
 			}
 			playerInstance.restartPlayerAtCurrentPos();
 		}
@@ -232,37 +239,37 @@ class Player
 			let f_allChannelsInOneTrack = ""
 			var a_filters = [];
 			
-			//we always produce video, 
-			a_filters.push("[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+",pad="+playerInstance.outputWidth+":"+playerInstance.outputHeight+":-1:-1:color=2D3039[vid_right_border]"); //scale=1920:1080:force_original_aspect_ratio=decrease
-			
-
-			//NO VIDEO create audio visualisation
-			if (vtracks.length == 0){
-				a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
-				var visual = "[vectorscopeaudio]avectorscope=draw=line:s="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
-				a_filters.push(visual)
+			//we always produce video,  
+			if (vtracks.length != 0){
+				a_filters.push("[vid1]sidedata=delete,metadata=delete,yadif=deint=1,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+",pad="+playerInstance.outputWidth+":"+playerInstance.outputHeight+":-1:-1:color=2D3039[vid_right_border]"); //scale=1920:1080:force_original_aspect_ratio=decrease
 			}
 
 			//is WFM filter active?
 			if (vtracks.length != 0 && playerInstance.config.analyzeTools.wfm){
+				var original_pix_fmt = vtracks[0].pix_fmt;
 				let oneQuater = playerInstance.outputHeight / 3;
 				let wfmHeight =  16.0*Math.ceil(oneQuater/16.0)
 				a_filters.push("[vid_right_border]split[voriginal][vwfm]")
-				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9:fitmode=size[vwfm]")//scale="+playerInstance.outputWidth+":"+wfmHeight+":sws_flags=bicublin
-				a_filters.push("[voriginal][vwfm]vstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]")
+				let force_pix_fmt_workaround = "copy"; //
+				if (original_pix_fmt.indexOf("10")!=-1){
+					//there is a bug in ffmpeg scale filter for 10bit sources in combination with scale and waveform. need to insert format filter to correct it (otherwise green or shattered graphics)
+					force_pix_fmt_workaround = "format="+original_pix_fmt; //
+				}
+				a_filters.push("[vwfm]"+force_pix_fmt_workaround+"[vwfm]");
+				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9[vwfm]");//scale="+playerInstance.outputWidth+":"+wfmHeight+":sws_flags=bicublin
+				a_filters.push("[voriginal][vwfm]vstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]");
+			}
+			
+			if (vtracks.length != 0 && playerInstance.config.analyzeTools.vec){
+				//workaround ffmpeg bug: format=yuv444p, otherwise it will just fail with error "could not select any format", no matter what format the original was
+				a_filters.push("[vid_right_border]split[vid_right_border][vectorscope],[vectorscope]format=yuv444p,vectorscope=x=1:y=2:i=0.5:g=green:m=color3,scale="+playerInstance.outputHeight+":"+playerInstance.outputHeight+",setsar=1[vectorscope]");
+				//if wfm is active, need to resize original+wfm horitzontal half
+				if (playerInstance.config.analyzeTools.wfm)
+					a_filters.push("[vid_right_border]scale=iw/2:ih[vid_right_border]")
+				
+				a_filters.push("[vectorscope][vid_right_border]hstack[vid_right_border]");
 			}
 
-			//is Audio VU analyzer active?
-			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
-				//audio analyzer active, build VU display
-				let singleBarWidth =  playerInstance.outputWidth / 120;
-				singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);//make sure its a multiple of 2
-				var f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[vid_right_border]'
-				a_filters.push(f_show_volume);
-			}
-
-			//handle Audio
- 
 			//SECTION: merge all channels of all tracks: [aid1][aid2][aid3]amerge=inputs=3[all]
 			if (atracks.length != 0){
 				for (let aid=1;aid<atracks.length+1;aid++){
@@ -270,6 +277,8 @@ class Player
 				}
 				f_allChannelsInOneTrack += "amerge=inputs=" + atracks.length + "[all]"
 				a_filters.push(f_allChannelsInOneTrack)
+				
+				
 				//we got all channels of all tracks now in [all]
 
 				//push selected audio channels to pan filter, creating the final output for mpv [pc_audio]
@@ -306,15 +315,35 @@ class Player
 				}
 				f_selected_channels += "[pc_audio]" //output pad of selected channels
 				a_filters.push(f_selected_channels)
+				
+				//Audio only? - create audio visualisation
+				if (vtracks.length == 0){
+					a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
+					let visual = "[vectorscopeaudio]avectorscope=draw=line:s="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
+					a_filters.push(visual)
+				}
+
+
+				//is Audio VU analyzer active?
+				if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
+					//audio analyzer active, build VU display
+					let singleBarWidth =  playerInstance.outputWidth / 140;
+					singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);//make sure its a multiple of 2
+					let f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[vid_right_border]'
+					a_filters.push(f_show_volume);
+				}
+				
 			}
+
+
 
 			//Some final decisions
 			if (atracks.length != 0){
 				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]"); //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
 			}
-			if (vtracks.length != 0){
-				a_filters.push ("[vid_right_border]copy[withaudiobars]"); //we dont know which path crated the final video out and we cannot re-use the same label as often as we wish
-			}
+
+			//all filter chains are expected to produce a final vid named right border
+			a_filters.push ("[vid_right_border]copy[withaudiobars]"); //we dont know which path crated the final video out and we cannot re-use the same label as often as we wish
 
 			return a_filters.join(",")
 
