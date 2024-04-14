@@ -158,8 +158,8 @@
 				position: relative;
 				cursor: pointer;
 				padding-left:4px;
-				font-size: 9px;
-				width: 45px;
+				font-size: 8px;
+				width: 43px;
 				height:18px;
 				margin-bottom:4px;
 			}
@@ -259,8 +259,8 @@ function initAnalyzeBtns(){
 
 	//restore user defaults on page load
 	if (localStorage["analyze_vec"]){
-		$("#analyze_wfm").attr("data-state",localStorage["analyze_vec"]);
-		$("#analyze_wfm").addClass("analyze_tools_led_" +localStorage ["analyze_vec"]);
+		$("#analyze_vec").attr("data-state",localStorage["analyze_vec"]);
+		$("#analyze_vec").addClass("analyze_tools_led_" +localStorage ["analyze_vec"]);
 	}
 	if (localStorage["analyze_wfm"]){
 		$("#analyze_wfm").attr("data-state",localStorage["analyze_wfm"]);
@@ -875,7 +875,7 @@ function changeAudioTrack(){
 			<div style="margin-left: 10px;margin:5px;width:150px" id="rightSide" class="flexFixed">
 				<button class="analyze_tools_btn" id="analyze_vec" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">VEC</div></div></button>
 				<button class="analyze_tools_btn" id="analyze_wfm" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">WFM</div></div></button>
-				<button class="analyze_tools_btn" id="analyze_audioVu"  data-state="on"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
+				<button class="analyze_tools_btn" id="analyze_audioVu"  data-state="off"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
 
 				<div style="" class="gridbox_dhx_skyblue gridbox">
 					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">

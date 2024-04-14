@@ -249,7 +249,7 @@ class Player
 				var original_pix_fmt = vtracks[0].pix_fmt;
 				let oneQuater = playerInstance.outputHeight / 3;
 				let wfmHeight =  16.0*Math.ceil(oneQuater/16.0)
-				a_filters.push("[vid_right_border]split[voriginal][vwfm]")
+				a_filters.push("[vid_right_border]split[vid_right_border][vwfm]")
 				let force_pix_fmt_workaround = "copy"; //
 				if (original_pix_fmt.indexOf("10")!=-1){
 					//there is a bug in ffmpeg scale filter for 10bit sources in combination with scale and waveform. need to insert format filter to correct it (otherwise green or shattered graphics)
@@ -257,17 +257,17 @@ class Player
 				}
 				a_filters.push("[vwfm]"+force_pix_fmt_workaround+"[vwfm]");
 				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9[vwfm]");//scale="+playerInstance.outputWidth+":"+wfmHeight+":sws_flags=bicublin
-				a_filters.push("[voriginal][vwfm]vstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]");
+				//a_filters.push("[voriginal][vwfm]vstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]");
 			}
 			
+			//is vectorscope filter active?
 			if (vtracks.length != 0 && playerInstance.config.analyzeTools.vec){
 				//workaround ffmpeg bug: format=yuv444p, otherwise it will just fail with error "could not select any format", no matter what format the original was
 				a_filters.push("[vid_right_border]split[vid_right_border][vectorscope],[vectorscope]format=yuv444p,vectorscope=x=1:y=2:i=0.5:g=green:m=color3,scale="+playerInstance.outputHeight+":"+playerInstance.outputHeight+",setsar=1[vectorscope]");
 				//if wfm is active, need to resize original+wfm horitzontal half
-				if (playerInstance.config.analyzeTools.wfm)
-					a_filters.push("[vid_right_border]scale=iw/2:ih[vid_right_border]")
+
 				
-				a_filters.push("[vectorscope][vid_right_border]hstack[vid_right_border]");
+				//a_filters.push("[vectorscope][vid_right_border]hstack[vid_right_border]");
 			}
 
 			//SECTION: merge all channels of all tracks: [aid1][aid2][aid3]amerge=inputs=3[all]
@@ -329,12 +329,26 @@ class Player
 					//audio analyzer active, build VU display
 					let singleBarWidth =  playerInstance.outputWidth / 140;
 					singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);//make sure its a multiple of 2
-					let f_show_volume = '[all]showvolume=r=25:c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume],[vid_right_border][vid_showvolume]hstack[vid_right_border]'
+					let framerate = vtracks[0].r_frame_rate;
+					let f_show_volume = '[all]showvolume=r='+framerate+':c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume]'
 					a_filters.push(f_show_volume);
 				}
-				
+	
 			}
 
+
+
+
+			//wfm [vwfm] pad
+			if (vtracks.length != 0 && playerInstance.config.analyzeTools.wfm)
+				a_filters.push("[vid_right_border][vwfm]vstack,scale=-1:"+playerInstance.outputHeight+"[vid_right_border]"); //
+			
+			//vectorscope [vectorscope] pad
+			if (vtracks.length != 0 && playerInstance.config.analyzeTools.vec)
+				a_filters.push("[vectorscope][vid_right_border]hstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]");
+
+			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu)
+				a_filters.push("[vid_right_border][vid_showvolume]hstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]")
 
 
 			//Some final decisions
@@ -342,8 +356,8 @@ class Player
 				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]"); //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
 			}
 
-			//all filter chains are expected to produce a final vid named right border
-			a_filters.push ("[vid_right_border]copy[withaudiobars]"); //we dont know which path crated the final video out and we cannot re-use the same label as often as we wish
+			//all filter chains are expected to produce a final vid named vid_right_border
+			//a_filters.push ("[vid_right_border]copy[withaudiobars]"); //we dont know which path crated the final video out and we cannot re-use the same label as often as we wish
 
 			return a_filters.join(",")
 
@@ -376,7 +390,7 @@ class Player
 
 				var _filters = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
 			
-				_filters += ",[withaudiobars]copy[vo]" //mpv looks for vo pad
+				_filters += ",[vid_right_border]copy[vo]" //mpv looks for vo pad
 				mpvopts.push("--lavfi-complex=" + _filters)
 
 			}else if (JSON.stringify(playerInstance.config.ffprobe).indexOf('audio') != -1){
@@ -385,7 +399,7 @@ class Player
 					"--profile=ffasVidProfile", 
 				)
 				var final_filter = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
-				final_filter += ",[withaudiobars]copy[vo]" //mpv looks for vo pad	
+				final_filter += ",[vid_right_border]copy[vo]" //mpv looks for vo pad	
 				mpvopts.push("--lavfi-complex=" + final_filter)
 
 			}else{
