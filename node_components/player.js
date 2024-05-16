@@ -256,7 +256,7 @@ class Player
 					force_pix_fmt_workaround = "format="+original_pix_fmt; //
 				}
 				a_filters.push("[vwfm]"+force_pix_fmt_workaround+"[vwfm]");
-				a_filters.push("[vwfm]waveform=filter=lowpass:scale=digital:graticule=green:mirror=1:intensity=0.9[vwfm]");//scale="+playerInstance.outputWidth+":"+wfmHeight+":sws_flags=bicublin
+				a_filters.push("[vwfm]waveform=filter=lowpass:envelope=instant:d=parade:scale=digital:graticule=green:mirror=1:intensity=0.9[vwfm]");//scale="+playerInstance.outputWidth+":"+wfmHeight+":sws_flags=bicublin
 				//a_filters.push("[voriginal][vwfm]vstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]");
 			}
 			
