@@ -542,13 +542,22 @@ async function afterStage1Select(outbound){
                     return;
                 }
                 //SUBMIT THE JOB(s)
+                
+                var outbound = form.getItem("button")["outbound"];
+
                 var final_vars_to_submit = collectVariables(form);
                 if (final_vars_to_submit.findIndex(x => x.name === "s_job_submit_username") == -1){
                     final_vars_to_submit.push({"name":"s_job_submit_username","data":m_logged_in_username});
                 }
-
+                var existing_vars = outbound.ticket.job.variables;
+                for (var exvar of existing_vars){
+                    //only add existing variables if the have no new value
+                    if (final_vars_to_submit.findIndex(x => x.name === exvar.name) == -1){
+                        final_vars_to_submit.push(exvar);
+                    } 
+                }
                 console.log("final vars:",final_vars_to_submit)
-                var outbound = form.getItem("button")["outbound"];
+
                 var api_job = {
                     "wf_id": "<workflow id>",
                     "inputfile": "<full path to file>",
