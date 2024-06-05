@@ -99,11 +99,20 @@ async function dumpBinaryToDisk(where){
 
     var dependencies = require("./bin/mongod_w64.js").getDependenciesBase64();
     for (var i in dependencies){
-        //in windows, writes vcredist dll's
+        //writes vcredist dll's and mongo exe to temp dir
         try{
             let buff = Buffer.from(dependencies[i].data, 'base64');
             let fullPath = path.join(where,dependencies[i].name);
-            fs.writeFileSync(fullPath, buff);
+            try{
+                fs.writeFileSync(fullPath, buff);
+            }catch(ex){
+                if (!fs.existsSync(fullPath)){
+                    throw new Error(ex);
+                }else{
+                    //maybe just another instance already running, try to go on
+                    console.warn("Could not write dependency to disk but the file already exists, is there another instance of webinterface running?");
+                }
+            }
         }catch(ex){
             console.log("Error writing database dependency to disk: " + dependencies[i].name, ex);
         }
