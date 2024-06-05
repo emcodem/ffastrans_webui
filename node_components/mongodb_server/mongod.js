@@ -95,7 +95,17 @@ async function dumpBinaryToDisk(where){
     //todo: decide os here and deliver more choices of binaries with package
     var b64 = require("./bin/mongod_w64.js").getMongoBase64();
     let buff = Buffer.from(b64, 'base64');
-    fs.writeFileSync(fullMongoPath, buff);
+    
+    try{
+        fs.writeFileSync(fullMongoPath, buff);
+    }catch(ex){
+        if (!fs.existsSync(fullMongoPath)){
+            throw new Error(ex);
+        }else{
+            //maybe just another instance already running, try to go on
+            console.warn("Could not write mongo exe, is there another instance of webinterface running?");
+        }
+    }
 
     var dependencies = require("./bin/mongod_w64.js").getDependenciesBase64();
     for (var i in dependencies){
