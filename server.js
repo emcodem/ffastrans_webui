@@ -65,7 +65,7 @@ if (fs.existsSync(path.join(global.approot, "/database/"))) {
     console.log("Running as compiled file")
 }else{
     global.approot  = __dirname;
-    console.log("Running as node script - developer mode")   
+    console.log("Running as node script - developer mode")  
     if (!fs.existsSync(global.approot + "/database/")){
         console.error("Database does not exist, please create it:" + global.approot + "/database/config");
     }
@@ -87,8 +87,8 @@ var jobcontrol = require("./node_components/jobcontrol_socketio");
 
 //init DB
 global.db={};
-
 global.db.config = new AsyncNedb({ filename: global.approot  + "/database/config" });
+
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
   assert.equal(null, err);
 });
@@ -419,32 +419,51 @@ async function init(conf){
 
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans')
-	// Listen both http & https ports if configured
 	var path_to_privkey = global.approot  	+ '/cert/key.pem';
 	var path_to_cert = global.approot  		+ '/cert/cert.pem';
-	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
-	if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
-		const https = require('https');
-		const httpsServer = https.createServer({
-		  key: fs.readFileSync(path_to_privkey),
-		  cert: fs.readFileSync(path_to_cert),
-		  passphrase: key_password
-		}, app);
-		
-		httpsServer.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
-			console.log('HTTPS Server running on port',global.config.STATIC_WEBSERVER_LISTEN_PORT);
-			initSocketIo(httpsServer);
-		});
+    var path_to_pfx  = global.approot  		+ '/cert/cert.pfx';
 
-	}else{
-		const http = require('http').Server(app);
-		
-		http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
-			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT);
-			initSocketIo(http);	
-		}).on('error', handleListenError);
+	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
+    try{
+        if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+            const https = require('https');
+            if (fs.existsSync(path_to_pfx)){
+                //cert is pfx
+                httpsServer = https.createServer({
+                    pfx: fs.readFileSync(path_to_pfx),
+                    passphrase: key_password
+                }, app);                  
+            }else{
+                //cert is pem
+                httpsServer = https.createServer({
+                    key: fs.readFileSync(path_to_privkey),
+                    cert: fs.readFileSync(path_to_cert),
+                    passphrase: key_password
+                }, app);      
+            }
+            
+            httpsServer.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
+                console.log('HTTPS Server running on port',global.config.STATIC_WEBSERVER_LISTEN_PORT);
+                initSocketIo(httpsServer);
+            });
+
+        }else{
+            startStandardHttpServer();
+        }
+    }catch(ex){
+        console.error("Fatal Error starting webserver on https, using http.");
+        console.error(ex);
     }
     
+}
+
+function startStandardHttpServer(){
+    const http = require('http').Server(app);
+		
+    http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
+        console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT);
+        initSocketIo(http);	
+    }).on('error', handleListenError);
 }
 
 function handleListenError(err){
