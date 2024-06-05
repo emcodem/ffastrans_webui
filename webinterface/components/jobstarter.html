@@ -1396,7 +1396,7 @@ async function getBrowseLocations(restore_saved = true){
 }
 
 async function on_gridWorkflowSelected(wf_name,wf_object){
-    console.log("selwf",wf_object)
+    console.log("Selected Workflow",wf_object)
 
     document.getElementById("variables_form").innerHTML = "";
     var layout = new dhx8.dhx.Layout("variables_form", {
@@ -1409,6 +1409,7 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
                                             ]
                                         });
     
+
     //called from select event of grid select
     //populates start processor drowdown
     localStorage.setItem("lastselectedworkflow",wf_object["wf_id"]);
@@ -1453,7 +1454,7 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
 
     
     //get user variables for selected workflow
-    
+    m_jobLayout.cells("b").progressOn();
     try{
         //try updating workflow variables
         var workflowdetails =  await $.ajax({
@@ -1464,6 +1465,8 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
         wf_object.user_variables.variables = workflowdetails.workflows[0].user_variables.variables;
     }catch(ex){
         console.log("getworkflowdetails failed, this is only OK in alternate-server mode");
+    }finally{
+        m_jobLayout.cells("b").progressOff();
     }
 
     //parse workflow description
