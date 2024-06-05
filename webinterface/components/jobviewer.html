@@ -986,9 +986,11 @@
                 
 				try{
 					filename_to_display = (node.data.source.split("\\").pop());
-					
+					if (filename_to_display.indexOf("/") != -1){
+                        filename_to_display = filename_to_display.split("/").pop();
+                    }
 				}catch(ex){
-					alert(ex)
+					alert(ex);
 				}
 				
                 $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
