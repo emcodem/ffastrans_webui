@@ -242,6 +242,32 @@ function init(){
                         height:"60px"
                     }
                 ]
+            },
+            {
+                type: "radioGroup",
+                name: "STATIC_ENABLE_GOOGLE_ANALYTICS",
+                value: m_serverconfig["STATIC_ENABLE_GOOGLE_ANALYTICS"],
+                labelWidth: label_width,
+                required:false,
+                options: {
+                    cols: [
+                        {
+                            "type": "radioButton",
+                            "text": "Enabled",
+                            "value": "enabled"
+                        },
+                        {
+                            "type": "radioButton",
+                            "text": "Disabled",
+                            "value": "disabled"
+                        }
+                    ]
+                },
+                label: "Enable/Disable Reporting Anonymous Usage Statistics",
+                labelPosition: "left",
+                preMessage: "Please do not turn this off, it helps development and software design",
+                successMessage: "Please do not turn this off, it helps development and software design",
+                errorMessage: "Please do not turn this off, it helps development and software design",
             }
         ]})
 
