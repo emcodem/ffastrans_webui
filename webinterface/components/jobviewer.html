@@ -983,6 +983,7 @@
                 $tdList = $(node.tr).find(">td");
 				
 				var filename_to_display = node.data.source;
+                
 				try{
 					filename_to_display = (node.data.source.split("\\").pop());
 					
@@ -1283,7 +1284,7 @@
                 $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
                 var parsedFileName = node.data.source;
                 try{
-                    //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store this
+                    //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store the normalized name
                     try{
                         if (Array.isArray(JSON.parse(parsedFileName))){
                             parsedFileName = JSON.parse(parsedFileName)[0] + " (List: " + JSON.parse(parsedFileName).length + ")"; 
@@ -1295,10 +1296,13 @@
                         console.log("concat parsed fname",parsedFileName)
                         
                     }
-                    //try to get filename only
-                    if (parsedFileName.match(/[^\\]+$/).length == 1 && parsedFileName.match(/[^\\]+$/)[0] != "")    
-                        parsedFileName = parsedFileName.match(/[^\\]+$/)[0]; //remove everything before last backslash
-                    
+                    //try to get filename only, everything after last backslash or slash
+                    if (parsedFileName.match(/[^\\]+$/).length == 1 && parsedFileName.match(/[^\\]+$/)[0] != ""){
+                        parsedFileName = parsedFileName.match(/[^\\]+$/)[0]; //remove everything after last backslash
+                    }
+                    if (parsedFileName.match(/[^\/]+$/).length == 1 && parsedFileName.match(/[^\/]+$/)[0] != ""){
+                        parsedFileName = (parsedFileName.split("/").pop());
+                    }
 
                 }catch(ex){}
 
