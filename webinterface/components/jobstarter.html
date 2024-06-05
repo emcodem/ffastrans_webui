@@ -156,7 +156,7 @@ var socket = io();
 
 /* GLOBALS */
 //dhtmlx ui
-var m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
+var m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_jobLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 var m_noBrowseMode = false;
 var m_listDriveWindow = false;
@@ -555,20 +555,20 @@ function init(){
     });
 
     //workflow forms
-    jobLayout = m_mainLayout.cells("b").attachLayout({
+    m_jobLayout = m_mainLayout.cells("b").attachLayout({
         parent: document.body,  
         pattern: "2E"           
     });
-    jobLayout.cells("a").hideHeader();
-    jobLayout.cells("a").setText("Selected Files");
-    jobLayout.cells("b").hideHeader();
-    jobLayout.cells("a").setMinWidth(50);
-    jobLayout.cells("b").setMinWidth(50);
-    jobLayout.cells("a").setMinHeight(50);
-    jobLayout.cells("b").setMinHeight(50);
+    m_jobLayout.cells("a").hideHeader();
+    m_jobLayout.cells("a").setText("Selected Files");
+    m_jobLayout.cells("b").hideHeader();
+    m_jobLayout.cells("a").setMinWidth(50);
+    m_jobLayout.cells("b").setMinWidth(50);
+    m_jobLayout.cells("a").setMinHeight(50);
+    m_jobLayout.cells("b").setMinHeight(50);
     
-    //jobLayout.cells("a").setHeight($(document).height()/3.5);
-    m_workflowTabBar = jobLayout.cells("b").attachTabbar({
+    //m_jobLayout.cells("a").setHeight($(document).height()/3.5);
+    m_workflowTabBar = m_jobLayout.cells("b").attachTabbar({
         mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
         tabs: [ // workflow and variable tabs config
             {
@@ -605,7 +605,7 @@ function init(){
 //     m_mainForm.addItem(null, {type : "fieldset", name : "data", label : "Start Processor", inputWidth : 180, position : "label-top", width: 350, height: 200, offsetTop : 20, offsetLeft : 10,list:[]});
 //     m_subForm  = new dhtmlXForm("subform");
 
-    m_selectedFileGrid = jobLayout.cells("a").attachGrid();
+    m_selectedFileGrid = m_jobLayout.cells("a").attachGrid();
     m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
     m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
     m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,Status,Outcome");
@@ -750,7 +750,7 @@ function init(){
     // });
 
     //file add remove event
-    headerMenu.attachEvent("onClick", function(id, zoneId, cas){
+    headerMenu.attachEvent("onClick", async function(id, zoneId, cas){
             if (id == "add_customfile") {
                 var box = dhtmlx.modalbox({
                     title:"Add Source",
@@ -783,7 +783,17 @@ function init(){
                 m_selectedFileGrid.deleteSelectedRows();
             }
             if (id == "clear_all"){
-                m_selectedFileGrid.clearAll();
+                //todo: ask if really want
+                const config = {
+                    header: "Clear Selection",
+                    text: "Do you really want to delete all Selected Items?",
+                    buttons: ["Cancel", "Apply"],
+                    buttonsAlignment: "center"
+                };
+                var ok = await dhx8.dhx.confirm(config);
+                if (ok){
+                    m_selectedFileGrid.clearAll();
+                }
             }
          
     });
@@ -976,13 +986,13 @@ function init(){
     
     m_mainLayout.attachEvent("onPanelResizeFinish", function(){
         console.log("m_mainLayout onPanelResizeFinish");
-        saveLayoutSizes(jobLayout,"jobLayout");
+        saveLayoutSizes(m_jobLayout,"m_jobLayout");
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
     
-    jobLayout.attachEvent("onPanelResizeFinish", function(){
-        console.log("jobLayout onPanelResizeFinish");
-        saveLayoutSizes(jobLayout,"jobLayout");
+    m_jobLayout.attachEvent("onPanelResizeFinish", function(){
+        console.log("m_jobLayout onPanelResizeFinish");
+        saveLayoutSizes(m_jobLayout,"m_jobLayout");
         saveLayoutSizes(m_mainLayout,"m_mainLayout");
     });
    
@@ -992,7 +1002,7 @@ function init(){
     //load workflow list from API
     m_mainLayout.cells("b").progressOn();
     saveRestoreUserState(); //restores last selected tab
-    restoreLayoutSizes(jobLayout,"jobLayout");
+    restoreLayoutSizes(m_jobLayout,"m_jobLayout");
     restoreLayoutSizes(m_mainLayout,"m_mainLayout");
     getWorkflows();
     getBrowseLocations(show_browse);
@@ -1020,7 +1030,7 @@ function init(){
             m_selectedFileGrid.setRowData(newId,newrowdata);
 
             hideFileSelector()
-            jobLayout.cells("a").setHeight(150)
+            m_jobLayout.cells("a").setHeight(150)
         }
     }
 
