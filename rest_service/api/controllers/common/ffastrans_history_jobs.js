@@ -41,6 +41,8 @@ async function getHistoryJobs(start,end){
                     let splitcontent    = await readJsonFileCached(splitfilepath);
                     jobjson[split]      = splitcontent;
                 }
+                //todo: check if dispelled
+                
                 returnArray.push(buildSplitInfo(jobjson,split))
             }catch(ex){
                 console.trace(ex)
