@@ -176,7 +176,8 @@ async function add_user_vars(o_return){
     // enrich workflow by the user_vars that it uses
     console.time("add_user_vars")
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
-    var all_vars_readout = await fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
+     
+    var all_vars_readout = await common.readfile_cached(s_user_vars_file);//fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
     all_vars_readout = all_vars_readout.replace(/^\uFEFF/, '');
     var all_vars = JSON.parse(all_vars_readout);
     all_vars = [...all_vars.variables,...all_vars.statics];
