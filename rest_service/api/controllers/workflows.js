@@ -174,6 +174,7 @@ async function add_status(a_workflows){
 async function add_user_vars(o_return){
     // enrich all_user_vars by use count 
     // enrich workflow by the user_vars that it uses
+    console.trace()
     console.time("add_user_vars")
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
      
@@ -233,7 +234,7 @@ async function add_user_vars(o_return){
         }
     }
     //original obj has been inline modified
-    
+    console.timeEnd("add_user_vars")
 }
 
 

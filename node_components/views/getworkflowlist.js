@@ -134,7 +134,7 @@ module.exports = async function (app, passport) {
             res.json(countObj);//output json array to client
             return;
         } catch (ex) {
-            console.log("ERROR: error in getworkflowjobcount: " + ex);
+            console.log("ERROR: error in getworkflowjobcount: ", ex);
             res.status(500);//Send error response here
             res.end();
             return;
@@ -257,6 +257,8 @@ function getPermittedWorkflowList(allPermissions, workflowResponse) {
             var filter = allPermissions[x]["value"]["filter"];
             for (var i in workflowlist["workflows"]) {
                 var wf = workflowlist["workflows"][i];
+                if (!wf["wf_folder"])
+                    wf["wf_folder"] = "";
                 if (wf["wf_folder"].toLowerCase().match(filter.toLowerCase())) {
                     if (!alreadyAdded[wf["wf_name"]]) {
                         //console.log("Worfkflow folder  " + wf["wf_folder"] + " matches filter " + filter);
