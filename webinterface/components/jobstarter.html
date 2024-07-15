@@ -1786,7 +1786,7 @@ async function startJobs(form,selectedWorkflow){
         a_row_ids.push(id);
 
     }//foreach gridrow
-
+    console.log("o_files",o_all_files)
     if (segments_used && JSON.stringify(selectedWorkflow).indexOf("webui_o_source") == -1){
         if (!ignore_segment_not_used_warning){
             ignore_segment_not_used_warning = await dhx8.dhx.confirm({
@@ -1819,7 +1819,9 @@ async function startJobs(form,selectedWorkflow){
         }
     }else{
         //submit one job per file
+        var postBody_copy = JSON.stringify(postBody);
         for (let j=0;j<a_all_files.length;j++){
+            postBody = JSON.parse(postBody_copy)
             postBody.inputfile = a_all_files[j];
             postBody.variables.push({name:"webui_a_source",data:JSON.stringify([a_all_files[j]])});
             postBody.variables.push({name:"webui_o_source",data:JSON.stringify([o_all_files[j]])});

@@ -54,7 +54,7 @@ module.exports = function(app, passport){
 						res.end(); 
 						return;
 					}
-					console.log("Groups for user", usernameToCheck, ":", groups)
+					console.log("Groups for user: ", usernameToCheck, ":", groups)
 					var groups_cn_only = [];
 					groups.forEach(function(_obj){
 						try{

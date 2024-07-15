@@ -11,7 +11,7 @@ module.exports = function(app, express){
 				var allowedWorkflows = [];
 				var allWorkflows = await global.db.jobs.distinct("workflow");
 				if (req.user){
-					var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
+					//var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
 					//serve only workflows the user has rights for
 					for (let _wf of allWorkflows){
 						if (await userpermissions.checkworkflowpermission(req.user.local.username,_wf)){

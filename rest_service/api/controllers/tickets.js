@@ -100,10 +100,10 @@ async function get_incoming(returnarray){
                         var _incoming_files = await fsPromises.readdir( _mons+ "\\" +_proc_guids[_proc].name + "\\i", { withFileTypes: false });
                         
                         //in every proc guid folder, find all files in the /i folder (incoming)
-                        for (var _incoming in _incoming_files){
+                        for (let i = 0; i < _incoming_files.length; i += 1){
                             try{
                                 //FOUND SOME INCOMING FILE, PUSH TO output array
-                                var ticket_path = path.join(_mons  , _proc_guids[_proc].name , "i" , _incoming_files[_incoming]); 
+                                var ticket_path = path.join(_mons  , _proc_guids[_proc].name , "i" , _incoming_files[i]); 
                                 
                                 var newitem = {};
                                 //read the incoming json to get details about watched file
@@ -123,14 +123,14 @@ async function get_incoming(returnarray){
                                 newitem["internal_wf_name"] = await common.get_wf_name(_matches[1]);
                                 found_incoming.push(newitem);
                             }catch(ex){
-                                console.log("If this error occurs only once, its OK but just for info: could not parse" + _mons + "\\" +_proc_guids[_proc].name + "\\i\\" + _incoming_files[_incoming]  , ex);
+                                console.log("If this error occurs only once, its OK but just for info: could not parse" + _mons + "\\" +_proc_guids[_proc].name + "\\i\\" + _incoming_files[i]  , ex);
                                 console.log("contents",common.readfile_cached(ticket_path))
                             }
-                            if (_incoming > 100){
+                            if (i > 98){
                                 console.warn("Incoming files is more than 100, your watchfolder is huge..." + _mons + "\\" +_proc_guids[_proc].name);
                                 break;
                             }
-                            
+							
                         }
                         
                     }
