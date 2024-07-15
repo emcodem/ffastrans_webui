@@ -11,6 +11,7 @@ const AsyncNedb  = require('@seald-io/nedb');
 const Mongod = require("./node_components/mongodb_server/mongod");
 const portfinder = require("portfinder");
 const passport = require('passport');
+global.passport = passport;
 const axios = require('axios');
 
 const session      = require('express-session');
