@@ -1757,6 +1757,7 @@ async function startJobs(form,selectedWorkflow){
         var source = m_selectedFileGrid.getCellByName(id,"source_of_adding").getValue();
         var _state = m_selectedFileGrid.getCellByName(id,"Outcome").getValue();
         var _filepath = m_selectedFileGrid.getCellByName(id,"Path").getValue().replace(/&amp;/g, '&');
+        //todo: emcodem, get filepath from userdata
         if (_state){
             //row was already submitted
             dhx8.dhx.message({ expire: 3000, text: "Already submitted " + _filepath, "node": "form_wf_form"});

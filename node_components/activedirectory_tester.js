@@ -31,8 +31,9 @@ module.exports = function(app, passport){
 					uname = data["ad_user"];
 					
 				//prepare AD connection
+				let protocol = data["ad_config"]["ad_protocol"] == "ldaps" ? "ldaps" : "ldap";
 				var adopts = {
-				  url: 'ldap://' + data["ad_config"]["ad_fqdn"] + ":" + data["ad_config"]["ad_port"],
+				  url: protocol + '://' + data["ad_config"]["ad_fqdn"] + ":" + data["ad_config"]["ad_port"],
 				  baseDN: base_dn,
 				  username: data["ad_user"] +'@' + data["ad_config"]["ad_fqdn"],
 				  password: decrypted
