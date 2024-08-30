@@ -103,7 +103,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
                     if (username.indexOf("@")!= -1)
                         uname = username;
 
-                    let protocol = data["ad_config"]["ad_protocol"] == "ldaps" ? "ldaps" : "ldap";
+                    let protocol = global.config["ad_config"]["ad_protocol"] == "ldaps" ? "ldaps" : "ldap";
 					var adopts = {
 							url: protocol + '://'+global.config["ad_config"]["ad_fqdn"]+':'+global.config["ad_config"]["ad_port"],
 							baseDN: global.config["ad_config"]["ad_basedn"],
