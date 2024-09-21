@@ -990,7 +990,7 @@
                         filename_to_display = filename_to_display.split("/").pop();
                     }
 				}catch(ex){
-					alert(ex);
+					//do nothing in order to support non filename sources
 				}
 				
                 $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
