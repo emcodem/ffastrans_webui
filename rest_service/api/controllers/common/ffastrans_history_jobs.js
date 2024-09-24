@@ -1,5 +1,7 @@
 const path = require("path");
 const fs = require("fs-extra");
+const { readfile_cached } = require("./helpers");
+const readlastline =  require('read-last-line');
 
 module.exports = {
     getHistoryJobs                 : getHistoryJobs
@@ -37,6 +39,20 @@ async function getHistoryJobs(start,end){
                 let splitfilepath   = path.join(finisheddir,split);
                 let jobjsonpath     = path.join(jobDir,jobid,".json");
                 let jobjson         = await readJsonFileCached(jobjsonpath);
+                if (path.parse(splitfilepath.name = "")){
+                    //this is a split json, check last 2 log lines if dispel // ffastrans 1.4 does not contain info about dispel
+                    
+                    try{
+                        let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
+                        let last2lines = await readlastline.read(_logpath, 3);
+                        //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
+                        if (last2lines.indexOf("dispel\":true") != -1){//if job ended due to dispel, hide job
+                            continue;
+                        }
+                    }catch(ex){
+                        let stop = 1;
+                    } 
+                }
                 if (!jobjson.hasOwnProperty(split)){
                     let splitcontent    = await readJsonFileCached(splitfilepath);
                     jobjson[split]      = splitcontent;

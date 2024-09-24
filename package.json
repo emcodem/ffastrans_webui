@@ -50,6 +50,7 @@
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
     "portfinder": "^1.0.28",
+    "read-last-line": "^1.1.0",
     "recursive-readdir-async": "^1.1.8",
     "request": "^2.88.0",
     "resumablejs": "^1.1.0",
