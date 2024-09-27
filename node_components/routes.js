@@ -91,6 +91,7 @@ function isLoggedIn(req, res, next) {
     // if they aren't redirect them to the home page
     console.log("NOT AUTHENTICATED Web auth is " +global.config.STATIC_USE_WEB_AUTHENTIFICATION)
     console.log(req.originalUrl + " redirected to login");
+    res.status(401)
     res.set("originalurl", req.originalUrl);
     //this crazy stuff is needed to keep the "referer" correctly set on client side
     res.send('<html>    <head>       <title>Redirecting...</title>    </head>    <body>     <form method="GET" action="/webinterface/components/login.html">     </form>      <script>        window.onload = function(){{           document.forms[0].submit()        }}     </script>   </body> </html>')

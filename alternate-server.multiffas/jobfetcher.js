@@ -569,28 +569,29 @@ Object.defineProperty(String.prototype, 'hashCode', {
   }
 });
 
-//var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
-async function renewInstallInfo(about_url){
-    //refresh ffastrans install info infinitely
-    while (true){
-        await sleep(15000);
-        var install_info;
-        try{
-            install_info = await doRequest(about_url);
-            install_info = JSON.parse(install_info);
-        }catch(ex){
-            console.error("Error getting install info, is FFAStrans API online?", about_url)
-        }
+//MOVED TO REST API
+// //var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
+// async function renewInstallInfo(about_url){
+//     //refresh ffastrans install info infinitely
+//     while (true){
+//         await sleep(15000);
+//         var install_info;
+//         try{
+//             install_info = await doRequest(about_url);
+//             install_info = JSON.parse(install_info);
+//         }catch(ex){
+//             console.error("Error getting install info, is FFAStrans API online?", about_url)
+//         }
         
-        if (global.api_config["s_SYS_DIR"] != install_info["about"]["general"]["install_dir"] + "/"){
-            console.log("Detected move of FFAStrans installation, resetting paths");
-            global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
-            global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
-            global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
-            global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
-        }
-    }
-}
+//         if (global.api_config["s_SYS_DIR"] != install_info["about"]["general"]["install_dir"] + "/"){
+//             console.log("Detected move of FFAStrans installation, resetting paths");
+//             global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
+//             global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
+//             global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
+//             global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
+//         }
+//     }
+// }
 
 function doRequest(url) {
   return new Promise(function (resolve, reject) {

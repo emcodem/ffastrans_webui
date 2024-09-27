@@ -1,0 +1,23 @@
+sudo: false
+language: node_js
+node_js:
+  - "12"
+  - "11"
+  - "10"
+  - "9"
+  - "8"
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
+env:
+  - CXX=g++-4.8
+
+install:
+  # install modules
+  - yarn install --ignore-scripts
+  # build
+  - prebuild --strip

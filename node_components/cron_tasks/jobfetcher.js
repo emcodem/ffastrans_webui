@@ -13,6 +13,7 @@ var helpers = require("../common/helpers")
 //var last_history    = JSON.parse(global.lasthistory);
 
 var alert_sent = false;
+var error_count_running = 0;
 var m_jobStates = ["Error","Success","Cancelled","Unknown"];
 var history_error_count = 0;
 process.env.UV_THREADPOOL_SIZE = 128;
@@ -360,21 +361,28 @@ function getRunningJobs(){
 	
 	Request.get(helpers.build_new_api_url("/api/json/v2/jobs"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
 		if(error) {
-			try{
-				/* take care about alert email */
-				if (!alert_sent){
-					sendEmailAlert("ALERT! FFAStrans is down","Got an error fetching jobs from: <br/>" + global.config.STATIC_GET_RUNNING_JOBS_URL );
-					alert_sent = true;
-				}
-			}catch(ex){
-				console.error("Could not send email alert message: ", ex.stack)
-			}
-			global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
+			error_count_running++;
 			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
 			console.error(error);
+
+			if (error_count_running > 3){
+				global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
+				try{
+					/* take care about alert email */
+					if (!alert_sent){
+						sendEmailAlert("ALERT! FFAStrans is down","Got an error fetching jobs from: <br/>" + global.config.STATIC_GET_RUNNING_JOBS_URL );
+						alert_sent = true;
+					}
+				}catch(ex){
+					console.error("Could not send email alert message: ", ex.stack)
+				}
+			}
+			
 			return;
 		}
-			
+		
+		//no error, go on...
+		error_count_running = 0;
 		if (alert_sent){
 			//send all good email if needed
 			alert_sent = false;
@@ -550,27 +558,28 @@ Object.defineProperty(String.prototype, 'hashCode', {
   }
 });
 
-async function renewInstallInfo(about_url){
-    //refresh ffastrans install info infinitely
-    while (true){
-        await sleep(15000);
-        var install_info;
-        try{
-            install_info = await doRequest(about_url);
-            install_info = JSON.parse(install_info);
-        }catch(ex){
-            console.error("Error getting install info, is FFAStrans API online?", about_url)
-        }
+//MOVED TO REST 
+// async function renewInstallInfo(about_url){
+//     //refresh ffastrans install info infinitely
+//     while (true){
+//         await sleep(15000);
+//         var install_info;
+//         try{
+//             install_info = await doRequest(about_url);
+//             install_info = JSON.parse(install_info);
+//         }catch(ex){
+//             console.error("Error getting install info, is FFAStrans API online?", about_url)
+//         }
         
-        if (global.api_config["s_SYS_DIR"] != install_info["about"]["general"]["install_dir"] + "/"){
-            console.log("Detected move of FFAStrans installation, resetting paths");
-            global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
-            global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
-            global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
-            global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
-        }
-    }
-}
+//         if (global.api_config["s_SYS_DIR"] != install_info["about"]["general"]["install_dir"] + "/"){
+//             console.log("Detected move of FFAStrans installation, resetting paths");
+//             global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
+//             global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
+//             global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
+//             global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
+//         }
+//     }
+// }
 
 function doRequest(url) {
   return new Promise(function (resolve, reject) {

@@ -1933,11 +1933,22 @@
 
     async function getActiveJobs(targetGridObj) {
         //deprecated; still there for "no proxy mode"
-        var activejobs = await $.ajax({
+        try{
+            var activejobs = await $.ajax({
                 url: "/getactivejobsajax_treegrid",
                 type: 'GET', 
             });
-        addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
+
+            addActiveJobsToGrid(runningJobGrid, activejobs, "Active");
+        }catch(ajaxerror){
+            if (ajaxerror.status == 401){
+                //unauthorized, maybe server reloaded?
+                window.setTimeout (function(){location.reload()},3000)
+                dhtmlx.alert("Got 'unauthorized' response for Activejobs, redirecting to login page in 3 seconds...");
+                
+            }
+        }
+
     }
 
     function getFinishedJobs(targetGridObj) {

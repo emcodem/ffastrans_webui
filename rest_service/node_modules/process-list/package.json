@@ -1,0 +1,51 @@
+{
+  "name": "process-list",
+  "version": "2.0.0",
+  "description": "Cross-platform method to receive the list of the launched processes",
+  "main": "index.js",
+  "scripts": {
+    "test": "ava test/*.js && prebuild-ci",
+    "install": "prebuild-install || node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/reklatsmasters/node-process-list.git"
+  },
+  "bugs": {
+    "url": "https://github.com/reklatsmasters/node-process-list/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">= 8"
+  },
+  "keywords": [
+    "tasklist",
+    "process",
+    "list",
+    "task",
+    "taskmgr",
+    "proc",
+    "procfs",
+    "linux",
+    "windows",
+    "proclist",
+    "pm2",
+    "forever"
+  ],
+  "author": {
+    "name": "Dmitry Tsvettsikh",
+    "email": "me@reklatsmasters.com"
+  },
+  "devDependencies": {
+    "ava": "^0.25.0",
+    "prebuild": "^9.1.1",
+    "prebuild-ci": "^3.1.0"
+  },
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "nan": "^2.14.0",
+    "pify": "^3.0.0",
+    "prebuild-install": "^5.3.2"
+  },
+  "gypfile": true
+}

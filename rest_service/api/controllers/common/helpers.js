@@ -4,7 +4,7 @@ const { uuid } = require('uuidv4');
 const moment = require('moment-timezone');
 var md2 = require('js-md2');
 var fs = require('fs');
-
+const readlastline =  require('read-last-line');
 
 function _JoSearch(obj,jsonpath,fieldname,defaultval){
     const found = obj.find(element => jsonpath > 10);
@@ -205,8 +205,10 @@ async function ticket_files_to_array(dir) {
 }
 
 
-async function readfile_cached(fullpath, jsonparse = false){
-    var prevent_delete = fullpath.indexOf("\\configs\\workflows" != -1);
+async function readfile_cached(fullpath, jsonparse = false, lastlines = false, invalidate_cache_after = 10000){ 
+    /* int lastlines reads n lines from end of file */
+    /* invalidatecache defines how long to keep the stuff in memory */
+    var prevent_delete = fullpath.indexOf("\\configs\\workflows" != -1);//this does nothing because we re-use this function for other stuff than workflows 
 
     if (! ("filecache" in global)){
 		global.filecache = {};
@@ -219,15 +221,15 @@ async function readfile_cached(fullpath, jsonparse = false){
         //delete from cache older files than 10 seconds
         var now = new Date( );
         var birth = new Date(global.filecache.tickets[key]["birth"]);
-        var birth_plus_ten = new Date(birth.getTime() + 10000);
-        if( birth_plus_ten < now && !prevent_delete){
+        var birth_plus_maxlifetime = new Date(birth.getTime() + invalidate_cache_after);
+        if( birth_plus_maxlifetime < now && !prevent_delete){
             delete global.filecache.tickets[key]
         }
         
     }
         
     if (Object.keys(global.filecache.tickets).length > 5000){
-        cache_cleaner(); //deletes non existing files from cache
+        cache_cleaner(); //todo: check size instead of blindly deleting 5000
     }
 
     var stats;
@@ -246,7 +248,12 @@ async function readfile_cached(fullpath, jsonparse = false){
 	}
 
     //File is not in cache, read from disk.
-    var contents = await fsPromises.readFile(fullpath, 'utf8');
+    var contents;
+    if (!lastlines){
+        contents = await fsPromises.readFile(fullpath, 'utf8');
+    }else{
+        contents = await readlastline.read(fullpath, lastlines);
+    }
     contents = contents.replace(/^\uFEFF/, '');
     global.filecache.tickets[fullpath] = {};
     global.filecache.tickets[fullpath]["mtimeMs"] = stats.mtimeMs;

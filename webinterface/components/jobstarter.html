@@ -1787,6 +1787,12 @@ async function startJobs(form,selectedWorkflow){
         a_row_ids.push(id);
 
     }//foreach gridrow
+
+    if (a_all_files.length == 0){
+        //nothing to do
+        return;
+    }
+
     console.log("o_files",o_all_files)
     if (segments_used && JSON.stringify(selectedWorkflow).indexOf("webui_o_source") == -1){
         if (!ignore_segment_not_used_warning){
