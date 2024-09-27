@@ -16,6 +16,7 @@ const fs = require("fs");
 const dns = require('node:dns');
 const YAML = require('yamljs');
 const swaggerUi = require('swagger-ui-express');
+var ps = require('ps-node');
 /* swagger init */
 const { initialize } = require('express-openapi');
 
@@ -49,19 +50,55 @@ function sleep(ms) {
   });
 }   
 
+function getFfastransProcessPromise() {
+  return new Promise((resolve, reject) => {
+      try {
+        ps.lookup({ name: "FFAStrans.exe" }, function(err, resultList ) {
+          if (err){
+            reject(err);
+          }
+          var ffasprocess = resultList.filter(t => t.command.indexOf("FFAStrans.exe") != -1);
+          resolve(ffasprocess);
+         
+        });
+      } catch (error) {
+          reject(error);
+      }
+  });
+}
+
 async function renewInstallInfo(about_url){
     //refresh ffastrans install info infinitely
     while (true){
         await sleep(15000);
         var install_info;
+        var skip_api = false;
+        var resolved_path;
         try{
-            install_info = await doRequest(about_url);
-            install_info = JSON.parse(install_info);
+            //try to get path from tasklist
+            try{
+              let processArray = await getFfastransProcessPromise();
+              var ffasprocess = processArray.filter(t => t.command.indexOf("FFAStrans.exe") != -1);
+              if (ffasprocess.length == 1){
+                let installPath = ffasprocess[0].command;
+                resolved_path = path.dirname(installPath);
+                skip_api = true;
+              }
+            }catch(ex){
+              console.error("Could not update ffastrans install path from tasklist, ",ex)
+            }
+
+            if (! skip_api){
+              console.log("Fallback refresh install path, trying to read from FFAStrans about API")
+              install_info = await doRequest(about_url);
+              resolved_path = JSON.parse(install_info)["about"]["general"]["install_dir"];  
+            }
+            
         }catch(ex){
             console.error("Error getting install info, is FFAStrans API online?", about_url)
         }
-        
-        if (global.api_config["s_SYS_DIR"] != install_info["about"]["general"]["install_dir"] + "/"){
+        //fallback get path from api
+        if (global.api_config["s_SYS_DIR"] != resolved_path + "/"){
             console.log("Detected move of FFAStrans installation, resetting paths");
             global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
             global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
