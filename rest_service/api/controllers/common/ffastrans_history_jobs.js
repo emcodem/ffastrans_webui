@@ -44,7 +44,7 @@ async function getHistoryJobs(start,end){
                     
                     try{
                         let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
-                        let last2lines = await readfile_cached(_logpath,false,3,1000000);
+                        let last2lines = await readfile_cached(_logpath,false,3,1000000,"job_log_last_2_lines_workaround_dispel");
                         //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
                         if (last2lines.indexOf("dispel\":true") != -1){//if job ended due to dispel, hide job
                             continue;

@@ -8668,3 +8668,7 @@ bootstrap stuff on metrics
 table {
 	color:hsla(0, 0%, 100%, .99);
 }
+
+input{
+	color-scheme: dark;
+}

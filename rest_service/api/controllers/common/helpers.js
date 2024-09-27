@@ -115,34 +115,6 @@ async function get_wf_name(wf_id){
             return wf_obj["wf_name"];
 }
 
-
-//all files in all directories to array
-var m_cached_directories = {} //{directoryname:[...files],[...stats_enrichedby_filenames] }
-
-
-
-
-
-// async function dirContentChanged(dir){
-//     //check if anything changed in the specified directory
-//     if (! dir in m_cached_directories){
-//         return true;
-//     }
-//     var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
-//     if (allfiles.length != m_cached_directories[dir].files.length)
-//         return true
-
-//     //check if stats of all files still match existing stats
-//     for (var _idx in allfiles){
-//         var _stat = await fsPromises.stat(path.join(dir,allfiles[_idx]));
-//         var checkstat = _stat.birthtimeMs + _stat.ctimeMs + _stat.mtimeMs + _stat.size;
-
-//     }
-
-//     return true;
-
-// }
-
 async function json_files_to_array_cached(dir) {
     if (!dir){return}
 
@@ -164,7 +136,7 @@ async function json_files_to_array_cached(dir) {
 }
 
 //all ffastrans tickets in all directories to array
-async function ticket_files_to_array(dir) {
+async function ticket_files_to_array(dir,cache_name = "unsorted") {
 		if (!dir){return}
 		var returnarray=[];
         var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
@@ -190,11 +162,9 @@ async function ticket_files_to_array(dir) {
                 }
                 //push to cache
                 var fullpath = path.join(dir,allfiles[_idx]);
-                global.filecache.tickets[fullpath] = {};
-                global.filecache.tickets[fullpath]["birth"] = new Date();
-                
-//                global.filecache.tickets[fullpath]["mt"] = ;
-                global.filecache.tickets[fullpath]["content"] = JSON.stringify(newitem);
+                global.filecache[cache_name][fullpath] = {};
+                global.filecache[cache_name][fullpath]["birth"] = new Date();
+                global.filecache[cache_name][fullpath]["content"] = JSON.stringify(newitem);
                 returnarray.push(newitem)
             }catch(ex){
                 console.error("Could not parse Json from file:",path.join(dir,allfiles[_idx]),ex,await readfile_cached(path.join(dir,allfiles[_idx])))
@@ -205,7 +175,7 @@ async function ticket_files_to_array(dir) {
 }
 
 
-async function readfile_cached(fullpath, jsonparse = false, lastlines = false, invalidate_cache_after = 10000){ 
+async function readfile_cached(fullpath, jsonparse = false, lastlines = false, invalidate_cache_after = 10000, cache_name = "unsorted"){ 
     /* int lastlines reads n lines from end of file */
     /* invalidatecache defines how long to keep the stuff in memory */
     var prevent_delete = fullpath.indexOf("\\configs\\workflows" != -1);//this does nothing because we re-use this function for other stuff than workflows 
@@ -213,38 +183,38 @@ async function readfile_cached(fullpath, jsonparse = false, lastlines = false, i
     if (! ("filecache" in global)){
 		global.filecache = {};
 	}
-	if (! ("tickets" in global.filecache)){
-		global.filecache.tickets = {};
+	if (! (cache_name in global.filecache)){
+		global.filecache[cache_name] = {};
 	}
     
-    for (key in global.filecache.tickets){
+    for (key in global.filecache[cache_name]){
         //delete from cache older files than 10 seconds
         var now = new Date( );
-        var birth = new Date(global.filecache.tickets[key]["birth"]);
+        var birth = new Date(global.filecache[cache_name][key]["birth"]);
         var birth_plus_maxlifetime = new Date(birth.getTime() + invalidate_cache_after);
         if( birth_plus_maxlifetime < now && !prevent_delete){
-            delete global.filecache.tickets[key]
+            delete global.filecache[cache_name][key]
         }
         
     }
         
-    if (Object.keys(global.filecache.tickets).length > 5000){
-        cache_cleaner(); //todo: check size instead of blindly deleting 5000
+    if (Object.keys(global.filecache[cache_name]).length > 5000){
+        cache_cleaner(cache_name); //todo: check size instead of blindly deleting 5000
     }
 
     var stats;
     stats = await fsPromises.stat(fullpath);
 
-	if (fullpath in global.filecache.tickets){
+	if (fullpath in global.filecache[cache_name]){
 		//serve cached file    
-		if (!global.filecache.tickets[fullpath]["content"]){
-            console.error("File is in cache but content emtpy, ",global.filecache.tickets[fullpath])
+		if (!global.filecache[cache_name][fullpath]["content"]){
+            console.error("File is in cache but content emtpy, ",global.filecache[cache_name][fullpath])
             console.trace("") //just for debugging
         }
-        if (stats.mtimeMs != global.filecache.tickets[fullpath].mtimeMs) 
-            delete global.filecache.tickets[fullpath] //file changed, needs re-read from disk
+        if (stats.mtimeMs != global.filecache[cache_name][fullpath].mtimeMs) 
+            delete global.filecache[cache_name][fullpath] //file changed, needs re-read from disk
         else 
-            return global.filecache.tickets[fullpath]["content"]; //File is served from cache
+            return global.filecache[cache_name][fullpath]["content"]; //File is served from cache
 	}
 
     //File is not in cache, read from disk.
@@ -255,23 +225,23 @@ async function readfile_cached(fullpath, jsonparse = false, lastlines = false, i
         contents = await readlastline.read(fullpath, lastlines);
     }
     contents = contents.replace(/^\uFEFF/, '');
-    global.filecache.tickets[fullpath] = {};
-    global.filecache.tickets[fullpath]["mtimeMs"] = stats.mtimeMs;
-    global.filecache.tickets[fullpath]["birth"] = new Date();
-    global.filecache.tickets[fullpath]["content"] = jsonparse ? JSON.parse(contents) : contents;
+    global.filecache[cache_name][fullpath] = {};
+    global.filecache[cache_name][fullpath]["mtimeMs"] = stats.mtimeMs;
+    global.filecache[cache_name][fullpath]["birth"] = new Date();
+    global.filecache[cache_name][fullpath]["content"] = jsonparse ? JSON.parse(contents) : contents;
     
-    return global.filecache.tickets[fullpath]["content"] ;
+    return global.filecache[cache_name][fullpath]["content"] ;
 	
 }
 
 
-async function cache_cleaner(){
-	for (const key in global.filecache.tickets) {
+async function cache_cleaner(cache_name){
+	for (const key in global.filecache[cache_name]) {
 		try{
             await fsPromises.access(key, fs.constants.R_OK | fs.constants.W_OK)
 		}catch(ex){
             //file does not exist, delete from cache
-            delete global.filecache.tickets[key];
+            delete global.filecache[cache_name][key];
         }
 	}
 }
