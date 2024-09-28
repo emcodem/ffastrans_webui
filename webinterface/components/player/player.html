@@ -765,8 +765,22 @@ async function takeSegment(){
 	var out_seconds	=  ((1000/g_framerate) * out_frames * 0.001).toFixed(2).replace(/^0./,"") ;
 	var final_in 	= inpoint.match(/^(........)/)[1] + "." + in_seconds
 	var final_out 	= outpoint.match(/^(........)/)[1] + "." + out_seconds
+    var final_in_frames = SMPTE_to_frames(inpoint,g_framerate)
+	var final_out_frames = SMPTE_to_frames(inpoint,g_framerate)
+	parent.window.addSegmentRow(file,final_in,final_out,final_in_frames,final_out_frames);
+}
 
-	parent.window.addSegmentRow(file,final_in,final_out);
+function SMPTE_to_frames(timecode, frameRate) {
+    // Split the timecode into its components
+    const [hours, minutes, seconds, frames] = timecode.split(':').map(Number);
+
+    // Convert hours, minutes, and seconds to total seconds
+    const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+
+    // Calculate the total number of frames
+    const totalFrames = (totalSeconds * frameRate) + frames;
+
+    return totalFrames;
 }
 
 function takeFile(){

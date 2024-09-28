@@ -607,18 +607,20 @@ function init(){
 
     m_selectedFileGrid = m_jobLayout.cells("a").attachGrid();
     m_selectedFileGrid.setImagePath("dependencies/dhtmlx/imgs");                 
-    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
-    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,Status,Outcome");
+    m_selectedFileGrid.setHeader("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,segment_inpoint_frames,segment_outpoint_frames,Status,Outcome"); //we add 2 additional cols here, otherwise the cells are same as browsergrid
+    m_selectedFileGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,source_of_adding,segment_inpoint,segment_outpoint,segment_inpoint_frames,segment_outpoint_frames,Status,Outcome");
     m_selectedFileGrid.setColumnHidden(1,true);
     m_selectedFileGrid.setColumnHidden(2,true);
     m_selectedFileGrid.setColumnHidden(6,true);
     m_selectedFileGrid.setColumnHidden(7,true);
     m_selectedFileGrid.setColumnHidden(8,true);
     m_selectedFileGrid.setColumnHidden(9,true);
-    m_selectedFileGrid.setInitWidthsP("45,0,0,0,0,0,0,0,0,0,10,*");
-    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left,left");
-    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
-    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str");   
+    m_selectedFileGrid.setColumnHidden(10,true);
+    m_selectedFileGrid.setColumnHidden(11,true);
+    m_selectedFileGrid.setInitWidthsP("45,0,0,0,0,0,0,0,0,0,0,0,10,*");
+    m_selectedFileGrid.setColAlign("left,left,left,left,left,left,left,left,left,left,left,left,left,left,left");
+    m_selectedFileGrid.setColTypes("ed,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro,ro");
+    m_selectedFileGrid.setColSorting("str,str,str,str,str,str,str,str,str,str,str,str,str,str,str");   
     m_selectedFileGrid.enableMultiselect(true);
     m_selectedFileGrid.enableDragAndDrop(true);
     m_selectedFileGrid.enableStableSorting(true);
@@ -1774,8 +1776,10 @@ async function startJobs(form,selectedWorkflow){
             segments_used = true;
             var inpoint  = m_selectedFileGrid.getCellByName(id,"segment_inpoint").getValue();
             var outpoint = m_selectedFileGrid.getCellByName(id,"segment_outpoint").getValue();
+            var inpoint_frames  = m_selectedFileGrid.getCellByName(id,"segment_inpoint_frames").getValue();
+            var outpoint_frames = m_selectedFileGrid.getCellByName(id,"segment_outpoint_frames").getValue();
             var s_concat = "file '" + _filepath + "'\ninpoint " + inpoint + "\noutpoint " + outpoint + "\n";
-            var o_concat = {"source":_filepath,"inpoint": inpoint, "outpoint" : outpoint, "ffconcat": s_concat}
+            var o_concat = {"source":_filepath,"inpoint": inpoint, "outpoint" : outpoint, "ffconcat": s_concat, "inpoint_frames":inpoint_frames,"outpoint_frames":outpoint_frames}
             o_all_files.push(o_concat);
             
         }else{
@@ -1867,6 +1871,7 @@ async function waitForJobToFinish(rowId,jobId){
             
             if(statusText != "" && statusText != " ")
                 m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(decodeEntities(statusText));
+
             console.log("statustext",statusText)
             //stop job polling if all are finished
             if (response.all_finished)
@@ -1875,7 +1880,7 @@ async function waitForJobToFinish(rowId,jobId){
     },3000);
 }
 
-function addSegmentRow(fullpath,inpoint,outpoint){ //for ffconcat, called from player
+function addSegmentRow(fullpath,inpoint,outpoint,in_frame,out_frame){ //for ffconcat, called from player
     var a_dirs      = (fullpath.split(/\\|\//));
     var name_only   = a_dirs[a_dirs.length-1];
 
@@ -1891,6 +1896,8 @@ function addSegmentRow(fullpath,inpoint,outpoint){ //for ffconcat, called from p
     newrowdata["source_of_adding"] = "Segment";
     newrowdata["segment_inpoint"] = inpoint;
     newrowdata["segment_outpoint"] = outpoint;
+    newrowdata["segment_inpoint_frames"] = in_frame;
+    newrowdata["segment_outpoint_frames"] = out_frame;
     m_selectedFileGrid.addRow(newId,[]);
     m_selectedFileGrid.setRowData(newId,newrowdata);
 

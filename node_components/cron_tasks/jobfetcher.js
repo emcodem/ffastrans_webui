@@ -101,7 +101,7 @@ function getQueuedJobs(){
         }
         if(error) {
             console.log('Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"), error)
-            global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"));
+            //global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"));
             return;
         }
 		try{

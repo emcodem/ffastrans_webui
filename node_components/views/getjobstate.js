@@ -20,6 +20,7 @@ module.exports = async function(app, passport){
             var bad_messages = "";
             var all_messages = "";
 
+
             for (j of all){
                 //if j has progress its active, if it has result it is finished. state 1 is success
                 //status or result is the "message"
@@ -28,14 +29,18 @@ module.exports = async function(app, passport){
                     //running jobs have a status field, finished jobs result instead
                     if (j.result && j.state != 1 && j.state != -1){//only finished jobs have result
                         failed_count ++;
-                        bad_messages += "result" in j ?  " " + j.result : " " + j.status; 
+                        bad_messages += "result" in j ?  " " + j.result : ", " + j.status; 
                     }else{
+                        if (good_messages == " Success" && j.result == "Success"){ //try showing success only once if all succeed, very dirty hack
+                            finished_count++;
+                            continue;
+                        }
                         good_messages += "result" in j ?  " " + j.result : " " + j.status; 
                     }
 
                     all_messages += "result" in j ?  " " + j.result : " " + j.status; 
 
-                    "result" in j ? finished_count++ : false;
+                    "result" in j ? finished_count++ : false; //only finished jobs have result filed
                     
                 }
             }
