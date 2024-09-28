@@ -18,7 +18,6 @@
     "json.human": "0.0.1",
     "mediainfo-wrapper": "^1.2.0",
     "process-list": "^2.0.0",
-    "ps-node": "^0.1.6",
     "read-last-line": "^1.1.0",
     "read-last-lines": "^1.8.0",
     "strip-bom": "^4.0.0",

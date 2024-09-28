@@ -8,6 +8,7 @@ module.exports = {
 };
 
 var fileContentDatabase = {};
+var workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
 async function getHistoryJobs(start,end){
     let returnArray = [];
@@ -40,18 +41,25 @@ async function getHistoryJobs(start,end){
                 let jobjsonpath     = path.join(jobDir,jobid,".json");
                 let jobjson         = await readJsonFileCached(jobjsonpath);
                 if (path.parse(splitfilepath.name = "")){
-                    //this is a split json, check last 2 log lines if dispel // ffastrans 1.4 does not contain info about dispel
-                    
-                    try{
-                        let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
-                        let last2lines = await readfile_cached(_logpath,false,3,1000000,"job_log_last_2_lines_workaround_dispel");
-                        //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
-                        if (last2lines.indexOf("dispel\":true") != -1){//if job ended due to dispel, hide job
-                            continue;
+                    //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
+                    let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
+                    if (!workaround_dispel_database.hasOwnProperty(_logpath)){
+                        try{
+                            let last2lines = await readfile_cached(_logpath,false,3,1,"job_log_last_2_lines_workaround_dispel");
+                            //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
+                            workaround_dispel_database[_logpath] = {dispel:false}
+                            if (last2lines.indexOf("dispel\":true") != -1){//if job ended due to dispel, hide job
+                                workaround_dispel_database[_logpath] = {dispel:true}
+                            }
+                        }catch(ex){
+                            //i dont care about errors here, its just the dispel workaround
                         }
-                    }catch(ex){
-                        let stop = 1;
-                    } 
+                    }
+                    if (workaround_dispel_database[_logpath].dispel){//if job ended due to dispel, hide job
+                        continue;
+                    }
+
+
                 }
                 if (!jobjson.hasOwnProperty(split)){
                     let splitcontent    = await readJsonFileCached(splitfilepath);

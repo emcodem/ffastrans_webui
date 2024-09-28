@@ -8366,12 +8366,43 @@ div.dhx_modal_cover {
 	/* color: hsla(0, 0%, 100%, .2); */
 /* } */
 
+
+
 #ffastrans_header{
 	background: black
 }
 
 .menuitem{
 	opacity:1 !important; /*main menu items*/
+}
+
+
+/* Job Scheduler */
+
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal,
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled,
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected {
+  color: white;
+}
+
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal,
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
+  border: 1px solid #ebebeb;
+}
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
+  color: #999999 !important;
+  background-color:yellow;
+}
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected {
+  border: 1px solid #0d0302;
+  background-color: #CCC;
+  color: #000000;
+}
+.top_level_text .fas{
+	color:white !important;
+}
+.top_level_text .fa{
+	color:white !important;
 }
 
 /*leftmost nav menueue stays light because of images have same color*/
@@ -8614,10 +8645,10 @@ bootstrap stuff on metrics
 }
 
 .btn.jobviewer_menu {
-	color:black;
+	color:white;
 	background-color:red;
 	border: 1px solid #ebebeb;
-	background: #DDD;
+	background: #dddddd00;
 }
 
 .btn.jobviewer_menu:disabled {
@@ -8625,7 +8656,7 @@ bootstrap stuff on metrics
 }
 /* menu buttons*/
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
-	background-color:rgb(221, 221, 221);
+	background-color:rgb(22, 22, 22);
 	color:hsla(0, 0%, 100%, .99);
 }
 
@@ -8671,4 +8702,8 @@ table {
 
 input{
 	color-scheme: dark;
+}
+
+.fas {
+	color:#DDD !important;
 }

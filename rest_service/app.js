@@ -13,10 +13,12 @@
 const path = require("path");
 const request = require("request");
 const fs = require("fs");
+const fsPromises = require('fs').promises;
 const dns = require('node:dns');
 const YAML = require('yamljs');
 const swaggerUi = require('swagger-ui-express');
-var ps = require('ps-node');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 /* swagger init */
 const { initialize } = require('express-openapi');
 
@@ -50,21 +52,16 @@ function sleep(ms) {
   });
 }   
 
-function getFfastransProcessPromise() {
-  return new Promise((resolve, reject) => {
-      try {
-        ps.lookup({ name: "FFAStrans.exe" }, function(err, resultList ) {
-          if (err){
-            reject(err);
-          }
-          var ffasprocess = resultList.filter(t => t.command.indexOf("FFAStrans.exe") != -1);
-          resolve(ffasprocess);
-         
-        });
-      } catch (error) {
-          reject(error);
-      }
-  });
+async function getFfastransProcessPromise() {
+  try {
+      let { stdout, stderr } = await exec('wmic process get ProcessId,ParentProcessId,CommandLine');
+      let regexp = /"(.+?)ffastrans.exe"/gi;
+      let ffas_exe_path = stdout.match(regexp);
+      ffas_exe_path = ffas_exe_path[0].replaceAll("\"","");
+      return path.dirname(ffas_exe_path);
+  } catch (e) {
+      console.trace(e); 
+  }
 }
 
 async function renewInstallInfo(about_url){
@@ -77,35 +74,33 @@ async function renewInstallInfo(about_url){
         try{
             //try to get path from tasklist
             try{
-              let processArray = await getFfastransProcessPromise();
-              var ffasprocess = processArray.filter(t => t.command.indexOf("FFAStrans.exe") != -1);
-              if (ffasprocess.length == 1){
-                let installPath = ffasprocess[0].command;
-                resolved_path = path.dirname(installPath);
-                skip_api = true;
-              }
+              let ffasPath = await getFfastransProcessPromise();
+              await fsPromises.access(ffasPath);//throws error if not exist
+              resolved_path = ffasPath;
+              skip_api = true;
             }catch(ex){
               console.error("Could not update ffastrans install path from tasklist, ",ex)
             }
 
             if (! skip_api){
+              //old method, ask ffastrans api. this is problematic because up to 1.4, the install path was not updated when moving ffastrans in the ffastrans.json
               console.log("Fallback refresh install path, trying to read from FFAStrans about API")
               install_info = await doRequest(about_url);
               resolved_path = JSON.parse(install_info)["about"]["general"]["install_dir"];  
             }
-            
-        }catch(ex){
-            console.error("Error getting install info, is FFAStrans API online?", about_url)
-        }
-        //fallback get path from api
-        if (global.api_config["s_SYS_DIR"] != resolved_path + "/"){
+          
+          if (global.api_config["s_SYS_DIR"] != resolved_path + "/"){
             console.log("Detected move of FFAStrans installation, resetting paths");
-            global.api_config["s_SYS_DIR"] = install_info["about"]["general"]["install_dir"] + "/";
+            global.api_config["s_SYS_DIR"] = resolved_path + "/";
             global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
             global.api_config["s_SYS_CONFIGS_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/configs/";
             global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
             global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
+          }
+        }catch(ex){
+            console.error("Error getting install info, is FFAStrans API online?", about_url)
         }
+
     }
 }
 
