@@ -8389,10 +8389,16 @@ div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal,
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
   border: 1px solid #ebebeb;
 }
+
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
-  color: #999999 !important;
-  background-color:yellow;
+  color: #999 !important;
+  background-color:#333;
 }
+div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled .fas{
+  color: #999 !important;
+  background-color:#333;
+}
+
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected {
   border: 1px solid #0d0302;
   background-color: #CCC;
@@ -8696,6 +8702,10 @@ bootstrap stuff on metrics
 	border-top: solid 7px #999;
 }
 
+.fas .fa-ban{
+ color:black !important;
+}
+
 table {
 	color:hsla(0, 0%, 100%, .99);
 }
@@ -8704,6 +8714,16 @@ input{
 	color-scheme: dark;
 }
 
+/* job viewer button icons */
 .fas {
 	color:#DDD !important;
 }
+/* job viewer workflow sel delete button icon */
+.fa-ban::before{
+	color:#222 !important;
+}
+/* job submitter workflow save btn */
+.fa-save::before{
+	color:#222 !important;
+}
+

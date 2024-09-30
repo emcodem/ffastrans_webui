@@ -30,8 +30,13 @@ class JobTicket {
     variables       = 	    []
 
     async init_ticket(wf_id,start_proc_id){
-        var $o_workflow = await readfile_cached(locateWorkflowFile(wf_id),true);
         
+        var $o_workflow = await readfile_cached(locateWorkflowFile(wf_id),true);
+        var prio = 2;
+        try{
+            prio = $o_workflow.general.priority.charAt(0)
+        }catch(ex){}
+
         var $i_index = $o_workflow.nodes.findIndex(node => node.id == start_proc_id);
         if ($i_index < 0)
             $i_index = 0
@@ -66,7 +71,7 @@ class JobTicket {
 
         this.variables               = 	[]
 
-        this.priority        =      "4 (very high)" //$o_workflow.general.priority || 5
+        this.priority        =      prio
     }
 
     getFileName(){

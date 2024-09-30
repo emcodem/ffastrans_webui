@@ -294,9 +294,6 @@
 /* init SOCKET.IO */
 var socket = io(); 
 
-
-
-
 //global
 
 var m_mainSidebar,mainLayout,initialMenuItem,m_serverconfig;
@@ -316,9 +313,6 @@ function loadserverconfig(){
 
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  
-  
-
   ('js', new Date());
   gtag('config', 'G-4FCDW4WBMR',{ 'anonymize_ip': true });
 
@@ -326,7 +320,8 @@ function loadserverconfig(){
         url:  ("/getserverconfig"),
         type: "GET",
         success: function (response) {
-            m_serverconfig = JSON.parse(response)
+            m_serverconfig = JSON.parse(response);
+            checkFFAStransInstallPath();
             loadusermenu();
         },
         error: function (xhr, status) {
@@ -334,6 +329,37 @@ function loadserverconfig(){
             document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
         }
     });
+}
+
+/* function check installpath */
+function checkFFAStransInstallPath(){
+    if (m_serverconfig.STATIC_FFASTRANS_PATH == "unknown"){
+        let installpath = prompt("Initial Setup.\nPlease enter Path to FFAStrans, e.g. \n\nC:\\FFAStrans\n\nFor FFAStrans Farm, you need to enter the full UNC Path, e.g.\n\\\\server\\share\\FFAStrans", "C:\\FFAStrans");
+        m_serverconfig.STATIC_FFASTRANS_PATH  = installpath;
+        console.log("Saving config",m_serverconfig)
+        saveConfig(m_serverconfig);
+
+    }
+}
+function saveConfig(what){
+    //we should really add support for updating single properties in adminconfig
+    $.ajax({
+		url: ("/adminconfig"),
+		type: "POST",
+		data: what,
+		success: function(response) {
+			dhx.message({
+                text:"Saved", 
+                css:"expire", 
+                expire:2000
+            });
+            location.reload();
+		},
+		error: function(xhr, status) {
+			console.log("Error saving config!" + xhr.responseText);
+			alert("Error saving config!\n"+ xhr.responseText);
+		}
+	});
 }
 
 /*load config from server*/

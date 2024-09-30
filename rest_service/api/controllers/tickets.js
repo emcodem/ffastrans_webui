@@ -185,11 +185,12 @@ async function get_pending(){
 }
 
 async function start(req, res) {
+    
 	try {
         var o_return = {};
         o_return["tickets"] = {};
 
-  // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
+        // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
         if ("nodetails" in req.query){
             var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
             o_return["tickets"]["running"] = await fsPromises.readdir(path.join(s_tick_path,"running"), { withFileTypes: false });
@@ -207,6 +208,9 @@ async function start(req, res) {
         }
 
 	} catch(err) {
+        if (err.code == "ENOENT"){
+            return res.status(404).json({description:err});
+        }
 		console.debug(err);
 		return res.status(500).json({description: err});
 	}

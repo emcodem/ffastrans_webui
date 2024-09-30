@@ -832,7 +832,7 @@ async function getWorkflows(){
         },
         error: function (xhr, status) {
             m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you have an invalid expression in filter regex");
+            dhtmlx.message("ERROR in getWorkflows call, please check FFAStrans Path in Admin settings on the left.. Or you have an invalid expression in filter regex");
         }
     });
 }

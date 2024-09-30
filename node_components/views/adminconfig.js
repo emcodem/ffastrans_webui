@@ -146,6 +146,11 @@ var configServer = require(global.approot  + '/node_components/server_config');
        console.log("Saving admin config in database");
        var data = req.body;
        var toSave = {};
+       if (("STATIC_FFASTRANS_PATH" in data) && !data["STATIC_FFASTRANS_PATH"] != global.config.STATIC_FFASTRANS_PATH){
+            //change install path requires us to push the info to rest_service.
+            //this needs to be solved in a different way once we split rest_api and webint
+            global.ffastrans_new_rest_api.changeInstallPath(data["STATIC_FFASTRANS_PATH"]);
+       }
        if (("STATIC_USE_WEB_AUTHENTIFICATION" in data) && !data["STATIC_USE_WEB_AUTHENTIFICATION"].match("true|false")){
             res.write("WEB_AUTHENTIFICATION must be \"true\" or \"false\"");
             res.status(500);

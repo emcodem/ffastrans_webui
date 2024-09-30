@@ -8,6 +8,8 @@
 
 defaultConfig = {};
 
+defaultConfig.STATIC_FFASTRANS_PATH = "unknown";
+defaultConfig.STATIC_GOOGLE_ANALYTICS_ENABLE = "enabled";
 defaultConfig.STATIC_WEBUI_HEADER_NAME = "";
 defaultConfig.STATIC_SEND_EMAIL_ALERTS = false;
 defaultConfig.STATIC_WEBSERVER_LISTEN_PORT = 3002;
@@ -19,6 +21,7 @@ defaultConfig.STATIC_USE_WEB_AUTHENTIFICATION = false;
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
 //your path MUST end with slash or backslash, the rest of the code assumes it.
 defaultConfig.STATIC_UPLOADPATH = "\\\\localhost\\c$\\temp\\";
+
 
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
 //your path MUST end with slash or backslash, the rest of the code assumes it.

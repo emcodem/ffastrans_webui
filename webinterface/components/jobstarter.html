@@ -439,7 +439,7 @@ function init(){
 
    
     var all_menu_items = [
-            {id:"localdrives", text:"<div style='width:65px'><span >Drives <i class='fa-brands fa-usb'></i></span></div>"},
+           /* {id:"localdrives", text:"<div style='width:65px'><span >Drives <i class='fa-brands fa-usb'></i></span></div>"},*/
             {id:"location", text:"<div style='width:70px'><span>Locations <i class='fas fa-list'></i></span></div>"},
 			//{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
             {id:"mediainfo", text:"<div style='width:65px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
@@ -1198,7 +1198,7 @@ function constructpathLink(what){
 
         if (i==a_dirs.length-2){//pre-last folder, add levelup
             //console.log("oneup: ",atob(fullpath),"adirs",a_dirs)
-            html = "<i onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
+            html = "&nbsp;<i onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
         }
     }
 
@@ -1665,7 +1665,7 @@ function getWorkflows(){
         },
         error: function (xhr, status) {
             m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR in getWorkflows call, possibly FFASTRANS API is offline. Or you havee an invalid expression in filter regex");
+            dhtmlx.message("ERROR in getWorkflows call, please check FFAStrans Path in Admin settings on the left.. Or you have an invalid expression in filter regex");
         }
     });
 }
@@ -1943,7 +1943,7 @@ async function startJobApiCall(postBody){
     console.trace()
     try{
         var response =  await $.ajax({
-            url:  buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+            url:  build_new_api_url("/jobs"),//buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
             type: "POST",
             crossDomain: true,
             contentType: "application/json; charset=UTF-8",

@@ -95,6 +95,18 @@ function init(){
         padding:10,
         rows: [
             {
+                name: "STATIC_FFASTRANS_PATH",
+                value: m_serverconfig["STATIC_FFASTRANS_PATH"],
+                type: "input",
+                required: true,
+                label: "FFAStrans Path",
+                labelPosition: "left",
+                labelWidth: label_width,
+                preMessage:"FFAStrans base directory, can be relative from server.exe, e.g. ../",
+                successMessage:"FFAStrans base directory, can be relative from server.exe, e.g. ../",
+                errorMessage:"FFAStrans base directory, may not be empty",
+            },
+            {
                 name: "STATIC_WEBUI_HEADER_NAME",
                 value: m_serverconfig["STATIC_WEBUI_HEADER_NAME"],
                 type: "input",
@@ -245,8 +257,8 @@ function init(){
             },
             {
                 type: "radioGroup",
-                name: "STATIC_ENABLE_GOOGLE_ANALYTICS",
-                value: m_serverconfig["STATIC_ENABLE_GOOGLE_ANALYTICS"],
+                name: "STATIC_GOOGLE_ANALYTICS_ENABLE",
+                value: m_serverconfig["STATIC_GOOGLE_ANALYTICS_ENABLE"],
                 labelWidth: label_width,
                 required:false,
                 options: {
@@ -263,7 +275,7 @@ function init(){
                         }
                     ]
                 },
-                label: "Enable/Disable Reporting Anonymous Usage Statistics",
+                label: "Send Usage Statistics",
                 labelPosition: "left",
                 preMessage: "Please do not turn this off, it helps development and software design",
                 successMessage: "Please do not turn this off, it helps development and software design",

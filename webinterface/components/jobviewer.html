@@ -687,7 +687,7 @@
             },
             error: function (xhr, status) {
                 mainLayout.cells("a").progressOff();
-                dhtmlx.message("ERROR getting WORKFLOWS, possibly FFASTRANS API is offline or you havee an invalid expression in filter?");
+                dhtmlx.message("ERROR getting WORKFLOWS, please check FFAStrans Path in Admin settings on the left. or you havee an invalid expression in filter?");
             }
         });
     }
@@ -1447,10 +1447,15 @@
             
             //check if there is anything new, if yes append only the new rows in order to prevent disturbing ongoing user interaction
             for (var i=0;i<joblist.length;i++){
+                rootNode = $("#treetable_history").fancytree("getRootNode");
                 var exists = tree.getNodeByKey(joblist[i].key);
                 if (!exists){
                     var at_index = i;
-                    if (at_index == joblist.length-1)
+                    console.log("rootNode.children.length ",rootNode.children.length )
+                    if (rootNode.children.length == 0){
+                        exists = rootNode.addChildren(joblist[i]);//empty grid 
+                    }
+                    else if (at_index == joblist.length-1)
                         exists = rootNode.addChildren(joblist[i]);//insert as last node
                     else
                         exists = rootNode.addChildren(joblist[i],i);//insert 
@@ -1690,7 +1695,7 @@
                 }
             },
             error: function(xhr, status) {
-                alert("ERROR getting workflow of job " + job_id + ", possibly FFASTRANS API is offline. ");
+                alert("ERROR getting workflow of job " + job_id + ", please check FFAStrans Path in Admin settings on the left.. ");
             }
         });
     }
@@ -1909,7 +1914,7 @@
                 mainLayout.cells("b").progressOff();
             },
             error: function(xhr, status) {
-                dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+                dhtmlx.message("ERROR getting queued jobs, please check FFAStrans Path in Admin settings on the left..  ");
             }
         });
     }
@@ -1926,7 +1931,7 @@
                 mainLayout.cells("b").progressOff();
             },
             error: function(xhr, status) {
-                dhtmlx.message("ERROR getting queued jobs, possibly FFASTRANS API is offline.  ");
+                dhtmlx.message("ERROR getting queued jobs, please check FFAStrans Path in Admin settings on the left..  ");
             }
         });
     }
@@ -1965,7 +1970,7 @@
                 mainLayout.cells("c").progressOff();
             },
             error: function(xhr, status) {
-                dhtmlx.message("ERROR getting jobs, possibly FFASTRANS API is offline.  ");
+                dhtmlx.message("ERROR getting jobs, please check FFAStrans Path in Admin settings on the left..  ");
 
             }
         });

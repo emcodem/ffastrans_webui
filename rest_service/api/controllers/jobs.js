@@ -183,7 +183,7 @@ async function post(req, res) {
         var fname = t.getFileName();
         var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
         var tick_pending_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","pending",fname);
-        
+        console.log("Creating Job ticket: " + tick_temp_path)
         fs.writeFileSync(tick_temp_path, JSON.stringify(final_tick));
         fs.moveSync(tick_temp_path,tick_pending_path);
         //write file to temp, then move to q

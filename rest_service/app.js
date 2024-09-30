@@ -26,12 +26,17 @@ dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this
 
 //start_server("localhost",65445,3003);
 
-exports.init = function (_host, _hostport, _listenport) {
+module.exports = {
+  init: init,
+  changeInstallPath:changeInstallPath
+};
+
+function init (_host, _hostport, _listenport,_ffastranspath) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
-	start_server(_host, _hostport, _listenport);
-    
-    var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
-    renewInstallInfo(about_url);
+	  changeInstallPath(_ffastranspath);
+    start_server(_host, _hostport, _listenport);
+    // var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
+
 }
 
 function doRequest(url) {
@@ -55,7 +60,7 @@ function sleep(ms) {
 async function getFfastransProcessPromise() {
   try {
       let { stdout, stderr } = await exec('wmic process get ProcessId,ParentProcessId,CommandLine');
-      let regexp = /"(.+?)ffastrans.exe"/gi;
+      let regexp = /"(.+?)rest_service.exe|(.+?)ffastrans.exe"/gi;
       let ffas_exe_path = stdout.match(regexp);
       ffas_exe_path = ffas_exe_path[0].replaceAll("\"","");
       return path.dirname(ffas_exe_path);
@@ -65,9 +70,10 @@ async function getFfastransProcessPromise() {
 }
 
 async function renewInstallInfo(about_url){
+    return;
     //refresh ffastrans install info infinitely
     while (true){
-        await sleep(15000);
+        await sleep(1000);
         var install_info;
         var skip_api = false;
         var resolved_path;
@@ -104,38 +110,52 @@ async function renewInstallInfo(about_url){
     }
 }
 
+function changeInstallPath(newPath){
+  
+  if(!path.isAbsolute(newPath)) {
+      newPath = path.resolve(global.approot,newPath); /* ! if in the future we run rest_service module standalone, global approot is not available anymore */
+  }
+  console.log("Detected move of FFAStrans installation, resetting paths to",newPath);
+  global.api_config = { };
+  global.api_config["s_SYS_DIR"] = newPath;
+  global.api_config["s_SYS_CACHE_DIR"]    = path.join(global.api_config["s_SYS_DIR"] , "Processors/db/cache/");
+  global.api_config["s_SYS_CONFIGS_DIR"]    = path.join(global.api_config["s_SYS_DIR"] , "Processors/db/configs/");
+  global.api_config["s_SYS_JOB_DIR"]      = path.join(global.api_config["s_SYS_DIR"] , "Processors/db/cache/jobs/");
+  global.api_config["s_SYS_WORKFLOW_DIR"] = path.join(global.api_config["s_SYS_DIR"] , "Processors/db/configs/workflows/");
+}
+
 function handleListenError(err){
 	console.log(err)//prevents the program keeps running when port is in use
 }
 
 async function start_server(_host, _hostport, _listenport){
 	//GLOBAL CONFIG - the keyword global here will make the sub-objects available in all scripts that run in same process
-    //as this service might run standalone without webint at some time, we need to take care to have our own global config
+
     var _approot = __dirname;
     
-    var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
-    var install_info;
-    while  (true){
-        try{
-            console.log("calling",about_url);
-            install_info = await doRequest(about_url);
-            install_info = JSON.parse(install_info);
-            break;
-        }catch(ex){
-            console.error("Error getting install info, is FFAStrans API online?", about_url)
-        }
-    }
+    // var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
+    // var install_info;
+    // while  (true){
+    //     try{
+    //         console.log("calling",about_url);
+    //         install_info = await doRequest(about_url);
+    //         install_info = JSON.parse(install_info);
+    //         break;
+    //     }catch(ex){
+    //         console.error("Error getting install info, is FFAStrans API online?", about_url)
+    //     }
+    // }
     
     //kick off refresh config interval in case the ffastrans installation was moved
+    // changeInstallPath();  
     
-    
-    //set global config
-    global.api_config = { };
-    global.api_config["s_SYS_DIR"]              = install_info["about"]["general"]["install_dir"] + "/";
-    global.api_config["s_SYS_CACHE_DIR"]        = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
-    global.api_config["s_SYS_CONFIGS_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/configs/";
-    global.api_config["s_SYS_JOB_DIR"]          = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
-    global.api_config["s_SYS_WORKFLOW_DIR"]     = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
+    // //set global config
+    // global.api_config = { };
+    // global.api_config["s_SYS_DIR"]              = install_info["about"]["general"]["install_dir"] + "/";
+    // global.api_config["s_SYS_CACHE_DIR"]        = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
+    // global.api_config["s_SYS_CONFIGS_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/configs/";
+    // global.api_config["s_SYS_JOB_DIR"]          = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
+    // global.api_config["s_SYS_WORKFLOW_DIR"]     = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
 
 	//API WEBSERVER
     const express = require('express');

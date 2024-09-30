@@ -393,7 +393,7 @@
                                 }
                             },
                             error: function (xhr, status) {
-                                alert("ERROR getting latest job possibly FFASTRANS API is offline. ");
+                                alert("ERROR getting latest job please check FFAStrans Path in Admin settings on the left.. ");
                             }
                         });
                     }
@@ -938,7 +938,7 @@ function asyncsleep(time) {
                                 },
                                 error: function (xhr, status) {
                                     sub_workflow_is_loading = false;
-                                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+                                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", please check FFAStrans Path in Admin settings on the left.. ");
                                 }
                             }); 
                        }
@@ -1388,7 +1388,7 @@ function asyncsleep(time) {
                     }
                 },
                 error: function (xhr, status) {
-                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", possibly FFASTRANS API is offline. ");
+                    alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", please check FFAStrans Path in Admin settings on the left.. ");
                 }
             });
 

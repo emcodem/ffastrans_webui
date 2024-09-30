@@ -766,7 +766,7 @@ async function takeSegment(){
 	var final_in 	= inpoint.match(/^(........)/)[1] + "." + in_seconds
 	var final_out 	= outpoint.match(/^(........)/)[1] + "." + out_seconds
     var final_in_frames = SMPTE_to_frames(inpoint,g_framerate)
-	var final_out_frames = SMPTE_to_frames(inpoint,g_framerate)
+	var final_out_frames = SMPTE_to_frames(outpoint,g_framerate)
 	parent.window.addSegmentRow(file,final_in,final_out,final_in_frames,final_out_frames);
 }
 

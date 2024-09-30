@@ -91,7 +91,7 @@ module.exports = {
 /* JOB GETTERS */
 
 function getQueuedJobs(){
-
+	//let response = await axios.get(_currentUrl)//await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
     Request.get(helpers.build_new_api_url("/tickets"), {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {  
         
         //TODO: merge Active and queued call
@@ -104,6 +104,9 @@ function getQueuedJobs(){
             //global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"));
             return;
         }
+		if (response.statusCode == 404){
+			global.socketio.emit("error", 'Error getting Queued Jobs. If FFAStrans installation moved, please correct Path in Admin settings.');
+		}
 		try{
 		//QUEUED JOBS (in ffastrans queued folder)
 			
@@ -366,7 +369,7 @@ function getRunningJobs(){
 			console.error(error);
 
 			if (error_count_running > 3){
-				global.socketio.emit("error", 'Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
+				//global.socketio.emit("error", 'Error getting running jobs.');
 				try{
 					/* take care about alert email */
 					if (!alert_sent){
