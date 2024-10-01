@@ -1679,7 +1679,7 @@
                     
 					console.log("submitting wf: ",postBody)
                     $.ajax({
-                        url: "/proxy" + m_serverconfig['STATIC_START_JOB_URL'],//buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                        url: build_new_api_url("/jobs"),//buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
                         type: "POST",
                         crossDomain: true,
                         contentType: "application/json",

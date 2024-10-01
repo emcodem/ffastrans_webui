@@ -190,7 +190,7 @@ async function post(req, res) {
 
         global;
         var returnobj = {
-            "uri": global["ffastrans-about"].discovery +"/jobs/" + t.job_id,
+            "uri": "/jobs/" + t.job_id,
             "job_id": t.job_id
         }
         res.json(returnobj);
