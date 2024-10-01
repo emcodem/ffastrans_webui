@@ -1843,6 +1843,7 @@ async function startJobs(form,selectedWorkflow){
             m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
         }
     }
+    dhx8.dhx.message({ expire: 3000, text: "Submitted.", "node": "form_wf_form"});
 
 }
 

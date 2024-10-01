@@ -4484,13 +4484,7 @@ div.dhx_popup_dhx_skyblue div.dhx_popup_area td.dhx_popup_td div.dhxtreeview_dhx
 .dhxform_obj_dhx_skyblue textarea.dhxform_textarea::-ms-clear {
   display: none;
 }
-.dhxform_obj_dhx_skyblue .dhxform_textarea {
-  border: 1px solid #d6d6d6;
-  font-family: Tahoma;
-  font-size: 1em;
-  color: #000000;
-  resize: none;
-}
+
 .dhxform_obj_dhx_skyblue div.disabled .dhxform_textarea {
   color: #b2b2b2;
   background-color: white;
@@ -8639,6 +8633,16 @@ bootstrap stuff on metrics
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   text-transform: none;
 }
+/* exception: close button for window on job viewer page */
+body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div > div.dhx_layout-cell.dhx_window-header.dhx_window-header--movable > nav > ul > li:nth-child(4) > button{
+  background-color:#00000000 !important;
+  background-image:unset !important;
+}
+body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div  > div.dhx_layout-cell.dhx_window-header.dhx_window-header--movable > nav > ul > li:nth-child(4)  > button:hover  {
+  background-color:#444444CC !important;
+  background-image: unset !important;
+  cursor:pointer;
+}
 
  div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue{
 	 background:#222
@@ -8727,3 +8731,11 @@ input{
 	color:#222 !important;
 }
 
+/* options window */
+.dhxform_obj_dhx_skyblue .dhxform_textarea {
+  border: 1px solid #d6d6d6;
+  font-family: Tahoma;
+  font-size: 1em;
+  color: #FFF;
+  resize: none;
+}

@@ -997,7 +997,7 @@
                 $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
                 $tdList.eq(3).html("<div class='celltext_rtl'><bdi>" + filename_to_display + "</bdi></div>");
                 console.log(node.data)
-                $tdList.eq(4).html("<div class='celltext'>" +  (node.data.priority || 1) + "|" + node.data.proc + "@" + node.data.host + "</div>");
+                $tdList.eq(4).html("<div class='celltext'>Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host + "</div>");
                 $tdList.eq(5).html("<div class='celltext'>" + node.data.status + "</div>");
                 
                 $tdList.eq(6).html('<div class="progressbar" style=" width:' + node.data.progress + '%">' + node.data.progress + '% ' + node.data.steps.replace(/ /g, "") + '</div>');
