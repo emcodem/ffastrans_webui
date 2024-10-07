@@ -23,10 +23,9 @@ module.exports = {
             }
             if ((data)){
 
-				//merge possible new items from default config after server update
+				//merges possible new items from default config after server update
 				data.global.config = {...defaultConfig, ...data.global.config}; //right one will overwrite values from left one
 				console.log("Serving Server config from database");
-				
                 callback(data.global.config);
             }else{
                 console.warn("No config in database, defaulting to default config");

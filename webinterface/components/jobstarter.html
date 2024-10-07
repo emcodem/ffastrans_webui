@@ -1375,12 +1375,14 @@ async function getBrowseLocations(restore_saved = true){
    //locations from admin config
    try{
         var locations = await loadBrowseLocations();
-        Object.keys(locations).forEach(function(displayname) {
-            var path = locations[displayname];
-            m_fileBrowseGridMenu.addNewChild("location", new Date(), path, displayname, false,"","");
+
+        locations.forEach(function(loc) {
+            m_fileBrowseGridMenu.addNewChild("location", new Date(), loc.path, loc.displayname, false,"","");
         });
-        if (Object.keys(locations).length == 0)
-            return;
+        if (locations.length == 0){
+            dhtmlx.message("ERROR, no Browse locations configured or no Filter matches.")
+        }
+            //return;
         // for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
                 
         // }
@@ -1551,51 +1553,6 @@ function on_processorSelected(selectedWorkflow){
         success: function (response) {
 
 
-            // console.log(response)
-            // console.log("getworkflowdetails",response)
-            // //rebuild subform for variable selection
-            // if (m_subForm){
-            //     m_subForm.unload();//clear existing form items
-            //     m_subForm = null;
-            // }
-            // m_subForm  = new dhtmlXForm("subform"); //html element id subform already exists in mainform body
-
-            // //add workflow description to UI display
-            // var wf_description = selectedWorkflow["description"] || "";
-            // wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
-            // m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10}),
-            // m_subForm.enableLiveValidation(true);
-            // m_subForm.attachEvent("onButtonClick", function(name){
-            //     if(name == "submit"){
-            //         startJobs();
-            //     }
-            // });             
-             
-            // if (! response['user_variables'] || response['user_variables'] == "undefined"){
-            //     alert("ERROR Did not get Information for workflow " + selectedWorkflow.wf_id + "\nThis can happen when the workflow was never used or you deleted the cache directory. \n It will go away when you play with workflow variables, read more about it here:\n http://www.ffastrans.com/frm/forum/viewtopic.php?f=4&t=796");
-            //     return;
-                
-            // }else{
-            //     //ok, we have the workflow info, populate user variables and start btn
-            //     if (!("user_variables" in response)){
-			// 		m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"},3);                
-            //         return;
-            //     }
-            //     console.log("user_vars response: ",response["user_variables"])
-            //     try{
-
-            //     }catch(ex){
-            //         console.log("Error parsing user_Variables,",ex);
-            //         alert("Contact Administrator, Error parsing user_variables of the selected workflow.\n" + ex)
-            //     }
-            //     var dhxform_items = processWebUiVars(response["user_variables"]);
-            //     console.log("parsed user vars",dhxform_items)
-            //     for (var i=0;i<dhxform_items.length;i++){
-            //         m_subForm.addItem(null,dhxform_items[i]);
-            //     }
-            //     m_subForm.addItem(null, {type: "button", name:"submit",offsetLeft:10,width:200,value: "Start Job"});
-            // }
-              
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR in getworkflowdetails for " +selectedWorkflow.wf_id );
@@ -1607,7 +1564,7 @@ function on_processorSelected(selectedWorkflow){
 function getWorkflows(){
 
     $.ajax({
-        url:  "/getworkflowlist",//buildUrl(m_serverconfig['STATIC_GET_WORKFLOW_DETAILS_URL']),
+        url:  "/getworkflowlist",
         type: "GET",
         crossDomain: true,
         dataType: "json",

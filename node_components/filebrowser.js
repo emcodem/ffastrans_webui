@@ -198,8 +198,8 @@ module.exports = function(app, express){
     function checkFolderInGlobalConfig(folder,res){
         //checks if global conf allows changing into this folder
         var allowed = false;
-        for (i=0;i<global.config.STATIC_ALLOWED_BROWSE_LOCATIONS.length;i++){
-            var regex = new RegExp(regexEscape(global.config.STATIC_ALLOWED_BROWSE_LOCATIONS[i]), "i");            
+        for (i=0;i<global.config.allowed_browselocations.length;i++){
+            var regex = new RegExp(regexEscape(global.config.allowed_browselocations[i].path), "i");            
             if (regex.exec(folder)){
                allowed = true; 
             }

@@ -28,6 +28,18 @@ defaultConfig.STATIC_UPLOADPATH = "\\\\localhost\\c$\\temp\\";
 //display_names and the locations themselves have to contain the same amount of items!
 defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES = ["Local examle","UNC example","D Drive on server"];
 defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D:\\"];
+defaultConfig.allowed_browselocations = [
+    {
+        displayname : "Local Example",
+        path : "C:",
+        filters : {include:"",exclude:""}
+    },
+    {
+        displayname : "UNC example",
+        path : "\\\\localhost\\c$\\",
+        filters : {include:"",exclude:""}
+    },
+]
 
 //FFAStrans server
 defaultConfig.STATIC_API_HOST = "localhost";

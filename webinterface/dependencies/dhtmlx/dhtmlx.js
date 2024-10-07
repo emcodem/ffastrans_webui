@@ -273,7 +273,7 @@ if (typeof(window.dhx) == "undefined") {
         }
     }
 }
-if (typeof(window.dhx4.template) == "undefined") {
+if (window.dhx4 && typeof(window.dhx4.template) == "undefined") {
     window.dhx4.trim = function (a) {
         return String(a).replace(/^\s{1,}/, "").replace(/\s{1,}$/, "")
     };
@@ -411,7 +411,7 @@ if (typeof(window.dhx4.template) == "undefined") {
         return value
     }
 }
-if (typeof(window.dhx4.dateLang) == "undefined") {
+if (window.dhx4 && typeof(window.dhx4.dateLang) == "undefined") {
     window.dhx4.dateLang = "en";
     window.dhx4.dateStrings = {
         en: {
@@ -673,7 +673,7 @@ if (typeof(window.dhx4.dateLang) == "undefined") {
         return a
     }
 }
-if (typeof(window.dhx4.ajax) == "undefined") {
+if (window.dhx4 && typeof(window.dhx4.ajax) == "undefined") {
     window.dhx4.ajax = {
         cache: false,
         method: "get",
@@ -878,7 +878,7 @@ if (typeof(window.dhx4.ajax) == "undefined") {
         }
     }
 }
-if (typeof(window.dhx4._enableDataLoading) == "undefined") {
+if (window.dhx4 && typeof(window.dhx4._enableDataLoading) == "undefined") {
     window.dhx4._enableDataLoading = function (l, e, j, h, m) {
         if (m == "clear") {
             for (var c in l._dhxdataload) {
@@ -1007,7 +1007,7 @@ if (typeof(window.dhx4._enableDataLoading) == "undefined") {
         l = null
     }
 }
-if (typeof(window.dhx4._eventable) == "undefined") {
+if (window.dhx4 && typeof(window.dhx4._eventable) == "undefined") {
     window.dhx4._eventable = function (a, c) {
         if (c == "clear") {
             a.detachAllEvents();
