@@ -107,9 +107,11 @@ module.exports = function(app, express){
         .withConcurrency(30) //too big concurrency blocks cpu
         .process(async (cur_file, index, pool) => {
             try{
-               
                 var stats = await fs.promises.stat(cur_file.userdata.fullpath);
-                cur_file.data = [path.basename(cur_file.userdata.fullpath),cur_file.userdata.fullpath, stats.isDirectory(), getReadableFileSizeString(stats.size), stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size];
+                var readableFilesizeString = "";
+                if (!stats.isDirectory())
+                    readableFilesizeString = getReadableFileSizeString(stats.size)
+                cur_file.data = [path.basename(cur_file.userdata.fullpath),cur_file.userdata.fullpath, stats.isDirectory(), readableFilesizeString, stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size];
                 a_nonerror.push(cur_file);
             }catch(ex){
                 console.error("Error getting stats for ",JSON.stringify(cur_file),ex);

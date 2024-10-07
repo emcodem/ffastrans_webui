@@ -1054,6 +1054,9 @@ if (typeof(window.dhx4._eventable) == "undefined") {
             return (this.dhxevs.data[e] != null)
         };
         a.callEvent = function (g, j) {
+            /* emcodem, event is called here */
+            if (g.indexOf("emcodem")!=-1)
+                breakhere = 1 
             g = String(g).toLowerCase();
             if (this.dhxevs.data[g] == null) {
                 return true
@@ -34122,6 +34125,7 @@ dhtmlxArray._master = {
         this[e] = c
     }
 };
+/* emcodem, dhtmlx grid starts here */
 function dhtmlXGridObject(id) {
     if (dhtmlxEvent.initTouch) {
         dhtmlxEvent.initTouch()
@@ -35824,6 +35828,7 @@ function dhtmlXGridObject(id) {
         if (el.tagName == "TH" && (this.fldSort.length - 1) >= el._cellIndex && this.fldSort[el._cellIndex] != "na") {
             var data = this.getSortingState();
             var sortType = (data[0] == ind && data[1] == "asc") ? "des" : "asc";
+            
             if (!this.callEvent("onBeforeSorting", [ind, this.fldSort[ind], sortType])) {
                 return
             }
@@ -38236,6 +38241,18 @@ dhtmlXGridObject.prototype = {
         if (this.isTreeGrid()) {
             this.sortTreeRows(e, j, c)
         } else {
+            //emcodem add onbeforesorting evt
+            if (!this.sorting_in_progress){
+                this.sorting_in_progress = true;
+                try{
+                    if (!this.callEvent("onemcodemsorting", [e, j, c])) {
+                        return
+                    }
+                }catch(ex){
+                }finally{
+                    this.sorting_in_progress = false;
+                }
+            }
             var a = {};
             var h = this.cellType[e];
             var l = "getValue";

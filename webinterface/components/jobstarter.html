@@ -406,7 +406,7 @@ function init(){
     m_fileBrowserGrid.setHeader(getCurrentFolderHtml());//the headers of columns  
     m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
-    m_fileBrowserGrid.setInitWidthsP("70,0,0,10,20,0,0,0");          //the widths of columns  
+    m_fileBrowserGrid.setInitWidthsP("75,0,0,10,15,0,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
     m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str");          //the sorting types  
@@ -498,6 +498,22 @@ function init(){
         $('#chk_previews').prop('checked',localStorage.getItem("jobstarter_chk_previews") == 'true');
         prevCheckChanged();
     }
+
+    /* EVENTS */
+
+    m_fileBrowserGrid.attachEvent("onemcodemsorting",function(colindex,type,dir){
+        //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
+        var sizeIndex = m_fileBrowserGrid.getColIndexById("Size");
+        var sizeBytesIndex = m_fileBrowserGrid.getColIndexById("original_size");
+        if (sizeIndex == sizeIndex){//sorted by file size
+            m_fileBrowserGrid.sortRows(sizeBytesIndex,"int",dir);//emcodem, why does this not work
+            m_fileBrowserGrid.setSortImgState(true,3,dir);//this is important to let the js grid know how it is sorted (not just the user)
+            console.log("replaced file size sorting")
+            return false;//do not allow grid to apply default sorting
+        }
+        return true ;
+    });  
+
 
     m_fileBrowserGrid.attachEvent("onDrop",function(sId,tId,dId,sObj,tObj,sCol,tCol){
             //disallow drag&drop rows to self   
@@ -678,15 +694,6 @@ function init(){
         return true;
     });
 
-    m_selectedFileGrid.attachEvent("onBeforeSorting",function(colindex,type,dir){
-        //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
-        if (colindex == 3){//sorted by file size
-            m_selectedFileGrid.sortRows(6,"int",dir);
-            m_selectedFileGrid.setSortImgState(true,3,dir);//this is important to let the js grid know how it is sorted (not just the user)
-            return false;//do not allow grid to apply default sorting
-        }
-        return true ;
-    });  
 
     //allow drag and drop of "links" onto selected files grid
     document.getElementsByClassName("objbox")[1].ondragover = allowDropText

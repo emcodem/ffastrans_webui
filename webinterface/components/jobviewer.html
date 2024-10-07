@@ -1905,29 +1905,12 @@
     function getQueuedJobs(targetGridObj) {
         //deprecated; still there for "no proxy mode"
         $.ajax({
-            url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
+            url: build_new_api_url("/tickets"),
             type: "GET",
             crossDomain: true,
             dataType: "json",
             context: this,
             success: function(response) {
-                mainLayout.cells("b").progressOff();
-            },
-            error: function(xhr, status) {
-                dhtmlx.message("ERROR getting queued jobs, please check FFAStrans Path in Admin settings on the left..  ");
-            }
-        });
-    }
-
-    function getQueuedJobs(targetGridObj) {
-        $.ajax({
-            url: buildUrl(m_serverconfig['STATIC_GET_QUEUED_JOBS_URL']),
-            type: "GET",
-            crossDomain: true,
-            dataType: "json",
-            context: this,
-            success: function(response) {
-                addQueuedJobsToGrid(targetGridObj, response.queue);
                 mainLayout.cells("b").progressOff();
             },
             error: function(xhr, status) {
@@ -1959,7 +1942,7 @@
     function getFinishedJobs(targetGridObj) {
         //deprecated; still there for "no proxy mode"
         $.ajax({
-            url: buildUrl(m_serverconfig['STATIC_GET_FINISHED_JOBS_URL']),
+            url: build_new_api_url("/jobs"),
             type: "GET",
             crossDomain: true,
             dataType: "json",
