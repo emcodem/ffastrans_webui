@@ -184,7 +184,7 @@ async function readfile_cached(fullpath, jsonparse = false, lastlines = false, i
     /* int lastlines reads n lines from end of file */
     /* invalidatecache defines how long to keep the stuff in memory */
     var prevent_delete = fullpath.indexOf("\\configs\\workflows" != -1);//this does nothing because we re-use this function for other stuff than workflows 
-
+    var content_or_json = jsonparse ? "jsoncontent" : "content";
     if (! ("filecache" in global)){
 		global.filecache = {};
 	}
@@ -218,8 +218,11 @@ async function readfile_cached(fullpath, jsonparse = false, lastlines = false, i
         }
         if (stats.mtimeMs != global.filecache[cache_name][fullpath].mtimeMs) 
             delete global.filecache[cache_name][fullpath] //file changed, needs re-read from disk
-        else 
-            return global.filecache[cache_name][fullpath]["content"]; //File is served from cache
+        else {    
+
+            return global.filecache[cache_name][fullpath][content_or_json]; //File is served from cache
+        }
+            
 	}
 
     //File is not in cache, read from disk.
@@ -233,9 +236,15 @@ async function readfile_cached(fullpath, jsonparse = false, lastlines = false, i
     global.filecache[cache_name][fullpath] = {};
     global.filecache[cache_name][fullpath]["mtimeMs"] = stats.mtimeMs;
     global.filecache[cache_name][fullpath]["birth"] = new Date();
-    global.filecache[cache_name][fullpath]["content"] = jsonparse ? JSON.parse(contents) : contents;
-    
-    return global.filecache[cache_name][fullpath]["content"] ;
+    global.filecache[cache_name][fullpath]["content"] = contents;
+    try{
+        global.filecache[cache_name][fullpath]["jsoncontent"] = JSON.parse(contents);
+    }catch(ex){
+        if (jsonparse){
+            throw ex;
+        }
+    }
+    return global.filecache[cache_name][fullpath][content_or_json] ;
 	
 }
 
