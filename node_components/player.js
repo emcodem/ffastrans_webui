@@ -327,17 +327,16 @@ class Player
 				//is Audio VU analyzer active?
 				if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
 					//audio analyzer active, build VU display
+					let showvolume_framerate = 25;
+					if (vtracks.length != 0)
+						showvolume_framerate = vtracks[0].r_frame_rate;
 					let singleBarWidth =  playerInstance.outputWidth / 140;
 					singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);//make sure its a multiple of 2
-					let framerate = vtracks[0].r_frame_rate;
-					let f_show_volume = '[all]showvolume=r='+framerate+':c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume]'
+					let f_show_volume = '[all]showvolume=r='+showvolume_framerate+':c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume]'
 					a_filters.push(f_show_volume);
 				}
 	
 			}
-
-
-
 
 			//wfm [vwfm] pad
 			if (vtracks.length != 0 && playerInstance.config.analyzeTools.wfm)
@@ -362,6 +361,7 @@ class Player
 			return a_filters.join(",")
 
 		}catch(ex){
+			console.error("Error constructing mpv filter chain!",ex)
 			var stop = 1
 		}
 	}
