@@ -42,8 +42,10 @@ module.exports = async function(app, passport){
 
 		}
 
+		var all_locations = global.config.allowed_browselocations;
+		var filtered_locations = [];
+		//allowed_locations = global.defaultConfig.allowed_browselocations;
 
-		var allowed_locations = global.config.allowed_browselocations;
 
 		//build kv list for easy filtering, we never should have separated display names and locations..
 		// var easylist = [];
@@ -55,22 +57,29 @@ module.exports = async function(app, passport){
 		// }
 
 		//loop through all permissions and collect allowed locations
+		let has_location_filter = false; 
 		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "true"){
-			var perms = await userpermissions.getpermissionlistAsync(req.user.local.username);
+			let perms = await userpermissions.getpermissionlistAsync(req.user.local.username);
+			
 			for (perm of perms){
 				if (perm.key == "FILTER_BROWSE_LOCATIONS"){
-					var matched = global.config.allowed_browselocations.map(function(loc){
+					has_location_filter = true;
+					all_locations.map(function(loc){
 						var filter = perm["value"]["filter"];
 						if (loc.displayname.toLowerCase().match(filter.toLowerCase())){
-							allowed_locations.push(loc);
-							return true;
+							filtered_locations.push(loc);
 						}
 					});
+					
 				}
 			}
+		}else{
+			filtered_locations = all_locations;
 		}
+		if (!has_location_filter)
+			filtered_locations = all_locations;
 		//above filter logic can potentially produce duplicate entries, filter unique array objects
-		allowed_locations = allowed_locations.filter((obj1, i, arr) => 
+		filtered_locations = filtered_locations.filter((obj1, i, arr) => 
 			arr.findIndex(obj2 => 
 			  JSON.stringify(obj2) === JSON.stringify(obj1)
 			) === i
@@ -85,7 +94,7 @@ module.exports = async function(app, passport){
 			return;
 		}
 
-		res.json(allowed_locations);
+		res.json(filtered_locations);
 	});
 
     /* saves new browselocations */
