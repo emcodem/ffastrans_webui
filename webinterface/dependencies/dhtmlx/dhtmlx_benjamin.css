@@ -8720,7 +8720,7 @@ input{
 
 /* job viewer button icons */
 .fas {
-	color:#DDD !important;
+	color:#D3D3D3 !important;
 }
 /* job viewer workflow sel delete button icon */
 .fa-ban::before{
@@ -8738,4 +8738,76 @@ input{
   font-size: 1em;
   color: #FFF;
   resize: none;
+}
+
+/* Logviewer, json-human */
+
+.tr_ffastrans_processor_top{
+  background-color:#646464 !important;
+}
+
+.table_ffastrans_processor_enabled{
+  background-color:#B0B0B0 !important;
+}
+
+#graphcontainer{
+   background-color:unset !important;
+ }
+
+.jh-root{
+  border: 1px solid #333;
+  margin: 0.2em;
+  }
+
+  
+.jh-value{
+  border-left: 1px solid #222;
+}
+
+.jh-type-object > tbody > tr:nth-child(odd), .jh-type-array > tbody > tr:nth-child(odd){
+  background-color: #222;
+}
+
+.jh-type-object > tbody > tr:nth-child(even), .jh-type-array > tbody > tr:nth-child(even){
+  background-color: #000;
+}
+
+.jh-type-object > tbody > tr, .jh-type-array > tbody > tr{
+border: 1px solid #333;
+border-bottom: none;
+}
+
+.jh-type-object > tbody > tr:last-child, .jh-type-array > tbody > tr:last-child{
+border-bottom: 1px solid #333;
+}
+
+
+.jh-type-string{
+  font-style: italic;
+  color: #EEE;
+}
+.jh-value a{
+  color: #6c94b4;
+}
+
+.jh-object-key, .jh-array-key{
+  color: #999;
+  vertical-align: top;
+}
+
+.jh-type-object{
+  color: #EEE;
+}
+
+/*logviewer menu btns */
+.btn.logviewer_menu{
+  color: white;
+  background-color: red;
+  border:none;
+  background: #dddddd00;
+  margin-top:2px;
+}
+
+.icon-logviewer-menu{
+  background-color:#222
 }

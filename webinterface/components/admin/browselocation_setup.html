@@ -276,8 +276,16 @@ window.setInterval(function(){
 },1000)
 
 async function saveGridData(){
-    const state = m_maingrid.data.serialize();
+    let state = m_maingrid.data.serialize();
     console.log("gridstate",state);
+    state = state.map(data => {
+        //removes dhtmlx id property
+        return {
+                path:data.path,
+                displayname:data.displayname,
+                filters:data.filters
+            }
+    })
     
     await saveBrowseLocations(state);
     m_last_data = JSON.parse(JSON.stringify(state));
@@ -308,7 +316,7 @@ function deleteSelected(){
 
 function addNewEntry(){
     //bring up form and post result to server
-    var row = m_maingrid.data.add({path:"D:\\Example Location 123",displayname:"New Location"});
+    var row = m_maingrid.data.add({path:"D:\\Example Location 123",displayname:"New Location",filters:{include:"",exclude:""}});
     m_maingrid.selection.setCell(row);
     return;
 
