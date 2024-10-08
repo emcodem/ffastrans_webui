@@ -156,7 +156,7 @@ var socket = io();
 
 /* GLOBALS */
 //dhtmlx ui
-var m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_jobLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
+var m_browselocations,m_logged_in_username,m_userpermissions,m_serverconfig,m_mainLayout,m_jobLayout,m_mainForm,m_subForm,m_selectedFileGrid,m_workflowArray,m_fileBrowserGrid,m_fileBrowseGridMenu,m_workflowTabBar,m_mainTabBar,m_fileAddedEventId;
 var m_realUploadpath = "";
 var m_noBrowseMode = false;
 var m_listDriveWindow = false;
@@ -1229,8 +1229,22 @@ function parse_path (what){
     return output;
 }
 
+function locateFilterForLocation(browsepath){
+    // saved locations do not save the filter along with them, try to find a matching location and apply this filter.
+    var rootloc = m_browselocations.filter(a => {
+        return a.filters && browsepath.toLowerCase().indexOf(a.path.toLowerCase()) != -1;
+    })
+    if (rootloc.length !=0)
+        return rootloc[0].filters;
+    else{
+        console.error("Did not find a matching root location for browsepath, returning empty filters",browsepath);
+        return {include:"",exclude:""}
+    }
+}
+
 function getFileList(dhtmlxGrid,path,path_is_base64 = false){
 //browse files on server
+        var filters = locateFilterForLocation(path);
         if(path_is_base64){
             path = atob(path);
             path = decodeURIComponent(path);
@@ -1238,7 +1252,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
         console.log("Navigating to ",path)
         m_mainLayout.cells("a").progressOn();
 	    $.ajax({
-        url: "/filebrowser?name=" + encodeURIComponent(path) +"&"+Math.random(),
+        url: "/filebrowser?name=" + encodeURIComponent(path) +"&filters="+encodeURIComponent(JSON.stringify(filters)) + "&" +  Math.random(),
         type: "GET",
         success: function (response,textStatus, xhr) {
             m_mainLayout.cells("a").progressOff();
@@ -1376,17 +1390,15 @@ async function getBrowseLocations(restore_saved = true){
    try{
         var locations = await loadBrowseLocations();
 
+        m_browselocations = [];
         locations.forEach(function(loc) {
+            m_browselocations.push(loc);
             m_fileBrowseGridMenu.addNewChild("location", new Date(), loc.path, loc.displayname, false,"","");
         });
         if (locations.length == 0){
             dhtmlx.message("ERROR, no Browse locations configured or no Filter matches.")
         }
-            //return;
-        // for (i=0;i<m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'].length;i++){
-                
-        // }
-        
+
         //restore user locations
         if (localStorage.getItem("savedbrowselocations")){
                 var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
@@ -1398,7 +1410,7 @@ async function getBrowseLocations(restore_saved = true){
         if (localStorage.getItem("lastVisitedBrowseLocation") &&  restore_saved){
                 getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
         }else{
-                getFileList(m_fileBrowserGrid, m_serverconfig['STATIC_ALLOWED_BROWSE_LOCATIONS'][0]);    //load first available location
+                getFileList(m_fileBrowserGrid, m_serverconfig.allowed_browselocations[0].path);    //load first available location
         }
    }catch(ex){
         dhtmlx.alert("There was an error loading allowed Browse locations, contact Administrator");

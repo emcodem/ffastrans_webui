@@ -105,7 +105,8 @@ function editFilters(row, column, editorType){
                     name: "exclude",
                     labelWidth: "130px",
                     labelPosition: "left",
-                    value: row.filters.exclude
+                    value: row.filters.exclude,
+                    preMessage: "Comma separated list of search patterns, e.g. *.mxf,*.mp4,*test*. Filename must end with the pattern, e.g. if you search for 'test', it matches mp4test but not testmp4 "
                 },
                 {cols:[
 					{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save_browse_filters","hidden":false,

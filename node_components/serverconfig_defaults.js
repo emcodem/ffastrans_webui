@@ -26,8 +26,8 @@ defaultConfig.STATIC_UPLOADPATH = "\\\\localhost\\c$\\temp\\";
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
 //your path MUST end with slash or backslash, the rest of the code assumes it.
 //display_names and the locations themselves have to contain the same amount of items!
-defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES = ["Local examle","UNC example","D Drive on server"];
-defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D:\\"];
+// defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES = ["Local examle","UNC example","D Drive on server"];
+// defaultConfig.STATIC_ALLOWED_BROWSE_LOCATIONS = ["c:\\","\\\\localhost\\c$\\","D:\\"];
 defaultConfig.allowed_browselocations = [
     {
         displayname : "Local Example",

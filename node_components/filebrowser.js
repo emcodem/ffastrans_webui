@@ -15,6 +15,23 @@ function regexEscape(string) {
 		.replace(/-/g, '\\x2d');
 }
 
+function regexEscapeForFilenameMatch(string) {
+    //input is some string like *.exe, we generate a regex that works like windows explorer from it
+
+	if (typeof string !== 'string') {
+		throw new TypeError('Expected a string');
+	}
+    string = string.replaceAll("*","_STAR_");
+    string = string.replaceAll(".","_DOT_");
+    
+	return string
+		.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
+		.replace(/-/g, '\\x2d')
+        .replaceAll("_STAR_",".*")
+        .replaceAll("_DOT_","\\.")
+        + "$" //force correct ending
+        ;
+}
 
 function twoDigits(d) {//todo: move this to server.js?
     if(0 <= d && d < 10) return "0" + d.toString();
@@ -48,8 +65,35 @@ module.exports = function(app, express){
 	app.get('/filebrowser', async (req, res) => {
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
-				var baseFolder;
-				baseFolder = req.body.name || req.query.name;
+				var baseFolder = req.body.name || req.query.name;
+                //filters
+                var filters = req.query.filters;
+                if (filters){
+                    try{
+                        filters = JSON.parse(filters);
+                        if (!filters.include && filters.exclude == 0)
+                            filters.include = [];
+                        else
+                            filters.include = filters.include.split(",");
+                        if (!filters.exclude && filters.exclude == 0)
+                            filters.exclude = [];
+                        else
+                            filters.exclude = filters.exclude.split(",");
+
+                        if (filters.include.length != 0)
+                            filters.include = filters.include.map((str) => new RegExp(regexEscapeForFilenameMatch(str),"i"));
+                        if (filters.exclude.length != 0)
+                            filters.exclude = filters.exclude.map((str) => new RegExp(regexEscapeForFilenameMatch(str),"i"));
+                    }catch(ex){
+                        console.error("Error parsing filters for browselocation,",baseFolder,filters);
+                        filters = {include:[],exclude:[]};
+                    }
+                }else{
+                    filters = {include:[],exclude:[]};
+                }
+
+                console.log("filebrowser",req.query,"filters applied",filters);
+                //sanity check
                 baseFolder = baseFolder.replace(/&amp;/g, '&');
                 console.log("Filebrowser request to: " + baseFolder)
                 if (!baseFolder){
@@ -66,9 +110,10 @@ module.exports = function(app, express){
                    return; 
                 }; //ends request with error if basefolder is is not within configured locations
 
+                //do the work
 				var rows = {};
 				rows.rows =[];
-				if (!baseFolder){throw "Parameter name not specified"};//todo: handle no basepath error
+				if (!baseFolder){throw "Basefolder Parameter name not specified"};//todo: handle no basepath error
 				var split = baseFolder.split("\\");//todo: make sure path contains only backslashes
 				var parentPath = split.slice(0, split.length - 2).join("\\") + "\\";
 				//rows.rows.push();//add parent folder
@@ -85,6 +130,25 @@ module.exports = function(app, express){
 				  });
 
                   var a_nonerror = await getStats(rows.rows);
+                  a_nonerror = a_nonerror.filter(f => {
+                        if (f.data[2]){//2 = is_directory, wtf a plain array?!
+                            return true
+                        }
+                        var filenamewithext = f.data[0];//wtf a plain array?!
+                        if (filters.exclude.length != 0){
+                            if (filters.exclude.some((regex) => regex.test(filenamewithext)))//if some matches, keep becomes false
+                                return false;
+                        }
+                        if (filters.include.length != 0){
+                            if (filters.include.some((regex) => regex.test(filenamewithext))){
+                                return true;
+                            }else{
+                                return false;//if its not included, it is excluded :P
+                            }
+                        }
+                        else
+                            return true
+                  })
                   rows = {};
                   //add oneup entry
 				  rows.rows = [{id:"oneup",data:["..",parentPath, true, 0]},...a_nonerror];
