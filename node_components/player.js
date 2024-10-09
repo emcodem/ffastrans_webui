@@ -40,7 +40,10 @@ class Player
 			playerInstance.config.analyzeTools.wfm 		= _config.analyzeTools.wfm;
 			playerInstance.config.analyzeTools.vec 		= _config.analyzeTools.vec;
 		}
-
+		if (_config.outputWidth)
+			playerInstance.outputWidth = _config.outputWidth;
+		if (_config.outputHeight)
+			playerInstance.outputWidth = _config.outputHeight;
 		console.log("PLAYER INITATE", playerInstance.config);
 		//get free udp localhost port for this instance
 		try{
@@ -172,7 +175,13 @@ class Player
 			playerInstance.selected_channels = data.val;
 			playerInstance.restartPlayerAtCurrentPos();
 		}
-
+		if (data.command == "setQuality"){
+			var new_w = JSON.parse(data.val).width;
+			var new_h = JSON.parse(data.val).height;
+			playerInstance.outputWidth = new_w;
+			playerInstance.outputHeight = new_h;
+			playerInstance.restartPlayerAtCurrentPos();
+		}
 		if (data.command == "addAnalyzeTool"){
 			if (data.val == "audioVu"){
 				playerInstance.config.analyzeTools.audioVu = true;
@@ -319,7 +328,9 @@ class Player
 				//Audio only? - create audio visualisation
 				if (vtracks.length == 0){
 					a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
-					let visual = "[vectorscopeaudio]avectorscope=draw=line:s="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
+					let visual = "[vectorscopeaudio]avectorscope=mode=polar:draw=line:s="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
+					//let visual = "[vectorscopeaudio]ebur128=video=1:size="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
+					
 					a_filters.push(visual)
 				}
 
@@ -327,7 +338,7 @@ class Player
 				//is Audio VU analyzer active?
 				if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
 					//audio analyzer active, build VU display
-					let showvolume_framerate = 25;
+					let showvolume_framerate = 1;
 					if (vtracks.length != 0)
 						showvolume_framerate = vtracks[0].r_frame_rate;
 					let singleBarWidth =  playerInstance.outputWidth / 140;
@@ -371,6 +382,7 @@ class Player
 
 	async startmpv(config,port,extraopts = [],seekToSec = false){
 		let playerInstance = this;
+		
 		let mpvopts = [
 			"--log-file=mpvoutput.log",
 			"--o=-",//+ playerInstance.port ,	//prevent downmix all channels
@@ -384,9 +396,6 @@ class Player
 				mpvopts.push(
 					"--profile=ffasVidProfile", 
 				)
-				playerInstance.outputWidth = 1920; //todo: make flexible
-				playerInstance.outputHeight = 1080; //todo: make flexible
-				
 
 				var _filters = playerInstance.getAudioVuFilterString("aid",playerInstance.selected_channels)
 			

@@ -257,7 +257,6 @@ function initAnalyzeBtns(){
 		$(evt.target).blur();
 	});
 
-	//restore user defaults on page load
 	if (localStorage["analyze_vec"]){
 		$("#analyze_vec").attr("data-state",localStorage["analyze_vec"]);
 		$("#analyze_vec").addClass("analyze_tools_led_" +localStorage ["analyze_vec"]);
@@ -270,6 +269,37 @@ function initAnalyzeBtns(){
 		$("#analyze_audioVu").attr("data-state",localStorage["analyze_audioVu"]);
 		$("#analyze_audioVu").addClass("analyze_tools_led_" + localStorage ["analyze_audioVu"]);
 	}
+
+	/*quality drowpdown*/
+	//restore user defaults on page load
+	const qualitySelection = document.getElementById('quality_selection');
+
+	qualitySelection.addEventListener('change', function(event) {
+		const selectedValue = event.target.value;
+		localStorage ["quality_selection"]  = selectedValue;
+		console.log("changing quality",selectedValue);
+		$("select").blur();//remove focus for player keyboard nav
+		playerCommandSetQuality(JSON.stringify(getOutputResolution(selectedValue)));
+		localStorage["player_output_resolution"] = JSON.stringify(getOutputResolution(selectedValue));
+		initJsMpeg();//re-init player because it needs to analyze the new resolution
+
+	});
+	if (localStorage["quality_selection"]){
+		document.getElementById('quality_selection').value = localStorage["quality_selection"];
+	}
+}
+
+function getOutputResolution(stringHeight){
+	var newQuality = {width:1920,height:1080};;
+	if (stringHeight == "1080")
+		newQuality = {width:1920,height:1080};
+	if (stringHeight == "720")
+		newQuality = {width:1280,height:720};
+	if (stringHeight == "512")
+		newQuality = {width:896,height:512};
+	if (stringHeight == "280")
+		newQuality = {width:512,height:280};
+	return newQuality;
 }
 
 function initJsMpeg(){
@@ -304,7 +334,9 @@ function load(){
 					audioVu: 	$("#analyze_audioVu").attr("data-state") == "on"? true:false,
 					wfm:		$("#analyze_wfm").attr("data-state") == "on"? true:false,
 					vec:		$("#analyze_vec").attr("data-state") == "on"? true:false
-				}
+				},
+				"outputWidth" : localStorage["player_output_resolution"] ? JSON.parse(localStorage["player_output_resolution"]).width : 1280, 
+				"outputHeight": localStorage["player_output_resolution"] ? JSON.parse(localStorage["player_output_resolution"]).height : 720, 
 			})); 
 			
 			socket.on('ffprobe', function (ffprobe) {
@@ -615,6 +647,13 @@ function playerCommandSetRate(newRate){
 			}));
 }
 
+function playerCommandSetQuality(newQual){
+	socket.emit("player", JSON.stringify({
+                "command": "setQuality",
+                "val": newQual
+			}));
+}
+
 function slower(){
 	var currentRate = document.getElementById("rate_display").innerHTML;
 	if (currentRate.indexOf("-") != -1){
@@ -891,6 +930,15 @@ function changeAudioTrack(){
 				<button class="analyze_tools_btn" id="analyze_wfm" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">WFM</div></div></button>
 				<button class="analyze_tools_btn" id="analyze_audioVu"  data-state="off"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
 
+				<div style="margin-bottom:4px">
+					<span title="If you encounter dropouts, select lower Quality">Quality: </span>
+					<select name="quality_selection" id="quality_selection" title="If you encounter dropouts, select lower Quality">
+						<option value="1080">Full (HD)</option><!-- 1920x1080 -->
+						<option value="720" selected>High (720)</option><!-- 1280x720 -->
+						<option value="512">Med (512)</option><!-- 896x512 -->
+						<option value="280">Low (280)</option><!-- 512x280 -->
+				  	</select>
+				</div>
 				<div style="" class="gridbox_dhx_skyblue gridbox">
 					<table cellpadding="0" cellspacing="0" class="obj row20px" style="width: 100%; table-layout: fixed;">
 						<tbody>
