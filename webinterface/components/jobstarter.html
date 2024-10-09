@@ -349,18 +349,17 @@ function init(){
             show_browse = regex.test("browse");
             show_upload = regex.test("upload");
             show_preview = regex.test("preview");
-            console.log(regex)
-            if (m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] == "disabled") {
+    }
+    if (m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] == "disabled") {
                 //global setting overrides user permissions
                 console.log("uploads disabled due to global settings")
                 show_upload = false;
             }
-    }
-    if (!(show_browse && show_upload)){
+    if (!(show_browse || show_upload)){
         m_noBrowseMode = true;
+        alert(show_browse)
         hideFileSelector();
     }
-
     var _cfg = {
         mode:               "top",
         align:              "left",
