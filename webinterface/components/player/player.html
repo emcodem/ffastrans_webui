@@ -33,6 +33,8 @@
 					}
 				</script>
 			<style>
+		
+
 			html, body {
 				width: 100%;
 				height: 100%;
@@ -188,6 +190,10 @@
 				background-color: "unset"
 			}
 
+			.quality_selection_container{
+				font-size:10;
+			}
+
 			</style>
 			
 			<script>
@@ -298,7 +304,7 @@ function getOutputResolution(stringHeight){
 	if (stringHeight == "512")
 		newQuality = {width:896,height:512};
 	if (stringHeight == "280")
-		newQuality = {width:512,height:280};
+		newQuality = {width:496,height:280};
 	return newQuality;
 }
 
@@ -307,7 +313,7 @@ function initJsMpeg(){
 				{
 					source: JSMpegWritableSource,
 					videoBufferSize: 0,
-					audioBufferSize: 0,
+					audioBufferSize: 512*1024,
 					streaming: true,
 					disableWebAssembly:true,
 					pauseWhenHidden:false,//does not work, chrome doesnt want to do this
@@ -401,7 +407,7 @@ function load(){
 			var reporting;
 
 			socket.on('videodata', function (data) {
-				// push binary ts stream to player
+				//push binary ts stream to player
 				//allAudioBuffer = concatTypedArrays(allAudioBuffer,data)
 				if (!firstPacketDate){
 					firstPacketDate = new Date();
@@ -511,6 +517,7 @@ function load(){
 			
 			//EVENTS
 			attachEvents()
+
 }
 
 
@@ -584,6 +591,18 @@ function attachEvents(){
 	const md = document.getElementById("canvasContainer");
 	playerCanvasResizeObserver.observe(md);
 
+	document.getElementById("fullscreenbutton").addEventListener('click', (e) => {
+
+			let ele = document.getElementById("canvasContainer");
+			if (ele.requestFullscreen)
+				ele.requestFullscreen();
+			else if (ele.webkitRequestFullScreen) 
+				ele.webkitRequestFullScreen();
+			else if (ele.mozRequestFullScreen)
+				ele.mozRequestFullScreen();
+        });
+
+
 }
 
 function videoCanvasResize()
@@ -611,6 +630,7 @@ function videoCanvasResize()
 			document.getElementById("playerCanvas").style.width 	= containerWidth;
 			document.getElementById("playerCanvas").style.height 	= containerWidth /ar;
 		}
+		document.getElementById("playerCanvas").style.aspectRatio 	= ar;	 
 	}
 
 function playerAddAnalyzeTool(which){
@@ -862,9 +882,12 @@ function changeAudioTrack(){
 
 
 
+
+
 </script>
 
-		</head>
+</head>
+
 		<body onload="load();"><!-- this contentwindow enables hotkeys -->
 			<div id="maindiv" style="width: 100%; overflow: hidden;" class="flexContainer">
 				<div style="float:left" id="video_and_controls" class="flexGrow">
@@ -911,7 +934,7 @@ function changeAudioTrack(){
 									<div class="column"><span class="mdi mdi-fast-forward" 	title="Fast forward"	onclick="faster()"></span></div>
 									<div class="column"><span class="mdi mdi-page-last" 	title="Last Frame" 		onclick="seekToLast()"></span></div>
 									
-									<div class="column"><span class="mdi mdi-fullscreen" 	style="" title="Fullscreen" onclick="document.getElementById('playerCanvas').webkitRequestFullScreen();"></span></div>
+									<div class="column"><span class="mdi mdi-fullscreen" 	style="" title="Fullscreen" id="fullscreenbutton"  ></span></div>
 								</div>
 							<!-- </div> -->
 
@@ -930,9 +953,9 @@ function changeAudioTrack(){
 				<button class="analyze_tools_btn" id="analyze_wfm" data-state="off"><div class="analyze_tools_label"><div class="analyze_tools_led_green"></div><div></div><div style="margin-left:4px">WFM</div></div></button>
 				<button class="analyze_tools_btn" id="analyze_audioVu"  data-state="off"> <div class="analyze_tools_label"><div class="analyze_tools_led_green analyze_tools_led_on"></div><div></div><div style="margin-left:4px">VU</div></div></button>
 
-				<div style="margin-bottom:4px">
+				<div style="margin-bottom:4px" class="quality_selection_container">
 					<span title="If you encounter dropouts, select lower Quality">Quality: </span>
-					<select name="quality_selection" id="quality_selection" title="If you encounter dropouts, select lower Quality">
+					<select name="quality_selection" id="quality_selection" style="font-size:inherit" title="If you encounter dropouts, select lower Quality">
 						<option value="1080">Full (HD)</option><!-- 1920x1080 -->
 						<option value="720" selected>High (720)</option><!-- 1280x720 -->
 						<option value="512">Med (512)</option><!-- 896x512 -->

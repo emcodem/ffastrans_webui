@@ -43,7 +43,7 @@ class Player
 		if (_config.outputWidth)
 			playerInstance.outputWidth = _config.outputWidth;
 		if (_config.outputHeight)
-			playerInstance.outputWidth = _config.outputHeight;
+			playerInstance.outputHeight = _config.outputHeight;
 		console.log("PLAYER INITATE", playerInstance.config);
 		//get free udp localhost port for this instance
 		try{
@@ -326,24 +326,36 @@ class Player
 				a_filters.push(f_selected_channels)
 				
 				//Audio only? - create audio visualisation
-				if (vtracks.length == 0){
+				if (vtracks.length == 0 && !playerInstance.config.analyzeTools.audioVu){
 					a_filters.push("[pc_audio]asplit[pc_audio][vectorscopeaudio]")
 					let visual = "[vectorscopeaudio]avectorscope=mode=polar:draw=line:s="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
-					//let visual = "[vectorscopeaudio]ebur128=video=1:size="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border]"
+					//let visual = "[vectorscopeaudio]ebur128=video=1:size="+playerInstance.outputWidth+"x"+playerInstance.outputHeight+"[vid_right_border][ebuaud]"
 					
 					a_filters.push(visual)
+				}else{
+
 				}
 
 
 				//is Audio VU analyzer active?
 				if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
 					//audio analyzer active, build VU display
-					let showvolume_framerate = 1;
+					//INFO: this works in the player when normal video is playing but lags with test images or audio visualisation.
+					//the reason for this can only be guessed but in case of audio only, we must take care not to show visualisation and audio vu together.
+					
+					let showvolume_framerate = 25;
 					if (vtracks.length != 0)
 						showvolume_framerate = vtracks[0].r_frame_rate;
 					let singleBarWidth =  playerInstance.outputWidth / 140;
-					singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);//make sure its a multiple of 2
-					let f_show_volume = '[all]showvolume=r='+showvolume_framerate+':c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s=4:w='+playerInstance.outputHeight+':h='+singleBarWidth+':b=5:dm=1[vid_showvolume]'
+					singleBarWidth = 2.0*Math.ceil(singleBarWidth/2.0);	//make sure its a multiple of 2
+					let stepsize = 4;									//step size is 4 when output width greater 1000, otherwise 2
+					if (playerInstance.outputWidth < 1000)
+						stepsize = 2 
+					let borderwidth = 5;									//step size is 4 when output width greater 1000, otherwise 2
+					if (playerInstance.outputWidth < 1000)
+						borderwidth = 2;
+					let f_show_volume = '[all]showvolume=r='+showvolume_framerate+':c=0xAA00FF00:t=0:o=v:m=r:ds=log:f=0:s='+stepsize+':w='+playerInstance.outputHeight+
+											  ':h='+singleBarWidth+':b='+borderwidth+':dm=1[vid_showvolume]'
 					a_filters.push(f_show_volume);
 				}
 	
@@ -357,15 +369,20 @@ class Player
 			if (vtracks.length != 0 && playerInstance.config.analyzeTools.vec)
 				a_filters.push("[vectorscope][vid_right_border]hstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]");
 
-			if (atracks.length != 0 && playerInstance.config.analyzeTools.audioVu)
-				a_filters.push("[vid_right_border][vid_showvolume]hstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]")
-
-
-			//Some final decisions
-			if (atracks.length != 0){
-				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]"); //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
+			//vu pad
+			if (vtracks.length != 0 && atracks.length != 0 && playerInstance.config.analyzeTools.audioVu)
+			 	a_filters.push("[vid_right_border][vid_showvolume]hstack,scale="+playerInstance.outputWidth+":"+playerInstance.outputHeight+"[vid_right_border]")
+			else if(vtracks.length == 0 && atracks.length != 0 && playerInstance.config.analyzeTools.audioVu){
+				//strange audio only workaround: player lags with latency when audio visualisation AND VU meter is enabled
+				//therefore in this case, we show vu meter only
+				a_filters.push("[vid_showvolume]copy[vid_right_border]")
 			}
 
+			//Some final decisions
+			if (atracks.length != 0 ){
+				a_filters.push("[pc_audio]asetpts=PTS-0.24/TB[ao]"); //final audio output for mpv Audio delay by ~200msec, hopefully compensating the delay mpv has currently
+			}
+				
 			//all filter chains are expected to produce a final vid named vid_right_border
 			//a_filters.push ("[vid_right_border]copy[withaudiobars]"); //we dont know which path crated the final video out and we cannot re-use the same label as often as we wish
 
