@@ -354,12 +354,13 @@ function init(){
                 //global setting overrides user permissions
                 console.log("uploads disabled due to global settings")
                 show_upload = false;
-            }
+    }
     if (!(show_browse || show_upload)){
         m_noBrowseMode = true;
         alert(show_browse)
         hideFileSelector();
     }
+
     var _cfg = {
         mode:               "top",
         align:              "left",
@@ -423,8 +424,8 @@ function init(){
         return m_fileBrowserGrid.cells(rowId,index);
     }
 
-	//onclick='(arguments[0]||event).cancelBubble = true'
-    m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex;width:max-content'><input id='nfilter' placeholder='Name' style='margin-left:10px;margin-right:10px' ></div>\
+	//onclick='(arguments[0]||event).cancelBubble = true' 
+    m_fileBrowserGrid.attachHeader("<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex;'><input id='nfilter' placeholder='Name' style='width:max-content;margin-left:10px;margin-right:10px' ></div>\
                                     ,,,\
                                     <input autocomplete='off' id='sizefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
                                     <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
@@ -436,10 +437,9 @@ function init(){
 
     window.setInterval(function(){globalPageInterval()},250);
 
-   
     var all_menu_items = [
            /* {id:"localdrives", text:"<div style='width:65px'><span >Drives <i class='fa-brands fa-usb'></i></span></div>"},*/
-            {id:"location", text:"<div style='width:70px'><span>Locations <i class='fas fa-list'></i></span></div>"},
+            {id:"locations", text:"<div style='width:70px'><span>Locations <i class='fas fa-list'></i></span></div>"},
 			//{id:"savelocation", text:"<div style='width:90px'><span title='Save Current Location'>Save Location <i class='fas fa-save'></i></span></div>"},
             {id:"mediainfo", text:"<div style='width:65px'><span title='Mediainfo'>Info <i class='fas fa-search'></i></span></div>"},
 			{id:"player", text:"<div style='width:65px'><span title='VLC Player'>Play <i class='fas fa-play'></i></span></div>"},
@@ -500,16 +500,30 @@ function init(){
 
     /* EVENTS */
 
+    function storeBrowseLocationSorting(colindex,type,dir){
+
+        if (!localStorage.jobstarter_filebrowser_sort)
+            localStorage.jobstarter_filebrowser_sort = "{}";
+
+        let o_sort = JSON.parse(localStorage.jobstarter_filebrowser_sort);
+        o_sort = {colindex:colindex,type:type,dir:dir};
+        localStorage.jobstarter_filebrowser_sort = JSON.stringify(o_sort);
+    }
+
     m_fileBrowserGrid.attachEvent("onemcodemsorting",function(colindex,type,dir){
         //when we sorte files by size, we need to sort by the bytes column instead of the human readable one...
+        //the event onbeforesorting is disabled in dhtmlx, so we hacked onemcodemsorting into dhtmlx.js instead
+        console.log("new sort field",colindex, "dir",dir)
+        storeBrowseLocationSorting(colindex,type,dir);
+        
         var sizeIndex = m_fileBrowserGrid.getColIndexById("Size");
         var sizeBytesIndex = m_fileBrowserGrid.getColIndexById("original_size");
-        if (sizeIndex == sizeIndex){//sorted by file size
+        if (colindex == sizeIndex){//sorted by file size
             m_fileBrowserGrid.sortRows(sizeBytesIndex,"int",dir);//emcodem, why does this not work
             m_fileBrowserGrid.setSortImgState(true,3,dir);//this is important to let the js grid know how it is sorted (not just the user)
-            console.log("replaced file size sorting")
             return false;//do not allow grid to apply default sorting
         }
+        
         return true ;
     });  
 
@@ -587,7 +601,7 @@ function init(){
         mode:  "top", align: "left", close_button: true,content_zone:true,onload:function(){},arrows_mode:"auto" ,
         tabs: [ // workflow and variable tabs config
             {
-                id: "workflowtab", text:"Workflows",width:null,index:0,active:true, 
+                id: "workflows_tab", text:"Workflows",width:null,index:0,active:true, 
                 enabled: getQueryVariable("wf_id"), 
                 close:false //emcodem:set disabled if urlparam is set
             },
@@ -600,7 +614,7 @@ function init(){
     if (_filter.length > 0){
         //apply userpermissions, hide non allowed items
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
-            for (var _itm of ["workflowtab","job_setup_tab"]){
+            for (var _itm of ["workflows_tab","job_setup_tab"]){
                 if (!regex.test(_itm)){
                     m_workflowTabBar.tabs(_itm).hide();
                 }
@@ -608,7 +622,7 @@ function init(){
     }
     
     //add workflow selection components
-    m_workflowTabBar.tabs("workflowtab").showInnerScroll();
+    m_workflowTabBar.tabs("workflows_tab").showInnerScroll();
     m_workflowTabBar.tabs("job_setup_tab").showInnerScroll();    
     
     m_workflowTabBar.tabs("job_setup_tab").attachHTMLString('<div id="variables_form" style="width:100%;height:100%;overflow:visible">');
@@ -833,8 +847,7 @@ function init(){
 			});
 			return;
         }
-    
-                
+
         if (id == "download"){
             
             var selectedrows =  m_fileBrowserGrid.getSelectedRowId().split(',');
@@ -856,7 +869,7 @@ function init(){
 			selectFileToProcess();
             return;
 		}
-        
+ 
         if (id == "selectall") {
             m_fileBrowserGrid.forEachRow(function(id){
                 if ( m_fileBrowserGrid.getRowIndex(id) != -1){
@@ -874,12 +887,11 @@ function init(){
             })
             return;
         }
-        
+
         if (id == "savelocation"){
             saveLocation();
             return;
         }
-        
 
         if (id == "mediainfo"){
 			var rId = m_fileBrowserGrid.getSelectedRowId()
@@ -892,12 +904,13 @@ function init(){
 				var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/3*2);
 				win_offset+=30;
 				win.setText("File [" + file.name + "]");
-				win.attachHTMLString(minfo_html);
+				
+                win.attachHTMLString("<div class='mediainfo_html_container'>"+minfo_html+"</div>");
 				win.showInnerScroll(true);
             });
             return;
         }
-        
+
 		if (id == "player"){
 			var rId = m_fileBrowserGrid.getSelectedRowId()
 			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
@@ -984,7 +997,7 @@ function init(){
     });
     
     m_workflowTabBar.attachEvent("onTabClick", function(id, lastId){ 
-        if (id=="workflowtab"){
+        if (id=="workflows_tab"){
             //m_workflowTabBar.cells("job_setup_tab").setText("Job Setup");
             if (m_fileAddedEventId){
                 m_selectedFileGrid.detachEvent(m_fileAddedEventId);
@@ -1117,7 +1130,7 @@ function saveLocation(){
                             
                             storedArray.push(_loc);
                             localStorage.setItem("savedbrowselocations",JSON.stringify(storedArray))
-                            m_fileBrowseGridMenu.addNewChild("location", _loc.path,  _loc.path, _loc.displayname, false,"","");
+                            m_fileBrowseGridMenu.addNewChild("locations", _loc.path,  _loc.path, _loc.displayname, false,"","");
                         }
                     }
                 });
@@ -1175,6 +1188,11 @@ function selectFileToProcess(){
     }
 }
 
+function onPathClick(event,where){
+    event.stopPropagation();
+    getFileList(m_fileBrowserGrid,where,true)
+}
+
 function constructpathLink(what){
     /* navbar on top of filebrowser, we construct dynamic html here, sorry for that */
     console.log("parsed path for navlink bar:",parse_path(what))
@@ -1182,11 +1200,12 @@ function constructpathLink(what){
     what = what.replace(/\\$/,"");
     var parsed = parse_path(what);
     var encoded = btoa(encodeURIComponent(parsed["root"]));
-    //add root 
+    
     var displaytext = parsed["root"].replace(/^\\\\/,"");
     displaytext = displaytext.replace(/\\$/,"");
-        
-    html += '<div class="folder_browser_nav"><span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + "<span onclick='getFileList(m_fileBrowserGrid,\""+encoded+"\",true)'>" + displaytext  + " > </span></div>";
+    //add root 
+    html += '<div class="folder_browser_nav"><span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + 
+            "<span onclick='onPathClick(event,\""+encoded+"\");'>" + displaytext  + " > </span></div>";
     
     var previous = "";
     var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);
@@ -1196,20 +1215,21 @@ function constructpathLink(what){
         if (a_dirs[i] ==""){
             continue;
         }
-        var current = a_dirs[i] + "\\";
-        var fullpath = btoa(encodeURIComponent(parsed["root"] + previous + current));
-        var displaytext = current.replace("\\","");
-        html += "<div class='folder_browser_nav'  style=''><span  onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)'>" + displaytext + " > </span></div>";
+        let current = a_dirs[i] + "\\";
+        let fullpath_encoded = btoa(encodeURIComponent(parsed["root"] + previous + current));
+        let displaytext = current.replace("\\","");
+        //add each folder
+        html += "<div class='folder_browser_nav'  style=''><span  onclick='onPathClick(event,\""+fullpath_encoded+"\");'>" + displaytext + " > </span></div>";
         previous += current;
 
-        if (i==a_dirs.length-2){//pre-last folder, add levelup
+        if (i==a_dirs.length-2){//we have at least 1 folder depth, prepend levelup
             //console.log("oneup: ",atob(fullpath),"adirs",a_dirs)
-            html = "&nbsp;<i onclick='getFileList(m_fileBrowserGrid,\"" + fullpath + "\",true)' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
+            html = "&nbsp;<i onclick='onPathClick(event,\""+fullpath_encoded+"\");' class='fas fa-level-up' style='cursor:pointer;width:15px'></i>" + html;
         }
     }
 
-    //finally prevent default dhtmlx onheaderclick sort action by wrapping into this div
-    html = "<div onclick='(arguments[0]||event).cancelBubble=true' style='display:flex'>" + html + "</div>";
+    //finally prevent wrap full path into flex div
+    html = "<div style='display:flex'>" + html + "</div>";
 
     return html;
 }
@@ -1254,39 +1274,50 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
         url: "/filebrowser?name=" + encodeURIComponent(path) +"&filters="+encodeURIComponent(JSON.stringify(filters)) + "&" +  Math.random(),
         type: "GET",
         success: function (response,textStatus, xhr) {
-            m_mainLayout.cells("a").progressOff();
-            localStorage.setItem("lastVisitedBrowseLocation", path);
-			//construct nav link bar
-            console.log("constructpathlink",path)
-            document.getElementById("current_folder").innerHTML = constructpathLink(path),
-            $(".folder_browser_nav").hover(function(evt,ele){
-                    $(this).addClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");  //Add the active class to the area is hovered
-                }, function (evt) {
-                    $(this).removeClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");
-            });
-            //loads file list into grid
-            dhtmlxGrid.clearAll();
-			dhtmlxGrid.parse(response,"json");
-            //sort by date
-            dhtmlxGrid.sortRows(4,"str","des");
-            dhtmlxGrid.setSortImgState(true,4,"des");
-            dhtmlxGrid.forEachRow(function(id){
-                //add tooltip to filename cell for preview image
+                m_mainLayout.cells("a").progressOff();
+                localStorage.setItem("lastVisitedBrowseLocation", path);
+                //construct nav link bar
+                console.log("constructpathlink",path)
+                document.getElementById("current_folder").innerHTML = constructpathLink(path),
+                $(".folder_browser_nav").hover(function(evt,ele){
+                        $(this).addClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");  //Add the active class to the area is hovered
+                    }, function (evt) {
+                        $(this).removeClass("dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected");
+                });
+                //loads file list into grid
+                dhtmlxGrid.clearAll();
+                dhtmlxGrid.parse(response,"json");
                 
-                addAjaxTooltip(dhtmlxGrid,id)
-                addPreviewImage(dhtmlxGrid,id)
-			    //convert filesize to human readable
-				dhtmlxGrid.cells(id,3).setValue( (dhtmlxGrid.cells(id,3).getValue())); 
-                
-				if (dhtmlxGrid.cells(id,2).getValue() =="true"){
-                    //folders get a folder icon attached
-					dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="fancytree-icon"></span></span> ' + (dhtmlxGrid.cells(id,0).getValue()) );
-				}else{
-                    dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){
-                        selectFileToProcess();
-                    });
+                let o_sort;
+                if (localStorage.jobstarter_filebrowser_sort)
+                    o_sort = JSON.parse(localStorage.jobstarter_filebrowser_sort);
+
+                if (o_sort){
+                    //sort by last sorting order
+                    console.log("Restoring saved sort order for ",o_sort)
+                    dhtmlxGrid.sortRows(o_sort.colindex,o_sort.type,o_sort.dir);
+                    dhtmlxGrid.setSortImgState(true,o_sort.colindex,o_sort.dir);
+                }else{
+                    //no sort order known? sort by date
+                    dhtmlxGrid.sortRows(4,"str","des");
+                    dhtmlxGrid.setSortImgState(true,4,"des");
                 }
-			});
+                //add tooltip to filename cell for preview image
+                dhtmlxGrid.forEachRow(function(id){    
+                    addAjaxTooltip(dhtmlxGrid,id)
+                    addPreviewImage(dhtmlxGrid,id)
+                    //convert filesize to human readable
+                    dhtmlxGrid.cells(id,3).setValue( (dhtmlxGrid.cells(id,3).getValue())); 
+                    
+                    if (dhtmlxGrid.cells(id,2).getValue() =="true"){
+                        //folders get a folder icon attached
+                        dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="fancytree-icon"></span></span> ' + (dhtmlxGrid.cells(id,0).getValue()) );
+                    }else{
+                        dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){
+                            selectFileToProcess();
+                        });
+                    }
+                });
             lazyload();
 
         },
@@ -1392,7 +1423,7 @@ async function getBrowseLocations(restore_saved = true){
         m_browselocations = [];
         locations.forEach(function(loc) {
             m_browselocations.push(loc);
-            m_fileBrowseGridMenu.addNewChild("location", new Date(), loc.path, loc.displayname, false,"","");
+            m_fileBrowseGridMenu.addNewChild("locations", new Date(), loc.path, loc.displayname, false,"","");
         });
         if (locations.length == 0){
             dhtmlx.message("ERROR, no Browse locations configured or no Filter matches.")
@@ -1402,7 +1433,7 @@ async function getBrowseLocations(restore_saved = true){
         if (localStorage.getItem("savedbrowselocations")){
                 var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
                 for (i=0;i<_locs.length;i++){
-                    m_fileBrowseGridMenu.addNewChild("location", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
+                    m_fileBrowseGridMenu.addNewChild("locations", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
                 }
         }
         
@@ -1586,8 +1617,8 @@ function getWorkflows(){
                 m_workflowArray = response['workflows'];
                 
                 m_mainLayout.cells("b").progressOff();
-                m_workflowTabBar.tabs("workflowtab").detachObject();//todo: remove whole workflowselection grid stuff
-                m_workflowTabBar.tabs("workflowtab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
+                m_workflowTabBar.tabs("workflows_tab").detachObject();//todo: remove whole workflowselection grid stuff
+                m_workflowTabBar.tabs("workflows_tab").attachHTMLString("<div class='dhtmlxMenu_material_Middle' style='width:100%';height:30px'><input name='wf_filter' style='margin-top:3px;margin-left:10px' id='wf_filter' autocomplete='off' />&nbsp<i class='fas fa-search'></i></div><div id='workflowtree' style='margin-left:10px;margin-top:10px'></div>");
                 //search button 
                 $("input[name=wf_filter]").keyup(function(e){
                   var n,

@@ -8811,3 +8811,8 @@ border-bottom: 1px solid #333;
 .icon-logviewer-menu{
   background-color:#222
 }
+
+.mediainfo_html_container table{
+  background-color:#2D3039;
+  border:unset !important;
+}
