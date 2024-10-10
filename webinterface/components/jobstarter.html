@@ -409,7 +409,7 @@ function init(){
     m_fileBrowserGrid.setInitWidthsP("75,0,0,10,15,0,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str");          //the sorting types  
+    m_fileBrowserGrid.setColSorting("sort_custom,str,str,int,str,str,int,str,str");          //the sorting types  
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -1193,23 +1193,47 @@ function onPathClick(event,where){
     getFileList(m_fileBrowserGrid,where,true)
 }
 
+function findLongestBrowseLocation(searchpath){
+    //could possibly use last selectedbrowseloc instead all this?! but no code, no fun
+    var longestmatching = {path:""};
+    m_browselocations.map(a => {
+        if (-1 != searchpath.replaceAll("\\","").replaceAll("\/","")
+            .indexOf(a.path.replaceAll("\\","").replaceAll("\/",""))
+            ){
+            if (a.path.length > longestmatching.path.length)
+                longestmatching = a;
+        }
+    })
+    if (longestmatching.path == ""){
+        delete localStorage["lastVisitedBrowseLocation"];
+        document.body.innerHTML = "Fatal error, contact Administrator. Cannot find browselocation for " + searchpath;
+    }
+    return longestmatching;
+}
+
 function constructpathLink(what){
     /* navbar on top of filebrowser, we construct dynamic html here, sorry for that */
     console.log("parsed path for navlink bar:",parse_path(what))
     var html = "";
     what = what.replace(/\\$/,"");
+    var current_browse_location = findLongestBrowseLocation(what);
+    var relative_path = what.replace(current_browse_location.path,"");
+    console.log("Browse to relative path",relative_path);
+    //we give up trying to display the browse location instead of the full path at this point, maybe continue later
+
     var parsed = parse_path(what);
     var encoded = btoa(encodeURIComponent(parsed["root"]));
-    
+    var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);//"filename" is a dir too
     var displaytext = parsed["root"].replace(/^\\\\/,"");
     displaytext = displaytext.replace(/\\$/,"");
-    //add root 
-    html += '<div class="folder_browser_nav"><span class="fancytree-ico-cf"><span role="presentation" class="fancytree-icon"></span></span>&nbsp' + 
-            "<span onclick='onPathClick(event,\""+encoded+"\");'>" + displaytext  + " > </span></div>";
+
+    console.log("connected browse location: ",current_browse_location);
+
+    //add root
+    html += "<div onclick='onPathClick(event,\""+encoded+"\");' class='folder_browser_nav'><span class='fancytree-ico-cf'><span role='presentation' class='fancytree-icon'></span></span>&nbsp" + 
+            "<span >" + displaytext  + " > </span></div>";
     
     var previous = "";
-    var a_dirs = (parsed["dirs"]  + parsed["filename"]).split(/\\|\//);
-
     var prevdirs = "";
     for(var i=0;i<a_dirs.length;i++){
         if (a_dirs[i] ==""){
@@ -1303,7 +1327,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                     dhtmlxGrid.setSortImgState(true,4,"des");
                 }
                 //add tooltip to filename cell for preview image
-                dhtmlxGrid.forEachRow(function(id){    
+                dhtmlxGrid.forEachRow(function(id){
                     addAjaxTooltip(dhtmlxGrid,id)
                     addPreviewImage(dhtmlxGrid,id)
                     //convert filesize to human readable
