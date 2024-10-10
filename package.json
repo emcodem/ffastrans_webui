@@ -10,7 +10,6 @@
     "archiver": "^5.3.1",
     "axios": "^1.7.7",
     "bcrypt-nodejs": "^0.0.3",
-    "binary-search-tree": "^0.2.6",
     "blocked-at": "^1.2.0",
     "bunyan": "^1.8.15",
     "busboy": "^1.6.0",

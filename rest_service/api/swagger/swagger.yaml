@@ -345,7 +345,7 @@ paths:
   /api/json/v2/jobs:
     x-swagger-router-controller: jobs_v2
     get:
-      description: "List of Job Splits (branches)"
+      description: "DEPRECATED, use /jobs List of Job Splits (branches)"
       operationId: jobs_v2
       parameters:
         - name: start
@@ -368,7 +368,7 @@ paths:
   /api/json/v2/workflows/{id}:
     x-swagger-router-controller: workflows
     get:
-      description: "DEPRECATED Legacy API call (use /workflows), if /id is not specified returns all. ID is marked as required because the standard requires path parameters to be required but this API it also works without /id parameter"
+      description: "DEPRECATED Legacy API call (use /workflows). If /id is not specified returns all. ID is marked as required because the standard requires path parameters to be required but this API it also works without /id parameter"
       operationId: workflows_v2
       parameters:
         - name: id

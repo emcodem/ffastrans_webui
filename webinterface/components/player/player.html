@@ -332,7 +332,7 @@ function load(){
 			
 			//initialize the player stuff
 			var buf = [];
-			initJsMpeg()
+			initJsMpeg();
 			
 			socket.emit("player", JSON.stringify({
                 "file":	m_query_params.get("file"),
@@ -402,7 +402,7 @@ function load(){
 			//let samplebuffer = []
 
 			var currentReportingSecondStart;
-			var initReporting = {bytespersecond:0} //count per second
+			var initReporting = {bytespersecond:0}; //count per second
 			var firstPacketDate;
 			var reporting;
 
@@ -421,7 +421,7 @@ function load(){
 					console.log( parseFloat(reporting.bytespersecond * 0.000008).toFixed(2) + " Mbit/s packets from mpv");
 					reporting = JSON.parse(JSON.stringify(initReporting));
 				}
-				reporting.bytespersecond += data.byteLength
+				reporting.bytespersecond += data.byteLength;
 				
 				//Write transport stream packet to players decoder
 				m_player.source.write(data,function(){});
@@ -432,7 +432,8 @@ function load(){
 			});
 
 			socket.on('property-change', function (data) {
-				
+				//first occurence of data.filename should mean that file was opened
+				console.log("propertychange",data)
 				var status = data;
 				if (!status)
 					return
@@ -488,8 +489,8 @@ function load(){
 				//if ($('#slider:hover').length == 0){
 					//prevent slider update on hover
 					//update slider positon
-					 var percentage = status["time-pos"];
-					 document.getElementById("slider").value = percentage*100;
+				var percentage = status["time-pos"];
+				document.getElementById("slider").value = percentage*100;
 				//}
 		
 				$( "#iconPlay" ).toggleClass( "fa-play-circle ", status.pause );
