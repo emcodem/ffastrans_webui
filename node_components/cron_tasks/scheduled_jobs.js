@@ -9,7 +9,7 @@ const isRunning = require('is-running')
 tmp.setGracefulCleanup();
 const ffastransapi = require("../ffastransapi");
 const moment = require("moment");
-const asyncdatastore = require("nedb-promise");
+const Datastore = require("@seald-io/nedb");
 const axios = require("axios");
 const logfactory = require("../../node_components/common/logger")
 
@@ -35,8 +35,10 @@ module.exports = {
     /*ASYNC DB ACCESS EXAMPLE (nedb-promise)!*/
     execute: async function () {
         //get all scheduled jobs from DB
-        var DB = asyncdatastore.fromInstance(global.db.config);
-        var data = await DB.find({ "scheduled_jobs": { $exists: true } });
+       
+        //var DB = asyncdatastore.fromInstance(global.db.config);
+        var alldata = await global.db.config.findAsync({  });
+        var data = await global.db.config.findAsync({ "scheduled_jobs": { $exists: true } });
         if (data.length>0) {
             for (jobIndex in data){
                 try {
@@ -60,9 +62,8 @@ module.exports = {
   },
   
   executeImmediate: async function(id,socketioClientId,informCallback){
-        var DB = asyncdatastore.fromInstance(global.db.config);
         
-        var data = await DB.find({ "scheduled_jobs.id": id });
+        var data = await global.db.config.findAsync({ "scheduled_jobs.id": id });
         if (data){
             var current_job = data[0]["scheduled_jobs"];
             logger.log("Executing immediate: " + id);
