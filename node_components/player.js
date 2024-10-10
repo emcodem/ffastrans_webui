@@ -419,6 +419,12 @@ class Player
 				_filters += ",[vid_right_border]copy[vo]" //mpv looks for vo pad
 				mpvopts.push("--lavfi-complex=" + _filters)
 
+				try{
+					if (playerInstance.config.ffprobe.streams[0].codec_long_name.match("image|GIF|BMP|JPEG")){
+						mpvopts.push("--loop-file=inf");
+					}	
+				}catch(ex){}
+
 			}else if (JSON.stringify(playerInstance.config.ffprobe).indexOf('audio') != -1){
 				//AUDIO ONLY
 				mpvopts.push(
