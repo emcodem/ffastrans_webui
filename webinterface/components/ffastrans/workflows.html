@@ -142,150 +142,6 @@ window.addEventListener("pagehide",(event) => {
   false
 );
 
-const variable_templates={
-    "Input Text": {
-            type: "input",
-            merit: 1,
-            label: "Input Example",
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            required: true,
-
-            validation:"regex|email|integer|numeric|alphanumeric|IPv4",
-            placeholder: "Input placeholder",
-            "preMessage": "Display Text before validation",
-            "successMessage": "Display Text on  validation success",
-            "errorMessage": "Display Text on validation error",
-        },
-    "Input Text Area":{
-            type: "textarea",
-            merit: 1,
-            label: "Multiline Input",
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            width:400,
-            placeholder: "The Placeholder",
-            readOnly: false, // false by default
-            resizable: true,
-        },
-    "Checkbox":{
-            "type":"checkbox",
-            merit: 1,
-            "label": "Check this box",
-            "labelPosition": "left",
-            "labelWidth": 140,   
-            "checked": true
-        },
-    "Select (Dropdown)": {
-            type: "select",
-            merit: 1,
-            label: "Select Example",
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            value: "C Drive",
-            required: true,
-            options: [
-                {
-                    content: "C Drive",
-                    value: "C:\\"
-                },
-                {
-                    content: "Server Share",
-                    value: "\\\\server\\share\\folder",
-                    
-                }
-            ]
-        },
-        "Combo (Advanced Dropdown)":{
-            type: "combo",
-            merit: 1,
-            label: "The Combo Label",
-            width: 450,
-            labelWidth: 140,
-            labelPosition: "left",
-            multiselection: true,
-            selectAllButton: true,
-            value: [
-                "id_1",
-                "id_2"
-            ],
-            data: [
-                {"value": "Fred","id": "freddy@noreply.com"},
-                {"value": "Andreas","id": "andy@noreply.com"},
-                {"value": "Cynth","id": "cynthia@noreply.com"}
-            ]
-        },
-        "RadioGroup": {
-            "type": "radioGroup",
-            merit: 1,
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            "options": {
-                "rows": [
-                    {
-                        "type": "radioButton",
-                        "text": "Server Share",
-                        "value": "\\\\server\\share\\folder"
-                    },
-                    {
-                        "type": "radioButton",
-                        "text": "C Drive",
-                        "value": "C:\\"
-                    }
-                ]
-            },
-            required: true
-        },
-        "DateTimePicker": {
-            type: "datepicker",
-            merit: 1,
-            label: "Calendar Example",
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            required: true,
-            timePicker: true,
-            dateFormat: "%Y-%m-%d %H:%i:%s",
-            
-        },
-        "Timepicker":{
-            type: "timepicker",
-            merit: 1,
-            label: "Select the time",
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            timeFormat: 24,
-            valueFormat: "string",
-            value: [12,59]
-        },
-        "Text Display" : {
-            "type": "text",
-             merit: 1,
-            "label": "Text Display",
-            "labelPosition": "left",
-            "labelWidth": 140,                   
-            "value": "Information Display"
-        },
-
-        "Slider":{
-            type: "slider",
-            merit: 1,
-            label: "Slider",
-            labelPosition: "left",
-            labelWidth: 140,
-            width: 450,
-            mode: "horizontal",
-            labelWidth: 130,
-            min: 0,
-            max: 100
-        }
-}
-
 async function loadData(){
     var locations = await  $.ajax({
         url:  ("/getworkflowlist"),
@@ -355,10 +211,10 @@ async function buildLayout(){
     m_maingrid = new dhx.Grid(null, {
         adjust:"data",
         columns: [
-            {  readonly:true, id: "wf_folder",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Folder" }]},
+            {  readonly:true, id: "wf_folder",minWidth: 80, header: [{ content: "selectFilter" },{ text: "Folder" }]},
             {  readonly:true, id: "wf_name",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Name" }]},
-            {  readonly:true, id: "_status",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Status" }]},
-            
+            {  readonly:true, id: "_status",minWidth: 80, header: [{ content: "selectFilter" },{ text: "Status" }]},
+            {  readonly:true, id: "webui_integration",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Webui Integration" }]},
             {  readonly:true, id: "farming",width:"content", header: [{ content: "inputFilter" },{ text: "Hosts" }],
                                     template: function (data, row, col) {
                                             if (! data)
@@ -369,33 +225,67 @@ async function buildLayout(){
                                             return in_or_ex + data.hosts.join(" ");
                                         } 
                                     },
-            {  readonly:true, id: "general",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Priority" }],
+            {  readonly:true, id: "general",minWidth: 80, 
+                                    header: [
+                                        {
+                                            content: "inputFilter",
+                                            customFilter: (data, match) => {
+                                                try{
+                                                    if (Object.keys(data).length == 0) return false;
+                                                    return data.priority.match(match);
+                                                }catch(ex){return false}
+                                            }
+                                        },
+                                        { text: "Priority" },
+                                    ],
                                     template: function (data, row, col) {
                                             return data.priority;
                                         } 
             },
-            {  readonly:true, id: "special",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Log Level" }],
+            {  readonly:true, id: "special",minWidth: 80, 
+                                    header: [{  
+                                        content: "inputFilter",
+                                        customFilter: (data, match) => {
+                                            try{
+                                                if (Object.keys(data).length == 0) return false;
+                                                return data.log_level.match(match);
+                                            }catch(ex){return false}
+                                        }
+                                    },
+                                    { text: "Log Level" }],
                                     template: function (data, row, col) {
-                                            
                                             return data.log_level;
                                         } 
                                     },
-            {  readonly:true, id: "maintainance",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Keep Work Files" }],
+            {  readonly:true, id: "maintainance",minWidth: 80,                                     
+                                    header: [{  
+                                        content: "inputFilter",
+                                        customFilter: (data, match) => {
+                                            try{
+                                                if (data.keep_all_workdir && match.match(/a/i)){
+                                                    return true;
+                                                }
+                                                if (data.keep_failed_workdir && match.match(/f/i)){
+                                                    return true;
+                                                }
+
+                                            }catch(ex){return false}
+                                        }
+                                    },
+                                    { text: "Keep Work Files" }],
                                     template: function (data, row, col) {
                                         let to_display = "";
-                                        to_display += data.keep_all_workdir ? "Keep All " : "";
-                                        to_display += data.keep_all_workdir ? "Keep Failed" : "";
+                                        to_display += data.keep_all_workdir ? "<span style='color:red'>All</span>" : "";
+                                        if (!data.keep_all_workdir)
+                                            to_display += data.keep_failed_workdir ? "<span>Failed</span>" : "";
                                         return to_display;
                                     } 
             },
-            {  readonly:true, id: "updated",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Updated" }]},
-
-            // {  readonly:true, id: "name", minWidth: 80,     header: [{ content: "inputFilter" },{ text: "Name" }] },
-            // {  readonly:true, id: "type",minWidth: 80,      header: [{ content: "inputFilter" },{ text: "Type" }]},
-            // {  readonly:true, hidden:true,id: "data",minWidth: 160,maxWidth:450,  header: [{ content: "inputFilter" },{ text: "Value/Description" }]},
-            // {  readonly:true, id: "data_display",minWidth: 160,maxWidth:450,  header: [{ content: "inputFilter" },{ text: "Value/Description" }]},
-            // {  readonly:true, id: "used_in",minWidth: 80,   header: [{ content: "inputFilter" },{ text: "Used in" }]},
-        
+            {  readonly:true, id: "updated",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Updated" }],
+                                    template: function (data, row, col) {
+                                        return data.replace("T"," ");
+                                    } 
+            }
         ],
         editable: false,
         autoWidth: true,
@@ -405,10 +295,12 @@ async function buildLayout(){
         
     });
 
-    m_maingrid.events.on("beforeEditStart", function(row,col,editorType){
-        // doubleclick row opens editor
-        //editWebUiTypeVar()
-        //return false;
+    m_maingrid.events.on("cellDblClick", function(row,col,editorType){
+        console.log("Cell dblclick",col);
+        if (col.id == "webui_integration"){
+            //bring up integration window
+        }
+
     });
     //TOOLBAR
     const cfg = [
@@ -437,22 +329,6 @@ async function buildLayout(){
             size: "small",
             color: "secondary",
             css: "dhxform_obj_dhx_skyblue"      
-        }, {
-            id: "filtervartype",
-            type: "selectButton",
-            value: "Show All Variables",
-            css: "showvariablesdropdown",
-            items: [
-                {
-                    value: "Show All Variables"
-                },
-                {
-                    value: "Statics Only"
-                },
-                {
-                    value: "WebUI Only"
-                },
-            ]
         }
     ]
     const toolbar = new dhx.Toolbar("toolbar", {
