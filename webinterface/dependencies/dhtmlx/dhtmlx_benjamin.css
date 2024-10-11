@@ -8816,3 +8816,13 @@ border-bottom: 1px solid #333;
   background-color:#2D3039;
   border:unset !important;
 }
+
+/* this can be used by users to insert images and other stuff different in dark mode and light */
+
+.light-mode-visible{
+  display:none;
+}
+
+.dark-mode-visible{
+  display:block !important;
+}

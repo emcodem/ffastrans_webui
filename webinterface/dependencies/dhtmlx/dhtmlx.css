@@ -8621,3 +8621,12 @@ ul.fancytree-container{/* workflow selection */
 	border:1px solid #CCC !important;
 	color:hsla(0, 0%, 100%, .9);
 }
+
+/* this can be used by users to insert images and other stuff different in dark mode and light */
+.light-mode-visible{
+  display:block !important;
+}
+
+.dark-mode-visible{
+  display:none;
+}
