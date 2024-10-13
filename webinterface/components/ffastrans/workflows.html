@@ -4,7 +4,7 @@
 
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 
-<script src="../../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
@@ -22,41 +22,16 @@
     }
 </script><!-- legacy dhtml css goes first -->
 
-
 <script src="../../dependencies/jquery/jquery.js"></script>
 <script src="../../components/common/webuiVariables.js"></script> 
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
-
-<!-- unbelieveable how many dependencies we need for codemirror json -->
-<link rel="stylesheet" href="../../dependencies/codemirror/addon/lint/lint.css"/>
-<link rel="stylesheet" href="../../dependencies/codemirror/codemirror.css"/>
-<script src="../../dependencies/codemirror/codemirror.js"></script>
-<script src="../../dependencies/codemirror/mode/javascript/javascript.js"></script>
-<script src="../../dependencies/codemirror/addon/lint/jshint.js"></script>
-<script src="../../dependencies/codemirror/addon/lint/jsonlint.js"></script>
-<script src="../../dependencies/codemirror/addon/lint/lint.js"></script>
-<script src="../../dependencies/codemirror/addon/lint/json-lint.js"></script>
-
-
-
+<script src="common/webuiVariables.js"></script> <!-- function translateDhx5To8Vars -->
 
 <style>
 * {
   /* ↓ Now literally all elements display a sans-serif font */
   font-family: "Tahoma";
-}
-
-.CodeMirror { height: 100%; }
-
-.CodeMirror-lint-tooltip
-{
-    z-index: 2147483648; /* codemirror tooltip would be hidden because of dhtmlx window overlay. dhtmlx z-index is 2147483647 */
-    opacity: 0.7 !important;
-}
-
-.dhx_tooltip{
-    display:unset !important;
 }
 
 .custom_msg{
@@ -87,49 +62,10 @@
     font-size:12 !important
 }
 
-.seekme nav  {
-        height:100% !important;
-        min-height:20px;
-}
-.seekme ul.dhx_navbar  {
-    padding:3 !important; 
-}
-.seekme [data-cell-id="header"] {
-    height: 40px !important; 
-    
-}
-.seekme span {
-    padding-left:10px !important; 
-    font-size: 12px !important; 
+.dhx_grid-header-cell-text_content{
+    font-size:12;
 }
 
-.seekme2 > div{
-    height:25px;
-}
-
-.seekme2 h3{
-    font-size:12px;
-}
-
-.seekme3  button{
-    height:25px;
-}
-
-.seekme3 > div{
-    height:10px;
-}
-
-.dhx_menu-button__text {
-    font-family: "Tahoma";
-    font-size: 12px;
-}
-
-.displayNone{
-    display:none;
-}
-.dhx_button--view_link{
-    border:none;
-}
 
 </style>
 <script>
@@ -159,7 +95,7 @@ async function saveVariableAjax(var_name_and_data){
         data: JSON.stringify(var_name_and_data)
     });
     loadGridData(true);//reload with every save
-    dhx.message({
+    dhx8.dhx.message({
         text:"Success Saving Variables", 
         css:"expire", 
         expire:2000
@@ -194,28 +130,30 @@ async function buildLayout(){
 		width:"100%", height:"100%",rows:
 		[   { id: "toolbar", height: "content" },
 			{
-				cols: [{
+				cols: [
+                    {
 						id: "main",
 						resizable:false,
 						padding: "0px",  
 						margin: "0px",
-					}]
+					}
+                ]
 			}
 		]
 	}
         
-    var layout = new dhx.Layout("layout", mainlayout_config);
+    var layout = new dhx8.dhx.Layout("layout", mainlayout_config);
     layout.getCell("main").progressShow();
 
     //GRID
-    m_maingrid = new dhx.Grid(null, {
+    m_maingrid = new dhx8.dhx.Grid(null, {
         adjust:"data",
         columns: [
-            {  readonly:true, id: "wf_folder",minWidth: 80, header: [{ content: "selectFilter" },{ text: "Folder" }]},
-            {  readonly:true, id: "wf_name",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Name" }]},
-            {  readonly:true, id: "_status",minWidth: 80, header: [{ content: "selectFilter" },{ text: "Status" }]},
-            {  readonly:true, id: "webui_integration",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Webui Integration" }]},
-            {  readonly:true, id: "farming",width:"content", header: [{ content: "inputFilter" },{ text: "Hosts" }],
+            {  readonly:true, id: "wf_folder",minWidth: 80, header: [{ content: "selectFilter" },           { text: "Folder" }]},
+            {  readonly:true, id: "wf_name",minWidth: 80, header: [{ content: "inputFilter" },              { text: "Name" }]},
+            {  readonly:true, id: "_status",minWidth: 80, header: [{ content: "selectFilter" },             { text: "Status" }]},
+            {  readonly:true, id: "webui_integration",minWidth: 130, header: [{ content: "inputFilter" },   { text: "Webui Integration" }]},
+            {  readonly:true, id: "farming",width:"content",minWidth: 70, header: [{ content: "inputFilter" },{ text: "Hosts" }],
                                     template: function (data, row, col) {
                                             if (! data)
                                                 return;
@@ -236,7 +174,7 @@ async function buildLayout(){
                                                 }catch(ex){return false}
                                             }
                                         },
-                                        { text: "Priority" },
+                                                                                                            { text: "Priority" },
                                     ],
                                     template: function (data, row, col) {
                                             return data.priority;
@@ -252,7 +190,8 @@ async function buildLayout(){
                                             }catch(ex){return false}
                                         }
                                     },
-                                    { text: "Log Level" }],
+                                                                                                            { text: "Log Level" }
+                                    ],
                                     template: function (data, row, col) {
                                             return data.log_level;
                                         } 
@@ -272,7 +211,8 @@ async function buildLayout(){
                                             }catch(ex){return false}
                                         }
                                     },
-                                    { text: "Keep Work Files" }],
+                                                                                                            { text: "Keep Work Files" }
+                                    ],
                                     template: function (data, row, col) {
                                         let to_display = "";
                                         to_display += data.keep_all_workdir ? "<span style='color:red'>All</span>" : "";
@@ -281,7 +221,7 @@ async function buildLayout(){
                                         return to_display;
                                     } 
             },
-            {  readonly:true, id: "updated",minWidth: 80, header: [{ content: "inputFilter" },{ text: "Updated" }],
+            {  readonly:true, id: "updated", header: [{ content: "inputFilter" },                           { text: "Updated" }],
                                     template: function (data, row, col) {
                                         return data.replace("T"," ");
                                     } 
@@ -299,6 +239,7 @@ async function buildLayout(){
         console.log("Cell dblclick",col);
         if (col.id == "webui_integration"){
             //bring up integration window
+            webuiWorkflowIntegrationEditor();
         }
 
     });
@@ -331,17 +272,17 @@ async function buildLayout(){
             css: "dhxform_obj_dhx_skyblue"      
         }
     ]
-    const toolbar = new dhx.Toolbar("toolbar", {
+    const toolbar = new dhx8.dhx.Toolbar("toolbar", {
         css:"dhx_widget--bordered"
         });
     toolbar.data.add(cfg);
     toolbar.events.on("click", function(id,e){
         if(id == "btnedit")
-            editWebUiTypeVar()
+            editWebUiTypeVar();
         if(id == "btndel")
-            deleteSelected()
+            deleteSelected();
         if (id == "btnnew")
-            newVariableWindow()
+            newVariableWindow();
     });
     toolbar.events.on("change", function(id,e){
         //user change filter
@@ -368,20 +309,6 @@ async function buildLayout(){
     
 }
 
-function create_generic_div(value){
-    return "<div class='custom_msg dhx_widget dhx_message '>" + value+ " </div>";
-}
-function create_used_in_div(used_in){
-    var html = used_in.map(o=> "<div class='custom_msg dhx_widget dhx_message '>" + o.wf_name + " (" +o.node_name + ") </div>");
-    return html.join("");
-}
-
-function create_type(name){
-    if (name.match("s_webui"))
-        return "webui"
-    return name.charAt(0);
-}
-
 async function loadGridData(force=false){
     //console.trace("loadGridData called..")
 
@@ -399,6 +326,142 @@ async function loadGridData(force=false){
     console.log("loading",data.workflows);
     m_maingrid.data.parse([]);
     m_maingrid.data.parse(data.workflows);
+
+}
+
+async function webuiWorkflowIntegrationEditor(){
+    const selectedCells = m_maingrid.selection.getCells();
+    if (selectedCells.length == 0){
+        return;
+    }
+    
+    
+    var dhxWindow = new dhx8.dhx.Window({
+        header: true,
+        title: "WebUI Workflow Integration",
+        movable: true,
+        closable:true,
+        modal:true,
+        resizable:true,
+        height:550,
+        html:"<div style='height:80%' id='newvarform'></div>Final variable name: <input style='width:70%;color:rgba(0, 0, 0, 0.5)' readonly=true id='newvarname'></div>"
+    });
+    dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
+            var isFullScreen = false;
+            dhxWindow.header.events.on("click", function (id) {
+                if (id === "fullscreen") {
+                    if (isFullScreen) {
+                        isFullScreen = false;
+                        dhxWindow.unsetFullScreen();
+                    } else {
+                        isFullScreen = true;
+                        dhxWindow.setFullScreen();
+                    }
+                }
+            });
+    dhxWindow.show();
+    await dhx8.dhx.awaitRedraw(); //wait until html part of dhxWindow is drawn on page
+
+    const layout_config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		width:"100%", height:"100%",
+        type:"wide",
+        rows:
+		[   
+            { id: "toolbar", height: "content" },
+            ,
+            {
+                cols:[
+                    {
+                            collapsable:true,
+                            header:"Job Submit Form",
+                            id: "left_cell",
+                            resizable:true,
+                            padding: "0px",  
+                            width:"65%",
+                            margin: "0px",
+                    },
+                    {
+                            header:"Features",
+                            id: "right_cell",
+                            resizable:true,
+                            padding: "0px",  
+                            margin: "0px",
+                            
+                    }
+                ]
+            }
+		]
+	}
+    let layout = new dhx8.dhx.Layout(null, layout_config);
+    dhxWindow.attach(layout);
+
+    const features_form = new dhx8.dhx.Form(null, {
+        css: "dhx_widget--bordered",
+        rows: [
+            {
+                "type": "checkbox",
+                "merit": 1,
+                "label": "Stitch",
+                "labelPosition": "left",
+                "labelWidth": "40",
+                "checked": true
+            },
+            {
+                "type": "text",
+                "merit": 1,
+                "label": "",
+                "labelPosition": "left",
+                "labelWidth": "40",
+                "value": "Submits all selected files into a single job, sets %webui_a_source% and %webui_o_source%"
+            },
+            {view:"link",width:"250px",css:"dhxform_obj_dhx_skyblue",circle:true,full:true,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"},
+        ]
+    });
+    layout.getCell("right_cell").attach(features_form);
+
+    features_form.events.on("click", async function(event, name, id) {
+            //form submit
+            if (!features_form.validate()){
+                alert("Error, Please check your inputs.");
+                return;
+            }
+            
+            var v = features_form.getValue();
+            var real_var_name = document.getElementById("newvarname").value.replaceAll("%","");
+            try{
+                var res = await saveVariableAjax({name:real_var_name,data:v.description});
+                console.log("Save variable response",res);
+            }catch(ex){
+                console.log("Error Saving variable: ", ex)
+                alert("Error Saving variable: " + ex.responseText)
+                console.log("Responsetext: ", ex.responseText)
+            }
+            dhxWindow.destructor();
+            await loadGridData();
+            await dhx8.dhx.awaitRedraw();
+            //select cell in grid 
+            
+            var foundRow = m_maingrid.data.find(function(item){
+                if(item.name=== real_var_name){return true}
+            });
+            if (!foundRow)
+                alert("row not found")
+            console.log("rowid",foundRow.id)
+            m_maingrid.selection.setCell(m_maingrid.data.getItem(foundRow.id));
+
+            //open variable editor
+            editWebUiTypeVar()
+    });
+    features_form.events.on("change", function(event, name, id) {
+        //onNameChange();
+        //applyNewVarFormRules(new_form);
+    });
+    features_form.events.on("keydown", function(event, name, id) {
+        console.log("keydown")
+        //onNameChange();
+    });
+
 
 }
 
@@ -530,9 +593,6 @@ function deleteSelected(){
 
 //             //open variable editor
 //             editWebUiTypeVar()
-
-
-
 //     });
 //     new_form.events.on("change", function(event, name, id) {
 //         onNameChange();
@@ -796,193 +856,6 @@ function deleteSelected(){
 //     //     return true;
 //     // });
 // }//webui type variables
-
-async function init_top_form(var_name,var_data,layout){
-    //(RE-)initializes form inputs for constructing webui type variables
-
-    var type_combo = {
-        type: "combo",
-        readonly: true,
-        name: "type",
-        label: "Type",
-        labelPosition: "left",
-        data: []
-    };
-    //type selection data depends on variable_templates
-    for (var i=0;i<Object.keys(variable_templates).length;i++){
-        var itm = Object.keys(variable_templates)[i];
-        type_combo.data.push({id:itm,value:itm})
-    }
-
-    //test parse the current variable config if any
-    var existing_config = {}
-    if (var_data){
-        try{
-            existing_config = resolveWebUiVarData(var_data);
-            if(isDhx5Variable(existing_config))
-                existing_config = translateDhx5To8Vars(existing_config,false);
-            //translate adds validation function for dhx8, we must revert it to original value
-            if (existing_config.validregex){
-                existing_config.validation = existing_config.validregex;
-                delete existing_config.validregex;
-            }
-            
-            //console.log("retrieved and translated var data:",var_data)
-            var_data = JSON.stringify(existing_config); //if value was translated/parsed successfully, it overrides original var data
-            
-        }catch(ex){
-            console.log("Error Processing existing var data",var_data,ex)
-        }
-        //todo: add support for restore/construct various types here
-        if (existing_config.type)
-            type_combo.value = existing_config.type;
-    }
-
-    var top_form_rows = [];
-    top_form_rows.push(type_combo);
-
-    //These form fields always exist, independent of var type
-    top_form_rows.push({cols:[
-                {type: "input",label: "Merit",name: "merit",value: 1,labelPosition: "left",labelWidth:100,validation:"integer",preMessage:"Importance (Vertical Position)"},
-                {type: "input",label: "Width",name: "width",value: "",  labelPosition: "left",labelWidth:100}
-            ]});
-    top_form_rows.push({cols:[
-                                {type: "input",label: "Label",name: "label",value: "Input Label",labelPosition: "left",labelWidth:100},
-                                {type: "input",label: "Label Width",name: "labelWidth",value: 100,labelPosition: "left",labelWidth:100,validation:"integer"},
-                               
-                            ]});
-    top_form_rows.push({cols:[
-        {type: "input",label: "Label Postion",name: "labelPosition",value: "",labelPosition: "left",labelWidth:100,preMessage:"top|left"}
-    ]})
-
-    top_form_rows.push({cols:[ 
-        {type: "checkbox",label: "Required",name: "required",value: false,labelPosition: "left",labelWidth:100}
-    ]})
-
-    //SAVE BUTTON INTO ITS OWN AREA    
-    const save_form = new dhx.Form(null, {
-                css: "dhx_widget--bordered",
-                rows: [{view:"link",full: true,css:"dhxform_obj_dhx_skyblue",circle:false,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"}]
-            });
-    layout.getCell("save_btn_area").attach(save_form);
-    save_form.getItem("btn_save").events.on("click", async function(events){
-        console.log("saving..")
-        saveVariable(var_name,layout.codemirror.getValue());
-    });
-    //DATA and PREVIEW/SAVE BUTTONS always exist
-    var form_btns = {
-        //padding: "10px", 
-        //align: "evenly",// "center", "end", "between", "around", "evenly"
-        rows:[
-            // {view:"link",css:"dhxform_obj_dhx_skyblue",circle:true,type: "button",name: "btn_preview",text: "Preview",view: "flat",color: "primary"},
-            
-        ]
-    }
-
-    top_form_rows.push(form_btns);
-
-    const top_form = new dhx.Form(null, {
-                css: "dhx_widget--bordered",
-                rows: top_form_rows
-            });
-
-    layout.getCell("top").attach(top_form);
-    top_form.validate();
-
-    //show json in codemirror
-    try{
-        layout.codemirror.setValue(JSON.stringify(JSON.parse(var_data),null, "   ")) //m_codemirror.getValue();
-        do_after_codemirror_change();
-
-    }catch(ex){
-        layout.codemirror.setValue(var_data) //m_codemirror.getValue()
-    }
-
-    //select type shows options grid, others hide it
-    if (existing_config.type == "select"){
-        //init_options_grid(layout,top_form); //done by do_after_codemirror_change
-    }else{
-        layout.getCell("select_options").detach();
-        layout.getCell("select_options").hide();
-        
-    }
-
-
-
-    //form field change events
-    top_form.getItem("type").events.on("change", async function(newType,value){
-        //type change loads templates into data field and re-initializes the form
-        var oldValue = "";
-        try{
-            oldValue = layout.codemirror.getValue().type
-        }catch(ex){}
-        
-        if (oldValue != "" && newType != oldValue){
-            var confirmed = await dhx.confirm({
-                header: "Changing Type",
-                buttons:["Cancel", "Apply"],
-                text: "Setting a new type will reset the current Data, continue?",
-            })
-            if (!confirmed)
-                return
-        }
-        
-        var newData = (JSON.stringify(variable_templates[newType]));
-        //amend originally selected variable and re-init the whole form
-        init_top_form(var_name,newData,layout);
-
-    });
-
-    layout.codemirror.on("change", async function(name,value){
-        do_after_codemirror_change();
-    })
-    function do_after_codemirror_change(){
-                //when data field is changed manually, udpate the value into form field
-        try{    
-            var the_data = JSON.parse(layout.codemirror.getValue())
-            for (var i =0; i< Object.keys(the_data).length;i++){
-                try{
-                    var cur_name = Object.keys(the_data)[i];
-                    if (cur_name == "type")
-                        continue;
-                    if (cur_name == "options")
-                        init_options_grid(layout,top_form)
-                    top_form.getItem(cur_name).setValue(the_data[cur_name]);
-                }catch(ex){}
-            }
-            do_previewForm(layout.codemirror.getValue(),layout.getCell("bottom"),var_name);  
-        }catch(ex){
-            //alert("Could not update value in Data field, did you manually change the data and now have invalid json?")
-        };
-    }
-
-    top_form.events.on("change", async function(name,value){
-        
-        if (layout.codemirror.hasFocus()){
-            //if editor has focus, the change event came from changing stuff in the editor actually, not from user changed a form field
-            return;
-        }
-         /* all other form field changes just lead to the value being updated into Data field */
-        if (name == "type")
-            return; //type and data is handled separately
-        console.log("form change evt",name,value);
-        try{
-            var the_data = JSON.parse(layout.codemirror.getValue());
-            console.log("Parsed value from codemirr",the_data)
-            the_data[name] = value;
-            layout.codemirror.setValue(JSON.stringify(the_data,null, "   "));//JSON.stringify(JSON.parse(the_data),null, "   ")
-        }catch(ex){
-            console.log(ex)
-            alert("Could not update value in Data field, did you manually change the data and now have invalid json?");
-        };
-    })
-    
-    //button click events
-    // top_form.getItem("btn_preview").events.on("click", async function(events){
-    //     do_previewForm(layout.codemirror.getValue(),layout.getCell("bottom"));
-    // });
-
-}
 
 
 // async function init_options_grid(layout,top_form){

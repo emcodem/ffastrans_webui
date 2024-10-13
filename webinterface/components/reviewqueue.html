@@ -11,10 +11,9 @@
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
-<script src="common/webuiVariables.js"></script> 
 
- <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
- <script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
     //theme changeer
     if (localStorage.global_skin_dark == "1"){
         try{
@@ -93,19 +92,23 @@
 
 </style>
 
-<script>
+
+<script type="module">
+
+import { webuiVariables_processVariables } from "./common/webuiVariables.js";
 /* init SOCKET.IO */
 var socket = io(); 
 
 /* GLOBALS */
 //dhtmlx ui
-var m_serverconfig,m_mainLayout,m_maingrid;
+var m_serverconfig,m_mainLayout,m_maingrid,m_layout_right,m_layout_left;
 var m_realUploadpath = "";
 var m_lastResponse = "";
 var m_logged_in_username = "";
-
+var m_userpermissions;
 
 /*load config from server*/
+window.loadserverconfig = loadserverconfig; //since change to es6 module, we must make the spit out explicit
 async function loadserverconfig(){
     try{
         m_userpermissions = await $.ajax({
@@ -182,7 +185,7 @@ async function init(){
         ]
     });
 
-    m_layout_left = new dhx.Layout(null, {
+    let m_layout_left = new dhx.Layout(null, {
         type: "line",
         rows: [
             {
@@ -485,7 +488,7 @@ async function afterStage1Select(outbound){
         }catch(ex){
             html = "No options to display.";
         }
-        console.log("selected outpboud",outbound);
+        console.log("selected outboud",outbound);
         console.log("winding up window",outbound);
             const dhxWindow = new dhx.Window({
                 header: true,
@@ -642,56 +645,56 @@ async function submitJob(apiJob,outbound){
         return result;
 }
 
-function displayVariables(m_subForm){
-    m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10});
+
+// function displayVariables(m_subForm){
+//     m_subForm.addItem(null,{type: "label", label: wf_description,offsetLeft:10});
     
-    function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
-        var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
+//     function parseWebUiTypeUserVariable(dhxForm,var_obj,var_name){
+//         var errormsg = "Workflow configuration error, Please edit the description of the variable "+var_name+"to contain a valid JSON key value array";
         
-        //parse from string into object
-        try{
-            var_obj = JSON.parse(var_obj);
-        }catch(ex){
-            try{
-                var_obj = eval("var eval_data = " + var_obj);
-                var_obj = eval_data;
-            }catch(exc){
-                throw new Error(errormsg);
-            }
-        }
-        if (var_obj.length == 0){
-            throw new Error(errormsg);
-        };
+//         //parse from string into object
+//         try{
+//             var_obj = JSON.parse(var_obj);
+//         }catch(ex){
+//             try{
+//                 var_obj = eval("var eval_data = " + var_obj);
+//                 var_obj = eval_data;
+//             }catch(exc){
+//                 throw new Error(errormsg);
+//             }
+//         }
+//         if (var_obj.length == 0){
+//             throw new Error(errormsg);
+//         };
 
-        try{
-            if (var_obj.type){
-                //calendar, multiselect, any native dhtmlx form control
-                var_obj.name = var_name;
-                var_obj.offsetLeft = 10;
-                dhxForm.addItem(var_obj.type , var_obj);
-                dhxForm.enableLiveValidation(true);
-                return;
-            }
-            else{
-                //simple key value list without type goes into dropdown (legacy)
-                var var_display_name = var_name;
-                var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
-                var options=[];
-                for (y=0;y<var_obj.length;y++){
-                    options.push({text:var_obj[y].key,value:var_obj[y].value});
-                }
-                var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
-                dhxForm.addItem("data", itemData);
+//         try{
+//             if (var_obj.type){
+//                 //calendar, multiselect, any native dhtmlx form control
+//                 var_obj.name = var_name;
+//                 var_obj.offsetLeft = 10;
+//                 dhxForm.addItem(var_obj.type , var_obj);
+//                 dhxForm.enableLiveValidation(true);
+//                 return;
+//             }
+//             else{
+//                 //simple key value list without type goes into dropdown (legacy)
+//                 var var_display_name = var_name;
+//                 var_display_name = var_display_name.replace("s_webui_", "");//todo: add support for native ffastrans variable types
+//                 var options=[];
+//                 for (y=0;y<var_obj.length;y++){
+//                     options.push({text:var_obj[y].key,value:var_obj[y].value});
+//                 }
+//                 var itemData = {type: "select",width:150,name: var_name, label: var_display_name, options: options,  offsetLeft:10};
+//                 dhxForm.addItem("data", itemData);
 
-            }
+//             }
             
-        }catch(e){
-            dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
-        }
-    }
+//         }catch(e){
+//             dhtmlx.alert("Error Parsing webui variable \"" + var_name + "\" Message:" + errormsg);
+//         }
+//     }
 
-
-}
+// }
 
 async function updateGrid(q){
     try{

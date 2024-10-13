@@ -40,7 +40,6 @@
 <script src="../dependencies/tippy/popper.js"></script>
 <script src="../dependencies/tippy/tippy.js"></script>
 
-<script src="common/webuiVariables.js"></script> <!-- function translateDhx5To8Vars -->
 <script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
 
 <script src="../dependencies/jquery_lazyload/lazyload.js"></script>
@@ -150,7 +149,12 @@
 
 </style>
 
-<script>
+
+
+<script type="module">
+
+import { webuiVariables_processVariables } from "./common/webuiVariables.js";
+
 /* init SOCKET.IO */
 var socket = io(); 
 
@@ -179,6 +183,7 @@ window.addEventListener("unhandledrejection", (event) => {
 
 
 /*load config from server*/
+window.loadserverconfig = loadserverconfig;
 async function loadserverconfig(){
     try{
         m_userpermissions = await $.ajax({
@@ -456,11 +461,9 @@ function init(){
 
     if (_filter.length > 0){
         //apply userpermissions, hide non allowed items
-            menu_items = [];
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
             for (var _itm of all_menu_items){
                 if (regex.test(_itm.id)){
-                    //allowed_menu_items.push(_itm)
                 }else{
                     m_fileBrowseGridMenu.hideItem(_itm.id);
                 }
@@ -566,7 +569,6 @@ function init(){
         
     if (_filter.length > 0){
         //apply userpermissions, hide non allowed items
-            menu_items = [];
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
             for (var _itm of ["add_customfile","delete_selected_file","clear_all"]){
                 if (!regex.test(_itm)){
@@ -894,14 +896,14 @@ function init(){
         }
 
         if (id == "mediainfo"){
-			var rId = m_fileBrowserGrid.getSelectedRowId()
-			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
+			let rId = m_fileBrowserGrid.getSelectedRowId()
+			let file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
 			
 			get_mediainfo_analysis_html(file,function(_fileobj,minfo_html){
-				var dhxwins = new dhtmlXWindows();
+				let dhxwins = new dhtmlXWindows();
 				//dhxwins.attachViewportTo(window.parent.document.body);
-				win_offset = 0;
-				var win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/3*2);
+				let win_offset = 0;
+				let win = dhxwins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, screen.width/2, screen.height/3*2);
 				win_offset+=30;
 				win.setText("File [" + file.name + "]");
 				
@@ -912,19 +914,19 @@ function init(){
         }
 
 		if (id == "player"){
-			var rId = m_fileBrowserGrid.getSelectedRowId()
-			var file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
-			var fullfilepath = m_fileBrowserGrid.getUserData(rId,"fullpath");
+			let rId = m_fileBrowserGrid.getSelectedRowId()
+			let file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
+			let fullfilepath = m_fileBrowserGrid.getUserData(rId,"fullpath");
 			if (fullfilepath.match(/C\$|D\$|E\$|F\$|G\$/gi)){
 				//dhtmlx.alert("Sorry, VLC Player does not support files on Administrative shares (e.g. \\\\server\\c$\\). Alter your webinterface admin settings and a normal share instead, e.g. '\\\\server\\C_drive'");
 				//return;
 			}
 
-            var _playerUrl = "player/player.html?file=" + encodeURIComponent(fullfilepath) + "&mediainfo_url="+encodeURIComponent(build_new_api_url("/getmediainfo?do_html=false&filepath=" + encodeURIComponent(fullfilepath)));
+            let _playerUrl = "player/player.html?file=" + encodeURIComponent(fullfilepath) + "&mediainfo_url="+encodeURIComponent(build_new_api_url("/getmediainfo?do_html=false&filepath=" + encodeURIComponent(fullfilepath)));
             
-			var dhxWins = new dhtmlXWindows();
+			let dhxWins = new dhtmlXWindows();
 			//dhxwins.attachViewportTo(window.parent.document.body);
-			win_offset = 0;
+			let win_offset = 0;
 			var win = dhxWins.createWindow("File [" + file.name + "]",   20+win_offset,  20+win_offset, window.innerWidth/3*2,window.innerHeight/3*2);
 			win_offset+=30;
 			win.setText("File [" + file.name + "]");
@@ -1149,9 +1151,9 @@ function removeItemFromLocationMenu(id){
                 //delete selected item from menu and local storage
                     m_fileBrowseGridMenu.removeItem(id);
                     if (localStorage.getItem("savedbrowselocations")){
-                        var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
-                        var newLocs = [];
-                        for (i=0;i<_locs.length;i++){
+                        let _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
+                        let newLocs = [];
+                        for (let i=0;i<_locs.length;i++){
                             if (_locs[i].path == id){
                             }else{
                                 newLocs.push(_locs[i]);
@@ -1188,6 +1190,7 @@ function selectFileToProcess(){
     }
 }
 
+window.onPathClick = onPathClick; //this func is used directly in html tags
 function onPathClick(event,where){
     event.stopPropagation();
     getFileList(m_fileBrowserGrid,where,true)
@@ -1442,7 +1445,7 @@ function addAjaxTooltip(dhxGrid,rowId){
 async function getBrowseLocations(restore_saved = true){
    //locations from admin config
    try{
-        var locations = await loadBrowseLocations();
+        let locations = await loadBrowseLocations();
 
         m_browselocations = [];
         locations.forEach(function(loc) {
@@ -1455,8 +1458,8 @@ async function getBrowseLocations(restore_saved = true){
 
         //restore user locations
         if (localStorage.getItem("savedbrowselocations")){
-                var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
-                for (i=0;i<_locs.length;i++){
+                let _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
+                for (let i=0;i<_locs.length;i++){
                     m_fileBrowseGridMenu.addNewChild("locations", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
                 }
         }
@@ -1476,7 +1479,7 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     console.log("Selected Workflow",wf_object)
 
     document.getElementById("variables_form").innerHTML = "";
-    var layout = new dhx8.dhx.Layout("variables_form", {
+    let layout = new dhx8.dhx.Layout("variables_form", {
                                             type: "space",
                                             rows: [
                                                 {

@@ -1,3 +1,5 @@
+export { webuiVariables_processVariables };
+
 function resolveWebUiVarData(datastr,name){
     //ffastrans var description contains a string json, this is parsed into object here
     //throws if not possible
@@ -6,9 +8,11 @@ function resolveWebUiVarData(datastr,name){
     if (typeof(datastr) == "object" || typeof(datastr) == "array" )
         return translateDhx5To8Vars(data_obj);
     try{
-        eval("var eval_data = " + datastr);
+        let eval_data;
+        eval("eval_data = " + datastr);
         data_obj = JSON.parse(JSON.stringify(eval_data));
     }catch(ex){
+        console.error(ex)
         data_obj = JSON.parse(a.data)
     }
 

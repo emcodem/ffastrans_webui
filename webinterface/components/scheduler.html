@@ -21,7 +21,7 @@
 
 
 <script src="common/buildWorkflowTree.js"></script>
-<script src="common/webuiVariables.js"></script> 
+
 
 
 <link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
@@ -83,7 +83,14 @@
        overflow: unset;
     }
 </style>
+<script type="module">
+    import { webuiVariables_processVariables } from "./common/webuiVariables.js";
+    window.webuiVariables_processVariables = webuiVariables_processVariables; //dhtmlx5 reacts badly if used in a es6 module, i don't have the time to correct all issues now
+    //usually the script tag below should be "module"
+</script>
+    
 <script>
+
 // #region Helpers 
 
 var socket = io(); 
@@ -199,10 +206,12 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
 eXcell_cron.prototype = new eXcell;
 
 /* GLOBALS */
-var  m_workflowSelectionWindow,m_workflowSelectionLayout,m_mainGrid,m_codemirror,m_lastSelectedWorkflow,m_allWorfklows = {},m_socketId;
+var  m_workflowSelectionWindow,m_workflowSelectionLayout,m_mainGrid,m_codemirror,m_lastSelectedWorkflow,m_serverconfig,m_mainLayout,m_workflowArray;
+var m_allWorfklows = {},m_socketId;
 
 
 /*load config from server*/
+window.loadserverconfig = loadserverconfig; //used directly in html, since switch to es6 module, we have to vomit that into global space manually
 function loadserverconfig(){
    $.ajax({
         url:  ("/getserverconfig") ,
@@ -274,7 +283,7 @@ async function openVariableSelector(rId,savedVariables){
 
     var vars_form;
     var have_webui_vars = false;
-    for (i=0;i<workflowdetails["workflows"][0]["user_variables"]["variables"].length;i++){
+    for (let i=0;i<workflowdetails["workflows"][0]["user_variables"]["variables"].length;i++){
         var current_var = workflowdetails["workflows"][0]["user_variables"]["variables"][i];
         if (current_var.name.indexOf("webui") != -1){
             have_webui_vars = true;
@@ -438,7 +447,7 @@ async function init(){
 
 	loadJobs(m_mainGrid);
     window.setInterval(updateJobs, 3000);
-    m_mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
+    let mainGridMenu = m_mainLayout.cells("a").attachMenu({                                               
 		items:[
             {id:"save", text:"<div title='Usually everything is saved automatically but we could have forgot something...'><i class='fas fa-save'></i>Save</div>"},
             {id:"new", text:"<i class='fas fa-plus-square' style='color:forestgreen'></i>New"},
@@ -454,7 +463,7 @@ async function init(){
 		]
 	});
 	
-    m_mainGridMenu.attachEvent("onClick", function(id,ind){
+    mainGridMenu.attachEvent("onClick", function(id,ind){
         if (id=="enable"){
             var rows = m_mainGrid.getSelectedRowId().split(",");
             for (var i=0;i<rows.length;i++){
@@ -955,7 +964,7 @@ function updateJobs(){
         type: "GET",
         success: function (response) {
             response = JSON.parse(response) 
-            for (i in response){
+            for (let i in response){
                 var _job = response[i]['scheduled_jobs'];
                 for (var colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
@@ -990,7 +999,7 @@ function loadJobs(dhxGrid){
         type: "GET",
         success: function (response) {
             response = JSON.parse(response) 
-            for (i in response){
+            for (let i in response){
 				var _job = response[i]['scheduled_jobs'];
                 console.log("debug job:",_job)
 				createJobRowInGrid(_job,dhxGrid);
@@ -1011,7 +1020,7 @@ function createJobRowInGrid(_job,dhxGrid){
 				}
 				
                 var rowData = [];
-                for (colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                for (let colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
                     rowData.push(_job[colName]);                    
                 }
