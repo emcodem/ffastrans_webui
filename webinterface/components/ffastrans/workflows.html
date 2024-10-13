@@ -23,10 +23,7 @@
 </script><!-- legacy dhtml css goes first -->
 
 <script src="../../dependencies/jquery/jquery.js"></script>
-<script src="../../components/common/webuiVariables.js"></script> 
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
-
-<script src="common/webuiVariables.js"></script> <!-- function translateDhx5To8Vars -->
 
 <style>
 * {
@@ -65,11 +62,15 @@
 .dhx_grid-header-cell-text_content{
     font-size:12;
 }
-
-
 </style>
-<script>
-var m_maingrid;m_last_data= null;m_var_layout = null;
+
+<script type="module">
+import { webuiVariables_processVariables } from "../common/webuiVariables.js";
+
+window.m_last_data = null;
+window.init = init;
+
+var m_maingrid;
 var m_filter_statics = false;
 
 window.addEventListener("pagehide",(event) => {
@@ -239,7 +240,8 @@ async function buildLayout(){
         console.log("Cell dblclick",col);
         if (col.id == "webui_integration"){
             //bring up integration window
-            webuiWorkflowIntegrationEditor();
+            console.log(m_maingrid)
+            webuiWorkflowIntegrationEditor(row);
         }
 
     });
@@ -329,7 +331,8 @@ async function loadGridData(force=false){
 
 }
 
-async function webuiWorkflowIntegrationEditor(){
+async function webuiWorkflowIntegrationEditor(workflowData){
+    console.log("Selected row",workflowData)
     const selectedCells = m_maingrid.selection.getCells();
     if (selectedCells.length == 0){
         return;
@@ -419,7 +422,8 @@ async function webuiWorkflowIntegrationEditor(){
         ]
     });
     layout.getCell("right_cell").attach(features_form);
-
+    layout.getCell("left_cell").attach(createWorkflowForm(workflowData));
+    
     features_form.events.on("click", async function(event, name, id) {
             //form submit
             if (!features_form.validate()){
@@ -462,7 +466,16 @@ async function webuiWorkflowIntegrationEditor(){
         //onNameChange();
     });
 
+}
 
+function createWorkflowForm(wf_object){
+
+    var dhxform_user_vars = webuiVariables_processVariables(wf_object.user_variables.variables);
+    const vars_form = new dhx8.dhx.Form("form_wf_form", {
+                //css: "dhx_widget--bordered",
+                rows: dhxform_user_vars
+            });
+    return vars_form;
 }
 
 function deleteSelected(){
