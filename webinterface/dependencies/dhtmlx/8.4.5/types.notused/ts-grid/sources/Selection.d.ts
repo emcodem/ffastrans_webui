@@ -1,0 +1,31 @@
+import { VNode } from "../../ts-common/dom";
+import { IEventSystem } from "../../ts-common/events";
+import { ICell, IGrid, ISelection, IRow, ICol, GridSelectionEvents, IGridSelectionEventsHandlersMap, ISelectionConfig } from "./types";
+import { Id } from "../../ts-common/types";
+export declare class Selection implements ISelection {
+    events: IEventSystem<GridSelectionEvents, IGridSelectionEventsHandlersMap>;
+    config: ISelectionConfig;
+    private _grid;
+    private _gridId;
+    private _selectedCell;
+    private _selectedCells;
+    private _type;
+    private _multiselection;
+    constructor(grid: IGrid, config?: ISelectionConfig, events?: IEventSystem<any>, gridId?: Id);
+    setCell(row?: IRow | Id, col?: ICol | Id, ctrlUp?: boolean, shiftUp?: boolean): void;
+    removeCell(rowId?: Id, colId?: Id): void;
+    getCell(): ICell | void;
+    getCells(): ICell[];
+    disable(): void;
+    enable(): void;
+    toHTML(): VNode | VNode[];
+    private _setCell;
+    private _removeCell;
+    private _removeCells;
+    private _init;
+    private _toHTML;
+    private _isUnselected;
+    private _findIndex;
+    private _setBrowserFocus;
+    private _getReverseScrollState;
+}
