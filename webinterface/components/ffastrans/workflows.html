@@ -374,25 +374,47 @@ async function webuiWorkflowIntegrationEditor(workflowData){
             { id: "toolbar", height: "content" },
             ,
             {
-                cols:[
+                
+                cols:[{cols:[
                     {
                             collapsable:true,
                             header:"Job Submit Form",
                             id: "left_cell",
-                            resizable:true,
+                            resizable:false,
                             padding: "0px",  
-                            width:"65%",
+                            width:"80%",
                             margin: "0px",
                     },
+                    {
+                            collapsable:true,
+                            header:"Merit",
+                            id: "merit_cell",
+                            resizable:false,
+                            padding: "0px",  
+                            width:"20%",
+                            margin: "0px",
+                    }]},
+                    {
+                    cols:[
                     {
                             header:"Features",
                             id: "right_cell",
                             resizable:true,
+                            width:"100%",
                             padding: "0px",  
                             margin: "0px",
                             
-                    }
+                    }]
+                }
                 ]
+            },
+            {
+                id: "save_cell",
+                width:"100%",
+                height:"30px",
+                padding: "0px",  
+                margin: "0px",
+                            
             }
 		]
 	}
@@ -403,21 +425,31 @@ async function webuiWorkflowIntegrationEditor(workflowData){
         css: "dhx_widget--bordered",
         rows: [
             {
+                name : "top_text",
+                "type": "textarea",
+                "label": "Top Text",
+                "labelPosition": "left",
+                "labelWidth": "80",
+                "placeholder": "Displayed on Top",
+                "readOnly": false,
+                "resizable": true
+            },
+            {
+                name: "stitch",
                 "type": "checkbox",
-                "merit": 1,
                 "label": "Stitch",
                 "labelPosition": "left",
-                "labelWidth": "40",
-                "checked": true
+                "labelWidth": "80",
+                "checked": false
             },
             {
                 "type": "text",
-                "merit": 1,
                 "label": "",
                 "labelPosition": "left",
-                "labelWidth": "40",
+                "labelWidth": "80",
                 "value": "Submits all selected files into a single job, sets %webui_a_source% and %webui_o_source%"
             },
+
             {view:"link",width:"250px",css:"dhxform_obj_dhx_skyblue",circle:true,full:true,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"},
         ]
     });
@@ -466,6 +498,20 @@ async function webuiWorkflowIntegrationEditor(workflowData){
         //onNameChange();
     });
 
+    //Merit grid
+    const merit_grid = new dhx8.dhx.Grid("grid", {
+        selection: "row",
+        editable: true,
+        columns: [
+            
+            { width: "50%", id: "merit", type:"number", editorType:"number",header: [{ text: "M" }]},
+            { width: "50%", id: "name", header: [{ text: "N" }], editable: false },
+            
+        ]})
+    layout.getCell("merit_cell").attach(merit_grid);  
+    let rows_to_load = webuiVariables_processVariables(workflowData.user_variables.variables);
+    merit_grid.data.parse(rows_to_load);
+
 }
 
 function createWorkflowForm(wf_object){
@@ -476,6 +522,7 @@ function createWorkflowForm(wf_object){
                 rows: dhxform_user_vars
             });
     return vars_form;
+
 }
 
 function deleteSelected(){
