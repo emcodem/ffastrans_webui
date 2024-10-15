@@ -361,8 +361,9 @@ async function parseHistoryJobs(all_jobs){
 
 function getRunningJobs(){
 	//todo: merge with history jobs to avoid calling jobs api multiple times?
-	
+	console.time("getrunning")
 	Request.get(helpers.build_new_api_url("/api/json/v2/jobs"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
+		console.timeEnd("getrunning")
 		if(error) {
 			error_count_running++;
 			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');

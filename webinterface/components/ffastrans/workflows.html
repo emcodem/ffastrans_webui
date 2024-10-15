@@ -504,8 +504,8 @@ async function webuiWorkflowIntegrationEditor(workflowData){
         editable: true,
         columns: [
             
-            { width: "50%", id: "merit", type:"number", editorType:"number",header: [{ text: "M" }]},
-            { width: "50%", id: "name", header: [{ text: "N" }], editable: false },
+            { width: "50%", id: "merit", type:"number", header: [{ text: "M" }]},
+            { width: "50%", id: "name", header: [{ text: "N" }] },
             
         ]})
     layout.getCell("merit_cell").attach(merit_grid);  
