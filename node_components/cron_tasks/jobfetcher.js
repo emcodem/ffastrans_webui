@@ -280,7 +280,7 @@ async function parseHistoryJobs(all_jobs){
 			jobArray = non_deleted_jobs;//go on only with non deleted jobs
 
 			//get last 10k jobids from DB - child jobs need to finish within that period to be grouped correctly;-)
-			var lastTenThousand 	= await global.db.jobs.find({},{sort:{job_start:-1},projection:{job_start:1,job_id:1,"children._id":1}}).limit(1000);
+			var lastTenThousand 	= await global.db.jobs.find({},{sort:{job_start:-1},projection:{job_start:1,job_id:1,"children._id":1}}).limit(10000);
 			lastTenThousand 		= await lastTenThousand.toArray();
 			//make list of all existing _id's / traverse children and main objects
 			var existingInternalIds 		= [];
@@ -314,7 +314,13 @@ async function parseHistoryJobs(all_jobs){
 					newmainjob.children = [];	
 					newmainjob._id = jobArray[i].job_id + "_main"; //internal database id for mainjob, just for the db, not for use in code!
 					newmainjob.result = ""; //we delete result as only childs contain it.
-					insertedDoc = await global.db.jobs.insertOne(newmainjob);
+					try{
+						insertedDoc = await global.db.jobs.insertOne(newmainjob);
+					}catch(exceptiopatronum){
+						console.error("Error inserting job into db. Job:",newmainjob);
+						console.error(exceptiopatronum);
+						
+					}
 					existingMainJob_job_ids.push(newmainjob.job_id); //supports multiple branches finished in single fetcher run
 					
 				}
