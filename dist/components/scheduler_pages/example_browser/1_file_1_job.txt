@@ -1,8 +1,0 @@
-var fs = require('fs');
-
-fs.readdir("C:\\temp\\input", function(err, items) {
-  for (var i=0; < items.length;i++){	
-    //starts one job per found file
-    process.send([items[i]])
-  }
-})
