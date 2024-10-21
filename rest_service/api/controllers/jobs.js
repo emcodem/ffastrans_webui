@@ -43,21 +43,17 @@ async function get(req, res) {
             res.end();
             return;
         }
-        console.log("before sleep")
         /* ensure we only read the jobs from filesystem once every x seconds */
         while (jobs_cache.is_refreshing){
             await sleep(1);
         }
-        console.log("after sleep")
 
         const currentTime = new Date();
         let maxAge = new Date(currentTime.getTime() - 3 * 1000);
         if (jobs_cache.born < maxAge || !jobs_cache.data){
             jobs_cache.is_refreshing = true;
             try{
-                console.log("getting history")
                 let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-                console.log("getting active")
                 let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
                 jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
             }catch(ex){

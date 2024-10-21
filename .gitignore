@@ -11,4 +11,4 @@ alternate-server.old/
 *.zip
 *.db
 *.log.*
-/dist
+dist

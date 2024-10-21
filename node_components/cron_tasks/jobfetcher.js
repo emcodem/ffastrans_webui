@@ -184,7 +184,7 @@ function getQueuedJobs(){
 				global.socketio.emit("incomingjobs", JSON.stringify(q_obj));
 				//global.socketio.emit("incomingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
 			}else{
-				console.log("Error, we should not come here, keyword: incoming")
+				console.error("Error, we should not come here, keyword: incoming")
 				global.socketio.emit("incomingjobs", "[]");
 				global.socketio.emit("incomingjobcount", 0);               
 			}
@@ -319,7 +319,7 @@ async function parseHistoryJobs(all_jobs){
 					}catch(exceptiopatronum){
 						console.error("Error inserting job into db. Job:",newmainjob);
 						console.error(exceptiopatronum);
-						
+
 					}
 					existingMainJob_job_ids.push(newmainjob.job_id); //supports multiple branches finished in single fetcher run
 					
