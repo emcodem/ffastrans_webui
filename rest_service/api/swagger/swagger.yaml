@@ -256,6 +256,20 @@ paths:
           description: Success
         default:
           description: Error
+    put:
+      description: "Updates or inserts part of a workflow json"
+      operationId: workflow_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {"wf_id": "abcde","update":{"field":"content"}}
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /variables:
     x-swagger-router-controller: variables
     get:
@@ -342,10 +356,31 @@ paths:
           description: Success
         default:
           description: Error
+    get:
+      description: "List of Job Splits (branches)"
+      operationId: jobs_get
+      parameters:
+        - name: start
+          in: query
+          description: "for paged output"
+          required: false
+          schema:
+            type: string
+        - name: count
+          in: query
+          description: "for paged output"
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error 
   /api/json/v2/jobs:
     x-swagger-router-controller: jobs_v2
     get:
-      description: "DEPRECATED, use /jobs List of Job Splits (branches)"
+      description: "DEPRECATED, use /jobs"
       operationId: jobs_v2
       parameters:
         - name: start

@@ -2,12 +2,34 @@
 const fs = require('fs-extra');
 const fsPromises = require('fs').promises;
 const path = require("path");
-const common = require("./common/helpers.js");
+const helpers = require("./common/helpers.js");
 
 module.exports = {
     get: getWorkflows,
-    post: postWorfklows
+    post: postWorfklows,
+    put: putWorkflows
 };
+
+async function putWorkflows(req, res) {
+    //updates part of workflow
+    try{
+
+        if (!req.body.hasOwnProperty('wf_id') || !req.body.hasOwnProperty('update')){
+            throw new Error("You must supply wf_id and udpate fields");
+        }
+
+        if (typeof(req.body.update) != "object"){
+            throw new Error("update field must contain object");
+        }
+        await updateWorkflowField(req.body.wf_id,req.body.update);
+
+    }catch(ex){
+        res.status(500).send(ex.stack.toString());
+        return;
+    }
+    res.json({});
+    res.end();
+}
 
 async function postWorfklows(req, res) {
     var o_req = req.body;
@@ -103,6 +125,27 @@ async function backupWorkflow(wf_id,original_file,archive_dir){
     await fs.copyFile(original_file,path.join(target_path,target_fname));
 }
 
+async function updateWorkflowField(wf_id,new_data){
+
+    var wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
+    var wf_file = path.join(wf_path,wf_id + ".json");
+    var archive_path = path.join(global.api_config["s_SYS_CONFIGS_DIR"],
+                                "archive",
+                                "workflows");
+
+    if (fs.existsSync(wf_file)){
+        await backupWorkflow(wf_id,wf_file,archive_path);
+        var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
+        var wf_contents = await  helpers.readfile_cached(wf_file);
+        wf_contents = JSON.parse(wf_contents);
+        Object.assign(wf_contents, new_data);
+        await fs.writeFile(wf_file,JSON.stringify(wf_contents,null,3));
+    }else{
+        throw new Error("Workflow file does not exist, " + wf_file);
+    }
+       
+}
+
 async function updateWorkflow(wf){
 
     var wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
@@ -129,7 +172,7 @@ async function getWorkflows(req, res) {
         var o_return = {discovery:req.headers.referer,workflows:[]};
         //read all workflows 
         var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
-        o_return.workflows = await common.json_files_to_array_cached(s_wf_path,true);
+        o_return.workflows = await helpers.json_files_to_array_cached(s_wf_path,true);
         console.timeEnd("getWorkflows")
         if (!req.query.nodetails){
             await add_user_vars (o_return);
@@ -178,7 +221,7 @@ async function add_user_vars(o_return){
     console.time("add_user_vars")
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
      
-    var all_vars_readout = await common.readfile_cached(s_user_vars_file);//fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
+    var all_vars_readout = await helpers.readfile_cached(s_user_vars_file);//fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
     all_vars_readout = all_vars_readout.replace(/^\uFEFF/, '');
     var all_vars = JSON.parse(all_vars_readout);
     all_vars = [...all_vars.variables,...all_vars.statics];
