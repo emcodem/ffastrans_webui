@@ -62,7 +62,6 @@ async function get(req, res) {
                 jobs_cache.is_refreshing = false;
             }
         }
-        console.log("return json")
         res.json(jobs_cache.data)
         res.end();
 

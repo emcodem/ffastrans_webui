@@ -890,11 +890,6 @@ function init(){
             return;
         }
 
-        if (id == "savelocation"){
-            saveLocation();
-            return;
-        }
-
         if (id == "mediainfo"){
 			let rId = m_fileBrowserGrid.getSelectedRowId()
 			let file = new File([""],m_fileBrowserGrid.getUserData(rId,"fullpath"));
@@ -1105,7 +1100,7 @@ function restoreLayoutSizes(dhxLayout,name){
     }
 }
 
-
+window.saveLocation = saveLocation; //export to window for use in html
 function saveLocation(){
     //saves current location to html5 storage
     if (localStorage.getItem("lastVisitedBrowseLocation")){
@@ -1141,6 +1136,8 @@ function saveLocation(){
     }
 }
 
+
+window.removeItemFromLocationMenu = removeItemFromLocationMenu; //export to window for use in html
 function removeItemFromLocationMenu(id){
     dhtmlx.message({
         type:"confirm",

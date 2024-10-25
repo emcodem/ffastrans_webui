@@ -352,7 +352,7 @@ async function afterRowSelect(row){
     `);
     
     var is_there = m_layout_right.getCell("right_content").getWidget();
-
+    console.log("selcel[0].row.ticket.outbounds",selcel[0].row.ticket.outbounds)
     const dataview = new dhx.DataView("dataview_container", {
                 itemsInRow: 1,
                 template: template,

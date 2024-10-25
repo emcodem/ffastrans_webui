@@ -30,7 +30,7 @@ async function getActiveJobs(start=0,end=1000){
             returnArray.push(contents);
         }catch(ex){
             console.trace("Unexpected Error parsing jobfile",ex)
-        } 
+        }
     }
     return returnArray;
 }
