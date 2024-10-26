@@ -1,7 +1,9 @@
 'use strict';
 
-const fs = require('fs')
+const fs = require('fs');
+const path = require('path');
 const mediainfo = require('mediainfo-wrapper');
+const { exec } = require('child_process');
 
 var json2human = require('json.human');
 module.exports = {
@@ -38,19 +40,31 @@ function start(req, res) {
 
 async function main(res, filepath,do_html) {
     try {
-        console.log("Trying mediainfo");
-        require('mediainfo-wrapper')(filepath,do_html).then(
-            function (data) {
-                return res.status(200).send(data);
-            }
-        ).catch(
-            function (error) {
-                console.log(error)
-                return res.status(500).send("Error getting mediainfo" + error)
-            }
-        )
+        let data = await MediaInfo(filepath);
+        return res.status(200).send(data);
+        
     } catch (ex) {
         return res.status(500).send("Error getting mediainfo" + ex);
     }
 }
 
+function MediaInfo(file) {
+    var args = [].slice.call(arguments);
+    var cmd_options = typeof args[0] === "object" ? args.shift() : {};
+    var cmd = [];
+
+    cmd.push(getCmd()); // base command
+    cmd.push('--Output=HTML'); // args
+    cmd.push(file);
+    console.log("exec mediainfo",cmd_options)
+    return new Promise(function (resolve, reject) {
+        exec(cmd.join(' '), cmd_options, function (error, stdout, stderr) {
+            if (error !== null || stderr !== '') return reject(error || stderr);
+            resolve(stdout);
+        });
+    });
+};
+
+function getCmd() {
+    return path.join(global.approot,"tools","mediainfo","mediainfo.exe");
+}

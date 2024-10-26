@@ -229,6 +229,7 @@ function get_mediainfo_analysis_html(_file,_callback){/*this function is called 
 				url: build_new_api_url("/getmediainfo?do_html=true&filepath=" + encodeURIComponent(_file.name)),
 				type: "GET",
 				success: function (response) {
+                    console.log("Mediainfo response: ",response)
 					_callback(_file,response);
 				},
 				error: function (xhr, status) {
