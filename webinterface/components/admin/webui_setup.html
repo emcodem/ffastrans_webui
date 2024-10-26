@@ -150,6 +150,7 @@ function init(){
                 labelPosition: "left",
                 placeholder: "Welcome to the Webinterface",
                 resizable: true,
+                height:150,
                 preMessage:"Displayed above username/password on login page, HTML allowed",
                 successMessage:"Displayed above username/password on login page, HTML allowed",
                 errorMessage:"Displayed above username/password on login page, HTML allowed",
@@ -256,6 +257,32 @@ function init(){
                 ]
             },
             {
+                type: "textarea",
+                name: "ADDITIONAL_WEBSERVER_FOLDERS",
+                label: "Added Folders",
+                value: m_serverconfig.ADDITIONAL_WEBSERVER_FOLDERS || "",
+                labelWidth: label_width,
+                labelPosition: "left",
+                placeholder: "\\\\server\\share\\mypreviewmp4",
+                resizable: true,
+                preMessage: "Webserver will serve files from this folder, the last directory is taken for URL, e.g. c:\\temp can be accessed as /temp",
+                successMessage: "Webserver will serve files from this folder, the last directory is taken for URL, e.g. c:\\temp can be accessed as /temp",
+                errorMessage: "Webserver will serve files from this folder, the last directory is taken for URL, e.g. c:\\temp can be accessed as /temp",
+            },
+            {
+                type: "textarea",
+                name: "ADDITIONAL_WEBSERVER_FOLDERS_UNPROTECTED",
+                label: "Added Unsafe Folders",
+                value: m_serverconfig.ADDITIONAL_WEBSERVER_FOLDERS_UNPROTECTED || "",
+                labelWidth: label_width,
+                labelPosition: "left",
+                placeholder: "\\\\server\\share\\webui_images_unprotected",
+                resizable: true,
+                preMessage: "Same as Add Folders but can be accessed without login, needed e.g. for images on welcome page",
+                successMessage: "Same as Add Folders but can be accessed without login, needed e.g. for images on welcome page",
+                errorMessage: "Same as Add Folders but can be accessed without login, needed e.g. for images on welcome page",
+            },
+            {
                 type: "radioGroup",
                 name: "STATIC_GOOGLE_ANALYTICS_ENABLE",
                 value: m_serverconfig["STATIC_GOOGLE_ANALYTICS_ENABLE"],
@@ -281,6 +308,7 @@ function init(){
                 successMessage: "Please do not turn this off, it helps development and software design",
                 errorMessage: "Please do not turn this off, it helps development and software design",
             }
+          
         ]})
 
         layout.getCell("form").attach(form);

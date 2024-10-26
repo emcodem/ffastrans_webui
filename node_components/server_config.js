@@ -44,7 +44,7 @@ module.exports = {
     },
     save: (configobj,callbacksuccess=false,callbackerror=false) => {
         //updates config in database
-		/* modules should call this whenever they change global.config. TODO: implement setter */
+		/* modules should call this whenever they change global.config. TODO: implement setter? */
 
         //restore values that are set in sub-windows
         if (!"STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES" in configobj){
@@ -58,8 +58,9 @@ module.exports = {
 					callbackerror(err);
 				}
             }
-			console.log("global config after saving",configobj)
+			console.log("global config after saving",configobj);
             global.config = configobj;
+
             console.log("Success saving Server Config, config updated")
 			if (callbacksuccess){
 				callbacksuccess();

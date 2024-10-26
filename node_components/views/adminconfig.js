@@ -1,6 +1,8 @@
+var configServer = require('../server_config');
+
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
-var configServer = require(global.approot  + '/node_components/server_config');
+
 
 	app.get('/adminconfig', (req, res) => {
         return false; //not needed anymore
@@ -171,6 +173,7 @@ var configServer = require(global.approot  + '/node_components/server_config');
               toSave[key] = data[key];
           }
        }
+
        configServer.save(toSave,function(){
             res.status(200);
             res.end();

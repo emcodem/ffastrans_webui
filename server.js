@@ -227,6 +227,24 @@ function start_cron(){
     
 }
 
+async function registerAddedFolders(newline_separated_folder_list){
+    if (newline_separated_folder_list){
+        let list = newline_separated_folder_list.split("\n");
+        if (list.length == 0)
+            return;
+        for (let i = 0;i<list.length;i++){
+            if (await fs.exists(list[i])){
+                let parts = path.parse(list[i]);
+                let lastDir = parts.name;
+                console.log("Registering additional Webserver Folder: ", list[i],"Url:","/" + lastDir);
+                app.use("/"+lastDir, express.static(list[i]));
+            }else{
+                console.error("Error registering additional folder, does not exist: ", list[i]);
+            }
+        }
+    }
+}
+
 async function init(conf){
 	global.config = conf;
 
@@ -237,6 +255,9 @@ async function init(conf){
     require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
     app.use('/webinterface/images/F364x64.png', express.static('./webinterface/images/F364x64.png'));
 
+    //Registers user configured additinal webfolders
+    await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS_UNPROTECTED);
+    
     //mustache setup and login page
     app.set('views', `${__dirname}/webinterface/components`);
     app.set('view engine', 'mustache');
@@ -263,7 +284,7 @@ async function init(conf){
 
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
-   
+
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
 	
 	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))
@@ -416,7 +437,10 @@ async function init(conf){
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/databasemaintenance_views")(app, passport);
 
-    
+       
+    //Registers user configured additinal webfolders
+    await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS);
+
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
 
