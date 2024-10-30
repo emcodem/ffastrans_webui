@@ -24,7 +24,7 @@
 
 
 <script src="../../dependencies/jquery/jquery.js"></script>
-<script src="../../components/common/webuiVariables.js"></script> 
+
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
 
@@ -132,8 +132,11 @@
 }
 
 </style>
-<script>
-var m_maingrid;m_last_data= null;m_var_layout = null;
+<script type="module">
+import { webuiVariables_processVariables, addValidation, resolveWebUiVarData } from "../../components/common/webuiVariables.js";
+
+var m_maingrid,m_last_data= null,m_var_layout = null;
+window._myvars = {m_maingrid,m_last_data,m_var_layout}; //since es6 module, we use this for finding stuff called from html onclick elements
 var m_filter_statics = false;
 
 window.addEventListener("pagehide",(event) => {
@@ -327,6 +330,7 @@ function build_new_api_url(what) {
         return "/new_proxy" + what;
 }
 
+window.init = init; //this is called by body onload
 function init(){
     buildLayout();
 }
@@ -1022,7 +1026,8 @@ async function init_top_form(var_name,var_data,layout){
     if (existing_config.type == "select"){
         //init_options_grid(layout,top_form); //done by do_after_codemirror_change
     }else{
-        layout.getCell("select_options").detach();
+        //layout.getCell("select_options").detach();
+        console.log("hiding optsgrid")
         layout.getCell("select_options").hide();
         
     }
@@ -1057,7 +1062,7 @@ async function init_top_form(var_name,var_data,layout){
         do_after_codemirror_change();
     })
     function do_after_codemirror_change(){
-                //when data field is changed manually, udpate the value into form field
+        //when data field is changed manually, udpate the value into form field
         try{    
             var the_data = JSON.parse(layout.codemirror.getValue())
             for (var i =0; i< Object.keys(the_data).length;i++){
@@ -1066,7 +1071,7 @@ async function init_top_form(var_name,var_data,layout){
                     if (cur_name == "type")
                         continue;
                     if (cur_name == "options")
-                        init_options_grid(layout,top_form)
+                        init_options_grid(layout,top_form);
                     top_form.getItem(cur_name).setValue(the_data[cur_name]);
                 }catch(ex){}
             }
@@ -1107,7 +1112,7 @@ async function init_top_form(var_name,var_data,layout){
 
 async function init_options_grid(layout,top_form){
 //builds a grid for topright, only shown in case type is select
-
+    console.log("init options grid")
     var griddata = [];
     try{
         griddata = JSON.parse(layout.codemirror.getValue()).options;
@@ -1125,12 +1130,14 @@ async function init_options_grid(layout,top_form){
     try{ 
         var g_layout = layout.getCell("select_options").getWidget(); //gets attached grid layout
         opts_grid = g_layout.getCell("attach_grid_here").getWidget(); //gets the grid itself
-        console.log("Using existing optsgrid")
+        console.log("Using existing optsgrid");
+        
     }catch(ex){}
     //only initialize if grid is not there
     if (opts_grid){
         console.log("Optsgrid",opts_grid)
         opts_grid.data.parse(griddata);
+        attachOptsGridEvents(opts_grid); //dhtmlx unloads html components when hiding stuff, must re-attach events
         return; //important, otherwise we attach
     }
     
@@ -1154,7 +1161,7 @@ async function init_options_grid(layout,top_form){
                 id: "right_header",
                 height:40,
                 css:"displayflex dhxlayout_base_dhx_skyblue dhxlayout_cont div.dhx_cell_layout div.dhx_cell_hdr",
-                html:"<div style='padding-left: 10px;'>Options <button class='option_grid_button' id='addRow' >+</button><button class='option_grid_button' id='removeRow'>-</button></div>"
+                html:"<div style='padding-left: 10px;'>Options <button class='option_grid_button' id='addRow' onclick='_myvars.addSelectOption()' >+</button><button class='option_grid_button' id='removeRow' onclick='_myvars.deleteSelectOption()'>-</button></div>"
             },
             {
                 id: "attach_grid_here",
@@ -1164,39 +1171,43 @@ async function init_options_grid(layout,top_form){
 
     grid_layout.getCell("attach_grid_here").attach(opts_grid);
     layout.getCell("select_options").attach(grid_layout);
-
         
     //we build a layout here in order to have the add/delete buttons on top. this is not possible with grid only?
 
-    
     //EVENTS 
 
     //add/remove row button click event
     await dhx.awaitRedraw();
-    $(".option_grid_button").click(function(evt){
-        if(evt.currentTarget.id == "addRow"){
-            var added_row = opts_grid.data.add({value:"value",content:"content"});
-            saveOptsGridChanges();
-            dhx.awaitRedraw().then(function () {
-                opts_grid.scrollTo(added_row, "value")
-            })
-        }else{
-            //todo.get selected row
-            var selcel = opts_grid.selection.getCells();
-            console.log("delete row:",selcel[0].row)
-            opts_grid.data.remove(selcel[0].row.id);
-            dhx.awaitRedraw();
-            saveOptsGridChanges();
-        }
-    });
+    attachOptsGridEvents(opts_grid);
 
-    opts_grid.events.on("afterEditEnd", function(value,row,column){
-        //cell was edited
-        console.log("Saving opts grid changes");
+    window._myvars.addSelectOption = addSelectOption;
+    function addSelectOption(){
+        var added_row = opts_grid.data.add({value:"value",content:"content"});
+                saveOptsGridChanges();
+                dhx.awaitRedraw().then(function () {
+                    opts_grid.scrollTo(added_row, "value")
+                });
+    }
+
+    window._myvars.deleteSelectOption = deleteSelectOption;
+    function deleteSelectOption(){
+        var selcel = opts_grid.selection.getCells();
+        console.log("delete row:",selcel[0].row)
+        opts_grid.data.remove(selcel[0].row.id);
+        dhx.awaitRedraw();
         saveOptsGridChanges();
+    }
 
-    });
+    function attachOptsGridEvents(opts_grid){
+        opts_grid.events.on("afterEditEnd", function(value,row,column){
+            //cell was edited
+            console.log("Saving opts grid changes");
+            saveOptsGridChanges();
 
+        });
+    }
+
+    window._myvars.saveOptsGridChanges = saveOptsGridChanges;
     function saveOptsGridChanges(){
         //udpates codemirror with changes
         try{    
@@ -1213,12 +1224,6 @@ async function init_options_grid(layout,top_form){
         };
     }
 }
-
-// function getDataInputValue(){
-//     var dataInput = document.querySelector('[data-dhx-id="data"]');
-//     alert(dataInput.value)
-//     return dataInput.value;
-// }
 
 async function do_previewForm(value,bottom_layout_cell,selected_var_name){
     /* parses and previews current webui type variable config */
@@ -1245,7 +1250,7 @@ async function do_previewForm(value,bottom_layout_cell,selected_var_name){
         if (item_config.validation){
             //transform validation into function that applies regex
             //make sure this is in sync with webuiVariables.js addvalidation function. We must do that manually here to avoid 
-            item_config = _addValidation(item_config)
+            item_config = addValidation(item_config)
             // item_config.validregex = item_config.validation;
             // if (!original.validation.match ("email|integer|numeric|alphanumeric|IPv4")){
             //     item_config.validation = function(value){

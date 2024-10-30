@@ -94,7 +94,6 @@ function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
 			winston.format.errors({ stack: true }),
 			winston.format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
 			winston.format.printf(info => `${[info.timestamp]}: ${info.level}: [${info.label}]: ${info.message}`),
-			
 		)	
     });
 	

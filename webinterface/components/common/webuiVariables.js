@@ -1,4 +1,4 @@
-export { webuiVariables_processVariables };
+export { webuiVariables_processVariables, addValidation, resolveWebUiVarData };
 
 function resolveWebUiVarData(datastr,name){
     //ffastrans var description contains a string json, this is parsed into object here
@@ -129,7 +129,7 @@ function translateDhx5To8Vars(original,skip_validation = false){
     if (!isDhx5Variable(original)){
         if (skip_validation)
             return original;
-        return _addValidation(original); //if no translation is needed, we just add the regex validation function
+        return addValidation(original); //if no translation is needed, we just add the regex validation function
     }
     console.log("TRANSLATE WEBUI VAR ORIGINAL",original);
 
@@ -178,10 +178,10 @@ function translateDhx5To8Vars(original,skip_validation = false){
         return original;
     }
     
-    return _addValidation(original);
+    return addValidation(original);
 }
 
-function _addValidation(original){
+function addValidation(original){
     //since dhx8, validation regex must be done by function. 
     //this method allows the user to input a regex string in the validation field.
     if (original.validate || original.validation){

@@ -17,9 +17,11 @@ async function getHistoryJobs(start,end){
     (await fs.readdir(source, { withFileTypes: true }))
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name)
-
+    
       var subfolders = await getDirectories(jobDir)
       subfolders= subfolders.sort().reverse()
+      if (subfolders.length > 10000)
+        console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
       var startcount = 0;
       for (let jobid of subfolders){
         startcount++;
@@ -65,7 +67,7 @@ async function getHistoryJobs(start,end){
                     let splitcontent    = await readJsonFileCached(splitfilepath);
                     jobjson[split]      = splitcontent;
                 }
-                //todo: check if dispelled
+
                 
                 returnArray.push(buildSplitInfo(jobjson,split))
             }catch(ex){

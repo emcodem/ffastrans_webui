@@ -29,7 +29,9 @@ async function getActiveJobs(start=0,end=1000){
             contents.priority = jobJson.priority;
             returnArray.push(contents);
         }catch(ex){
-            console.trace("Unexpected Error parsing jobfile",ex)
+            console.error("Unexpected Error parsing active jobs job file. Message:",ex)
+            console.error("File Name: " + fullPath);
+            console.error("File Contents: " + contents);
         }
     }
     return returnArray;
