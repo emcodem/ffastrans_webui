@@ -361,9 +361,8 @@ function init(){
                 console.log("uploads disabled due to global settings")
                 show_upload = false;
     }
-    if (!(show_browse && show_upload)){
+    if (!show_browse && !show_upload){
         m_noBrowseMode = true;
-        alert(show_browse)
         hideFileSelector();
     }
 
