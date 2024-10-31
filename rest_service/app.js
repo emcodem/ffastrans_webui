@@ -30,11 +30,11 @@ module.exports = {
   changeInstallPath:changeInstallPath
 };
 
-function init (_host, _hostport, _listenport,_ffastranspath) {
+function init (_listenport,_ffastranspath) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
     console.log("init called, arguments: ", arguments)
 	  changeInstallPath(_ffastranspath);
-    start_server(_host, _hostport, _listenport);
+    start_server(_listenport);
 }
 
 function doRequest(url) {
@@ -113,7 +113,8 @@ function changeInstallPath(newPath){
   if(!path.isAbsolute(newPath)) {
       newPath = path.resolve(global.approot,newPath); /* ! if in the future we run rest_service module standalone, global approot is not available anymore */
   }
-  console.log("Detected move of FFAStrans installation, resetting paths to",newPath);
+  if (global.api_config)
+    console.log("Detected move of FFAStrans installation, resetting paths to",newPath);
   global.api_config = { };
   global.api_config["s_SYS_DIR"] = newPath;
   global.api_config["s_SYS_CACHE_DIR"]    = path.join(global.api_config["s_SYS_DIR"] , "Processors/db/cache/");
@@ -126,7 +127,7 @@ function handleListenError(err){
 	console.log(err)//prevents the program keeps running when port is in use
 }
 
-async function start_server(_host, _hostport, _listenport){
+async function start_server( _listenport){
 	//GLOBAL CONFIG - the keyword global here will make the sub-objects available in all scripts that run in same process
 
     var _approot = __dirname;
