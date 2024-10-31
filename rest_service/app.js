@@ -10,6 +10,7 @@
 /* this module is currently driven by webserver main, but it should be able to run standalone */
 /* todo: when running standalone, get port and approot from some config or so  */
 /* DO NOT USE global objects of webserver here!!! */
+
 const path = require("path");
 const request = require("request");
 const fs = require("fs");
@@ -24,8 +25,6 @@ const { initialize } = require('express-openapi');
 
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 
-//start_server("localhost",65445,3003);
-
 module.exports = {
   init: init,
   changeInstallPath:changeInstallPath
@@ -33,10 +32,9 @@ module.exports = {
 
 function init (_host, _hostport, _listenport,_ffastranspath) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
+    console.log("init called, arguments: ", arguments)
 	  changeInstallPath(_ffastranspath);
     start_server(_host, _hostport, _listenport);
-    // var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
-
 }
 
 function doRequest(url) {
