@@ -314,7 +314,7 @@ async function init(conf){
                     // var res = await axios.get(about_url)
                     // global["ffastrans-about"] = res.data;
                     // console.log("FFAStrans config:",global["ffastrans-about"]);
-                    ffastrans_new_rest_api.init(global.config["STATIC_API_HOST"] ,global.config["STATIC_API_PORT"], global.config["STATIC_API_NEW_PORT"],global.config["STATIC_FFASTRANS_PATH"]);
+                    ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"],global.config["STATIC_FFASTRANS_PATH"]);
                     //ffastrans_new_rest_api.changeInstallPath(global.config["STATIC_FFASTRANS_PATH"]);
                     global.ffastrans_new_rest_api = ffastrans_new_rest_api;
                     got_connection = true;
