@@ -361,7 +361,7 @@ function init(){
                 console.log("uploads disabled due to global settings")
                 show_upload = false;
     }
-    if (!(show_browse || show_upload)){
+    if (!(show_browse && show_upload)){
         m_noBrowseMode = true;
         alert(show_browse)
         hideFileSelector();
@@ -1034,7 +1034,7 @@ function init(){
         }catch(ex){
             _a_files .push(files_from_urlparam);
         }
-        for (_f of _a_files){
+        for (let _f of _a_files){
             var newId = (new Date()).valueOf();
             var newrowdata = {};
             newrowdata["Filename"] = _f.substring(_f.lastIndexOf('\\')+1);
