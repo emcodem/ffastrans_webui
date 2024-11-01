@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const mediainfo = require('mediainfo-wrapper');
 const { exec } = require('child_process');
 
 var json2human = require('json.human');
