@@ -430,7 +430,6 @@ async function init(conf){
 
     require("./node_components/get_userpermissions")(app, passport);
     require("./node_components/resumeable_backend.js")(app, passport);
-    require("./node_components/mediainfo.js")(app, passport);
 	require("./node_components/activedirectory_tester.js")(app, passport);
 	require("./node_components/admin_alert_email_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
