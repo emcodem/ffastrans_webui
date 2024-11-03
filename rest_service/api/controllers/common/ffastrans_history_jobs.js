@@ -7,30 +7,35 @@ module.exports = {
     getHistoryJobs                 : getHistoryJobs
 };
 
-var fileContentDatabase = {};
-var workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
+let fileContentDatabase = {};
+let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
 async function getHistoryJobs(start,end){
-    let returnArray = [];
+    let taskArray = [];
+   
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
     const getDirectories = async source =>
     (await fs.readdir(source, { withFileTypes: true }))
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name)
-    
-      var subfolders = await getDirectories(jobDir)
+
+      let subfolders = await getDirectories(jobDir)
       subfolders= subfolders.sort().reverse()
       if (subfolders.length > 10000)
         console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
-      var startcount = 0;
+      
+      let startcount = 0;
+      let jobCount = 0;
       for (let jobid of subfolders){
         startcount++;
         if (startcount < start)
             continue
-
+        if (jobCount >= end)
+            continue
         if (! (await fs.exists(path.join(jobDir,jobid,"full_log.json"))))
             continue
 
+        
         let finisheddir = path.join(jobDir,jobid,"finished")
         let splits = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
         for (let split of splits){
@@ -68,13 +73,14 @@ async function getHistoryJobs(start,end){
                 }
 
                 
-                returnArray.push(buildSplitInfo(jobjson,split))
+                taskArray.push(buildSplitInfo(jobjson,split))
             }catch(ex){
                 console.trace(ex)
             } 
         }
+        jobCount++;
       }
-      return returnArray;
+      return taskArray;
 }
 
 function buildSplitInfo(jobInfo,splitId){
