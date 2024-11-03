@@ -76,50 +76,150 @@ module.exports = {
 			global.config.STATIC_API_TIMEOUT = parseInt(global.config.STATIC_API_TIMEOUT)
 		}
 		
-		//foreach ffastrans system
-		getRunningJobs();
 		//fetch queued jobs from new api
 		getQueuedJobs();
 
-		//fetch HISTORY jobs from api
-		
-		await loadHistoryJobs();
+		//fetch history and api jobs from api
+		await getJobs();
 
   }
 };
 
 /* JOB GETTERS */
 
-function getQueuedJobs(){
+async function getQueuedJobs(){
 	//let response = await axios.get(_currentUrl)//await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
-    Request.get(helpers.build_new_api_url("/tickets"), {timeout: global.config.STATIC_API_TIMEOUT},(error, response, body) => {  
-        
-        //TODO: merge Active and queued call
-        if (!JSON.parse(global.config.STATIC_USE_PROXY_URL)){
-            console.error("Fatal, lobal.config.STATIC_USE_PROXY_URL is true but should be false! ")
-            return;
-        }
-        if(error) {
-            console.log('Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"), error)
-            //global.socketio.emit("error", 'Internal Error getting Queued Jobs,  ' + helpers.build_new_api_url("/tickets"));
-            return;
-        }
-		if (response.statusCode == 404){
-			global.socketio.emit("error", 'Error getting Queued Jobs. If FFAStrans installation moved, please correct Path in Admin settings.');
-		}
+	var URLS = [helpers.build_new_api_url("/tickets")]
+	
+	for (var _currentUrl of URLS){
 		try{
-		//QUEUED JOBS (in ffastrans queued folder)
+			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
+			let response = await axios.get(_currentUrl);
+			parseQueuedJobs(response.data);
+		}catch(ex){
+			console.error("getQueuedJobs",ex)
+		}
+	}
+ 
+}
+
+async function getJobs(URLS){
+
+	//gets history and active jobs. Todo: add queued jobs to jobs api so we have only a single call here?
+	var all_history_jobs 	= [];
+	var all_running_jobs 	= [];
+	var failed_count = 0;
+	
+	var HISTORY_URLS = [helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100")]
+
+	for (var _currentUrl of HISTORY_URLS){
+		try{
+			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
+			let response = await axios.get(_currentUrl);
+			response = response.data;
+			all_history_jobs.push(...response.history); 
+			all_running_jobs.push(...response.active); 
+		}catch(ex){
+			console.error("loadHistoryJobs",ex)
+			failed_count++;
+		}
+	}
+	
+	if (failed_count >= HISTORY_URLS.length){
+		history_error_count ++;
+		if (history_error_count%10 == 0)
+			global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? '    );
+		history_error_count = 0;
+	}
+	await parseHistoryJobs(all_history_jobs);
+	await parseRunningJobs(all_running_jobs);
+}
+
+
+async function parseRunningJobs(a_running){
+	 	
+		// if(error) {
+		// 	error_count_running++;
+		// 	console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
+		// 	console.error(error);
+
+		// 	if (error_count_running > 3){
+		// 		//global.socketio.emit("error", 'Error getting running jobs.');
+		// 		try{
+		// 			/* take care about alert email */
+		// 			if (!alert_sent){
+		// 				sendEmailAlert("ALERT! FFAStrans is down","Got an error fetching jobs from: <br/>" + global.config.STATIC_GET_RUNNING_JOBS_URL );
+		// 				alert_sent = true;
+		// 			}
+		// 		}catch(ex){
+		// 			console.error("Could not send email alert message: ", ex.stack)
+		// 		}
+		// 	}
 			
-			var q_obj = JSON.parse(body)["tickets"]["queued"];
-			if (q_obj !== undefined) {
-				for (var i=0; i<q_obj.length;i++){
+		// 	return;
+		// }
+		
+		// //no error, go on...
+		// error_count_running = 0;
+		// if (alert_sent){
+		// 	//send all good email if needed
+		// 	alert_sent = false;
+		// 	try{
+		// 		sendEmailAlert("FFAStrans is up again","The system did successfully respond to " + global.config.STATIC_GET_RUNNING_JOBS_URL );
+				
+		// 	}catch(ex){
+		// 		console.error("Could not send email alert message (good again): ", ex.stack);
+		// 	}
+		// }
+		
+		// /* end of alert email */
+		
+		var jobArray = a_running;;
+		
+		var all_jobs = []
+		for (i=0;i<jobArray.length;i++){
+			
+			current_job = jobArray[i];
+			try{
+				//we translate start_time to job_start for internal webint db
+				current_job.job_start = getDateStr(jobArray[i]["start_time"]);
+			}catch(exc){
+				console.error("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
+			}
+			current_job.wf_name = jobArray[i]["workflow"];
+			all_jobs.push(current_job);
+
+		}//for all jobs
+
+		/* 
+			notify connected browsers 
+			they will pull the list again from getactivejobsajax_treegrid in order to get a filtered list
+		*/
+
+		try{
+			global.socketio.emit("activejobs");
+		}catch(exc){
+			console.error("Error occured while sending activejobs to clients: " + exc + body)
+		}
+		
+		global.lastactive = JSON.stringify(all_jobs);
+	
+}
+
+function parseQueuedJobs(responseBody){
+	
+	try{
+		//QUEUED JOBS (in ffastrans queued folder)
+		let q_obj = responseBody.tickets.queued;
+		if (q_obj !== undefined) {
+			for (let i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
 							q_obj[i]["split_id"] = ""
 							q_obj[i]["state"] = "Queued";
 							q_obj[i]["title"] = "Queued";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["workflow"]; //todo: implement workflow in ffastrans tickets api for pending jobs
+							q_obj[i]["workflow"] = q_obj[i]["workflow"]; 
 							if ("sources" in q_obj[i]){
 								if ("sources" in q_obj[i]){
 									q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
@@ -139,29 +239,25 @@ function getQueuedJobs(){
 				}
 			}
 			
-			// //send the new jobs to connected clients, todo: only notify clients about new stuff
-				if (JSON.parse(body)["tickets"]["queued"]){
-                    
-					global.socketio.emit("queuedjobs", JSON.stringify(q_obj));
-					//global.socketio.emit("queuedjobcount", JSON.parse(body)["tickets"]["queued"].length);                
-				}else{
-                    console.log("Error, we should not come here, queued")
-					global.socketio.emit("queuedjobs", "[]");
-					//global.socketio.emit("queuedjobcount", 0);               
-				}
+			//send the new jobs to connected clients, todo: only notify clients about new stuff
+			if (responseBody.tickets.queued){
+				global.socketio.emit("queuedjobs", JSON.stringify(q_obj));            
+			}else{
+				console.log("Error, we should not come here, queued")
+				global.socketio.emit("queuedjobs", "[]");
+				//global.socketio.emit("queuedjobcount", 0);               
+			}
 		}catch(exc){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
 			console.error(exc.stack)
             console.error(q_obj)
 		}
-		//WATCHFOLDER Incoming
 		
         try{
-		//transform to match activejobs structure
-			
-			var q_obj = JSON.parse(body)["tickets"]["incoming"];
+			//WATCHFOLDER Incoming
+			let q_obj =responseBody.tickets.incoming;
 			if (q_obj !== undefined) {
-				for (i=0; i<q_obj.length;i++){
+				for (let i=0; i<q_obj.length;i++){
 							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
 							q_obj[i]["ticket_path"] = q_obj[i]["ticket_path"];
 							q_obj[i]["split_id"] = "";
@@ -177,12 +273,12 @@ function getQueuedJobs(){
 				}
 			}
 			
-			//send the new jobs to connected clients, todo: only notify clients about new stuff
-			
-			if (JSON.parse(body)["tickets"]["incoming"]){
+			//send the new jobs to connected clients
+			//TODO: clients currently apply the workflow filters, we must filter on server side
+			//that means we have to apply a similar strategy as with history and active jobs, e.g. clients pull the joblist
+			if (responseBody.tickets.incoming){
 				
-				global.socketio.emit("incomingjobs", JSON.stringify(q_obj));
-				//global.socketio.emit("incomingjobcount", JSON.parse(body)["tickets"]["incoming"].length);                
+				global.socketio.emit("incomingjobs", JSON.stringify(q_obj));           
 			}else{
 				console.error("Error, we should not come here, keyword: incoming")
 				global.socketio.emit("incomingjobs", "[]");
@@ -193,41 +289,6 @@ function getQueuedJobs(){
 			console.error(exc.stack)
             console.error(q_obj[i])
 		}
-		return;
-        //store in database
-
-    });
-    
-}
-
-async function loadHistoryJobs(URLS){
-
-	//supports loading history from multiple hosts
-	var all_jobs = [];
-	var failed_count = 0;
-	
-	var HISTORY_URLS = [helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100")]
-
-	for (var _currentUrl of HISTORY_URLS){
-		try{
-			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
-			let response = await axios.get(_currentUrl)//await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
-			response = response.data;
-			all_jobs.push(...response.history); 
-		}catch(ex){
-			console.error("loadHistoryJobs",ex)
-			failed_count++;
-		}
-	}
-	
-	if (failed_count >= HISTORY_URLS.length){
-		history_error_count ++;
-		if (history_error_count%10 == 0)
-			global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? '    );
-		history_error_count = 0;
-	}
-	await parseHistoryJobs(all_jobs);
-
 }
 
 async function parseHistoryJobs(all_jobs){
@@ -244,10 +305,8 @@ async function parseHistoryJobs(all_jobs){
 				return;
 			}
 			global.lasthistory = JSON.stringify(jobArray);
-
-			
-			//TRY GET CHILDS FOR TREEGRID        
-			//filter deleted
+     
+			//filter deleted, todo: is it really good/needed to filter deleted here or is a filter in gethistoryjobsajax_treegrid.js enough?
 			var job_id_array = jobArray.map(job=> job.job_id)
 			var deleted_ids = await global.db.deleted_jobs.find({ "job_id": { "$in": job_id_array}});
 			deleted_ids = await deleted_ids.toArray();
@@ -261,11 +320,14 @@ async function parseHistoryJobs(all_jobs){
 					//data for client display
 					jobArray[i].state = m_jobStates[jobArray[i]["state"]];
 					jobArray[i].outcome = jobArray[i]["result"];
-					//don't store result (we store as outcome)
+					//don't store result field (we store as outcome)
 					jobArray[i] = objectWithoutKey("result",jobArray[i]);
 					jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
 					jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
-					//todo: remove start_time and end_time, we store as job_start and job_end
+					//remove start_time and end_time from the final object as we use unified job_start in the rest of webui
+					jobArray[i] = objectWithoutKey("start_time"	,jobArray[i]);
+					jobArray[i] = objectWithoutKey("end_time"	,jobArray[i]);
+
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
 
@@ -363,81 +425,6 @@ async function parseHistoryJobs(all_jobs){
 		
 		}
 
-}
-
-function getRunningJobs(){
-	//todo: merge with history jobs to avoid calling jobs api multiple times?
-	console.time("getrunning")
-	Request.get(helpers.build_new_api_url("/api/json/v2/jobs"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false,maxSockets: Infinity}, async function (error, response, body)  {
-		console.timeEnd("getrunning")
-		if(error) {
-			error_count_running++;
-			console.error('Error getting running jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
-			console.error(error);
-
-			if (error_count_running > 3){
-				//global.socketio.emit("error", 'Error getting running jobs.');
-				try{
-					/* take care about alert email */
-					if (!alert_sent){
-						sendEmailAlert("ALERT! FFAStrans is down","Got an error fetching jobs from: <br/>" + global.config.STATIC_GET_RUNNING_JOBS_URL );
-						alert_sent = true;
-					}
-				}catch(ex){
-					console.error("Could not send email alert message: ", ex.stack)
-				}
-			}
-			
-			return;
-		}
-		
-		//no error, go on...
-		error_count_running = 0;
-		if (alert_sent){
-			//send all good email if needed
-			alert_sent = false;
-			try{
-				sendEmailAlert("FFAStrans is up again","The system did successfully respond to " + global.config.STATIC_GET_RUNNING_JOBS_URL );
-				
-			}catch(ex){
-				console.error("Could not send email alert message (good again): ", ex.stack);
-			}
-		}
-		
-		/* end of alert email */
-		
-		var jobArray;	
-		try{
-			jobArray = JSON.parse(body).active;
-		}catch(exc){
-			var msg = "Got invalid active jobs data. Please contact developers. ";
-			console.error(msg);
-			global.socketio.emit("alert", msg );
-		}
-		
-		var all_jobs = []
-		for (i=0;i<jobArray.length;i++){
-			
-			current_job = jobArray[i];
-			try{
-				current_job.job_start = getDateStr(jobArray[i]["start_time"]);//start_time
-			}catch(exc){
-				console.error("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
-			}
-			current_job.wf_name = jobArray[i]["workflow"];
-			all_jobs.push(current_job);
-
-		}//for all jobs
-
-	//notify clients about it
-	try{
-		global.socketio.emit("activejobs", JSON.stringify(all_jobs));
-	}catch(exc){
-		console.error("Error occured while sending activejobs to clients: " + exc + body)
-	}
-	
-	global.lastactive = JSON.stringify(all_jobs);
-	});
 }
 
 /* HELPERS */
