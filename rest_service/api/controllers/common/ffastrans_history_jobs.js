@@ -27,8 +27,7 @@ async function getHistoryJobs(start,end){
         startcount++;
         if (startcount < start)
             continue
-        if (returnArray.length >= end)
-            continue
+
         if (! (await fs.exists(path.join(jobDir,jobid,"full_log.json"))))
             continue
 
@@ -85,6 +84,9 @@ function buildSplitInfo(jobInfo,splitId){
         result = jobInfo[splitId].error.msg;
     }
     var to_return =  {
+        /* 
+            we use start_time and end_time here instead of job_start for api backward compatibility reasons 
+        */
         "start_time": jobInfo[splitId].submit.time,
         "end_time": jobInfo[splitId].end_time,
         "job_id": jobInfo.job_id,
