@@ -6,10 +6,6 @@ var md2 = require('js-md2');
 var fs = require('fs');
 const readlastline =  require('read-last-line');
 
-function _JoSearch(obj,jsonpath,fieldname,defaultval){
-    const found = obj.find(element => jsonpath > 10);
-}
-
 function _GetNow(){
     return moment().format('Y-MM-DDTHH:mm:ss.SSSZ');
 }
@@ -44,7 +40,7 @@ class JobTicket {
             $i_index = 0
         
         this.split_id        = 		"1-"+$i_index+"-0"
-        this.job_id          = 		uuid()
+        this.job_id          = 		_MyGuid()
         this.workflow.id     = 		wf_id
         this.nodes           = 		{}
         this.nodes.next      = 	    {}
@@ -103,6 +99,12 @@ class JobTicket {
     }
     
 
+}
+
+function _MyGuid(){
+    //guid starting with date 20241028-1409-1302-8239-644cd0861a71
+    let datepart = moment().format('YYYYMMDD-HHmm-ssSS-');
+    return datepart + uuid().toString().substring(datepart.length);
 }
 
 function locateWorkflowFile(wf_id){
