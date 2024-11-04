@@ -8355,12 +8355,42 @@ div.dhx_modal_cover {
 
 /* ffastrans webinterface Dark skin, not sure how much from above we need at all  */
 
-/* font awesome */
-/* i.fas{ */
-	/* color: hsla(0, 0%, 100%, .2); */
-/* } */
+/* this furious approach should tell all standard css elements to run in dark mode */
+:root {
+  color-scheme:dark;
+}
 
+/* from here style the items manually */
 
+#ffastrans_header{
+  border-bottom:unset;
+}
+
+.dhx_cell_hdr{
+  border:unset !important;
+}
+
+.dhx_cell_cont_layout{
+  border:unset !important;
+}
+
+#active_div
+{
+  border:unset !important;
+  
+} 
+
+#tr_treetable_active{
+  border-bottom: 1px solid grey;
+}
+
+#table_container{
+  border:unset;
+}
+
+.dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhxlayout_sep {
+  background-color:black;
+}
 
 #ffastrans_header{
 	background: black
