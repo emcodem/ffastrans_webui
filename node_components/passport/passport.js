@@ -1,7 +1,7 @@
 // passport.js - user authentification
 
 // load all the things we need
-var { OIDCStrategy } = require('passport-azure-ad');
+
 var LocalStrategy   = require('passport-local').Strategy;
 var ActiveDirectory = require('activedirectory2').promiseWrapper;
 // load up the user model
@@ -60,12 +60,14 @@ passport.use('local-login', new LocalStrategy({
 			console.log("Local user exists", existing);
                 var doc;
                 try{
-                    await global.db.config.findOne({ 'local.username' :  username });
-                }catch(ex){}
+                    doc = await global.db.config.findOne({ 'local.username' :  username });
+                }catch(ex){
+                    console.log(ex);
+                }
                 // if there are any errors, return the error before anything else
                 if (!doc){
-                    console.log("Local Login attempt for user "+username+" failed " + err);
-                    return done(err);
+                    console.log("Local Login attempt for user "+username+" failed " );
+                    return done("Local Login attempt for user "+username+" failed ");
                 }
 
                 // if no user is found, return the message
