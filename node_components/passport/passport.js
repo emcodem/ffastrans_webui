@@ -1,6 +1,7 @@
 // passport.js - user authentification
 
 // load all the things we need
+var { OIDCStrategy } = require('passport-azure-ad');
 var LocalStrategy   = require('passport-local').Strategy;
 var ActiveDirectory = require('activedirectory2').promiseWrapper;
 // load up the user model
@@ -24,6 +25,9 @@ passport.deserializeUser(function(user, done) {
   done(null, user);
 });
 
+
+
+
 // =========================================================================
 // LOCAL SIGNUP ============================================================
 // =========================================================================
@@ -31,20 +35,21 @@ passport.deserializeUser(function(user, done) {
 // by default, if there was no name, it would just be called 'local'
 
 	
-   passport.use('local-login', new LocalStrategy({
+passport.use('local-login', new LocalStrategy({
         usernameField : 'username',
         passwordField : 'password',
         passReqToCallback : true // passes original request the callback
     },
     async function(req, username, password, done) { // callback with uname and password from our form
-        
+
         console.log("trying local-login",username);
         // find a user whose username is the same as the forms username
         // we are checking to see if the user trying to login already exists
         var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username });
         if (!existing){
-			console.log("Username "+username+" not found, trying AD login")
-			ActiveDirectoryLogin(req, username, password, done);
+
+            
+
 		}
         if (existing["local"]["password"] == "aduser"){
 			console.log(username+" is known AD user, trying AD auth.");
@@ -53,9 +58,12 @@ passport.deserializeUser(function(user, done) {
         }else{
             //LOCAL LOGIN
 			console.log("Local user exists", existing);
-            global.db.config.findOne({ 'local.username' :  username }, function(err, doc) {
+                var doc;
+                try{
+                    await global.db.config.findOne({ 'local.username' :  username });
+                }catch(ex){}
                 // if there are any errors, return the error before anything else
-                if (err){
+                if (!doc){
                     console.log("Local Login attempt for user "+username+" failed " + err);
                     return done(err);
                 }
@@ -79,23 +87,24 @@ passport.deserializeUser(function(user, done) {
                 // all is well, return successful user
                 console.log("local-login User "+ newUser.local.username + " login success");
                 return done(null, newUser);
-            });
+           // });
         }
 
     }));//local-login
-
 };
 
 async function ActiveDirectoryLogin(req,username,passwd,done){
     
 		console.log("AD login procedure");
 		var configServer = require(global.approot  + '/node_components/server_config');
+
+
 		var currentConfig = configServer.get(async function(config){
 				console.log("Config from DB:",config)
 				try{	
 					if (!("ad_config" in global.config)){
-						console.log("AD is not set up in global config: ",global.config)
-						return done("Username " + username + " is not known")
+						console.log("AD is not set up in global config: ",global.config);
+						return done("Username " + username + " is not known");
 					}
                     
                     var uname = username + "@" + global.config["ad_config"]["ad_fqdn"];
@@ -127,6 +136,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 						}
 					});
                     groups_cn_only.push("Domain Users"); //Domain Users is not returned by AD so we add it to every user here
+
 					console.log("Parsed AD groups for user",username,groups_cn_only)
 					var group_exists = false;
                     var intersection_groups = [] //groups that exist locally and user has in ad are stored to users group list
@@ -173,9 +183,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					console.log("Unexpected Exception while ad login ", ex)
 					return done("User does not exist locally,\ntried AD login but failed.\nBad username/password?\n" + ex)
 				}
-			
 		});
-		
 }
 
 /* DB Async Wrappers*/
