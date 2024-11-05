@@ -47,9 +47,8 @@ passport.use('local-login', new LocalStrategy({
         // we are checking to see if the user trying to login already exists
         var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username });
         if (!existing){
-
-            
-
+			console.log("Username "+username+" not found, trying AD login")
+			ActiveDirectoryLogin(req, username, password, done);
 		}
         if (existing["local"]["password"] == "aduser"){
 			console.log(username+" is known AD user, trying AD auth.");
