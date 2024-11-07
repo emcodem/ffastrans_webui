@@ -5,7 +5,7 @@ module.exports = function(app, express){
 
 
 	app.get('/adminconfig', (req, res) => {
-        return false; //not needed anymore
+        return false; //not needed anymore, done by /getserverconfig
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                 //basic fieldset, parent of all inputs
@@ -204,8 +204,7 @@ module.exports = function(app, express){
             res.write("Error, could not save database, " + ex);
             res.status(500);
             res.end();
-        }
-        
+        }   
      })
 
 }

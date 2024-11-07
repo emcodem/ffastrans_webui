@@ -14,6 +14,16 @@ module.exports = {
         await global.db.config.update({"global.config":{$exists:true}},{global:{config:global.config}});
         return global.config;
     },
+    saveConfidentialAsync: async() => {
+        /* new strategy is that the rest of code just changes global config so no parameter here */
+        await global.db.config.update({"global.confidential_config":{$exists:true}},{global:{config:global.confidential_config}});
+        return global.confidential_config;
+    },
+    getConfidentialAsync: async() => {
+        /* new strategy is that the rest of code just changes global config so no parameter here */
+        await global.db.config.findOne({"global.confidential_config":{$exists:true}});
+        return global.confidential_config;
+    },
     get: (callback) => {
         //check if we have a config in db, otherwise serve defaultConfig
 		/* this is called at server startup and also some modules use it to get the latest valid config */

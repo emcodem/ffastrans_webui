@@ -28,7 +28,7 @@
         width: 100%;
         height: 100%;
         margin: 0px;
-        overflow: hidden;
+        
     }
 
 	.testcss > .dhx_button {
@@ -65,7 +65,7 @@ function buildForm(){
 					{
 						id: "setup_stuff",
 						resizable:false,
-						height:"content",
+						height:"100%",
 						header:"Microsoft Entra setup",
 						padding: "0px",  
 						margin: "0px",
@@ -77,21 +77,22 @@ function buildForm(){
 
 
     //LAYOUT
-    m_mainLayout = new dhx8.dhx.Layout(document.body, config);
+    m_mainLayout = new dhx8.dhx.Layout("dhx_layout_here", config);
 	const today_start = new Date().setHours(0,0,0);
 	const today_end   = new Date();
 	
 	let clientIdDesc = "GUID, specifies the client id of the application that is registered in Azure Active Directory";
 	let clientSecretDesc = "Secret used to establish ownership of the client Id";
 	let authorityDesc = "Usually https://login.microsoftonline.com/your_tenant_guid";
-	let redirectUriDesc = "Webint URL from user perspective prepended with /azurecallback. For testing webint locally: http://localhost:3002/azurecallback. You also need to enter this in your Entra account App config Authentification setup";
+	let redirectUriDesc = "Webint URL from user perspective appended with /azurecallback. For testing webint locally: http://localhost:3002/azurecallback. You also need to enter this in your Entra account App config Authentification setup";
 	let linkDesc = "Will be displayed on login page next to Login Button. Usually just a href to /azurelogin, e.g. <a href=\"/azurelogin\">Azure Login</a>";
 	var manual_form_config = {
     
     // sets alignment for rows
     align: "start", // "center", "end", "between", "around", "evenly"
     padding: "20px",   
-	height: "content",
+	height: "100%",
+	
     rows: [
         {
 				padding: "10px", 
@@ -102,7 +103,7 @@ function buildForm(){
 							"label": "ClientId",
 							"labelPosition": "left",
 							"labelWidth": "140",
-							"required": true,
+							
 							"preMessage": clientIdDesc,
 							"successMessage": clientIdDesc,
 							"errorMessage": clientIdDesc
@@ -113,7 +114,7 @@ function buildForm(){
 							"label": "ClientSecret",
 							"labelPosition": "left",
 							"labelWidth": "140",
-							"required": true,
+							
 							"preMessage": clientSecretDesc,
 							"successMessage": clientSecretDesc,
 							"errorMessage": clientSecretDesc
@@ -124,7 +125,7 @@ function buildForm(){
 							"label": "Authority",
 							"labelPosition": "left",
 							"labelWidth": "140",
-							"required": true,
+							
 							"preMessage": authorityDesc,
 							"successMessage": authorityDesc,
 							"errorMessage": authorityDesc
@@ -135,7 +136,7 @@ function buildForm(){
 							"label": "RedirectUri",
 							"labelPosition": "left",
 							"labelWidth": "140",
-							"required": true,
+							
 							"preMessage": redirectUriDesc,
 							"successMessage": redirectUriDesc,
 							"errorMessage": redirectUriDesc
@@ -154,18 +155,7 @@ function buildForm(){
 							successMessage: linkDesc,
 							errorMessage: linkDesc,
 						},				
-						{
-							type: "text",
-							value: "For testing, open the URL /azurelogin on webinterface or click the link on login Page, preferred in 'private browsing' mode" 
-						},
-						{
-							type: "text",
-							value: "Once you setup the Authority URL and call /azurelogin URL, it should laead you to Microsoft and they should bring up speaking error messages if your configuration is wrong" 
-						},
-						{
-							type: "text",
-							value: "Azure App Roles will be mapped to local webint groups. If no app role was found, we use group name 'Default' (app roles require paid azure account)" 
-						},
+						
 						{type: "spacer",name: "spacer",height:30},
 					{cols: [
 							{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save","hidden":false,name: "btn_save", width:100,value:"Save"},
@@ -188,19 +178,20 @@ function buildForm(){
 			saveAzureConfig()
 
 	});	
-
 }
 
-function restoreFormData(){
-	if (!m_serverconfig.azure_config)
+async function restoreFormData(){
+	var confidential_conf = await	$.ajax({url: ("/serverconfig_confidential" + "?" + Math.random())});
+
+	if (!confidential_conf.azure_config)
 		return
-		
+	
 	m_mainForm.forEach(function(item, index, array){
-		if (m_serverconfig.azure_config[item.config.name]){
-			m_mainForm.getItem(item.config.name).setValue(m_serverconfig.azure_config[item.config.name]);
+		if (confidential_conf.azure_config[item.config.name]){
+			m_mainForm.getItem(item.config.name).setValue(confidential_conf.azure_config[item.config.name]);
 		}
 	});
-	
+	m_mainForm.validate(true);
 }
 
 async function saveAzureConfig(){
@@ -214,7 +205,7 @@ async function saveAzureConfig(){
 	m_serverconfig["azure_config"] = o_tosave;
 	try{
 		var response = await  $.ajax({
-             url: ("/adminconfig_update_parts"),
+             url: ("/serverconfig_confidential"),
              type: "POST",
              data:{
                 "azure_config":o_tosave
@@ -224,19 +215,17 @@ async function saveAzureConfig(){
 	}catch(ex){
 		dhx8.dhx.message({ expire: 10000, text: ex});
 	}
-    
-
 }
 
 window.loadserverconfig = loadserverconfig; //export for use in html onclick
 function loadserverconfig() {
 	
 	$.ajax({
-		url: ("/getserverconfig" + "?" + Math.random()),
+		url: ("/serverconfig_confidential" + "?" + Math.random()),
 		type: "GET",
 		success: function(response) {
-			console.log("got server conf")
-			m_serverconfig = JSON.parse(response);
+			console.log("got server conf");
+			m_serverconfig = response;
 			console.log("SERVERCONFIG:",m_serverconfig)
 			init();
 		},
@@ -254,6 +243,13 @@ function loadserverconfig() {
 </script>
 
 </head>
-<body onload="loadserverconfig()" style="overflow:auto">
+<body onload="loadserverconfig()" >
 
+
+<div id="info" class="dhx_input__caption" style="height:12%;margin-left:30px;margin-right:30px;overflow: auto;">
+	For testing, open the URL /azurelogin on webinterface or click the link on login Page, preferred in 'private browsing' mode <br/><br/>
+	The Browser should redirect you to Microsoft and as long as you get the Authority input correct, they should bring up speaking error messages if your azure related configuration is wrong<br/><br/>
+	For applying user permissions, you must create local webint groups that match azure app roles. If no app role was found, we use group name 'Default' (app roles require paid azure account)
+</div>
+<div id="dhx_layout_here" style="height:80%;"></div>
 </body>
