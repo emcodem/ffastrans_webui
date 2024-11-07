@@ -159,11 +159,16 @@ function init(){
                 cols:[
                     {
                         type: "text",height:"60px",
-                        label: "Active Directory",labelPosition: "left",labelWidth: label_width,value: " ",width:label_width,
+                        label: "Login Options",labelPosition: "left",labelWidth: label_width,value: " ",width:label_width,
                     },
                     {
                         type: "button",name: "btn_activedirectory",padding: "0px 0px 0px 20px",
                         text: "Active Directory Setup",size: "medium",view: "flat",color: "primary",full:true,
+                        css:"dhxform_obj_dhx_skyblue open_win_btn",height:"60px",
+                    },
+                    {
+                        type: "button",name: "btn_azure",padding: "0px 0px 0px 20px",
+                        text: "Azure Setup",size: "medium",view: "flat",color: "primary",full:true,
                         css:"dhxform_obj_dhx_skyblue open_win_btn",height:"60px",
                     }
                 ]
@@ -322,6 +327,9 @@ function init(){
            }
            if (name == "btn_activedirectory"){
                 showConfigWindow("Active Directory setup","activedirectory_setup.html");
+           }
+           if (name == "btn_azure"){
+                showConfigWindow("Microsoft Entra setup","azure_setup.html");
            }
         });
 }

@@ -67,6 +67,10 @@
         visibility: hidden;
     }
 
+    .azure_link{
+        margin-top:10px;
+    }
+
         /* Safari */
     @-webkit-keyframes spin {
         0% { -webkit-transform: rotate(0deg); }
@@ -165,6 +169,10 @@ function submitForm(){
                                                 else
                                                     window.location.replace("/");
                                             }else{
+                                                if (response.xmlDoc.responseText.indexOf("azure") != -1){
+                                                    alert("azure")
+                                                    window.location = "azurelogin";
+                                                }
                                                 console.log(response.xmlDoc.responseText)
                                                 dhtmlx.message(response.xmlDoc.responseText)
                                             }
@@ -201,7 +209,8 @@ function parse_query_string(query) {
     <div id="center">
         <div id="welcome_message">{{{instanceName}}}</div>
         <div id="mainform" >
-        
     </div>
+    
+    <div class="azure_link" id="azure_link">{{{azureLink}}}</div>
 </body>
     

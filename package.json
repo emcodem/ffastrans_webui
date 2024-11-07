@@ -4,6 +4,7 @@
   "description": "Created 2018 by emcodem",
   "main": "server.js",
   "dependencies": {
+    "@azure/msal-node": "^2.16.0",
     "@seald-io/nedb": "^3.1.0",
     "@supercharge/promise-pool": "^2.4.0",
     "activedirectory2": "^2.1.0",

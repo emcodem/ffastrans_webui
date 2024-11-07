@@ -1,7 +1,7 @@
 // passport.js - user authentification
 
 // load all the things we need
-
+var AzureLogin   = require('./azurelogin');
 var LocalStrategy   = require('passport-local').Strategy;
 var ActiveDirectory = require('activedirectory2').promiseWrapper;
 // load up the user model
@@ -31,18 +31,15 @@ passport.deserializeUser(function(user, done) {
 // =========================================================================
 // LOCAL SIGNUP ============================================================
 // =========================================================================
-// we are using named strategies since we have one for login and one for signup
-// by default, if there was no name, it would just be called 'local'
 
-	
 passport.use('local-login', new LocalStrategy({
         usernameField : 'username',
         passwordField : 'password',
-        passReqToCallback : true // passes original request the callback
+        passReqToCallback : true, // passes original request the callback
     },
     async function(req, username, password, done) { // callback with uname and password from our form
 
-        console.log("trying local-login",username);
+        console.log("login username",username);
         // find a user whose username is the same as the forms username
         // we are checking to see if the user trying to login already exists
         var existing = await asyncqueryOne(global.db.config,{ 'local.username' :  username });
@@ -53,7 +50,6 @@ passport.use('local-login', new LocalStrategy({
         if (existing["local"]["password"] == "aduser"){
 			console.log(username+" is known AD user, trying AD auth.");
             ActiveDirectoryLogin(req, username, password, done);
-			
         }else{
             //LOCAL LOGIN
 			console.log("Local user exists", existing);
@@ -98,7 +94,6 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
     
 		console.log("AD login procedure");
 		var configServer = require(global.approot  + '/node_components/server_config');
-
 
 		var currentConfig = configServer.get(async function(config){
 				console.log("Config from DB:",config)

@@ -253,6 +253,7 @@ async function init(conf){
     //NON Password protected stuff
 
     require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
+
     app.use('/webinterface/images/F364x64.png', express.static('./webinterface/images/F364x64.png'));
 
     //Registers user configured additinal webfolders
@@ -264,10 +265,14 @@ async function init(conf){
     app.engine('mustache', mustacheExpress());
     app.use ('/webinterface/components/login.html', function(req,res){
         //changed from static login.html to mustache dynamically rendered
-        
+        var azure_link = "";
+        if (global.config.azure_config){
+            azure_link = global.config.azure_config.azure_login_link;
+        }
         res.render("login.mustache",
           {
-            instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface'
+            instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
+            azureLink:azure_link
           }
         )
     });
@@ -285,6 +290,9 @@ async function init(conf){
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
 
+    
+    require("./node_components/passport/azurelogin.js");
+    
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
 	
 	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))

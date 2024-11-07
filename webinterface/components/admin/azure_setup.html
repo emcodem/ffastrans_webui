@@ -1,0 +1,259 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<script src="../../dependencies/jquery/jquery.js"></script>
+
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+    }
+
+	.testcss > .dhx_button {
+		background-color: #e0e0e0;
+		color:black;
+		text-transform: none;
+	}
+	.dhxform_obj_dhx_skyblue > button :hover {
+		background: linear-gradient(#cb1d1d, #000000);
+		
+	}
+
+</style>
+
+<script type="module">
+
+/* GLOBALS */
+var m_mainLayout,m_mainForm, m_serverconfig;
+/* build basic page layout and init periodic job loading*/
+function init(){
+    
+	buildForm()
+	//registerButtonClicks();
+
+}
+
+function buildForm(){
+	const config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		width:"100%", height:"100%",rows:
+		[
+			{
+				rows: [
+					{
+						id: "setup_stuff",
+						resizable:false,
+						height:"content",
+						header:"Microsoft Entra setup",
+						padding: "0px",  
+						margin: "0px",
+					}
+				]
+			}
+		]
+	}
+
+
+    //LAYOUT
+    m_mainLayout = new dhx8.dhx.Layout(document.body, config);
+	const today_start = new Date().setHours(0,0,0);
+	const today_end   = new Date();
+	
+	let clientIdDesc = "GUID, specifies the client id of the application that is registered in Azure Active Directory";
+	let clientSecretDesc = "Secret used to establish ownership of the client Id";
+	let authorityDesc = "Usually https://login.microsoftonline.com/your_tenant_guid";
+	let redirectUriDesc = "Webint URL from user perspective prepended with /azurecallback. For testing webint locally: http://localhost:3002/azurecallback. You also need to enter this in your Entra account App config Authentification setup";
+	let linkDesc = "Will be displayed on login page next to Login Button. Usually just a href to /azurelogin, e.g. <a href=\"/azurelogin\">Azure Login</a>";
+	var manual_form_config = {
+    
+    // sets alignment for rows
+    align: "start", // "center", "end", "between", "around", "evenly"
+    padding: "20px",   
+	height: "content",
+    rows: [
+        {
+				padding: "10px", 
+				rows:[
+						{
+							"name":"clientId",
+							"type": "input",
+							"label": "ClientId",
+							"labelPosition": "left",
+							"labelWidth": "140",
+							"required": true,
+							"preMessage": clientIdDesc,
+							"successMessage": clientIdDesc,
+							"errorMessage": clientIdDesc
+						},
+						{
+							"name":"clientSecret",
+							"type": "input",
+							"label": "ClientSecret",
+							"labelPosition": "left",
+							"labelWidth": "140",
+							"required": true,
+							"preMessage": clientSecretDesc,
+							"successMessage": clientSecretDesc,
+							"errorMessage": clientSecretDesc
+						},
+						{
+							"name":"authority",
+							"type": "input",
+							"label": "Authority",
+							"labelPosition": "left",
+							"labelWidth": "140",
+							"required": true,
+							"preMessage": authorityDesc,
+							"successMessage": authorityDesc,
+							"errorMessage": authorityDesc
+						},
+						{
+							"name":"redirectUri",
+							"type": "input",
+							"label": "RedirectUri",
+							"labelPosition": "left",
+							"labelWidth": "140",
+							"required": true,
+							"preMessage": redirectUriDesc,
+							"successMessage": redirectUriDesc,
+							"errorMessage": redirectUriDesc
+						},
+						
+						{
+							type: "textarea",
+							name: "azure_login_link",
+							label: "Login Link",
+							labelWidth: "140",
+							labelPosition: "left",
+							placeholder: "<a href=\"/azurelogin\">Azure Login</a>",
+							resizable: true,
+							height:150,
+							preMessage: linkDesc,
+							successMessage: linkDesc,
+							errorMessage: linkDesc,
+						},				
+						{
+							type: "text",
+							value: "For testing, open the URL /azurelogin on webinterface or click the link on login Page, preferred in 'private browsing' mode" 
+						},
+						{
+							type: "text",
+							value: "Once you setup the Authority URL and call /azurelogin URL, it should laead you to Microsoft and they should bring up speaking error messages if your configuration is wrong" 
+						},
+						{
+							type: "text",
+							value: "Azure App Roles will be mapped to local webint groups. If no app role was found, we use group name 'Default' (app roles require paid azure account)" 
+						},
+						{type: "spacer",name: "spacer",height:30},
+					{cols: [
+							{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save","hidden":false,name: "btn_save", width:100,value:"Save"},
+							/*{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:100,value:"Delete"},*/
+					]},
+					
+				],
+			
+			}
+		]
+	}
+	m_mainForm = new dhx8.dhx.Form(null, manual_form_config);
+	restoreFormData(m_mainForm);
+	m_mainLayout.getCell("setup_stuff").attach(m_mainForm);
+
+	//BUILD AUTO DELETION FORM
+
+	m_mainForm.events.on("click", function(name,e){
+		if(name == "btn_save")
+			saveAzureConfig()
+
+	});	
+
+}
+
+function restoreFormData(){
+	if (!m_serverconfig.azure_config)
+		return
+		
+	m_mainForm.forEach(function(item, index, array){
+		if (m_serverconfig.azure_config[item.config.name]){
+			m_mainForm.getItem(item.config.name).setValue(m_serverconfig.azure_config[item.config.name]);
+		}
+	});
+	
+}
+
+async function saveAzureConfig(){
+	var o_tosave = {};
+	m_mainForm.forEach(function(item, index, array){
+		if (item.config.type != "input" && item.config.type != "textarea" )
+			return;
+		o_tosave[item.config.name] = m_mainForm.getItem(item.config.name).getValue();
+	});
+
+	m_serverconfig["azure_config"] = o_tosave;
+	try{
+		var response = await  $.ajax({
+             url: ("/adminconfig_update_parts"),
+             type: "POST",
+             data:{
+                "azure_config":o_tosave
+             }
+        });
+		dhx8.dhx.message({ expire: 3000, text: "Success"});
+	}catch(ex){
+		dhx8.dhx.message({ expire: 10000, text: ex});
+	}
+    
+
+}
+
+window.loadserverconfig = loadserverconfig; //export for use in html onclick
+function loadserverconfig() {
+	
+	$.ajax({
+		url: ("/getserverconfig" + "?" + Math.random()),
+		type: "GET",
+		success: function(response) {
+			console.log("got server conf")
+			m_serverconfig = JSON.parse(response);
+			console.log("SERVERCONFIG:",m_serverconfig)
+			init();
+		},
+		error: function(xhr, status) {
+			dhtmlx.message("Fatal error, could not load serverconfig. ");
+			document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+		}
+	});
+}
+
+
+
+/* */
+
+</script>
+
+</head>
+<body onload="loadserverconfig()" style="overflow:auto">
+
+</body>
