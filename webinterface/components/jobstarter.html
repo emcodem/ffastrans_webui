@@ -1347,6 +1347,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
         },
         error: function (xhr, status) {
             dhtmlx.message("ERROR from filebrowser. " + path + " " + xhr.responseText);
+            localStorage.removeItem("lastVisitedBrowseLocation");
             m_mainLayout.cells("a").progressOff();
         }
     });
