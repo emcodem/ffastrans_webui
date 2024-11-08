@@ -16,12 +16,16 @@ module.exports = {
     },
     saveConfidentialAsync: async() => {
         /* new strategy is that the rest of code just changes global config so no parameter here */
-        await global.db.config.update({"global.confidential_config":{$exists:true}},{global:{config:global.confidential_config}});
+        //global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true})
+        let result = await global.db.config.update({},{"confidential_config":global.confidential_config});
         return global.confidential_config;
     },
     getConfidentialAsync: async() => {
         /* new strategy is that the rest of code just changes global config so no parameter here */
-        await global.db.config.findOne({"global.confidential_config":{$exists:true}});
+        let queryresult = await global.db.config.findOne({"confidential_config":{$exists:true}});
+        global.confidential_config = queryresult.confidential_config
+        if (!global.confidential_config)
+            global.confidential_config = {};
         return global.confidential_config;
     },
     get: (callback) => {

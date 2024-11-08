@@ -1443,7 +1443,7 @@ async function getBrowseLocations(restore_saved = true){
    //locations from admin config
    try{
         let locations = await loadBrowseLocations();
-
+        
         m_browselocations = [];
         locations.forEach(function(loc) {
             m_browselocations.push(loc);

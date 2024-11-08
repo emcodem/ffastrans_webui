@@ -248,7 +248,15 @@ async function registerAddedFolders(newline_separated_folder_list){
 async function init(conf){
 	global.config = conf;
 
-	connectDb(); //async startup and connect to db, it fires messages to userinterface on it's own in case of error
+    //maybe there is a better place to initialize confidential_config but nothing comes to my head rigtht now
+    let queryresult = await global.db.config.findOne({"confidential_config":{$exists:true}}) || {};
+    if (queryresult){
+        global.confidential_config = queryresult.confidential_config;
+    }else{
+        global.confidential_config = {};
+    }
+
+	connectDb(); //mongodb
 
     //NON Password protected stuff
 
@@ -266,8 +274,8 @@ async function init(conf){
     app.use ('/webinterface/components/login.html', function(req,res){
         //changed from static login.html to mustache dynamically rendered
         var azure_link = "";
-        if (global.config.azure_config){
-            azure_link = global.config.azure_config.azure_login_link;
+        if (global.confidential_config && global.confidential_config.azure_config){
+            azure_link = global.confidential_config.azure_config.azure_login_link;
         }
         res.render("login.mustache",
           {
