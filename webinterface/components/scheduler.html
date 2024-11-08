@@ -679,7 +679,7 @@ function getWorkflowList(cb_success, cb_error=function(){}){
             }
         },
         error: function (xhr, status) {
-            cb_error("ERROR getting workflows, please check FFAStrans Path in Admin settings on the left.. Or you havee an invalid expression in filter regex");
+            cb_error("ERROR getting workflows, please check FFAStrans Path in Admin settings on the left.. Or you have an invalid expression in filter regex");
         }
     });
 }
@@ -811,7 +811,7 @@ function loadWorkflows(success_cb){
         },
         error: function (xhr, status) {
             m_mainLayout.cells("b").progressOff();
-            dhtmlx.message("ERROR getting workflows, please check FFAStrans Path in Admin settings on the left.. Or you havee an invalid expression in filter regex");
+            dhtmlx.message("ERROR getting workflows, please check FFAStrans Path in Admin settings on the left.. Or you have an invalid expression in filter regex");
         }
     });
 }
