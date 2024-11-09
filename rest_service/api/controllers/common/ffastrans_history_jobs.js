@@ -8,9 +8,11 @@ module.exports = {
 };
 
 let fileContentDatabase = {};
+let jobCache = {};//{job_id:[task,task]},job_id:...}
 let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
 async function getHistoryJobs(start,end){
+    /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
    
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
@@ -26,25 +28,39 @@ async function getHistoryJobs(start,end){
       
       let startcount = 0;
       let jobCount = 0;
-      for (let jobid of subfolders){
+      for (let job_id of subfolders){
+        if (job_id == '0c00e03b-124e-4e2a-a8d4-f1cbf5bbbd01')
+            var stop = 1;
         startcount++;
         if (startcount < start)
             continue
         if (jobCount >= end)
-            continue
-        if (! (await fs.exists(path.join(jobDir,jobid,"full_log.json"))))
-            continue
-
+            break;
+        if (jobCache[job_id]){
+            //push all splits from this job into taskArray
+            
+            taskArray.push(...jobCache[job_id]);
+            jobCount++;
+            continue;
+        }
         
-        let finisheddir = path.join(jobDir,jobid,"finished")
-        let splits = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
-        for (let split of splits){
-            if (split.indexOf("log") != -1)
+        //excludes unfinished jobs
+        if (! (await fs.exists(path.join(jobDir,job_id,"full_log.json"))))
+            continue 
+        
+        //from here we are sure to have a finished job
+        if (!jobCache[job_id]){
+            jobCache[job_id] = [];
+        }
+        let finisheddir = path.join(jobDir,job_id,"finished")
+        let split_ids = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
+        
+        for (let split_id of split_ids){
+            if (split_id.indexOf("log") != -1)
                 continue
-
             try{
-                let splitfilepath   = path.join(finisheddir,split);
-                let jobjsonpath     = path.join(jobDir,jobid,".json");
+                let splitfilepath   = path.join(finisheddir,split_id);
+                let jobjsonpath     = path.join(jobDir,job_id,".json");
                 let jobjson         = await readJsonFileCached(jobjsonpath);
                 if (path.parse(splitfilepath.name = "")){
                     //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
@@ -67,17 +83,19 @@ async function getHistoryJobs(start,end){
 
 
                 }
-                if (!jobjson.hasOwnProperty(split)){
+                if (!jobjson.hasOwnProperty(split_id)){
                     let splitcontent    = await readJsonFileCached(splitfilepath);
-                    jobjson[split]      = splitcontent;
+                    jobjson[split_id]      = splitcontent;
                 }
-
+                let current_split = buildSplitInfo(jobjson,split_id);
+                taskArray.push(current_split);
+                jobCache[job_id].push(current_split)
                 
-                taskArray.push(buildSplitInfo(jobjson,split))
             }catch(ex){
                 console.trace(ex)
             } 
         }
+        
         jobCount++;
       }
       return taskArray;
@@ -106,8 +124,7 @@ function buildSplitInfo(jobInfo,splitId){
 }
 
 async function readJsonFileCached(fname){
-    
-    while(fileContentDatabase.length > 1000){ //housekeeping
+    while(Object.keys(fileContentDatabase).length > 1000){ //housekeeping
         let popped = fileContentDatabase.pop();
     }
 

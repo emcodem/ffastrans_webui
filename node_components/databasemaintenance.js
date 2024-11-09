@@ -95,7 +95,7 @@ module.exports = function(app, express){
             try{
             console.log("generatetestjobs inserter called, inserting 10000 test jobs");
             var m_jobStates = ["Error","Success","Cancelled","Unknown"];
-			var workflowResponse = await axios.get(build_new_api_url("/workflows"), {timeout: 7000,agent: false, maxSockets: Infinity});
+			var workflowResponse = await axios.get(build_new_api_url("/workflows"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false, maxSockets: Infinity});
             var a_workflows = workflowResponse.data.workflows;//wf_name
 			var date_start = new Date();
 			date_start.setFullYear(date_start.getFullYear() - 4);

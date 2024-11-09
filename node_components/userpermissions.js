@@ -131,19 +131,31 @@ module.exports = {
     }
 };
 
+let workflowCache = {expires_on:new Date(),all_workflows:null};//example structure of course invalid data
+
 async function checkworkflowpermission(username,wf_name){
     if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false"){
         return true;
     }
-    let all_workflows;
-    if (global.config["alternate-server"] == true){ //must check if true because can be string 'false'
-        all_workflows = await global.jobfetcher.getWorkflowList();
-        all_workflows = all_workflows.data.workflows;
+    
+    if (workflowCache.expires_on < new Date()){
+        let currentTime = new Date();
+        workflowCache.expires_on = new Date(currentTime.getTime() + 2000);
+        workflowCache.workflows = null;
+    }
+
+    if (!workflowCache.workflows){
+        if (global.config["alternate-server"] == true){ //must check if true because can be string 'false'
+            let all_workflows = await global.jobfetcher.getWorkflowList();
+            workflowCache.workflows = all_workflows.data.workflows;
+        }else{
+            workflowCache.workflows = await ffastransapi.getWorkflows();//even tough jobfetcher.getWorkflowlist can be used, this one is with caching. todo: build caching into jobfetcher getworkflolist?
+        }    
     }else{
-        all_workflows = await ffastransapi.getWorkflows();//even tough jobfetcher.getWorkflowlist can be used, this one is with caching. todo: build caching into jobfetcher getworkflolist
+        //console.log("Workflowcache hit");
     }
     //find wf_obj by name in order to find wf group. reason is because e.g. in history jobs db we dont store wf_group
-    var wf_obj = all_workflows.filter(wf => wf.wf_name == wf_name);
+    var wf_obj = workflowCache.workflows.filter(wf => wf.wf_name == wf_name);
     var parsed_wf_group = "";
     if (wf_obj.length>0){
         parsed_wf_group = wf_obj[0].wf_folder;
@@ -174,7 +186,6 @@ async function checkworkflowpermission(username,wf_name){
                     //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
                     return true;
                 }
-                
             }
     }//for allpermissions
     //if there is no filter, all workflows are allowed

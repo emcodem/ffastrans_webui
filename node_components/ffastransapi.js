@@ -76,7 +76,7 @@ async function getWorkflows(){
     
     if (!m_workflow_cache.data || (((new Date) - m_workflow_cache.last_update) > 5000)){
         var url = helpers.build_new_api_url("/workflows");
-        var response = await axios.get(url, {timeout: 7000,agent: false, maxSockets: Infinity});
+        var response = await axios.get(url, {timeout: global.config.STATIC_API_TIMEOUT,agent: false, maxSockets: Infinity});
         m_workflow_cache.data = response.data.workflows;
         m_workflow_cache.last_update = new Date();
     }

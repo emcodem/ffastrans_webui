@@ -41,7 +41,11 @@ module.exports = function(app, express){
             res.json(allowed);//Send error response here
             
       }catch (ex){
-        console.error("getactivejobsajax_treegrid error calling fetcher ", ex);
+        
+        if (ex.message.indexOf("timeout")!=-1)
+          console.error("getactivejobsajax_treegrid timeout exeeded",ex.message);
+        else
+          console.error("unexpected error in getactivejobsajax_treegrid",ex);
         res.status(500);//Send error response here
         res.end();
       }

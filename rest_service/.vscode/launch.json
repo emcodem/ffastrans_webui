@@ -11,7 +11,7 @@
             ],
             
             "program": "${workspaceFolder}/rest_service_cmd.js",
-            "args": ["-p", "C:\\temp\\FFAStrans_1.4.0.1", "-l", "3003"]
+            "args": ["-p", "\\\\raspberrypi\\public\\FFASTRANS", "-l", "3003"]
         },
         {
             "type": "chrome",

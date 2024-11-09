@@ -17,7 +17,7 @@ module.exports = function(app, passport){
                //download workflowlist from ffastrans server
                 var _url = build_new_api_url("/workflows?id=" + wf_id);
                 console.log("calling ",_url)
-                Request.get(_url, {timeout: 7000},(error, workflowResponse, body) => {
+                Request.get(_url, {timeout: global.config.STATIC_API_TIMEOUT},(error, workflowResponse, body) => {
                     if(error) {
                         console.log("Error response from getworkflowdetails,",error)
                         global.socketio.emit("error", 'Error, could not get workflows. Is FFAStrans API online? ' );

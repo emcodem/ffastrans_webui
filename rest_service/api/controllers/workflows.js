@@ -188,7 +188,7 @@ async function getWorkflows(req, res) {
         res.json(o_return);
         res.end();
 	} catch(err) {
-        
+        console.timeEnd("getWorkflows")
 		console.debug(err);
         return res.status(500).send(err.stack.toString());
 	}

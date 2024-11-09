@@ -1,4 +1,5 @@
 /*routes takes care about authentification for all urls*/
+const path = require("path");
 const express = require('express');
 module.exports = function(app, passport) {
 
@@ -14,24 +15,24 @@ module.exports = function(app, passport) {
          res.sendFile(global.approot + '/webinterface/components/login.html'); //need to use sendfile to keep referer at client OK
     });
     //allow unauthorized access 
-    app.get('/webinterface/dependencies/*', function(req, res) {
+    app.get('/webinterface/dependencies/*', async function(req, res) {
          res.sendFile(global.approot + req.originalUrl);
     });
-    app.get('/alternate-server/css/*', function(req, res) {
+    app.get('/alternate-server/css/*', async function(req, res) {
         res.sendFile(global.approot + req.originalUrl);
    });
-    app.get('/favicon.ico', function(req, res) {
+    app.get('/favicon.ico', async function(req, res) {
         res.sendFile(global.approot + "/webinterface/favicon.ico");
     });
 
     //redirect /login to login.html
-    app.get('/login', function(req, res) {
+    app.get('/login', async function(req, res) {
         //res.sendFile(global.approot + '/webinterface/components/login.html');
          res.redirect('/webinterface/components/login.html');
     });
 	
     //allow unauthorized access 
-	app.post('/login', function(req, res, next) {
+	app.post('/login', async function(req, res, next) {
       console.log("issue local and ldap login");
       //Todo: update s
 	  passport.authenticate(['local-login'], function(err, user, info) {
@@ -52,7 +53,7 @@ module.exports = function(app, passport) {
     app.use('/*', isLoggedIn);//ensure user is logged in
     
     //redirect request from /
-    app.get('/', function(req, res, next) {
+    app.get('/', async function(req, res, next) {
         console.log("Request to root, deleteme")
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
             res.redirect('/webinterface');          
@@ -63,7 +64,7 @@ module.exports = function(app, passport) {
     });
 
     //redirect /admin - TODO: check if we actually need this
-    app.get('/admin', function(req, res, next) {
+    app.get('/admin', async function(req, res, next) {
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
             res.redirect('/webinterface/admin');          
         }else{
@@ -73,10 +74,11 @@ module.exports = function(app, passport) {
     });
 
     //needed to serve html/js/images 
-    app.use(express.static('./'));
-    
+    app.use("/alternate-server", express.static('./alternate-server'));
+    app.use("/webinterface",express.static('./webinterface'));
+
     //logout
-    app.get('/logout', function(req, res) {
+    app.get('/logout', async function(req, res) {
         req.logout(function(){});
         res.redirect('/');
     });
@@ -89,11 +91,11 @@ function isLoggedIn(req, res, next) {
         return next();
     }
     // if they aren't redirect them to the home page
-    console.log("NOT AUTHENTICATED Web auth is " +global.config.STATIC_USE_WEB_AUTHENTIFICATION)
+    console.log("NOT AUTHENTICATED Web auth is " +global.config.STATIC_USE_WEB_AUTHENTIFICATION);
     console.log(req.originalUrl + " redirected to login");
-    res.status(401)
+    res.status(401);
     res.set("originalurl", req.originalUrl);
     //this crazy stuff is needed to keep the "referer" correctly set on client side
-    res.send('<html>    <head>       <title>Redirecting...</title>    </head>    <body>     <form method="GET" action="/webinterface/components/login.html">     </form>      <script>        window.onload = function(){{           document.forms[0].submit()        }}     </script>   </body> </html>')
+    res.send('<html>    <head>       <title>Redirecting...</title>    </head>    <body>     <form method="GET" action="/webinterface/components/login.html">     </form>      <script>        window.onload = function(){{           document.forms[0].submit()        }}     </script>   </body> </html>');
     //res.redirect('/webinterface/components/login.html'); 
 }

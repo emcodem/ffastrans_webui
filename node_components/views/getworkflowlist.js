@@ -11,7 +11,7 @@ var m_req_count = 0;
 module.exports = async function (app, passport) {
     app.get('/review', async (req, res) => {
 
-        var response = await axios.get(build_new_api_url("/review"), { timeout: 7000, agent: false, maxSockets: Infinity });
+        var response = await axios.get(build_new_api_url("/review"), { timeout: global.config.STATIC_API_TIMEOUT, agent: false, maxSockets: Infinity });
         var parsed = response.data;
         var username = "";
         if (req.user) {

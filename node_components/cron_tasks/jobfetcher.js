@@ -30,13 +30,13 @@ module.exports = {
 
 	getWorkflowList: async function(nodetails){
 		var get_details = nodetails ? "nodetails=true" : "";
-		return await axios.get(helpers.build_new_api_url("/workflows?" + get_details), { timeout: 7000, agent: false, maxSockets: Infinity });
+		return await axios.get(helpers.build_new_api_url("/workflows?" + get_details), { timeout: global.config.STATIC_API_TIMEOUT, agent: false, maxSockets: Infinity });
 	},
 
 	tickets:async function(){
 		//ticket contains at least internal_wf_name data field
 		//m_ticket_cache.last_update = new Date();
-		var response = await axios.get(helpers.build_new_api_url("/tickets"), { timeout: 7000, agent: false, maxSockets: Infinity });
+		var response = await axios.get(helpers.build_new_api_url("/tickets"), { timeout: global.config.STATIC_API_TIMEOUT, agent: false, maxSockets: Infinity });
 		return response.data.tickets;
 	},
 
@@ -115,7 +115,7 @@ async function getJobs(URLS){
 	for (var _currentUrl of HISTORY_URLS){
 		try{
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
-			let response = await axios.get(_currentUrl);
+			let response = await axios.get(_currentUrl,{timeout: global.config.STATIC_API_TIMEOUT});
 			response = response.data;
 			all_history_jobs.push(...response.history); 
 			all_running_jobs.push(...response.active); 
