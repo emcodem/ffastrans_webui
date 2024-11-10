@@ -1,4 +1,5 @@
 var configServer = require('../server_config');
+const restApiController = require("../common/rest_api_controller.js");
 
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
@@ -143,7 +144,7 @@ module.exports = function(app, express){
 	});
     
     //SAVE back to database
-    app.post('/adminconfig', (req, res) => {
+    app.post('/adminconfig', async (req, res) => {
         /* TODO: migrate to global config and await configServer.saveAsync(); */
        console.log("Saving admin config in database");
        var data = req.body;
@@ -151,6 +152,7 @@ module.exports = function(app, express){
        if (("STATIC_FFASTRANS_PATH" in data) && !data["STATIC_FFASTRANS_PATH"] != global.config.STATIC_FFASTRANS_PATH){
             //change install path requires us to push the info to rest_service.
             //this needs to be solved in a different way once we split rest_api and webint
+            await global.m_rest_
             global.ffastrans_new_rest_api.changeInstallPath(data["STATIC_FFASTRANS_PATH"]);
        }
        if (("STATIC_USE_WEB_AUTHENTIFICATION" in data) && !data["STATIC_USE_WEB_AUTHENTIFICATION"].match("true|false")){

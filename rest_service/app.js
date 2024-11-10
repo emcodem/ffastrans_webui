@@ -10,7 +10,7 @@
 /* this module is currently driven by webserver main, but it should be able to run standalone */
 /* todo: when running standalone, get port and approot from some config or so  */
 /* DO NOT USE global objects of webserver here!!! */
-
+a b
 const path = require("path");
 const request = require("request");
 const fs = require("fs");
@@ -21,7 +21,7 @@ const swaggerUi = require('swagger-ui-express');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const { workerData, parentPort } = require('worker_threads');
-const logfactory = require("../shared_modules/logger.js");
+// const logfactory = require("../shared_modules/logger.js");
 /* swagger init */
 const { initialize } = require('express-openapi');
 
@@ -34,13 +34,13 @@ if (fs.existsSync(path.join(global.approot, "/database/"))) {
   global.approot  = __dirname;
   console.log("Running as node script - developer mode")  
 }
-var logger = logfactory.getLogger("api");
+// var logger = logfactory.getLogger("api");
 
-console.log = (...args)     => logger.info.call(logger, ...args);
-console.info = (...args)    => logger.info.call(logger, ...args);
-console.warn = (...args)    => logger.warn.call(logger, ...args);
-console.error = (...args)   => logger.error.call(logger, ...args);
-console.debug = (...args)   => logger.debug.call(logger, ...args);
+// console.log = (...args)     => logger.info.call(logger, ...args);
+// console.info = (...args)    => logger.info.call(logger, ...args);
+// console.warn = (...args)    => logger.warn.call(logger, ...args);
+// console.error = (...args)   => logger.error.call(logger, ...args);
+// console.debug = (...args)   => logger.debug.call(logger, ...args);
 
 
 module.exports = {

@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\dev\\ffastrans_webui\\logs\\audit\\database",
+    "files": [
+        {
+            "date": 1731280487604,
+            "name": "C:\\dev\\ffastrans_webui\\logs\\database-2024-11-11-00.log",
+            "hash": "9e7b6ea19d31ed29e5446645d9160d4dcf3dbdc4134eb0307d1da0957e933c47"
+        },
+        {
+            "date": 1731280648703,
+            "name": "C:\\dev\\ffastrans_webui\\logs\\database-2024-11-11-00.log.1",
+            "hash": "23cbfe8cdb16d1f5456482fbe6c231969411e9ba6af1565c62f6ebf1c39032be"
+        },
+        {
+            "date": 1731281039503,
+            "name": "C:\\dev\\ffastrans_webui\\logs\\database-2024-11-11.log",
+            "hash": "5e53d07226bb43549e7d0c5928c8825ed737b62347baee04b7b46fefb5ec548a"
+        }
+    ],
+    "hashType": "sha256"
+}

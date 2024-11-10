@@ -3,6 +3,7 @@ const winston = require('winston');
 const fs = require("fs-extra");
 const util = require("util");
 const { format } = require('winston');
+require('winston-daily-rotate-file');
 const { combine, colorize, timestamp, printf } = format;
 const logfactory = require("../shared_modules/logger.js")
 module.exports = {
@@ -40,7 +41,7 @@ module.exports = {
 //     }
 // };
 
-  
+
 // const humanReadableFormatter = winston.format((info) => {
 // 	const {level, message} = info;
 //     const filename = getFileNameAndLineNumber();
@@ -54,49 +55,54 @@ function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
   var logpath = path.join(global.approot, "/logs/",log_subdir);
   fs.ensureDirSync(logpath);
   if (!winston.loggers.has(label)) {
-	
+
+	let consoleTransport = new winston.transports.Console({
+		label: label,
+		level: "debug",
+		handleExceptions: true,
+
+	});
+
+	/* BEWARE, winston inbuilt File transport either stops logging under pressure or crashes application (happened at work) */
+	/* for this reason, we switched to DailyrotateFile */
+	// let fileTransport = new winston.transports.File({
+	// 	level: 'debug',
+	// 	// Create the log directory if it does not exist
+	// 	filename: path.join( logpath, label + ".log"),
+	// 	handleExceptions: true,
+	// 	json: true,
+	// 	maxsize: 55242880, // 5MB
+	// 	maxFiles: 2,
+	// 	//tailable: true,
+	// 	timestamp: true,
+	// 	zippedArchive: false,
+	// 	debug: true
+	// });
+	let dailyFileTransport = new winston.transports.DailyRotateFile({
+		level: 'info',
+		filename: path.join( logpath, label + "-%DATE%.log"),
+		auditFile: path.join( logpath,"audit", label),
+		datePattern: 'YYYY-MM-DD',
+		zippedArchive: true,
+		maxSize: '50m',
+		maxFiles: '14d'
+	  });
+
     winston.loggers.add(label, {
 		exitOnError: false,
 		transports: [
-			new winston.transports.Console({
-				label: label,
-				level: "debug",
-				handleExceptions: true,
-				
-			}),        
-			new winston.transports.File({
-				level: 'debug',
-				// Create the log directory if it does not exist
-				filename: path.join( logpath, label + ".log"),
-				handleExceptions: true,
-				json: true,
-				maxsize: 55242880, // 5MB
-				maxFiles: 2,
-				tailable: true,
-				timestamp: true,
-				zippedArchive: false
-			})
-			// new winston.transports.File({
-			// 	level: 'debug',
-			// 	// Create the log directory if it does not exist
-			// 	filename: path.join( logpath, "combined.log"),
-			// 	handleExceptions: true,
-			// 	json: true,
-			// 	maxsize: 100242880, // 55MB
-			// 	maxFiles: 2,
-			// 	tailable: true,
-			// 	timestamp: true,
-			// 	zippedArchive: false
-			// })
+			consoleTransport,
+			dailyFileTransport
 		],
 		format: winston.format.combine(
 			winston.format.label({ label: label }),
 			winston.format.errors({ stack: true }),
 			winston.format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
 			winston.format.printf(info => `${[info.timestamp]}: ${info.level}: [${info.label}]: ${info.message}`),
-		)	
+		)
     });
-	
+
+	//add colors, todo: is there a way to do it only for console output?
 	var winstonLogger = winston.loggers.get(label);
 	winstonLogger.error = wrapper(winstonLogger.error);
 	winstonLogger.warn = wrapper(winstonLogger.warn);
@@ -106,13 +112,19 @@ function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
 	winstonLogger.silly = wrapper(winstonLogger.silly);
 	if (!suppress_startup_msg)
 		winstonLogger.info("------------------------- log " +label+ " startup -------------------------");
-	
+
   }
   return winston.loggers.get(label);
 }
 
 const wrapper = (original) => {
-        const args = Array.from(arguments);
+	try{
+		const args = Array.from(arguments);
         return (...args) => original(util.formatWithOptions({ colors: true },...args));
+	}catch(ex){
+		console.log("-----------WINSTON LOGGER ERROR-----------",ex);
+		return original;
+	}
+
 };
 
