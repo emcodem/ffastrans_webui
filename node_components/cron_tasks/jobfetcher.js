@@ -97,7 +97,11 @@ async function getQueuedJobs(){
 			let response = await axios.get(_currentUrl);
 			parseQueuedJobs(response.data);
 		}catch(ex){
-			console.error("getQueuedJobs",ex)
+			if (ex.errors){
+				console.error("getQueuedJobs",ex.errors);
+			}else{
+				console.error("getQueuedJobs",ex)
+			}
 		}
 	}
  
@@ -120,7 +124,11 @@ async function getJobs(URLS){
 			all_history_jobs.push(...response.history); 
 			all_running_jobs.push(...response.active); 
 		}catch(ex){
-			console.error("loadHistoryJobs",ex)
+			if (ex.errors){
+				console.error("loadHistoryJobs",ex.errors);
+			}else{
+				console.error("loadHistoryJobs",ex)
+			}
 			failed_count++;
 		}
 	}
