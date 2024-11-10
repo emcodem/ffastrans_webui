@@ -4,7 +4,7 @@ const fs = require("fs-extra");
 const util = require("util");
 const { format } = require('winston');
 const { combine, colorize, timestamp, printf } = format;
-
+const logfactory = require("../shared_modules/logger.js")
 module.exports = {
     getLogger: getLogger
 }

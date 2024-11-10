@@ -20,15 +20,38 @@ const YAML = require('yamljs');
 const swaggerUi = require('swagger-ui-express');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
+const { workerData, parentPort } = require('worker_threads');
+const logfactory = require("../shared_modules/logger.js");
 /* swagger init */
 const { initialize } = require('express-openapi');
 
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 
+global.approot  = path.dirname(process.execPath); //bad practice, the logger uses global.approot instead of taking a parameter where to write logs
+if (fs.existsSync(path.join(global.approot, "/database/"))) {
+  console.log("Running as compiled file")
+}else{
+  global.approot  = __dirname;
+  console.log("Running as node script - developer mode")  
+}
+var logger = logfactory.getLogger("api");
+
+console.log = (...args)     => logger.info.call(logger, ...args);
+console.info = (...args)    => logger.info.call(logger, ...args);
+console.warn = (...args)    => logger.warn.call(logger, ...args);
+console.error = (...args)   => logger.error.call(logger, ...args);
+console.debug = (...args)   => logger.debug.call(logger, ...args);
+
+
 module.exports = {
   init: init,
   changeInstallPath:changeInstallPath
 };
+
+if (workerData){
+  console.log("Startup as worker thread detected, params:",workerData);
+  init(workerData.port,workerData.path);
+}
 
 function init (_listenport,_ffastranspath) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service

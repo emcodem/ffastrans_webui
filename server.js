@@ -22,11 +22,14 @@ const socket = require('socket.io');
 const socketwildcard = require('socketio-wildcard');
 const configmgr = require( './node_components/server_config')
 const database_controller = require('./node_components/common/database_controller')
-const ffastrans_new_rest_api = require("./rest_service");
+
 
 const { Player } = require( './node_components/player')
 
-const logfactory = require("./node_components/common/logger")
+const logfactory = require("./shared_modules/logger.js")
+const { Worker } = require('worker_threads');
+let m_rest_api_worker;
+
 const dns = require('node:dns');
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0; //as we have a self-signed example cert, we allow self-signed
@@ -319,10 +322,10 @@ async function init(conf){
     }
     
 	if (!global.config["alternate-server"]){
-		delete global.config["ffastrans-about"];
-		//NEW REST API - replaces the builtin ffastrans api, possible TODO: move this out of here to be standalone service delivered with ffastrans base
-		var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
-		console.log("NOT running on alternate-server, getting FFAStrans API about:",about_url);
+		delete global.config["ffastrans-about"]; //clean up legacy stuff
+		//NEW REST API - replaces the builtin ffastrans api, possible 
+		//var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
+		console.log("NOT running on alternate-server");
 		var got_connection = false;
         async function connectApi(){
             while(!got_connection){
@@ -330,12 +333,12 @@ async function init(conf){
                     // var res = await axios.get(about_url)
                     // global["ffastrans-about"] = res.data;
                     // console.log("FFAStrans config:",global["ffastrans-about"]);
-
-                    ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"],global.config["STATIC_FFASTRANS_PATH"]);
-                    global.ffastrans_new_rest_api = ffastrans_new_rest_api;
+                    start_rest_api_thread(global.config["STATIC_API_NEW_PORT"],global.config["STATIC_FFASTRANS_PATH"]);
+                    //ffastrans_new_rest_api.init(global.config["STATIC_API_NEW_PORT"],global.config["STATIC_FFASTRANS_PATH"]);
+                    //global.ffastrans_new_rest_api = ffastrans_new_rest_api;
                     got_connection = true;
                 }catch(exc){
-                    console.error("Could not get ffastrans about");
+                    console.error("Cannot start rest_api_thread");
                     await sleep(1000);
                 }   
             }
@@ -591,4 +594,25 @@ function initSocketIo(created_httpserver){
 	});
 
 	
+}
+
+function start_rest_api_thread(port,path){
+    //const ffastrans_new_rest_api = require("./rest_service");
+    m_rest_api_worker = new Worker("./rest_service/app.js",{
+        workerData: {
+            port:port,
+            path:path
+        }
+    }); 
+    m_rest_api_worker.on('exit', (code) => {
+        if (code !== 0) {
+          console.log("rest api thread exited");
+        }
+      });
+}
+
+async function stop_rest_api_thread(){
+    if (m_rest_api_worker){
+        await m_rest_api_worker.terminate();
+    }
 }

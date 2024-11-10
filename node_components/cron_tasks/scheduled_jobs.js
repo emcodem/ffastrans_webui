@@ -11,7 +11,7 @@ const ffastransapi = require("../ffastransapi");
 const moment = require("moment");
 const Datastore = require("@seald-io/nedb");
 const axios = require("axios");
-const logfactory = require("../../node_components/common/logger")
+const logfactory = require("../../shared_modules/logger")
 
 var logger = logfactory.getLogger("scheduler");
 logger.log = logger.info;
