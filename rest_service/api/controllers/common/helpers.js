@@ -2,6 +2,7 @@ const fsPromises = require('fs').promises;
 const path = require("path")
 const { uuid } = require('uuidv4');
 const moment = require('moment-timezone');
+var md2 = require('js-md2');
 var md5 = require('js-md5');
 var fs = require('fs');
 const readlastline =  require('read-last-line');
@@ -72,9 +73,19 @@ class JobTicket {
 
     getFileName(){
         //need to add md5 hash to filename
+        
+        let s = path.join (global.api_config["s_SYS_CONFIGS_DIR"],"ffastrans.json");
+        s = fs.readFileSync(s, 'utf8') //read file
+        let ffastrans = s.replace(/^\uFEFF/, '');
+        ffastrans = JSON.parse(ffastrans);
         var jstring = JSON.stringify(this);
-        var _md5 = md5(jstring).toUpperCase();
-        _md5 = _md5.substring(_md5.length-6)
+        let hash = md5(jstring).toUpperCase();
+        if (ffastrans && ffastrans.general && ffastrans.general.versions) {
+            if (ffastrans.general.versions.queuer.match(/1\.[0-3]\./g)) {
+                hash = md2(jstring).toUpperCase();
+            }
+        }
+        hash = hash.substring(hash.length-6)
         //5~
         //20230225-2232-1582-4f2e-70ff6e3b8456~
         //1fe36b100~
@@ -85,7 +96,7 @@ class JobTicket {
         var slots_and_hostgroup = 100;
 
         //10 is for 1 slot and 0 hostgroup
-        var filename_parts = [this.priority.toString().substring(0,1) , this.job_id, uuid().substring(0,6) + slots_and_hostgroup,this.split_id,this.workflow.id,"api_submit",_md5];
+        var filename_parts = [this.priority.toString().substring(0,1) , this.job_id, uuid().substring(0,6) + slots_and_hostgroup,this.split_id,this.workflow.id,"api_submit",hash];
         return filename_parts.join("~") + ".json";
         
     }
