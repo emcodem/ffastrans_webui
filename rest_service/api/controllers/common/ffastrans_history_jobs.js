@@ -16,12 +16,15 @@ async function getHistoryJobs(start,end){
     let taskArray = [];
    
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
+    let perf_start = Date.now();
     const getDirectories = async source =>
     (await fs.readdir(source, { withFileTypes: true }))
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name)
 
-      let subfolders = await getDirectories(jobDir)
+      let subfolders = await getDirectories(jobDir);
+      console.debug(`Performance Dirlist ${jobDir}: ${Date.now() - perf_start}ms`);
+      perf_start = Date.now();
       subfolders= subfolders.sort().reverse()
       if (subfolders.length > 10000)
         console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
@@ -38,7 +41,6 @@ async function getHistoryJobs(start,end){
             break;
         if (jobCache[job_id]){
             //push all splits from this job into taskArray
-            
             taskArray.push(...jobCache[job_id]);
             jobCount++;
             continue;
@@ -47,14 +49,15 @@ async function getHistoryJobs(start,end){
         //excludes unfinished jobs
         if (! (await fs.exists(path.join(jobDir,job_id,"full_log.json"))))
             continue 
-        
+
         //from here we are sure to have a finished job
         if (!jobCache[job_id]){
             jobCache[job_id] = [];
         }
         let finisheddir = path.join(jobDir,job_id,"finished")
         let split_ids = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
-        
+        console.debug(`Performance Dirlist ${finisheddir}: ${Date.now() - perf_start}ms`);
+        perf_start = Date.now();
         for (let split_id of split_ids){
             if (split_id.indexOf("log") != -1)
                 continue
@@ -62,13 +65,16 @@ async function getHistoryJobs(start,end){
                 let splitfilepath   = path.join(finisheddir,split_id);
                 let jobjsonpath     = path.join(jobDir,job_id,".json");
                 let jobjson         = await readJsonFileCached(jobjsonpath);
+                console.debug(`Performance read job json ${jobjsonpath}: ${Date.now() - perf_start}ms`);
                 if (true){
                     //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
                     let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
                     
                     if (!workaround_dispel_database.hasOwnProperty(_logpath)){
                         try{
-                            let last2lines = await readfile_cached(_logpath,false,3,1,"job_log_last_2_lines_workaround_dispel");
+                            let last2lines = await readfile_cached(_logpath,false,false,1,"job_log_last_2_lines_workaround_dispel");
+                            console.debug(`Performance read last 2 lines ${_logpath}: ${Date.now() - perf_start}ms`);
+                            perf_start = Date.now();
                             //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
                             if (last2lines.indexOf("dispel\":true") != -1){//if job ended due to dispel, hide job
                                 workaround_dispel_database[_logpath] = {dispel:true};
@@ -88,6 +94,8 @@ async function getHistoryJobs(start,end){
                 }
                 if (!jobjson.hasOwnProperty(split_id)){
                     let splitcontent    = await readJsonFileCached(splitfilepath);
+                    console.debug(`Performance read jobjson ${splitfilepath}: ${Date.now() - perf_start}ms`);
+                    perf_start = Date.now();
                     jobjson[split_id]      = splitcontent;
                 }
                 let current_split = buildSplitInfo(jobjson,split_id);
@@ -98,9 +106,12 @@ async function getHistoryJobs(start,end){
                 console.trace(ex)
             } 
         }
-        
+        console.debug(`Performance job ${job_id}: ${Date.now() - perf_start}ms`);
+        perf_start = Date.now();
         jobCount++;
       }
+      console.debug(`Performance all jobs: ${Date.now() - perf_start}ms`);
+      perf_start = Date.now();
       return taskArray;
 }
 

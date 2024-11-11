@@ -12,3 +12,4 @@ alternate-server.old/
 *.db
 *.log.*
 dist
+logs

@@ -53,7 +53,6 @@ async function get(req, res) {
         if (jobs_cache.born < maxAge || !jobs_cache.data){
             jobs_cache.is_refreshing = true;
             try{
-                
                 let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
                 let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
                 jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}

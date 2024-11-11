@@ -333,7 +333,7 @@ function loadserverconfig(){
 
 /* function check installpath */
 function checkFFAStransInstallPath(){
-    if (m_serverconfig.STATIC_FFASTRANS_PATH == "unknown"){
+    if (m_serverconfig.STATIC_FFASTRANS_PATH == "unknown" ){
         let installpath = prompt("Initial Setup.\nPlease enter Path to FFAStrans, e.g. \n\nC:\\FFAStrans\n\nFor FFAStrans Farm, you need to enter the full UNC Path, e.g.\n\\\\server\\share\\FFAStrans", "C:\\FFAStrans");
         m_serverconfig.STATIC_FFASTRANS_PATH  = installpath;
         console.log("Saving config",m_serverconfig)
