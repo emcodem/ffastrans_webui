@@ -5,8 +5,12 @@ class RestApi {
 
     private_shutdown_requested = false;
     private_rest_api_worker;
+    private_init_port;
+    private_init_path;
 
     start_rest_api_thread(port,path,self){
+        this.private_init_port = port;
+        this.private_init_path = path;
         if (!self)
             self = this; //need this because we cannot use "this" in setTimeout, this becomes the timeout function itself
         //const ffastrans_new_rest_api = require("./rest_service");
@@ -34,6 +38,15 @@ class RestApi {
         }
     }
     
+    async change_install_path(new_path){
+        console.log("Resetting REST API Path to: ", new_path);
+        this.private_init_path = new_path;
+        console.log("Stopping REST API Service");
+        await this.stop_rest_api_thread();
+        console.log("Starting REST API Service");
+        this.start_rest_api_thread(this.private_init_port,new_path,this);
+    }
+
     sleep(ms) {
         return new Promise((resolve) => {
           setTimeout(resolve, ms);

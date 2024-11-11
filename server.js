@@ -23,7 +23,6 @@ const socketwildcard = require('socketio-wildcard');
 const configmgr = require( './node_components/server_config');
 const database_controller = require('./node_components/common/database_controller');
 
-
 const { Player } = require( './node_components/player');
 
 const logfactory = require("./shared_modules/logger.js");
@@ -327,7 +326,7 @@ async function init(conf){
 		//NEW REST API - replaces the builtin ffastrans api, possible 
 		//var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
 		console.log("NOT running on alternate-server");
-		var got_connection = false;
+
         async function connectApi(){
             //while(!got_connection){
                 try{

@@ -6,24 +6,9 @@
     "auditLog": "C:\\dev\\ffastrans_webui\\logs\\audit\\scheduler",
     "files": [
         {
-            "date": 1731280487106,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\scheduler-2024-11-11-00.log",
-            "hash": "a0dfea38607fadc51efe40346348f6a2bcad429afbd488f9ef697daae1ecf252"
-        },
-        {
-            "date": 1731280645978,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\scheduler-2024-11-11-00.log.1",
-            "hash": "20a9f335aee54afbc81cb9e1ccc0d3a621c3b3769e9d9ebf7edc5f6d1d5c6fe6"
-        },
-        {
-            "date": 1731280650331,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\scheduler-2024-11-11-00.log.2",
-            "hash": "1f16cf5f76a6f07dd3dcc9345b3c8b58d493f23e3e8fdcf170919b0d39dadae2"
-        },
-        {
-            "date": 1731281039009,
+            "date": 1731284616133,
             "name": "C:\\dev\\ffastrans_webui\\logs\\scheduler-2024-11-11.log",
-            "hash": "4e209f30a3e4e54ceffbfd9f53a78cb1a188176d542d1c013e99f9197cbbc800"
+            "hash": "596d6d4e5726ba6e9b92c2e9f7408c128ca074db0d7d14a875231e05e442fa0b"
         }
     ],
     "hashType": "sha256"

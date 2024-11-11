@@ -6,39 +6,9 @@
     "auditLog": "C:\\dev\\ffastrans_webui\\logs\\audit\\webint",
     "files": [
         {
-            "date": 1731280487012,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11-00.log",
-            "hash": "7908d726a27f1fcaa32c69ebcceec3306b57edf0980c3451bcc9d1764335e877"
-        },
-        {
-            "date": 1731280621762,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11-00.log.1",
-            "hash": "b73624d522d8ae11b474c84edeb4df70824aa4bebdbe3ea8d235746ba651470d"
-        },
-        {
-            "date": 1731280655196,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11-00.log.2",
-            "hash": "950e2b6deb19c3dbdf8a9faf77a8106759c6af35250cb51f5e5f51d0d6e4f67e"
-        },
-        {
-            "date": 1731280685577,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11-00.log.3",
-            "hash": "3f3995a2d00cb27495e1b7000725cd59851e91cf080c604849283a059f8f4f1e"
-        },
-        {
-            "date": 1731280690630,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11-00.log.4",
-            "hash": "3b7756278fa98060bea1e7dffadc8e4337a24f23253fd3de8182b9a331d2a2fc"
-        },
-        {
-            "date": 1731280695670,
-            "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11-00.log.5",
-            "hash": "a530ffada60551cd66701992fb7d56875993655f3b5a212ec4c4f93eb7a48a85"
-        },
-        {
-            "date": 1731281038915,
+            "date": 1731284616042,
             "name": "C:\\dev\\ffastrans_webui\\logs\\webint-2024-11-11.log",
-            "hash": "3011fb9ece6e2c0a7b338d8c5018330545ab097a2eec2c96fe391d192daabe02"
+            "hash": "b4c46e72522eabf708f64ccafdae41350c147153dfde1ac86190cf2baddb7efc"
         }
     ],
     "hashType": "sha256"

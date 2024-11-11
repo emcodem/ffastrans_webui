@@ -79,7 +79,7 @@ function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
 	// 	debug: true
 	// });
 	let dailyFileTransport = new winston.transports.DailyRotateFile({
-		level: 'info',
+		level: 'debug',
 		filename: path.join( logpath, label + "-%DATE%.log"),
 		auditFile: path.join( logpath,"audit", label),
 		datePattern: 'YYYY-MM-DD',
