@@ -84,8 +84,7 @@ class JobTicket {
             //old ffastrans versions use md2 for ticket hash, newer md5
             hash = md5(jstring).toUpperCase();
             if (ffastrans && ffastrans.general && ffastrans.general.versions) {
-                let v = ffastrans.general.versions.queuer.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)/);
-                if (v[1] == 1 && v[2] <=4 && v[4] <= 101) { //ffastrans queuer 1.4.0.101 is the last version using md2
+                if (ffastrans.general.versions.queuer.match(/1\.([0-3]\.\d+|4\.0)/)) { //ffastrans queuer 1.4.0.101 is the last version using md2
                     hash = md2(jstring).toUpperCase();
                 }
             }    
