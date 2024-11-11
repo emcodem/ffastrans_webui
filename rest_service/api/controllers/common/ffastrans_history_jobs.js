@@ -62,19 +62,22 @@ async function getHistoryJobs(start,end){
                 let splitfilepath   = path.join(finisheddir,split_id);
                 let jobjsonpath     = path.join(jobDir,job_id,".json");
                 let jobjson         = await readJsonFileCached(jobjsonpath);
-                if (path.parse(splitfilepath.name = "")){
+                if (true){
                     //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
                     let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
-                    workaround_dispel_database[_logpath] = {dispel:false}
+                    
                     if (!workaround_dispel_database.hasOwnProperty(_logpath)){
                         try{
                             let last2lines = await readfile_cached(_logpath,false,3,1,"job_log_last_2_lines_workaround_dispel");
                             //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
                             if (last2lines.indexOf("dispel\":true") != -1){//if job ended due to dispel, hide job
-                                workaround_dispel_database[_logpath] = {dispel:true}
+                                workaround_dispel_database[_logpath] = {dispel:true};
+                            }else{
+                                workaround_dispel_database[_logpath] = {dispel:false};
                             }
                         }catch(ex){
-                            //i dont care about errors here, its just the dispel workaround
+                            //i dont care about errors here, its just the dispel workaround#
+                            workaround_dispel_database[_logpath] = {dispel:false}
                         }
                     }
                     if (workaround_dispel_database[_logpath].dispel){//if job ended due to dispel, hide job
