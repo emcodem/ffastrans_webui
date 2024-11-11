@@ -216,7 +216,8 @@ async function start_server( _listenport){
     })
 
     //must use bodyparser in order to retrieve post messages as req.body
-    app.use(bodyParser.json())
+    // app.use(bodyParser.json())
+    app.use(bodyParser.json({ limit: '250mb' }));
 
     //startup server
     console.log('\x1b[32mNew API starting up...') 
