@@ -79,11 +79,19 @@ class JobTicket {
         let ffastrans = s.replace(/^\uFEFF/, '');
         ffastrans = JSON.parse(ffastrans);
         var jstring = JSON.stringify(this);
-        let hash = md5(jstring).toUpperCase();
-        if (ffastrans && ffastrans.general && ffastrans.general.versions) {
-            if (ffastrans.general.versions.queuer.match(/1\.[0-3]\./g)) {
-                hash = md2(jstring).toUpperCase();
-            }
+        let hash;
+        try{
+            //old ffastrans versions use md2 for ticket hash, newer md5
+            hash = md5(jstring).toUpperCase();
+            if (ffastrans && ffastrans.general && ffastrans.general.versions) {
+                let v = ffastrans.general.versions.queuer.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)/);
+                if (v[1] == 1 && v[2] <=4 && v[4] <= 101) { //ffastrans queuer 1.4.0.101 is the last version using md2
+                    hash = md2(jstring).toUpperCase();
+                }
+            }    
+        }catch(ex){
+            console.error("Could not deduce ffastrans.general.versions.queuer version in ffastrans json, assuming we need md2 ticket hash",ex);
+            hash = md2(jstring).toUpperCase();
         }
         hash = hash.substring(hash.length-6)
         //5~
