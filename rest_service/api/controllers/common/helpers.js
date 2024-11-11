@@ -71,11 +71,11 @@ class JobTicket {
         this.priority        =      prio
     }
 
-    getFileName(){
+    async getFileName(){
         //need to add md5 hash to filename
         
         let s = path.join (global.api_config["s_SYS_CONFIGS_DIR"],"ffastrans.json");
-        s = fs.readFileSync(s, 'utf8') //read file
+        s = await fsPromises.readFile(s, 'utf8') //read file
         let ffastrans = s.replace(/^\uFEFF/, '');
         ffastrans = JSON.parse(ffastrans);
         var jstring = JSON.stringify(this);

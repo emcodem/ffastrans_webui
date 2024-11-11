@@ -180,7 +180,7 @@ async function post(req, res) {
 
         //write to disk
         var final_tick = t;
-        var fname = t.getFileName();
+        var fname = await t.getFileName();
         var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
         var tick_pending_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","pending",fname);
         console.log("Creating Job ticket: " + tick_temp_path)
