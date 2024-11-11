@@ -14,7 +14,7 @@
     "express-openapi": "^6.0.0",
     "ffprobe": "^1.1.2",
     "fs-readdir-recursive": "^1.1.0",
-    "js-md2": "^0.2.2",
+    "js-md5": "^0.8.3",
     "jsdom": "^16.2.2",
     "json.human": "0.0.1",
     "process-list": "^2.0.0",

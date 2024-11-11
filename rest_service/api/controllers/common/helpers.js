@@ -2,7 +2,7 @@ const fsPromises = require('fs').promises;
 const path = require("path")
 const { uuid } = require('uuidv4');
 const moment = require('moment-timezone');
-var md2 = require('js-md2');
+var md5 = require('js-md5');
 var fs = require('fs');
 const readlastline =  require('read-last-line');
 
@@ -71,10 +71,10 @@ class JobTicket {
     }
 
     getFileName(){
-        //need to add md2 hash to filename
+        //need to add md5 hash to filename
         var jstring = JSON.stringify(this);
-        var _md2 = md2(jstring).toUpperCase();
-        _md2 = _md2.substring(_md2.length-6)
+        var _md5 = md5(jstring).toUpperCase();
+        _md5 = _md5.substring(_md5.length-6)
         //5~
         //20230225-2232-1582-4f2e-70ff6e3b8456~
         //1fe36b100~
@@ -85,7 +85,7 @@ class JobTicket {
         var slots_and_hostgroup = 100;
 
         //10 is for 1 slot and 0 hostgroup
-        var filename_parts = [this.priority.toString().substring(0,1) , this.job_id, uuid().substring(0,6) + slots_and_hostgroup,this.split_id,this.workflow.id,"api_submit",_md2];
+        var filename_parts = [this.priority.toString().substring(0,1) , this.job_id, uuid().substring(0,6) + slots_and_hostgroup,this.split_id,this.workflow.id,"api_submit",_md5];
         return filename_parts.join("~") + ".json";
         
     }
