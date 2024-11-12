@@ -282,24 +282,24 @@ async function cache_cleaner(cache_name){
 
 async function _fileList(dir, pattern = '*', recurse = false, sort = false, reply = 'path') {
     var res = []
-    pattern = pattern.replaceAll('.', '\.')
-    pattern = pattern.replaceAll('?', '.')
-    pattern = pattern.replaceAll('*', '.*?')
+    pattern = pattern.replaceAll('.', '\.');
+    pattern = pattern.replaceAll('?', '.');
+    pattern = pattern.replaceAll('*', '.*?');
     pattern = new RegExp('^' + pattern + '$', 'ig');
-    var list = await fsPromises.readdir(dir, { recursive: recurse })
+    var list = await fsPromises.readdir(dir, { recursive: recurse });
     var file
     for (k of list) {
-        file = k.replace(/.*\\/, '')
+        file = path.basename(k);
         if (file.match(pattern)) {
             switch (reply) {
                 case 'path':
-                    res.push(k)
+                    res.push(k);
                     break
                 case 'files':
-                    res.push(file)
+                    res.push(file);
                     break
                 case 'all':
-                    res.push(dir + k)
+                    res.push(dir + k);
             }
         }
     }

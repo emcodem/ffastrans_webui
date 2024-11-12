@@ -13,3 +13,4 @@ alternate-server.old/
 *.log.*
 dist
 logs
+audit
