@@ -280,10 +280,40 @@ async function cache_cleaner(cache_name){
 	}
 }
 
+async function _fileList(dir, pattern = '*', recurse = false, sort = false, reply = 'path') {
+    var res = []
+    pattern = pattern.replaceAll('.', '\.')
+    pattern = pattern.replaceAll('?', '.')
+    pattern = pattern.replaceAll('*', '.*?')
+    pattern = new RegExp('^' + pattern + '$', 'ig');
+    var list = await fsPromises.readdir(dir, { recursive: recurse })
+    var file
+    for (k of list) {
+        file = k.replace(/.*\\/, '')
+        if (file.match(pattern)) {
+            switch (reply) {
+                case 'path':
+                    res.push(k)
+                    break
+                case 'files':
+                    res.push(file)
+                    break
+                case 'all':
+                    res.push(dir + k)
+            }
+        }
+    }
+    if (sort) {
+        res.sort()
+    }
+    return res;
+}
+
 module.exports = {
     readfile_cached             : readfile_cached,
     get_wf_name                 : get_wf_name,
     ticket_files_to_array       : ticket_files_to_array,
     json_files_to_array_cached  : json_files_to_array_cached,
+    _fileList                   : _fileList,
     JobTicket                   : JobTicket
 };

@@ -167,6 +167,45 @@ paths:
           description: Success
         default:
           description: Error
+  /presets:
+    x-swagger-router-controller: presets
+    get:
+      description: Gets List of presets
+      operationId: presets
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+    post:
+      description: "Post a new preset"
+      operationId: presets_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {"ip_address": ""}
+      responses:
+        "200":
+          description: List of Machines and config
+        default:
+          description: Error   
+    delete:
+      description: Deletes presets by id. 
+      parameters:
+        - name: name
+          in: query
+          description: Machine name to delete 
+          required: true
+          schema:
+            type: string
+      operationId: presets_delete
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /metrics:
     x-swagger-router-controller: metrics
     get:
