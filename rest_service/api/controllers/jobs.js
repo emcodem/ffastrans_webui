@@ -176,6 +176,7 @@ async function post(req, res) {
         //set source and variables in ticket
         t.setSource(req.body.inputfile);
         t.variables = req.body.variables;
+        t.submit.variables = req.body.variables;
 
         //write to disk
         var final_tick = t;
