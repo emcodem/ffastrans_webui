@@ -1,5 +1,5 @@
 'use strict';
-const fs = require('fs-extra');
+const os = require('os')
 const fsPromises = require('fs').promises;
 const path = require("path");
 const common = require("./common/helpers.js");
@@ -21,55 +21,32 @@ function sleep(ms) {
 
 async function get(req, res) {
     try{
-        
-        var start,end;
-        try{
-            start   = Number(req.query.start)
-            end     = Number(req.query.count)
-            if (Number.isNaN(start) || Number.isNaN(end)){
-                throw new Error("assume defaults")
-            }
-        }catch(ex){
-            start   = 0
-            end     = 100
+        let o_return = {};
+        o_return.jobs = []
+        let fullpath, file, newitem, id, split
+        let pattern = '*'
+        if (req.query.jobid) {
+            pattern = req.query.jobid
         }
-
-        //if start and end was set, we cannot use cache mode
-        if (start != 0 || end != 100){
-            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-            let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end);
-            let returnobj = {discovery:req.headers.referer,history:a_jobs,active:a_active}
-            res.json(returnobj)
-            res.end();
-            return;
-        }
-        /* ensure we only read the jobs from filesystem once every x seconds */
-        while (jobs_cache.is_refreshing){
-            await sleep(1);
-        }
-
-        const currentTime = new Date();
-        let maxAge = new Date(currentTime.getTime() - 3 * 1000);
-        if (jobs_cache.born < maxAge || !jobs_cache.data){
-            jobs_cache.is_refreshing = true;
+        let monitor_folder = path.join(global.api_config["s_SYS_CACHE_DIR"], "monitor/");
+        let flist = await common._fileList(monitor_folder, pattern + '~*.json', false, true, 'all');
+        for (fullpath of flist) {
             try{
-                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
-                jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+                newitem = await common.readfile_cached(fullpath, true)//removes BOM;
+                file = path.basename(fullpath);
+                file = file.replace('.json', '')
+                split = file.split('~')
+                id = {job_id: split[0], split_id: split[1]}
+                o_return.jobs.push({ ...id, ...newitem })
             }catch(ex){
-                console.error("Error refreshing jobs:",ex)
-            }finally{
-                jobs_cache.is_refreshing = false;
+                console.log("Could not parse Json from file:", fullpath, ex)
             }
         }
-        res.json(jobs_cache.data)
+        res.json(o_return);
         res.end();
-
-    }catch(ex){
-        console.log("return error")
-        console.log(ex)
-
-        return res.status(500).json({message:ex,description: ""});
+    } catch (err) {
+        console.debug(err);
+        return res.status(500).json({ description: err });
     }
     
 }
@@ -87,27 +64,27 @@ async function put(req, res){
     //     "extra" : {"duration":"millis"}
     // }
     var s_action       = req.body.action;
-    var job            = req.body.job;
+    var job_id = req.body.job_id ? req.body.job_id : req.query.jobid
     var split_id       = req.body.split_id;
-    var s_user         = req.body.user;
-    var s_host         = req.body.host;
-    var s_system       = req.body.system;
-    var s_extra        = req.body.value ? req.body.value : false;
-
+    var s_extra = req.body.value ? req.body.value : '';
+    if (!req.body.user) {
+        req.body.user = common.getUserName()
+    }
+    if (!req.body.system) {
+        req.body.system = os.hostname()
+    }
     //var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
     var splitpart = split_id ? "~" + split_id : "";
-    var statusfile_name = "."+s_action+"~" + job + splitpart;
     
     try{
         if (s_action == 'pause'){
-            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".pause~" + job + splitpart ),"");
+            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart), req.body.user + '@' + req.body.system);
             s_extra = Number(s_extra);
             if(s_extra){
                 //auto resume
                 console.log("Pause Job with enabled auto resume in " + s_exta + " Millis")
                 setTimeout(async function(){
-                    fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".pause~" + job + splitpart ));
-                },s_extra)
+                    fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart));
             }
         }
         else if (s_action == 'abort'){
@@ -122,15 +99,15 @@ async function put(req, res){
             }
             //by default just write the status abort file
             if (!done)
-                await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".abort~" + job + splitpart ),"");
+                await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".abort~" + job_id + splitpart), s_extra.toString() + ':' + req.body.user + '@' + req.body.system);
 
         }
         else if (s_action == 'resume'){
-            await fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".pause~" + job + splitpart ))
+            await fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart))
         }
         else if (s_action == 'priority'){
             s_extra = Number(s_extra);
-            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"],"status", ".priority~" + job + splitpart ),s_extra.toString());
+            await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".priority~" + job_id + splitpart), s_extra.toString());
         }
         else{
             throw new Error("Action not supported: ["+s_action + "]")

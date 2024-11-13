@@ -1,5 +1,6 @@
 const fsPromises = require('fs').promises;
 const path = require("path")
+const os = require('os')
 const { uuid } = require('uuidv4');
 const moment = require('moment-timezone');
 var md2 = require('js-md2');
@@ -309,11 +310,17 @@ async function _fileList(dir, pattern = '*', recurse = false, sort = false, repl
     return res;
 }
 
+function getUserName() {
+    const userInfo = os.userInfo();
+    return userInfo.username;
+}
+
 module.exports = {
     readfile_cached             : readfile_cached,
     get_wf_name                 : get_wf_name,
     ticket_files_to_array       : ticket_files_to_array,
     json_files_to_array_cached  : json_files_to_array_cached,
     _fileList                   : _fileList,
+    getUserName: getUserName,
     JobTicket                   : JobTicket
 };
