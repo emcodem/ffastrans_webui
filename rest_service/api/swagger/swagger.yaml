@@ -216,6 +216,16 @@ paths:
           description: List of metrics
         default:
           description: Error 
+  /history:
+    x-swagger-router-controller: history
+    get:
+      description: Get history of jobs
+      operationId: history
+      responses:
+        "200":
+          description: List of jobs
+        default:
+          description: Error 
   /getjobdetails:
     x-swagger-router-controller: get_job_details
     get:

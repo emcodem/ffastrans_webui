@@ -262,6 +262,7 @@ async function start_server( _listenport){
         metrics:            require(_approot + "/api/controllers/metrics").get,
         review:             require(_approot + "/api/controllers/review").get,
         review_delete:      require(_approot + "/api/controllers/review").do_delete,
+        history :           require(_approot + "/api/controllers/history").get,
         jobs :              require(_approot + "/api/controllers/jobs").post,
         jobs_put :          require(_approot + "/api/controllers/jobs").put,
         jobs_get:           require(_approot + "/api/controllers/jobs").get,
