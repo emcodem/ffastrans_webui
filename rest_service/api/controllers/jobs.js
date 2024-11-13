@@ -85,6 +85,7 @@ async function put(req, res){
                 console.log("Pause Job with enabled auto resume in " + s_exta + " Millis")
                 setTimeout(async function(){
                     fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart));
+                })
             }
         }
         else if (s_action == 'abort'){
