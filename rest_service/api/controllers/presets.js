@@ -17,8 +17,6 @@ async function get(req, res) {
 	    var o_return = {};
         o_return["presets"] = []
         var fullpath
-        var dir
-        var _idx
         var presets_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/presets/");
         var flist = await common._fileList(presets_folder, '*.json', true, false, 'all');
         for (fullpath of flist) {
