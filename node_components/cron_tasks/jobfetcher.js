@@ -229,7 +229,7 @@ function parseQueuedJobs(responseBody){
 							q_obj[i]["progress"] = "0";
 							q_obj[i]["workflow"] = q_obj[i]["workflow"]; 
 							if ("sources" in q_obj[i]){
-								if ("sources" in q_obj[i]){
+								if ("sources" in q_obj[i] && Object.keys(q_obj[i].sources).length != 0){
 									q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
 								}else if ("source" in q_obj[i]){
 									q_obj[i]["source"] = path.basename(q_obj[i]["source"]);
