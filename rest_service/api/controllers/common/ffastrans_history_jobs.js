@@ -14,7 +14,9 @@ let workaround_dispel_database = {}; //workaround missing dispel info in ffastra
 async function getHistoryJobs(start,end){
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
-   
+    if (Object.keys(jobCache).length > 1000){ //housekeeping
+        jobCache = Object.fromEntries(Object.entries(jobCache).slice(0,1000));
+    }
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
     let perf_start = Date.now();
     const getDirectories = async source =>
@@ -32,8 +34,6 @@ async function getHistoryJobs(start,end){
       let startcount = 0;
       let jobCount = 0;
       for (let job_id of subfolders){
-        if (job_id == '0c00e03b-124e-4e2a-a8d4-f1cbf5bbbd01')
-            var stop = 1;
         startcount++;
         if (startcount < start)
             continue
@@ -63,16 +63,21 @@ async function getHistoryJobs(start,end){
                 continue
             try{
                 let splitfilepath   = path.join(finisheddir,split_id);
-                let jobjsonpath     = path.join(jobDir,job_id,".json");
-                let jobjson         = await readJsonFileCached(jobjsonpath);
-                console.debug(`Performance read job json ${jobjsonpath}: ${Date.now() - perf_start}ms`);
+                let taskjsonpath    = path.join(jobDir,job_id,".json");
+                let taskjson        = await fs.readFile(taskjsonpath, 'utf8');//no need to cache the file, we cache the parsed job obj in jobCache
+                taskjson            = taskjson.replace(/^\uFEFF/, ''); //BOM
+                taskjson             = JSON.parse(taskjson);
+                console.debug(`Performance read job json ${taskjsonpath}: ${Date.now() - perf_start}ms`);
                 if (true){
                     //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
-                    let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json")
+                    let _logpath = path.join(finisheddir,path.parse(splitfilepath).name + "_log" + ".json");
                     
                     if (!workaround_dispel_database.hasOwnProperty(_logpath)){
                         try{
-                            let last2lines = await readfile_cached(_logpath,false,false,1,"job_log_last_2_lines_workaround_dispel");
+                            // let last2lines = await readfile_cached(_logpath,false,false,1,"job_log_last_2_lines_workaround_dispel");
+                            // let thelog        = await fs.readFile(_logpath, 'utf8');//no need to cache the file, we cache the parsed job obj in jobCache
+                            // thelog            = thelog.replace(/^\uFEFF/, ''); //BOM
+                            let last2lines = await readEndOfFile(_logpath);
                             console.debug(`Performance read last 2 lines ${_logpath}: ${Date.now() - perf_start}ms`);
                             perf_start = Date.now();
                             //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
@@ -92,18 +97,21 @@ async function getHistoryJobs(start,end){
 
 
                 }
-                if (!jobjson.hasOwnProperty(split_id)){
-                    let splitcontent    = await readJsonFileCached(splitfilepath);
+                if (!taskjson.hasOwnProperty(split_id)){
+                    let splitcontent        = await fs.readFile(splitfilepath, 'utf8');//no need to cache the file, we cache the parsed job obj in jobCache
+                    splitcontent            = splitcontent.replace(/^\uFEFF/, ''); //BOM
+                    splitcontent = JSON.parse(splitcontent);
+                    //let splitcontent    = await readJsonFileCached(splitfilepath);
                     console.debug(`Performance read jobjson ${splitfilepath}: ${Date.now() - perf_start}ms`);
                     perf_start = Date.now();
-                    jobjson[split_id]      = splitcontent;
+                    taskjson[split_id]      = splitcontent;
                 }
-                let current_split = buildSplitInfo(jobjson,split_id);
+                let current_split = buildSplitInfo(taskjson,split_id);
                 taskArray.push(current_split);
-                jobCache[job_id].push(current_split)
+                jobCache[job_id].push(current_split);
                 
             }catch(ex){
-                console.trace(ex)
+                console.trace(ex);
             } 
         }
         console.debug(`Performance job ${job_id}: ${Date.now() - perf_start}ms`);
@@ -137,9 +145,28 @@ function buildSplitInfo(jobInfo,splitId){
     return to_return;
 }
 
+async function readEndOfFile(filepath,how_much = 1000){
+    //the node module to read last 2 lines was crap, slower than reading all file so we try this low level method
+    var SIZE    = how_much; // 64 byte intervals
+    let _fh;
+    try{
+        _fh         = await fs.promises.open(filepath, 'r');
+        let _fstat  = await _fh.stat();        
+        let maxlen = _fstat.size < how_much ? _fstat.size : how_much;
+        let pos     = _fstat.size < how_much ? 0 : _fstat.size - how_much;
+        let buffer  = new Buffer.alloc(maxlen);
+        let res     = await _fh.read({buffer:buffer,offset:0,length:maxlen,position:pos});
+        return (buffer.toString());
+    }catch(ex){
+        console.error("Error reading end of file",filepath,ex)
+    }finally{
+        _fh?.close();
+    }
+}
+
 async function readJsonFileCached(fname){
-    while(Object.keys(fileContentDatabase).length > 1000){ //housekeeping
-        let popped = fileContentDatabase.pop();
+    if(Object.keys(fileContentDatabase).length > 1000){ //housekeeping
+        fileContentDatabase = Object.fromEntries(Object.entries(fileContentDatabase).slice(0,1000));
     }
 
     if (fileContentDatabase.hasOwnProperty(fname)){
