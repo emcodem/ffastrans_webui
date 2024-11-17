@@ -45,7 +45,7 @@ async function start(req, res) {
                     console.debug("workflow exists in jobdir " + global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")
                     fs.readFile(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json", 'utf8', function (err, wf_file_contents) {
                         if (err) {
-                            console.error(err);
+                            console.error("cannot get jobdetails",err);
                             res_error();
                         }
                         wf_file_contents = wf_file_contents.trim();

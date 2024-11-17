@@ -191,6 +191,7 @@ async function start_server( _listenport){
             res.json({"message":"you must set content-type:application/json"})
             res.end();
         } else {
+            console.log("request to",req.method,req.url);
             next();
         }
     });
@@ -262,7 +263,7 @@ async function start_server( _listenport){
         metrics:            require(_approot + "/api/controllers/metrics").get,
         review:             require(_approot + "/api/controllers/review").get,
         review_delete:      require(_approot + "/api/controllers/review").do_delete,
-        jobs :              require(_approot + "/api/controllers/jobs").post,
+        jobs_post :         require(_approot + "/api/controllers/jobs").post_jobs,
         jobs_put :          require(_approot + "/api/controllers/jobs").put,
         jobs_get:           require(_approot + "/api/controllers/jobs").get,
         jobs_v2:            require(_approot + "/api/controllers/jobs").get,

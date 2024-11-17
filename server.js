@@ -344,20 +344,20 @@ async function init(conf){
 
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY
-    app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
-        onProxyReq: function (proxyReq, req, res) {
-            console.log(proxyReq)
-        },
-        parseReqBody: true,
-		reqBodyEncoding: null,
-		reqAsBuffer: true,
-    //     proxyReqBodyDecorator: function(bodyContent, srcReq) {
-    //    //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
-    //    //we actually want the body to be forwarded unmodified
-    //     bodyContent=(""+srcReq.body) 
-    //     return bodyContent;
-    //   }
-    }));
+    // app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
+    //     onProxyReq: function (proxyReq, req, res) {
+    //         console.log(proxyReq)
+    //     },
+    //     parseReqBody: true,
+	// 	reqBodyEncoding: null,
+	// 	reqAsBuffer: true,
+    // //     proxyReqBodyDecorator: function(bodyContent, srcReq) {
+    // //    //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
+    // //    //we actually want the body to be forwarded unmodified
+    // //     bodyContent=(""+srcReq.body) 
+    // //     return bodyContent;
+    // //   }
+    // }));
 
     //PROXY, forward to new api, port 3003 default
     var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
@@ -366,7 +366,7 @@ async function init(conf){
         logLevel: "info",
         proxyTimeout: global.config.STATIC_API_TIMEOUT,
         onProxyReq: function (proxyReq, req, res) {
-                                    console.log("proxying request to:",protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT) 
+                                    console.log("proxying request to:",protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT,req.url) 
                                 },
         parseReqBody: true,
         reqBodyEncoding: null,
@@ -374,7 +374,7 @@ async function init(conf){
         proxyReqBodyDecorator: function (bodyContent, srcReq) {
             //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
             //we actually want the body to be forwarded unmodified
-            console.debug("Proxying API call, request to url: " , protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT)
+            console.debug("Proxying API call, request to url: " , srcReq.method, protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + srcReq.url)
             if (typeof(srcReq.body) == "object"){
                 bodyContent = ("" + JSON.stringify(srcReq.body));
             }else{

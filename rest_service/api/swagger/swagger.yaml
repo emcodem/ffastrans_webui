@@ -358,16 +358,7 @@ paths:
     x-swagger-router-controller: jobs
     post:
       description: ""
-      operationId: jobs
-      parameters:
-        - name: jobid
-          in: query
-          description: A JobId, currently all branches of a job share the same jobid,
-            getjoblog cannot determine which log line belongs to which branch
-          required: true
-          schema:
-            type: string
-
+      operationId: jobs_post
       requestBody:
         content:
           application/json:

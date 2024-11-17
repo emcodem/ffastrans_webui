@@ -42,6 +42,7 @@ defaultConfig.allowed_browselocations = [
 ]
 
 //FFAStrans server
+defaultConfig.STATIC_API_HOSTS = "localhost";
 defaultConfig.STATIC_API_HOST = "localhost";
 defaultConfig.STATIC_API_PORT = "65445";
 defaultConfig.STATIC_API_NEW_PORT = "3003";

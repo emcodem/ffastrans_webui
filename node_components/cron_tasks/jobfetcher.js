@@ -114,7 +114,10 @@ async function getJobs(URLS){
 	var all_running_jobs 	= [];
 	var failed_count = 0;
 	
-	var HISTORY_URLS = [helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100")]
+	var HISTORY_URLS = []
+	let hostnames = global.config.STATIC_API_HOST.split(",");
+	for (let h of hostnames)
+		HISTORY_URLS.push([helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100",h,global.config["STATIC_API_NEW_PORT"])]);
 
 	for (var _currentUrl of HISTORY_URLS){
 		try{
@@ -127,7 +130,7 @@ async function getJobs(URLS){
 			if (ex.errors){
 				console.error("loadHistoryJobs",ex.errors);
 			}else{
-				console.error("loadHistoryJobs",ex)
+				console.error("loadHistoryJobs",ex);
 			}
 			failed_count++;
 		}

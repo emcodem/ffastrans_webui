@@ -7,7 +7,7 @@ const ffastrasHistoryHelper = require("./common/ffastrans_history_jobs.js");
 const ffastrasActiveJobHelper = require("./common/ffastrans_active_jobs.js");
 
 module.exports = {
-    post: post,
+    post_jobs: post,
     get: get,
     put:put
 };

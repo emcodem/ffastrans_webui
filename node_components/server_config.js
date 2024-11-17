@@ -65,6 +65,9 @@ module.exports = {
             configobj.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES;
             configobj.STATIC_ALLOWED_BROWSE_LOCATIONS = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS;
         }
+        if ("STATIC_API_HOSTS" in configobj){
+            global.config.STATIC_API_HOST = configobj.STATIC_API_HOSTS.split(",")[0];
+        }
 
         global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true}, function (err, newDoc) {
             if (err){
