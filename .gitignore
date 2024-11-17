@@ -12,5 +12,6 @@ alternate-server.old/
 *.db
 *.log.*
 dist
+!node_modules/@azure/msal-node/node_modules/uuid/dist/
 logs
 audit
