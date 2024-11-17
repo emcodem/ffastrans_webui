@@ -15,7 +15,7 @@ async function getHistoryJobs(start,end){
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
     if (Object.keys(jobCache).length > 1000){ //housekeeping
-        jobCache = Object.fromEntries(Object.entries(jobCache).slice(0,1000));
+        jobCache = Object.fromEntries(Object.entries(jobCache).slice(Object.keys(jobCache).length-1000,Object.keys(jobCache).length));
     }
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
     let perf_start = Date.now();
@@ -118,8 +118,6 @@ async function getHistoryJobs(start,end){
         perf_start = Date.now();
         jobCount++;
       }
-      console.debug(`Performance all jobs: ${Date.now() - perf_start}ms`);
-      perf_start = Date.now();
       return taskArray;
 }
 
@@ -166,7 +164,7 @@ async function readEndOfFile(filepath,how_much = 1000){
 
 async function readJsonFileCached(fname){
     if(Object.keys(fileContentDatabase).length > 1000){ //housekeeping
-        fileContentDatabase = Object.fromEntries(Object.entries(fileContentDatabase).slice(0,1000));
+        fileContentDatabase = Object.fromEntries(Object.entries(fileContentDatabase).slice(Object.keys(fileContentDatabase).length-1000,Object.keys(fileContentDatabase).length));
     }
 
     if (fileContentDatabase.hasOwnProperty(fname)){
