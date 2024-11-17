@@ -55,10 +55,10 @@ global.expressapp.get('/azurecallback', async (req, res) => {
 
 function get_msal_config(){
     return {auth:{
-		clientId: global.config.azure_config.clientId,
-		authority: global.config.azure_config.authority,
-		clientSecret: global.config.azure_config.clientSecret, 
-		redirectUri: global.config.azure_config.redirectUri,
+		clientId: global.confidential_config.azure_config.clientId,
+		authority: global.confidential_config.azure_config.authority,
+		clientSecret: global.confidential_config.azure_config.clientSecret, 
+		redirectUri: global.confidential_config.azure_config.redirectUri,
 	}}
 }
 

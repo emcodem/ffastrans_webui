@@ -17,7 +17,8 @@ module.exports = {
     saveConfidentialAsync: async() => {
         /* new strategy is that the rest of code just changes global config so no parameter here */
         //global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true})
-        let result = await global.db.config.update({},{"confidential_config":global.confidential_config});
+        
+        let result = await global.db.config.update({_id:"gcfid"},{"confidential_config":global.confidential_config,_id:"gcfid"},{upsert: true});
         return global.confidential_config;
     },
     getConfidentialAsync: async() => {
@@ -66,7 +67,9 @@ module.exports = {
             configobj.STATIC_ALLOWED_BROWSE_LOCATIONS = global.config.STATIC_ALLOWED_BROWSE_LOCATIONS;
         }
         if ("STATIC_API_HOSTS" in configobj){
+            //this is one key part of supporting multiple api hosts, e.g. on update we must define the default host 
             global.config.STATIC_API_HOST = configobj.STATIC_API_HOSTS.split(",")[0];
+            configobj.STATIC_API_HOST = configobj.STATIC_API_HOSTS.split(",")[0];
         }
 
         global.db.config.update({"global.config":{$exists:true}},{global:{config:configobj}},{upsert: true}, function (err, newDoc) {
