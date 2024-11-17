@@ -91,23 +91,26 @@ async function getQueuedJobs(){
 	//let response = await axios.get(_currentUrl)//await fetch(_currentUrl,{signal: AbortSignal.timeout( global.config.STATIC_API_TIMEOUT )});
 	var URLS = [helpers.build_new_api_url("/tickets")]
 	
+	//note that we don't (yet) pull this kind of jobs from multiple hosts, we need support on the ui to display the "system" first, otherwise one can loose overview
 	for (var _currentUrl of URLS){
 		try{
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
 			let response = await axios.get(_currentUrl);
 			parseQueuedJobs(response.data);
 		}catch(ex){
-			if (ex.errors){
-				console.error("getQueuedJobs",ex.errors);
+			if (ex.message){
+				console.error("getQueuedJobs",_currentUrl,ex.message);
+			}else if (ex.errors){
+				console.error("getQueuedJobs",_currentUrl,ex.errors);
 			}else{
-				console.error("getQueuedJobs",ex)
+				console.error("getQueuedJobs",_currentUrl,ex);
 			}
 		}
 	}
  
 }
 
-async function getJobs(URLS){
+async function getJobs(){
 
 	//gets history and active jobs. Todo: add queued jobs to jobs api so we have only a single call here?
 	var all_history_jobs 	= [];
@@ -115,24 +118,31 @@ async function getJobs(URLS){
 	var failed_count = 0;
 	
 	var HISTORY_URLS = []
-	let hostnames = global.config.STATIC_API_HOST.split(",");
+	
+	let hostnames = global.config.STATIC_API_HOSTS.split(",");
 	for (let h of hostnames)
 		HISTORY_URLS.push([helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100",h,global.config["STATIC_API_NEW_PORT"])]);
 
 	for (var _currentUrl of HISTORY_URLS){
+		console.time("Jobfetcher duration for: " + _currentUrl);
 		try{
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
 			let response = await axios.get(_currentUrl,{timeout: global.config.STATIC_API_TIMEOUT});
 			response = response.data;
 			all_history_jobs.push(...response.history); 
 			all_running_jobs.push(...response.active); 
+			
 		}catch(ex){
-			if (ex.errors){
-				console.error("loadHistoryJobs",ex.errors);
+			if (ex.message){
+				console.error("loadHistoryJobs",_currentUrl,ex.message);
+			}else if (ex.errors){
+				console.error("loadHistoryJobs",_currentUrl,ex.errors);
 			}else{
-				console.error("loadHistoryJobs",ex);
+				console.error("loadHistoryJobs",_currentUrl,ex);
 			}
 			failed_count++;
+		}finally{
+			console.timeEnd("Jobfetcher duration for: " + _currentUrl);
 		}
 	}
 	

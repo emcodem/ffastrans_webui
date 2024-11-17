@@ -125,11 +125,13 @@ function init(){
                 name: "STATIC_API_HOSTS",
                 value: m_serverconfig["STATIC_API_HOSTS"],
                 type: "input",
-                label: "FFASTrans Hostname",
+                label: "API Hostnames",
                 labelPosition: "left",
                 labelWidth: label_width,
                 required:true,
-                preMessage:"Is FFAStrans running on a different Server than webinterface? "
+                preMessage:"List of FFASTrans Systems to fetch Jobs from. These Servers must have webinterface or V3 API Service installed. \
+                By default localhost from webint perspective. Multiple entries must be comma separated. \
+                Note when using multiple systems, only the first host can be used to submit jobs, list workflows and similar. Only active and history jobs are shown from 'other' systems."
             },
             {
                 name: "STATIC_API_PORT",
@@ -141,7 +143,7 @@ function init(){
                 labelPosition: "left",
                 labelWidth: label_width,
                 required:true,
-                preMessage:"Did you change the default API Port of FFAStrans? "
+                preMessage:"Deprecated, will be removed in future "
             },            
             {
                 name: "STATIC_API_NEW_PORT",
@@ -152,7 +154,7 @@ function init(){
                 label: "Rest API v3 Port",
                 labelPosition: "left",
                 labelWidth: label_width,
-                preMessage:"v3 API is not public yet. You only need to change this if you run multiple webinterface instances on a single server.",
+                preMessage:"You only need to change this if you run multiple webinterface instances on a single server. If you specify multiple API Hostnames, all of them must listen on this port.",
                 required:true,
             },
     ]

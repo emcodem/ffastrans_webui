@@ -41,9 +41,9 @@ defaultConfig.allowed_browselocations = [
     },
 ]
 
-//FFAStrans server
-defaultConfig.STATIC_API_HOSTS = "localhost";
-defaultConfig.STATIC_API_HOST = "localhost";
+//job fetching config
+defaultConfig.STATIC_API_HOSTS = "localhost"; //commasep list of hosts
+defaultConfig.STATIC_API_HOST = "localhost"; //the default host e.g. where job submits go to
 defaultConfig.STATIC_API_PORT = "65445";
 defaultConfig.STATIC_API_NEW_PORT = "3003";
 defaultConfig.STATIC_API_TIMEOUT = 7000;

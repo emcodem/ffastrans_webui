@@ -92,7 +92,7 @@ module.exports = async function (app, passport) {
                 //ask tickets api for incoming, queued, running
 
                     if (!m_ticket_cache || !m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
-                        m_ticket_cache.tickets = m_ticket_cache.tickets = await global.jobfetcher.tickets();
+                        m_ticket_cache.tickets = await global.jobfetcher.tickets();
                     }
                     //apply user permissions to incoming and queued
                     var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
@@ -112,7 +112,7 @@ module.exports = async function (app, passport) {
 
 
             } catch (exc) {
-                console.error("Fatal error counting incoming jobs", exc)
+                console.error("Fatal error counting incoming jobs", exc.message)
             }
 
             try {
