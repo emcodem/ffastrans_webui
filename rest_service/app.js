@@ -49,15 +49,16 @@ module.exports = {
 };
 
 if (workerData){
+  //workerData is set, this script was loaded as WebWorker thread
   console.log("Startup as worker thread detected, params:",workerData);
-  init(workerData.port,workerData.path);
+  init(workerData.port,workerData.path,workerData.globalconf);
 }
 
-function init (_listenport,_ffastranspath) {
+function init (_listenport,_ffastranspath,globalconf = {}) {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
     console.log("init called, arguments: ", arguments)
 	  changeInstallPath(_ffastranspath);
-    start_server(_listenport);
+    start_server(_listenport,globalconf);
 }
 
 function doRequest(url) {
@@ -150,7 +151,7 @@ function handleListenError(err){
 	console.log(err)//prevents the program keeps running when port is in use
 }
 
-async function start_server( _listenport){
+async function start_server( _listenport,globalconf){
 	//GLOBAL CONFIG - the keyword global here will make the sub-objects available in all scripts that run in same process
 
     var _approot = __dirname;
@@ -223,12 +224,12 @@ async function start_server( _listenport){
     //startup server
     console.log('\x1b[32mNew API starting up...') 
 
-	if ("config" in global && global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
-		//only when started from webint server.js, global.config exists
-		var path_to_privkey = global.approot  	+ '/cert/key.pem';
-		var path_to_cert = global.approot  		+ '/cert/cert.pem';
-		var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
-		const https = require('https');
+	if (globalconf.STATIC_WEBSERVER_ENABLE_HTTPS){
+    console.log("Using https protocol");
+    var path_to_privkey = path.join(global.approot,"..", '/cert/key.pem');
+		var path_to_cert = path.join(global.approot,"..", '/cert/cert.pem');
+		var key_password = globalconf["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
+    const https = require('https');
 		const httpsServer = https.createServer({
 		  key: fs.readFileSync(path_to_privkey),
 		  cert: fs.readFileSync(path_to_cert),

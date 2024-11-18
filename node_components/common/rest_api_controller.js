@@ -8,7 +8,7 @@ class RestApi {
     private_init_port;
     private_init_path;
 
-    start_rest_api_thread(port,path,self){
+    start_rest_api_thread(port,path,globalconf,self){
         this.private_init_port = port;
         this.private_init_path = path;
         if (!self)
@@ -18,14 +18,15 @@ class RestApi {
         this.private_rest_api_worker = new Worker("./rest_service/app.js",{
             workerData: {
                 port:port,
-                path:path
+                path:path,
+                globalconf:globalconf
             }
         });
         this.private_rest_api_worker.on('exit', (code) => {
             console.log("rest api thread exited, exit code: ",code);
             if (!this.private_shutdown_requested){
                 console.error("rest_api shutdown unexpected, restarting it in 1 second...");
-                setTimeout(self.start_rest_api_thread,1000,port,path,self); //avoid potential recursive stack overflow by using setTimeout
+                setTimeout(self.start_rest_api_thread,1000,port,path,globalconf,self); //avoid potential recursive stack overflow by using setTimeout
             }
         });
         //return this.private_rest_api_worker;

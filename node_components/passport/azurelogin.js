@@ -35,15 +35,16 @@ function doLogin(req,res){
 
 global.expressapp.get('/azurecallback', async (req, res) => {
     //this method is called by the client, initiated from azure redirect once the login was successful
-    let msalClient = new ConfidentialClientApplication(get_msal_config());
-
-    const tokenRequest = {
-        code: req.query.code,
-        scopes: ['openid', 'profile', 'email', 'User.Read'], // Include User.Read scope
-        redirectUri: get_msal_config().auth.redirectUri,
-    };
 
     try {
+        let msalClient = new ConfidentialClientApplication(get_msal_config());
+
+        const tokenRequest = {
+            code: req.query.code,
+            scopes: ['openid', 'profile', 'email', 'User.Read'], // Include User.Read scope
+            redirectUri: get_msal_config().auth.redirectUri,
+        };
+    
         const parsed_azure_token = await msalClient.acquireTokenByCode(tokenRequest);
         console.log("Successful azure logon",parsed_azure_token);
         await loginSuccess(req,res,parsed_azure_token);

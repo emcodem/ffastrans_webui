@@ -331,7 +331,7 @@ async function init(conf){
             //while(!got_connection){
                 try{
                     // var res = await axios.get(about_url)
-                    restApiController.start_rest_api_thread(global.config["STATIC_API_NEW_PORT"],global.config["STATIC_FFASTRANS_PATH"]);
+                    restApiController.start_rest_api_thread(global.config.STATIC_API_NEW_PORT,global.config.STATIC_FFASTRANS_PATH,global.config);
                     got_connection = true;
                 }catch(exc){
                     console.error("Cannot start rest_api_thread");
