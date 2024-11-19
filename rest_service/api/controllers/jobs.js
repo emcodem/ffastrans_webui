@@ -37,9 +37,9 @@ function sleep(ms) {
 
         //if start and end was set, we cannot use cache mode
         if (start != 0 || end != 100){
-            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-            let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end);
             let returnobj = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid);
+            let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
             res.json(returnobj)
             res.end();
             return;
@@ -54,9 +54,9 @@ function sleep(ms) {
         if (jobs_cache.born < maxAge || !jobs_cache.data){
             jobs_cache.is_refreshing = true;
             try{
-                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
                 jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid);
+                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
             }catch(ex){
                 console.error("Error refreshing jobs:",ex)
             }finally{

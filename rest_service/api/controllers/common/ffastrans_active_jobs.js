@@ -1,27 +1,31 @@
 const path = require("path");
 const fs = require("fs-extra");
+const helpers = require("./helpers.js");
 
 module.exports = {
     getActiveJobs: getActiveJobs
 };
 
-async function getActiveJobs(start=0,end=1000){
+async function getActiveJobs(start=0,end=1000, jobid = '*'){
     /* scan db/monitor folder for .json files */
     let returnArray = [];
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
-    const allFiles = await fs.readdir(jobDir, { withFileTypes: true })
+    let listDir = path.join(jobDir, ".list");
+    try {
+        await fs.access(listDir);
+    } catch (error) {
+        listDir = jobDir
+    }
 
+    const allFiles = await helpers._fileList(listDir, jobid + '*.json', 0, 0, 'files');
     for (let file of allFiles){
-        if (!file.name.match(/json$/))
-            continue
-
-        let fullPath = path.join(jobDir,file.name);
+        let fullPath = path.join(jobDir, file);
       
         try{
             var contents        = await fs.readFile(fullPath,"utf-8");
             contents            = JSON.parse(contents.replace(/^\uFEFF/, ''));
-            contents.job_id     = file.name.split("~")[0];
-            contents.split_id   = file.name.split("~")[1].replace(".json","");
+            contents.job_id     = file.split("~")[0];
+            contents.split_id   = file.split("~")[1].replace(".json","");
             let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
             let jobJson_Path = path.join(jobDir,contents.job_id,".json");
             let jobJson = await fs.readFile(jobJson_Path,"utf-8");

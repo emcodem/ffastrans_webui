@@ -11,13 +11,13 @@ let fileContentDatabase = {};
 let jobCache = {};//{job_id:[task,task]},job_id:...}
 let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
-async function getHistoryJobs(start,end){
+async function getHistoryJobs(start,end, jobid = ''){
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
     if (Object.keys(jobCache).length > 1000){ //housekeeping
         jobCache = Object.fromEntries(Object.entries(jobCache).slice(Object.keys(jobCache).length-1000,Object.keys(jobCache).length));
     }
-    let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs");
+    let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"jobs", jobid);
     let perf_start = Date.now();
     const getDirectories = async source =>
     (await fs.readdir(source, { withFileTypes: true }))
@@ -27,7 +27,13 @@ async function getHistoryJobs(start,end){
       let subfolders = await getDirectories(jobDir);
       console.debug(`Performance Dirlist ${jobDir}: ${Date.now() - perf_start}ms`);
       perf_start = Date.now();
-      subfolders= subfolders.sort().reverse()
+      if (jobid) {
+        subfolders = [jobid]
+        jobDir = jobDir + '\\..'
+      } else {
+        subfolders = subfolders.sort().reverse()
+      }
+      console.log(subfolders)
       if (subfolders.length > 10000)
         console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
       
