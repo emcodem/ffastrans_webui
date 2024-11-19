@@ -267,6 +267,7 @@ async function start_server( _listenport,globalconf){
         jobs_post :         require(_approot + "/api/controllers/jobs").post_jobs,
         jobs_put :          require(_approot + "/api/controllers/jobs").put,
         jobs_get:           require(_approot + "/api/controllers/jobs").get,
+        jobvars:            require(_approot + "/api/controllers/jobvars").get,
         jobs_v2:            require(_approot + "/api/controllers/jobs").get,
         presets:            require(_approot + "/api/controllers/presets").get,
         presets_post:       require(_approot + "/api/controllers/presets").post,

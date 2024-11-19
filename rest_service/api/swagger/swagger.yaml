@@ -234,6 +234,30 @@ paths:
           description: Success
         default:
           description: Error
+  /jobvars:
+    x-swagger-router-controller: jobvars
+    get:
+      description: Get available variables from a job
+      operationId: jobvars
+      parameters:
+        - name: jobid
+          in: query
+          description: A JobId, currently all branches of a job share the same jobid,
+            getjoblog cannot determine which log line belongs to which branch
+          required: true
+          schema:
+            type: string
+        - name: vars
+          in: query
+          description: A variable name or pipe-delimited (|) list of variable names to query.
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /getmediainfo:
     x-swagger-router-controller: get_mediainfo
     get:
