@@ -282,32 +282,52 @@ async function cache_cleaner(cache_name){
 }
 
 async function _fileList(dir, pattern = '*', recurse = false, sort = false, reply = 'path') {
-    var res = []
-    pattern = pattern.replaceAll('.', '\.');
-    pattern = pattern.replaceAll('?', '.');
-    pattern = pattern.replaceAll('*', '.*?');
-    pattern = new RegExp('^' + pattern + '$', 'ig');
-    var list = await fsPromises.readdir(dir, { recursive: recurse });
-    var file
-    for (k of list) {
-        file = path.basename(k);
-        if (file.match(pattern)) {
-            switch (reply) {
-                case 'path':
-                    res.push(k);
-                    break
-                case 'files':
-                    res.push(file);
-                    break
-                case 'all':
-                    res.push(dir + k);
+    let res = []
+    try {
+        pattern = pattern.replaceAll('.', '\.');
+        pattern = pattern.replaceAll('?', '.');
+        pattern = pattern.replaceAll('*', '.*?');
+        pattern = pattern.replaceAll('\\', '\\\\');
+        let split =  pattern.split('|')
+        split.length = 3
+        split[0] = split[0].replaceAll(';', '\|');
+        split[0] = new RegExp('^' + split[0] + '$', 'ig');
+        if (!split[1]) {
+            split[1] = '/'
+        }
+        split[1] = split[1].replaceAll(';', '\|');
+        split[1] = new RegExp('^' + split[1] + '$', 'ig');
+        if (!split[2]) {
+            split[2] = '/'
+        }
+        split[2] = new RegExp(split[2], 'ig');
+        let list = await fsPromises.readdir(dir, { recursive: recurse });
+        let file
+        let dirr
+        for (k of list) {
+            file = path.basename(k);
+            dirr = path.dirname(k)
+            dirr = '\\' + dirr + '\\'
+            if (file.match(split[0]) && !file.match(split[1]) && !dirr.match(split[2])) {
+                switch (reply) {
+                    case 'path':
+                        res.push(k);
+                        break
+                    case 'files':
+                        res.push(file);
+                        break
+                    case 'all':
+                        res.push(dir + k);
+                }
             }
         }
+        if (sort) {
+            res.sort()
+        }
+        return res;
+    } catch(err) {
+        return res;
     }
-    if (sort) {
-        res.sort()
-    }
-    return res;
 }
 
 function getUserName() {
