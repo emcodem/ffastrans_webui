@@ -275,6 +275,7 @@ async function start_server( _listenport,globalconf){
         workflow_post :     require(_approot + "/api/controllers/workflows").post,
         workflows :         require(_approot + "/api/controllers/workflows").get,
         workflows_v2 :      require(_approot + "/api/controllers/workflows").get,
+        workflows_status :  require(_approot + "/api/controllers/workflows_status").get,
         variables :         require(_approot + "/api/controllers/variables").get,
         variables_post :    require(_approot + "/api/controllers/variables").post,
         variables_delete :  require(_approot + "/api/controllers/variables").delete

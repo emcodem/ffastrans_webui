@@ -252,6 +252,16 @@ paths:
         default:
           description: Error
 
+  /workflows/status:
+    x-swagger-router-controller: workflows_status
+    get:
+      description: "Get current status of all workflows"
+      operationId: workflows_status
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /workflows:
     x-swagger-router-controller: workflows
     get:
