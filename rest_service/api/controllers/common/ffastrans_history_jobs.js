@@ -29,11 +29,10 @@ async function getHistoryJobs(start,end, jobid = ''){
       perf_start = Date.now();
       if (jobid) {
         subfolders = [jobid]
-        jobDir = jobDir + '\\..'
+        jobDir = path.resolve(jobDir ,'..');
       } else {
         subfolders = subfolders.sort().reverse()
       }
-      console.log(subfolders)
       if (subfolders.length > 10000)
         console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
       

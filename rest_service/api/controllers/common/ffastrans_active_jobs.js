@@ -10,7 +10,7 @@ async function getActiveJobs(start=0,end=1000, jobid = '*'){
     /* scan db/monitor folder for .json files */
     let returnArray = [];
     let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
-    let listDir = path.join(jobDir, ".list");
+    let listDir = path.join(jobDir, ".list"); //ffastrans > 1.4.0.7 wants the jsons to be read from .list folder in order to mitigate locked files issue
     try {
         await fs.access(listDir);
     } catch (error) {
