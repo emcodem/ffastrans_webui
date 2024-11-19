@@ -445,7 +445,14 @@ paths:
           required: false
           schema:
             type: string
-      responses:
+        - name: jobid
+          in: query
+          description: A JobId, currently all branches of a job share the same jobid,
+            getjoblog cannot determine which log line belongs to which branch
+          required: false
+          schema:
+            type: string
+     responses:
         "200":
           description: Success
         default:
