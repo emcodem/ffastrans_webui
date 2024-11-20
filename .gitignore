@@ -14,5 +14,6 @@ alternate-server.old/
 dist
 !node_modules/@azure/msal-node/node_modules/uuid/dist/
 !node_modules/https-proxy-agent/dist
+!node_modules/agent-base/dist
 logs
 audit
