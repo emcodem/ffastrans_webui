@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const fsExtra = require('fs-extra');
 const path = require('path');
 const { exec } = require('child_process');
 
@@ -38,7 +39,8 @@ function start(req, res) {
 
 async function main(res, filepath,do_html) {
     try {
-        let data = await MediaInfo(filepath);
+        let mediainfo_exe = await findMediainfoExe();
+        let data = await MediaInfo(filepath,mediainfo_exe);
         return res.status(200).send(data);
         
     } catch (ex) {
@@ -46,15 +48,15 @@ async function main(res, filepath,do_html) {
     }
 }
 
-function MediaInfo(file) {
+function MediaInfo(file,mediainfo_exe) {
     var args = [].slice.call(arguments);
     var cmd_options = typeof args[0] === "object" ? args.shift() : {};
     var cmd = [];
 
-    cmd.push(getCmd()); // base command
+    cmd.push(mediainfo_exe); // base command
     cmd.push('--Output=HTML'); // args
     cmd.push(file);
-    console.log("exec mediainfo",cmd_options)
+    console.log("exec mediainfo",cmd)
     return new Promise(function (resolve, reject) {
         exec(cmd.join(' '), cmd_options, function (error, stdout, stderr) {
             if (error !== null || stderr !== '') return reject(error || stderr);
@@ -63,6 +65,12 @@ function MediaInfo(file) {
     });
 };
 
-function getCmd() {
-    return path.join(global.approot,"tools","mediainfo","mediainfo.exe");
+async function findMediainfoExe() {
+    //todo: we really should find a solution for the global.approot problem, at least we should not locate the exe here.
+    var when_complied = path.join(global.approot,"tools","mediainfo","mediainfo.exe");
+    var when_run_from_code = path.join(global.approot,"..","tools","mediainfo","mediainfo.exe");
+    if (await fsExtra.pathExists (when_complied))
+        return when_complied;
+    else
+        return when_run_from_code;
 }
