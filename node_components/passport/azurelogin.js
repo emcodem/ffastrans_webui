@@ -1,5 +1,5 @@
 const { ConfidentialClientApplication } = require('@azure/msal-node');
-const axios = require('axios');
+var {HttpsProxyAgent} = require('https-proxy-agent');
 
 module.exports = {
     doLogin:doLogin
@@ -55,12 +55,32 @@ global.expressapp.get('/azurecallback', async (req, res) => {
 });
 
 function get_msal_config(){
-    return {auth:{
+    /* 
+        MSAL native proxyUrl method did not work but injecting HttpsProxyAgent worked.
+        NOTE that we needed to change msal-node.cjs const networkRequestViaHttps =  method.
+        instead of this:
+            customOptions.agent = https.Agent(agentOptions);
+        we do this:
+            if(agentOptions.constructor && (agentOptions.constructor.name == "HttpsProxyAgent"))
+                customOptions.agent = agentOptions;
+            else 
+                customOptions.agent = https.Agent(agentOptions);
+
+    */
+    let conf= {
+        auth:{
 		clientId: global.confidential_config.azure_config.clientId,
 		authority: global.confidential_config.azure_config.authority,
 		clientSecret: global.confidential_config.azure_config.clientSecret, 
 		redirectUri: global.confidential_config.azure_config.redirectUri,
-	}}
+	    }
+    }
+    if (global.confidential_config.azure_config.proxy ){
+        conf.system = {
+            customAgentOptions: new HttpsProxyAgent(global.confidential_config.azure_config.proxy)
+        }
+    }
+    return conf;
 }
 
 async function loginSuccess(req,res,parsed_azure_token){
