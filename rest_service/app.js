@@ -19,7 +19,6 @@ const dns = require('node:dns');
 const YAML = require('yamljs');
 const swaggerUi = require('swagger-ui-express');
 const util = require('util');
-1
 const exec = util.promisify(require('child_process').exec);
 const { workerData, parentPort } = require('worker_threads');
 const logfactory = require("../shared_modules/logger.js");
@@ -230,7 +229,7 @@ async function start_server( _listenport,globalconf){
     //startup server
     console.log('\x1b[32mNew API starting up...') 
 
-	if (globalconf.STATIC_WEBSERVER_ENABLE_HTTPS){
+	if (globalconf.STATIC_WEBSERVER_ENABLE_HTTPS == "true"){
     console.log("Using https protocol");
 		var key_password = globalconf["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
     const https = require('https');
