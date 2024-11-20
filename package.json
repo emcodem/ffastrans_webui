@@ -31,6 +31,7 @@
     "grunt": "^1.4.0",
     "html-tablify": "^2.0.4",
     "https": "^1.0.0",
+    "https-proxy-agent": "^7.0.5",
     "is-running": "^2.1.0",
     "log4js": "^6.3.0",
     "longjohn": "^0.2.12",
