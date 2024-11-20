@@ -388,7 +388,7 @@ function updateJobCount(){
             document.getElementById("errorjobcount").innerHTML      = msg.sys.Error;
             document.getElementById("activejobcount").innerHTML     = msg.sys.Running;  
             document.getElementById("queuedjobcount").innerHTML     = msg.sys.Queued;
-            document.getElementById("incomingjobcount").innerHTML   = msg.sys.Incoming;
+            // document.getElementById("incomingjobcount").innerHTML   = msg.sys.Incoming;
             document.getElementById("GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE").innerHTML = msg.sys.Review < 100 ? msg.sys.Review : 99;
             if (msg.sys.Review != 0){
                 document.getElementById("GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE").style.visibility = "visible";
@@ -464,7 +464,7 @@ async function init(permissions){
     await headerLayout.getCell("top").attachHTML('<header id="ffastrans_header"   >'+
     '<div class="counter_container">' + 
     '<div class="counter_jobs div_active_jobs">Running<div class="header_counter_number" id="activejobcount">0</div></div>'+
-    '<div class="counter_jobs div_incoming_jobs">Incoming<div class="header_counter_number" id="incomingjobcount">0</div></div>'+
+    // '<div class="counter_jobs div_incoming_jobs">Incoming<div class="header_counter_number" id="incomingjobcount">0</div></div>'+
     '<div class="counter_jobs div_queued_jobs">Queued<div class="header_counter_number" id="queuedjobcount">0</div></div>'+
     '<div class="counter_jobs div_success_jobs">Success<div class="header_counter_number" id="successjobcount">0</div></div>'+
     '<div class="counter_jobs div_error_jobs">Error<div class="header_counter_number" id="errorjobcount">0</div></div>'+
@@ -594,10 +594,10 @@ async function init(permissions){
         //server should inform us periodically by cron job 
         document.getElementById("queuedjobcount").innerHTML = msg;
     });
-    socket.on('incomingjobcount', function(msg){
-        //server should inform us periodically by cron job 
-        document.getElementById("incomingjobcount").innerHTML = msg;
-    });
+    // socket.on('incomingjobcount', function(msg){
+    //     //server should inform us periodically by cron job 
+    //     document.getElementById("incomingjobcount").innerHTML = msg;
+    // });
     socket.on('databaseerror', function(msg){
         //server should inform us periodically by cron job 
         dhx.message({ expire: 3000, text: "Fatal Error with job database: " + msg, icon: "dxi-close" });

@@ -303,7 +303,7 @@ function parseQueuedJobs(responseBody){
 			}else{
 				console.error("Error, we should not come here, keyword: incoming")
 				global.socketio.emit("incomingjobs", "[]");
-				global.socketio.emit("incomingjobcount", 0);               
+				// global.socketio.emit("incomingjobcount", 0);               
 			}
 		}catch(exc){
 			console.error("Error occured while sending incoming to clients: " + exc )
