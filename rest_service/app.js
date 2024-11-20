@@ -28,10 +28,15 @@ const { initialize } = require('express-openapi');
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
 
 global.approot  = path.dirname(process.execPath); //bad practice, the logger uses global.approot instead of taking a parameter where to write logs
+var path_to_privkey = path.join(global.approot, '/cert/key.pem');
+var path_to_cert = path.join(global.approot, '/cert/cert.pem');
+
 if (fs.existsSync(path.join(global.approot, "/database/"))) {
   console.log("Running as compiled file")
 }else{
   global.approot  = __dirname;
+  path_to_privkey = path.join(global.approot,"..", '/cert/key.pem');
+  path_to_cert = path.join(global.approot,"..", '/cert/cert.pem');
   console.log("Running as node script - developer mode")  
 }
 var logger = logfactory.getLogger("rest_api");
@@ -226,8 +231,6 @@ async function start_server( _listenport,globalconf){
 
 	if (globalconf.STATIC_WEBSERVER_ENABLE_HTTPS){
     console.log("Using https protocol");
-    var path_to_privkey = path.join(global.approot,"..", '/cert/key.pem');
-		var path_to_cert = path.join(global.approot,"..", '/cert/cert.pem');
 		var key_password = globalconf["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
     const https = require('https');
 		const httpsServer = https.createServer({
