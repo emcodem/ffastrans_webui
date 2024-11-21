@@ -4,6 +4,7 @@
 <script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script src="../../dependencies/moment/moment.js"></script>
 <script>
     //theme changeer
     if (localStorage.global_skin_dark == "1"){
@@ -173,7 +174,7 @@ async function buildLayout(){
    
     //GRID
     m_maingrid = new dhx8.dhx.Grid(null, {
-
+        htmlEnable: true,
         columns: [
             //id is "direct" access to the workflow json, it is evalled in loadGridData
             {  readonly:true, id: "computername",        header: [{ content: "inputFilter" },{ text: label_map("farm_hostname")}]},
@@ -187,9 +188,30 @@ async function buildLayout(){
                    return cpu_data["cores"] + " Cores, " +cpu_data["architecture"] + ", ID: " +cpu_data["identifier"]  + ", Rev: " + cpu_data["revision"] 
                 }
             },
-            {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }]},
-            {  readonly:true, id: "ffas_start_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }]},
-            {  readonly:true, id: "ffas_end_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}]},
+            {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }],
+                template:function(date){    
+                    const now = moment();
+                    const diffInMinutes = now.diff(moment(date), 'minutes');
+                    let colordot = "&#128994"; //green
+                    if (diffInMinutes > 3) colordot = "&#128993";//yellow
+                    if (diffInMinutes > 5) colordot = "&#128308";//red
+                    
+                    return colordot + " " + moment(date).format('YYYY-MM-DD HH:mm:ss');
+                },
+                htmlEnable: true
+            },
+            {  readonly:true, id: "ffas_start_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }],
+                template:function(date){
+                    
+                    return  moment(date).format('YYYY-MM-DD HH:mm:ss');   
+                }
+            },
+            {  readonly:true, id: "ffas_end_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}],
+                template:function(date){
+                    
+                    return  moment(date).format('YYYY-MM-DD HH:mm:ss');   
+                }
+            },
           
 
         ],
