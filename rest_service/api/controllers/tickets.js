@@ -200,7 +200,7 @@ async function start(req, res) {
             //the real queued folder is more like a temp folder for tickets between pending and running
             o_return["tickets"]["queued"] = await get_pending(); 
             //o_return["tickets"]["queue"] = common.ticket_files_to_array(path.join(s_tick_path,"queue"));
-            o_return["tickets"]["incoming"] = await get_incoming();
+            //o_return["tickets"]["incoming"] = await get_incoming(); NOTE; INCOMING DISABLED BECAUSE SINCE FFASTRANS 1407 they are useless because not contains file information
             o_return["tickets"]["running"] = await get_running();
             o_return["tickets"]["review"] = await get_review();
             
