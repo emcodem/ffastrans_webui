@@ -272,44 +272,46 @@ function parseQueuedJobs(responseBody){
 			console.error("Error occured while sending queuedjobs to clients: " + exc )
 			console.error(exc.stack)
             console.error(q_obj)
+		
 		}
 		
-        try{
-			//WATCHFOLDER Incoming
-			let q_obj =responseBody.tickets.incoming;
-			if (q_obj !== undefined) {
-				for (let i=0; i<q_obj.length;i++){
-							q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
-							q_obj[i]["ticket_path"] = q_obj[i]["ticket_path"];
-							q_obj[i]["split_id"] = "";
-							q_obj[i]["state"] = "Incoming";
-							q_obj[i]["title"] = "Incoming";
-							q_obj[i]["steps"] = "";
-							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; 
-							q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
-							q_obj[i]["status"] = "Incoming";
-							q_obj[i]["job_start"] = getDateStr(q_obj[i]["submit"]["time"]);
-							q_obj[i]["proc"] = "Watchfolder";
-				}
-			}
+		//incoming disable since ffastrans 1407 the tickets became uselesee
+        // try{
+		// 	//WATCHFOLDER Incoming
+		// 	let q_obj =responseBody.tickets.incoming;
+		// 	if (q_obj !== undefined) {
+		// 		for (let i=0; i<q_obj.length;i++){
+		// 					q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
+		// 					q_obj[i]["ticket_path"] = q_obj[i]["ticket_path"];
+		// 					q_obj[i]["split_id"] = "";
+		// 					q_obj[i]["state"] = "Incoming";
+		// 					q_obj[i]["title"] = "Incoming";
+		// 					q_obj[i]["steps"] = "";
+		// 					q_obj[i]["progress"] = "0";
+		// 					q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; 
+		// 					q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
+		// 					q_obj[i]["status"] = "Incoming";
+		// 					q_obj[i]["job_start"] = getDateStr(q_obj[i]["submit"]["time"]);
+		// 					q_obj[i]["proc"] = "Watchfolder";
+		// 		}
+		// 	}
 			
-			//send the new jobs to connected clients
-			//TODO: clients currently apply the workflow filters, we must filter on server side
-			//that means we have to apply a similar strategy as with history and active jobs, e.g. clients pull the joblist
-			if (responseBody.tickets.incoming){
+		// 	//send the new jobs to connected clients
+		// 	//TODO: clients currently apply the workflow filters, we must filter on server side
+		// 	//that means we have to apply a similar strategy as with history and active jobs, e.g. clients pull the joblist
+		// 	if (responseBody.tickets.incoming){
 				
-				global.socketio.emit("incomingjobs", JSON.stringify(q_obj));           
-			}else{
-				console.error("Error, we should not come here, keyword: incoming")
-				global.socketio.emit("incomingjobs", "[]");
-				// global.socketio.emit("incomingjobcount", 0);               
-			}
-		}catch(exc){
-			console.error("Error occured while sending incoming to clients: " + exc )
-			console.error(exc.stack)
-            console.error(q_obj[i])
-		}
+		// 		global.socketio.emit("incomingjobs", JSON.stringify(q_obj));           
+		// 	}else{
+		// 		console.error("Error, we should not come here, keyword: incoming")
+		// 		global.socketio.emit("incomingjobs", "[]");
+		// 		// global.socketio.emit("incomingjobcount", 0);               
+		// 	}
+		// }catch(exc){
+		// 	console.error("Error occured while sending incoming to clients: " + exc )
+		// 	console.error(exc.stack)
+        //     console.error(q_obj[i])
+		// }
 }
 
 async function parseHistoryJobs(all_jobs){
@@ -351,7 +353,7 @@ async function parseHistoryJobs(all_jobs){
 
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
 					jobArray[i].wf_name = jobArray[i]["workflow"];
-
+					
 					//filter deleted jobs from new joblist
 					if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1){
 						non_deleted_jobs.push(jobArray[i]);
