@@ -628,17 +628,49 @@
         //history grid is sorted in buildHistoryGrid
         sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
 		
-		//workaround grips getting lost after resize: as fancytree takes a while to resize on window resize, we delay the resizing of colresizeable plugin
-		window.onresize = function(){
-            console.log("window was resized")
-			window.setTimeout(function(){
-				attachColResizeable("#treetable_active")
-				attachColResizeable("#treetable_history")
-			},1500)
-		};
+        function debounce(func){
+            //used to prevent firing window onresize "while the window is resized", e.g. wait 100ms for no size change and only then execute the function
+            var timer;
+            return function(event){
+                if(timer) clearTimeout(timer);
+                timer = setTimeout(func,500,event);
+            };
+        };
+
+		window.onresize = debounce(function(){
+            /* takes care about column resize matters */
+
+            console.log("window was resized");
+            validateColSizes();
+            //workaround grips getting lost after resize: as fancytree takes a while to resize on window resize, we delay the resizing of colresizeable plugin
+            window.setTimeout(function(){
+                attachColResizeable("#treetable_active")
+                attachColResizeable("#treetable_history")
+			},100)
+		});
 		
     }
 
+    function validateColSizes(){
+        try{
+            //this was the best way we found to force a max-size for a table column, colResizable plugin does not support maxwidth
+            let historystatecolw = localStorage.getItem("treetable_history").match(/^\d+/)[0];
+            let activestatecolw = localStorage.getItem("treetable_active").match(/^\d+/)[0];
+            if (historystatecolw > 86){
+                console.log("State column size is bigger than 85, forcing maxsize");
+                console.log("before",localStorage.getItem("treetable_history"))
+                let newHistWidthList = localStorage.getItem("treetable_history").replace(/^\d+/,85);
+                localStorage.setItem("treetable_history",newHistWidthList);
+            }
+            if (activestatecolw > 86){
+                console.log("before",localStorage.getItem("treetable_active"))
+                let newHistWidthList = localStorage.getItem("treetable_active").replace(/^\d+/,85);
+                localStorage.setItem("treetable_active",newHistWidthList);
+            }
+        }catch(ex){
+            console.log(ex)
+        }
+    }
 
     function buildWorfklowTree(){
 
@@ -925,6 +957,8 @@
 	}
 	
     function onAfterColumnResized(e){
+        validateColSizes();
+
         // console.log("onAfterColumnResized",e);
         // $("#treetable_history").fancytree('getTree').mystuff.colResizeable.applyBounds();
         // let statecol = document.getElementById("history-state");
