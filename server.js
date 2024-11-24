@@ -280,6 +280,12 @@ async function init(conf){
         if (global.confidential_config && global.confidential_config.azure_config){
             azure_link = global.confidential_config.azure_config.azure_login_link;
         }
+
+        if (fs.existsSync(path.join(global.approot,"alternate-server/login.html"))){
+            res.sendFile(path.join(global.approot,"alternate-server/login.html"));
+            return;
+        }
+        
         res.render("login.mustache",
           {
             instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
