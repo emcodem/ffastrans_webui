@@ -95,17 +95,17 @@ module.exports = async function (app, passport) {
                         m_ticket_cache.tickets = await global.jobfetcher.tickets();
                     }
                     //apply user permissions to incoming and queued
-                    var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
+                    // var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
                     var queued_wfnames = m_ticket_cache.tickets.queued.map(_tick => _tick.internal_wf_name);
                     var running_wfnames = m_ticket_cache.tickets.running.map(_tick => _tick.internal_wf_name);
                     function is_allowed(to_check, all_allowed) {
                         return all_allowed.some(_wf => _wf.wf_name == to_check)
                     }
-                    var incoming_filtered = incoming_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
+                    // var incoming_filtered = incoming_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
                     var queued_filtered = queued_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
                     var running_filtered = running_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
                     //enrich countObj with incoming and queued
-                    countObj.sys.Incoming = incoming_filtered.length;
+                    // countObj.sys.Incoming = incoming_filtered.length;
                     countObj.sys.Queued = queued_filtered.length;
                     countObj.sys.Running = running_filtered.length;
                 
