@@ -50,22 +50,44 @@ module.exports = function(app, express){
 			//make regex for text fields
 			if (Object.keys(filterobj).length  != 0){
 				newfilter = {};
-				for (key in filterobj){
+				for (const [key, value] of Object.entries(filterobj)){
 					if (key == "workflow"){
-						newfilter.workflow = filterobj[key];
+						newfilter.workflow = value;
 						continue;
 					}
-					if (key == "children.variables"){
-						//variablecolumns
+					if (key == "variablecol"){
+						/**
+						 * Setup search obj for variablecol. Varcols can contain multiple ffastrans user_vars
+						 * Mongodb contains job.children[].variables[], each variable has data and name. We want to search only in variables that are used in the variablecolumn template
+						 */
+						
+						let foundVariableColConf = global.config.job_viewer.variable_columns.filter(colconf=>{
+							return colconf.col_header_name == value.col_header_name;
+						});
+						if (foundVariableColConf.length == 0)
+							continue;
+
+						let rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
+						let ffasvars = foundVariableColConf[0].col_template.matchAll(rgx);//creates an array of regex matches, [1] will contain the group capture
+						ffasvars = Array.from(ffasvars);
+						let orCondition = []; //array of data, name pairs for search in job.children[].variables[]
+						ffasvars.forEach(regexmatch=>{
+							let mongoFilterForVar = {
+									"data": {$regex: new RegExp(escapeRegExp(value.filter),"i")}, //the search filter from Userinterface search input
+									"name": regexmatch[1] //the ffas varname as seen in the variablecol template butwithout %%
+								}
+							orCondition.push(mongoFilterForVar);
+						})
+						//locate all variable names in the search template
 						newfilter["children.variables"] = {
 							$elemMatch: {
-								//todo: can/should we consider the variable names here? ;-)
-								"data": {$regex: new RegExp(escapeRegExp(filterobj[key]),"i")} 
+								$or: orCondition
 							  }
 						}
+
 						continue;
 					}
-					newfilter[key] = {$regex: new RegExp(escapeRegExp(filterobj[key]),"i")}
+					newfilter[key] = {$regex: new RegExp(escapeRegExp(value),"i")}
 				}
 				filterobj = newfilter;
 			}

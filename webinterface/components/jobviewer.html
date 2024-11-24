@@ -905,8 +905,9 @@
 			$(tree_id).colResizable({
 			   disable:true
 			});
+            
 			//recreate
-			$(tree_id).colResizable({
+			let _colres = $(tree_id).colResizable({
 				resizeMode: 'fit',
 				hoverCursor: "col-resize",
 				dragCursor: "col-resize",
@@ -915,11 +916,20 @@
 				minWidth: 10,
 				liveDrag: true,
 				removePadding : true,
-                
+                onResize:onAfterColumnResized
 			});
+
+            // if (tree_id.match(/history/))   
+            //     $("#treetable_history").fancytree('getTree').mystuff.colResizeable = _colres;
 
 	}
 	
+    function onAfterColumnResized(e){
+        // console.log("onAfterColumnResized",e);
+        // $("#treetable_history").fancytree('getTree').mystuff.colResizeable.applyBounds();
+        // let statecol = document.getElementById("history-state");
+    }
+
     function buildActiveGrid() {
 
         //var sourceUrl = "testdata.xml";
@@ -1660,7 +1670,7 @@
                 }
                 if (input.dataset && input.dataset["isvariablecol"] && this_input_filter){
                     //prepare filter for variablecol
-                    search_obj["children.variables"] = this_input_filter;
+                    search_obj["variablecol"] = {col_header_name:input.placeholder,filter:this_input_filter};
                     input.nextElementSibling.style.display = "";
                     continue;
                 }else{
