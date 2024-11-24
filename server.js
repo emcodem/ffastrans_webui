@@ -440,6 +440,7 @@ async function init(conf){
     require("./node_components/views/getworkflowdetails")(app, passport);
     require("./node_components/views/scheduledjobs")(app, passport);
     require("./node_components/views/browselocations")(app, express);
+    require("./node_components/views/variablecolumns")(app, express);
     require("./node_components/views/getjobstate")(app, express);
     require("./node_components/views/localdrives")(app, express);
 

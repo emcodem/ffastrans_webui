@@ -238,7 +238,6 @@
 
     /*load config from server*/
     function loadserverconfig() {
-
         $.ajax({
             url: ("/getuserpermissionsasync" + "?" + Math.random()),
             type: "GET",
@@ -270,7 +269,7 @@
 
     function toggleJobControl(id,selected_is_on){
         //enable/disable menu buttons
-        console.log("ToggleJobControl")
+        console.log("ToggleJobControl");
         var tree = $(id).fancytree('getTree');
         var all_selected_nodes = tree.getSelectedNodes();
         var element_names = [];
@@ -616,6 +615,7 @@
             event.stopPropagation();
         });
 
+        
         buildHistoryGrid();
         buildActiveGrid();
 		setInitialColumnWidths();
@@ -1101,29 +1101,30 @@
         }
     }
 
-    function filterHistoryList(the_list) {
-        /* DEPRECATED */
-        var filtered = the_list;
-        return filtered
-        //TESTING FILTER ON SERVER
+    //DEPRECATED, WE FILTER ON SERVER NOW
+    // function filterHistoryList(the_list) {
+    //     /* DEPRECATED */
+    //     var filtered = the_list;
+    //     return filtered
+    //     //TESTING FILTER ON SERVER
 
-        for (i = 0; i < m_userpermissions.length; i++) {
-            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
-                if (filtered == the_list) {
-                    filtered = [];
-                }
-                for (idx = 0; idx < the_list.length; idx++) {
-                    var name = the_list[idx]["workflow"];
-                    var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
-                    if (name.match(regex)) {
-                        filtered.push(the_list[idx]);
-                    }
-                }
-            }
-        }
-        return filtered;
+    //     for (i = 0; i < m_userpermissions.length; i++) {
+    //         if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
+    //             if (filtered == the_list) {
+    //                 filtered = [];
+    //             }
+    //             for (idx = 0; idx < the_list.length; idx++) {
+    //                 var name = the_list[idx]["workflow"];
+    //                 var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
+    //                 if (name.match(regex)) {
+    //                     filtered.push(the_list[idx]);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return filtered;
 
-    }
+    // }
 
     function getContextMenuHistoryGrid(allpossible){
         //opens context menu
@@ -1203,17 +1204,55 @@
         })
     }
 
+    
+    function addVariableColumns(){
+
+        // let htmltemplate = `
+        //     <th id="history-variable" name="variable" data-sort_dir="">       
+        //         <div style="display:flex;margin-left:10px">
+        //             <div id="history-variable-sorticon-dis">
+        //                     <div class="up-arrow up-arrow-dis"></div>
+        //                     <div class="down-arrow down-arrow-dis"></div>
+        //             </div>
+        //             <i id="history-variable-sorticon" name="treetable_history-sorticon"></i>        
+        //             <input placeholder="Variable" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		           
+        //             <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>
+        //         </div>
+        //     </th>`;
+
+        let htmltemplate = `
+            <th name="col_header_name" data-sort_dir="">       
+                <div style="display:flex;margin-left:10px">       
+                    <input placeholder="col_header_name" data-isvariablecol=true style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />
+                    <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>	           
+                </div>
+            </th>`;
+
+        const trh = document.getElementById('tr_treetable_history');
+        if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
+            let variablecolumns = m_serverconfig.job_viewer.variable_columns;
+            for (let i=0;i<variablecolumns.length;i++){
+                let copy = htmltemplate;
+                copy = copy.replaceAll("col_header_name",variablecolumns[i].col_header_name);
+                trh.insertAdjacentHTML('beforeend', copy);
+            }
+        }
+
+    }
+
     function buildHistoryGrid() {
-        
+        try{
+            addVariableColumns();
+        }catch(ex){alert("Error building variablecols" + ex)}
+
         var filterobj = {};
 			for (i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
-                searchfor = $.trim(input.value);
+                let searchfor = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
                 
                 if (searchfor) {
                     filterobj[keyname]= searchfor;
-                
                 }
             }
     
@@ -1224,6 +1263,7 @@
 			console.log("disable","history-job_end-sorticon-dis");
 		}
         $('i[id="history-job_end-sorticon"]').addClass("down-arrow");
+
         var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(filterobj));
         //var sourceUrl = "testdata.xml";
         var histTree = $("#treetable_history").fancytree({
@@ -1258,15 +1298,15 @@
             },
 
             renderColumns: function(event, data) {
+                /* in this event, fancytree already created a "node" for us, containing a "data" object (data.node.data) from backend, e.g. a ffastrans job with tasks array */
+                /* also we got a table row (node.tr) with as many columns as there are table heads in the tr_treetable_history */
+                /* however, the table row is empty, we must now fill in the data */
 
-                var node = data.node;
-
+                let node = data.node;
                 if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
                     if (data.node.getIndex() % 2 == 0) {
-                        //node.removeClass = ("odd_dhx_skyblue");//apply dthmlx style to node
                         node.toggleClass("ev_dhx_skyblue"); //apply dthmlx style to node
                     } else {
-                        //node.removeClass = ("ev_dhx_skyblue");//apply dthmlx style to node
                         node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
                     }
                 }
@@ -1276,14 +1316,29 @@
                     node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
                 }
                 
-                $tdList = $(node.tr).find(">td");
+                let $tdList = $(node.tr).find(">td");
 
-                // (index #0 is rendered by fancytree (title node))
-                //$tdList.eq(0).text(node.data.state);
-                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>"); //.addClass("alignRight");
-                $tdList.eq(2).html("<div class='celltext'>" + node.data.job_start + "</div>");
-                $tdList.eq(3).html("<div class='celltext'>" + node.data.duration + "</div>");
-                $tdList.eq(4).html("<div class='celltext'>" + node.data.job_end + "</div>");
+                //aaaaaaaaa
+                const _headercontainer = document.getElementById('tr_treetable_history');
+                const history_tablehaeders = Array.from(_headercontainer.querySelectorAll('th'));//nodecollection to js array to make func findIndex available
+                let _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "wf_name");
+                if (_idx != -1)
+                    $tdList.eq(_idx).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>");
+
+                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "job_start");
+                if (_idx != -1) 
+                    $tdList.eq(_idx).html("<div class='celltext'>" + node.data.job_start + "</div>");
+
+                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "duration");
+                if (_idx != -1) 
+                    $tdList.eq(_idx).html("<div class='celltext'>" + node.data.duration + "</div>");
+
+                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "job_end");
+                if (_idx != -1) 
+                    $tdList.eq(_idx).html("<div class='celltext'>" + node.data.job_end + "</div>");
+
+                
+                //FILENAME
                 var parsedFileName = node.data.source;
                 try{
                     //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store the normalized name
@@ -1308,26 +1363,38 @@
 
                 }catch(ex){}
 
-                $tdList.eq(5).html("<div class='celltext_rtl' title='"+parsedFileName+"'><bdi>" + parsedFileName + "</bdi></div>");
-                
+                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "file");
+                if (_idx != -1) 
+                    $tdList.eq(_idx).html("<div class='celltext_rtl' title='"+parsedFileName+"'><bdi>" + parsedFileName + "</bdi></div>");
+
+                //OUTCOME
                 var outcome = node.data.result || node.data.outcome;
                 outcome = decodeEntities(outcome)
-                // if (node.children){
-                    //outcome = JSON.stringify(JSON.stringify(node.children[0].data))
-                    //outcome = node.data._id
-                //outcome = node.data._id
-                // }else{
 
-                //     outcome = node.data.outcome.substring(0, 1000);
-                //     outcome = node.data._id
-                // }
                 if (outcome.length == 10000) {
                     dhtmlx.message("Detected oversized outcome in job, consider deleting the job.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
                     outcome += " (text was truncated by webinterace...) "
                 }
+
+                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "outcome");
+                if (_idx != -1) 
+                    $tdList.eq(_idx).html("<div class='celltext' title='"+outcome+"'>" +outcome + "</div>"); //outcome can be lengthy
+
                 
-                $tdList.eq(6).html("<div class='celltext' title='"+outcome+"'>" +outcome + "</div>"); //outcome can be lengthy
-                
+                //VARIABLE COLUMNS
+                let all_vc = m_serverconfig.job_viewer?.variable_columns || [];
+                all_vc.forEach(_vc=>{
+                    let _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === _vc.col_header_name);
+                    if (_idx != -1) 
+                        $tdList.eq(_idx).html("<div class='celltext' >" + node.data[_vc.col_header_name] + "</div>"); //outcome can be lengthy
+                    else
+                        alert("Error, could not find th for variable_column " + _vc.col_header_name);
+                });
+
+                // _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "file");
+                // if (_idx != -1) 
+                //     $tdList.eq(7).html("<div class='celltext' title=''>" + JSON.stringify(node.data.variables) + "</div>"); //outcome can be lengthy
+
 				var percent = m_serverconfig["STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT"].split(",");
 				for(i=0;i<percent.length;i++){
 					if (percent[i] == "0%"){
@@ -1368,6 +1435,7 @@
                 })
             },
             table: {
+                /* nodeColumnIdx 0 is status col, indentation defines size of indent of child jobs */
                 indentation: 15,
                 nodeColumnIdx: 0,
             },
@@ -1421,7 +1489,7 @@
                     }
                 }//contextmenu
             
-        })
+        });
         
 
         //extend tree by custom stuff, used mainly to build the paging
@@ -1484,15 +1552,15 @@
 
         //delete filter imgs
         $('img[title=\"delete filters\"]').bind("click", function(e){
-           
-            $('input[name=search]').val("");
+            //reset value in search input (must be next element before the filter img)
+            $(this.previousElementSibling).val("");
             e.stopPropagation()
             if (this.previousElementSibling.placeholder == "Workflow"){
                 var tree = $("#workflowtree").fancytree('getTree');
                 tree.selectAll(false);
                 dhtmlx.message("Workflow Filters Cleared")
             }
-
+            $(this.previousElementSibling).trigger("enterKey")
         });
 
         $("input[name=search]").keyup(function(e) {
@@ -1567,7 +1635,7 @@
 	function history_search_is_active(){
 		/* is a filter active? */
 			var searchCount = 0;
-			for (i = 0; i < $("input[name=search]").length; i++) {
+			for (let i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 match = $.trim(input.value);
                 if (match) {
@@ -1581,24 +1649,34 @@
 
 
 	function search_history_grid(btn_event){
+        /* normalize search from input, show filter icon and reload trees*/
 		 var search_obj = {};
-            for (i = 0; i < $("input[name=search]").length; i++) {
+            for (let i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
-                match = $.trim(input.value);
+                let this_input_filter = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
                 if(keyname.match(/start|end/)){
                     keyname = "job_" + keyname;
                 }
-                if (match) {
-                    search_obj[keyname] = (match);
-                    //seekme 
+                if (input.dataset && input.dataset["isvariablecol"] && this_input_filter){
+                    //prepare filter for variablecol
+                    search_obj["children.variables"] = this_input_filter;
+                    input.nextElementSibling.style.display = "";
+                    continue;
+                }else{
+                    //prepare plain text filter
+                    if (this_input_filter)
+                        search_obj[keyname] = (this_input_filter);
+                }
+                //add/remove filter icon
+                if (this_input_filter) {
                     input.nextElementSibling.style.display = "";
                 }else{
                     input.nextElementSibling.style.display = "none";
                 }
             }
             var tree = $('#treetable_history').fancytree('getTree');
-            tree.mystuff["filterobj"] = search_obj;
+            tree.mystuff.filterobj = search_obj;
             tree.mystuff.page = 1;
             tree.reload({
                 url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + encodeURIComponent(JSON.stringify(tree.mystuff.filterobj)),
@@ -2166,7 +2244,6 @@
                         <col width="10%"></col>
                         <col width="10%"></col>
                         <col width="30%"></col>
-                        <col width="30%"></col>
                     </colgroup>
                     <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="position: sticky;top: 0;border:none">
                         <tr id="tr_treetable_history">
@@ -2177,6 +2254,7 @@
                             <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-job_end-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />			            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                             <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <div style="display:flex;margin-left:10px"><div id="history-file-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /> 		                <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                             <th id="history-outcome" name="outcome" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-outcome-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-outcome-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Outcome" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            
                         </tr>
                     </thead>
                 </table>

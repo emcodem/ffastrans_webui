@@ -142,8 +142,9 @@ function buildSplitInfo(jobInfo,splitId){
         "result": result,
         "source": jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file,
         "split_id": splitId,
-        "state": jobInfo[splitId].status, //TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        "workflow": jobInfo.workflow.name
+        "state": jobInfo[splitId].status, //TODO! OK, thanks emcodem of the past.. what exactly todo here?
+        "workflow": jobInfo.workflow.name,
+        "variables": jobInfo[splitId].variables || []
     }
     return to_return;
 }
