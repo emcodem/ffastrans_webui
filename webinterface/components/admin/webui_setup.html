@@ -74,6 +74,31 @@ function init(){
 
     setDefaultConfigValues();
 
+    let documentation = `
+    
+    <pre style="font-family:inherit"><h2>Webinterface Server Setup</h2>
+
+    <b>Added Folders</b> 
+    
+        Needed to serve custom files from Webinterface, for example you want to show an image in Manual Review or Job Viewer Columns. 
+        In This case, your workflow would extract the image from a video and write it to one predefined location, e.g. \\\\server\\share\\myimages
+        If you add \\\\server\\share\\myimages  to this "added folders list", you can populate a html link to the image using /myimages URL. 
+
+        Example: </pre>
+        <ul><li>Workflow extracts image to: \\\\server\\share\\myimages\\workflow_name\\123abc.jpg</li>
+        <li>Workflow populates variable %s_preview% with the value workflow_name\\123abc.jpg</li>
+        <li>Job Viewer Columns defines an additional column named "Preview" and sets "Template" to 
+        &lt;img src=&quot;%s_preview%&quot;&gt;</li>
+        </ul>
+        <pre style="font-family:inherit">
+    <b>Added Unsafe Folders</b>
+
+        Same as Added Folders but can be accessed without login. 
+        Usually you need this only if you customize webinterface login page, e.g. image in the welcome message.
+
+    </pre>
+    `;
+
     var label_width = 145;
     const layout = new dhx.Layout(document.body, {
         type: "space",
@@ -82,9 +107,15 @@ function init(){
             {cols: [
                 {
                     id: "form",
+                    resizable:true,
                 },
                 {
                     id: "docs",
+                    resizable:true,
+                    html: documentation,
+                    padding: 10,
+                    width:"35%",
+                    css: "showscroll"
                 },
             ]}
         ]

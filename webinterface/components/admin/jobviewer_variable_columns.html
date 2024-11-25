@@ -67,33 +67,30 @@ async function saveVariableColumns(data){
 
 function buildLayout(){
     //LAYOUT
-    let help = `
-        <h1>Variable Columns</h1><br/>
-        This allows you to add new Columns in the Job Status Viewer History Grid.
-        <br/><br/>
-        <b>Column Header Name</b><br/><br/>
-        The Name of the Column<br/><br/>
-        <b>Display Template</b><br/><br/>
-        This can contain one or more FFASTrans <i>User Variables</i> and also any Text or even HTML.<br/>
-        If the Variable you supply here has not been populated from a job/workflow, it will be replaced by nothing.<br/><br/>
-        Inbuilt Variables like %s_source% will not work, you have to use a populate processor and copy their value to your own user_variable for using it.
-        <br/>
-        <br/>
-        Template Example 1, simply the content of a variable or nothing if the job didnt set the variable:<br/>
-        %s_myvariable%
-        <br/>
-        <br/>
-        Template Example 2, a mix of text, html and a variable:<br/>
-        &#x3C;i&#x3E;%s_myvariable%&#x3C;/i&#x3E;&#x3C;b&#x3E;%s_anothervariable%&#x3C;/b&#x3E;
+    let help = `<pre style="font-family:inherit;white-space:pre"><h3>Variable Columns</h3>
+            Manage custom columns in the Job Status Viewer History Grid.
         
-        
+        <b>Column Header Name</b>
 
+            The Name of the Column
 
-        
+        <b>Display Template</b>
+
+            This can contain one or more FFASTrans <i>User Variables</i> and also any Text or even HTML.
+            If the Variable you supply here has not been populated from a job/workflow, it will be replaced by nothing.
+            Inbuilt Variables like %s_source% will not work, you have to use a populate processor and copy their value to your own user_variable for using it.
+
+            Template Example 1, simply the content of a variable or nothing if the job didnt set the variable:
+            %s_myvariable%
+
+            Template Example 2, a mix of text, html and a variable:
+            &#x3C;i&#x3E;%s_myvariable%&#x3C;/i&#x3E;&#x3C;b&#x3E;%s_anothervariable%&#x3C;/b&#x3E;
+        </pre>
     `;
     const layout_config = {
         //type: "wide",//"line" | "wide" | "space" | "none";
-		width:"100%", height:"100%",rows:
+		type: "space",
+        width:"100%", height:"100%",rows:
 		[   
             { id: "toolbar", height: "content" },
 			{
@@ -101,14 +98,14 @@ function buildLayout(){
 					{
                         header:"Job Viewer Variable Columns (History Jobs only)",
 						id: "main",
-						resizable:false,
+						resizable:true,
 						padding: "0px",  
 						margin: "0px",
 					},
                     {
                         header:" ",
 						id: "help",
-						resizable:false,
+						resizable:true,
 						padding: "10px",  
 						width: "30%",
                         html:help
