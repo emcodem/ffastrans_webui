@@ -297,6 +297,7 @@ async function start_server( _listenport,globalconf){
 	
     var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
 	const swaggerDocument = YAML.load(_yaml_location);
-	app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+	app.use('/', swaggerUi.serve);
+  app.get('/', swaggerUi.setup(swaggerDocument)); //only serves the swagger docs on /, anything else must be a method or returns 404
 
 }
