@@ -9,7 +9,6 @@ describe('controllers', function() {
     describe('GET /hello', function() {
 
       it('should return a default string', function(done) {
-
         request(server)
           .get('/hello')
           .set('Accept', 'application/json')
@@ -17,15 +16,12 @@ describe('controllers', function() {
           .expect(200)
           .end(function(err, res) {
             should.not.exist(err);
-
             res.body.should.eql('Hello, stranger!');
-
             done();
           });
       });
 
       it('should accept a name parameter', function(done) {
-
         request(server)
           .get('/hello')
           .query({ name: 'Scott'})
