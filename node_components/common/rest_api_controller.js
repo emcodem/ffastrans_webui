@@ -39,13 +39,13 @@ class RestApi {
         }
     }
     
-    async change_install_path(new_path){
+    async change_install_path(new_path,global_conf){
         console.log("Resetting REST API Path to: ", new_path);
         this.private_init_path = new_path;
         console.log("Stopping REST API Service");
         await this.stop_rest_api_thread();
         console.log("Starting REST API Service");
-        this.start_rest_api_thread(this.private_init_port,new_path,this);
+        this.start_rest_api_thread(this.private_init_port,new_path,global_conf,this);
     }
 
     sleep(ms) {
