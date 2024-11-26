@@ -16,7 +16,7 @@ module.exports = function(app, express){
 	//upload files
 	app.post('/backend/upload', (req, res) => {
 		if (req.method === 'POST') {
-			const busboy = Busboy({ headers: req.headers });
+			const busboy = Busboy({ headers: req.headers, defCharset:'utf8',defParamCharset: 'utf8'});
 			const response = {};
 			busboy.on('file', (fieldname, file, o_fileinfo) => {
 				console.log(fieldname, o_fileinfo.filename);
