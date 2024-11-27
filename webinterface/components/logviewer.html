@@ -115,7 +115,7 @@
         
         .table_ffastrans_processor_enabled {
             overflow: hidden;
-            font-size: 12px; /*wf description as font size 8, header has 15*/
+            font-size: 4em; /*wf description as font size 8, header has 15*/
             font-family: Calibri;
             border: 3px rgb(85,85,85);
             background-color: rgb(184,184,184);
@@ -123,13 +123,16 @@
 
         .table_ffastrans_processor_disabled {
             overflow: hidden;
-            font-size: 12px;
+            font-size: 4em;
             font-family: Calibri;
             border: 3px rgb(85,85,85);
             background-color: rgb(184,184,184);
             opacity: .4
         }
 
+        .tr_ffastrans_processor_desc{
+            overflow:auto;
+        }
         .tr_ffastrans_processor_top {
             background-color: rgb(119,119,119);
             height: 30%;
@@ -276,6 +279,7 @@
         var mainLayout;
         var m_timelineobject =  [];
         var m_userpermissions;
+
         /*load config from server*/
         function loadserverconfig() {
         $.ajax({
@@ -574,7 +578,7 @@
             
             
             //set default box sizes as defined by ffastrans.au3
-            var i_BOX_WIDTH = 115;
+            var i_BOX_WIDTH = 460;
             var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
             var i_POS_FACTOR = 1;
 
@@ -599,7 +603,8 @@
                 // Creates the graph inside the given container
                 var graph = new mxGraph(container);
                 
-                //m_graph = graph; //store graph for global reuse
+                m_graph = graph; //store graph for global reuse
+
                 graph.setHtmlLabels(true);
                 graph.panningHandler.ignoreCell = panning; //disables selection of a single cell but instead allow moving the whole graph
                 graph.setPanning(panning);
@@ -608,7 +613,7 @@
                 //trackColor = new mxCellTracker(graph, "#666");
                 
                 graph.getLabel = function (cell) { //takes care of the table styling and inserts ffastrans values into the cells
-                    if (this.getModel().isVertex(cell)) {
+                    if (this.getModel().isVertex(cell) && cell.ffastransobj) {
                         if (cell.value == "zoom"){
                             return "";
                         }
@@ -630,7 +635,7 @@
                                         'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                         '<tr class="tr_ffastrans_processor_top" >' +
                                         '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
-                                        '<tr style="height:70%;font-size:8px" title="' +FF_NODE_DESC + '"><th id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
+                                        '<tr style="height:70%;font-size:8px"  title="' +FF_NODE_DESC + '"><th class="tr_ffastrans_processor_desc" id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
                                         '</table></div>';
                                 
                             return tbl;
@@ -724,8 +729,9 @@
                             "from": nodes[key]["id"].toUpperCase(),
                             "to": nodes[key].outbounds || []
                         })
-                    }
 
+                    }
+                    
                     //create node connections
 
                     for (i = 0; i < connections.length; i++) {
@@ -769,10 +775,6 @@
                     
                     //on initial workflow show, zoom out but only if not sub-wf
                     if (panning){
-                        graph.zoomOut();
-                        graph.zoomOut();
-                        graph.zoomOut();
-                        graph.zoomOut();
                         graph.zoomOut();
                     }//else{
                        // graph.fit(0, true, 0);
@@ -818,10 +820,9 @@
 
 
 
-        
-        function CustomData(value) {
-            this.value = value;
-        }
+function CustomData(value) {
+    this.value = value;
+}
 
 
 //export svg test
