@@ -102,7 +102,6 @@
             vertical-align: top;
             overflow:hidden;
         }
-
   
         #treetable_log {
             overflow:unset!important;
@@ -132,7 +131,7 @@
 
         .tr_ffastrans_processor_desc{
             font-size: 4em;
-            overflow:auto;
+            
         }
         .tr_ffastrans_processor_top {
             background-color: rgb(119,119,119);
@@ -632,8 +631,8 @@
                             //    '</table>';
                         } else { //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
                            
-                            var tbl = '<div style="width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px">' +
-                                        '<table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                            var tbl = '<div style="overflow:auto;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
+                                        '<table name="gui_node" height:' + i_BOX_HEIGHT + ' style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                                         'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                         '<tr class="tr_ffastrans_processor_top" >' +
                                         '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
@@ -663,8 +662,10 @@
 
                 graph.addListener(mxEvent.CLICK, function (sender, evt) {
                     //load log for seelcted cell
-                    
                     var cell = evt.getProperty("cell"); // cell may be null
+                    if (!cell)
+                        return;
+                    
                     if (cell != null) {
                         console.log("detected mouseclick on cell",cell)
                         if (cell.ffastransobj.type == "sub_wf")
