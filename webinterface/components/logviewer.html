@@ -878,6 +878,7 @@ function asyncsleep(time) {
 }
 
         //parse Job log
+        let m_subWorkflows = {node_id:"workflow_id"}
         async function parseJobLog(lines) {
             var a_log_per_node = {};
             var id_pid_mapping = {};
@@ -903,11 +904,18 @@ function asyncsleep(time) {
                     //handle sub-wf
 
                     if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
+                        
+                        if (m_subWorkflows[line["node"]["id"]]){
+                            continue;
+                        }
+
                         console.log("Sub wf detected, loadinhg json");
                        if (line['data']['wf_id']){
+                            m_subWorkflows[line["node"]["id"]] = line['data']['wf_id'];
                             var _tablehead = document.getElementById(line["node"]["id"].toUpperCase()+"_body");
                             console.log(_tablehead);
                             _tablehead.style.backgroundColor ="white";
+                            
                             //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
                             //load current sub-workflows
                             var _url = "/getjobdetails?jobid=" + getQueryVariable("job_id");
