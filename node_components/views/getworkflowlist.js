@@ -93,6 +93,7 @@ module.exports = async function (app, passport) {
 
                     if (!m_ticket_cache || !m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
                         m_ticket_cache.tickets = await global.jobfetcher.tickets();
+                        console.log("Refreshed tickets cache",m_ticket_cache);
                     }
                     //apply user permissions to incoming and queued
                     // var incoming_wfnames = m_ticket_cache.tickets.incoming.map(_tick => _tick.internal_wf_name); //list of workflow names (same name can repeat in the list)
@@ -118,6 +119,7 @@ module.exports = async function (app, passport) {
             try {
                 //REVIEW
                 countObj.sys.Review = 0;
+                console.log("Review count before applying userpermission: "  + m_ticket_cache.tickets.review.length);
                 var review_wfnames = m_ticket_cache.tickets.review.map(_tick => _tick.wf_name);
                 function is_allowed(to_check, all_allowed) {
                     var a = all_allowed.some(_wf => _wf.wf_name == to_check);
@@ -125,6 +127,7 @@ module.exports = async function (app, passport) {
                 }
                 var review_filtered = review_wfnames.filter(_name => is_allowed(_name, allowed_workflows));
                 countObj.sys.Review = review_filtered.length;
+                console.log("Review count after applying userpermission: " + review_filtered.length);
                 //var review_wfnames    = m_ticket_cache.tickets.review.map(_tick => _tick.wf_name);
 
             } catch (ex) {
@@ -276,7 +279,7 @@ function getPermittedWorkflowList(allPermissions, workflowResponse) {
             var filter = allPermissions[x]["value"]["filter"];
             for (var i in workflowlist["workflows"]) {
                 var wf = workflowlist["workflows"][i];
-                if (wf["wf_name"].toLowerCase().match(filter.toLowerCase())) {
+                if (wf["wf_name"].toString().toLowerCase().match(filter.toLowerCase())) {
                     //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
                     if (!alreadyAdded[wf["wf_name"]]) {
                         alreadyAdded[wf["wf_name"]] = 1;

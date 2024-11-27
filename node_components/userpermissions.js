@@ -182,7 +182,7 @@ async function checkworkflowpermission(username,wf_name){
             if (allpermissions[x]["key"] == "FILTER_WORKFLOW_NAME"){
                 have_filter = true;
                 var filter = allpermissions[x]["value"]["filter"];
-                if (wf_name.toLowerCase().match(filter.toLowerCase())){
+                if (wf_name.toString().toLowerCase().match(filter.toLowerCase())){
                     //console.log("Worfkflow folder  " + wf["general"]["wf_name"] + " matches filter "+ filter);
                     return true;
                 }
