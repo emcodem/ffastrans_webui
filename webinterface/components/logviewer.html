@@ -576,18 +576,19 @@
         var firstrun = true;
         function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph
             
-            
             //set default box sizes as defined by ffastrans.au3
-            var i_BOX_WIDTH = 460;
+            var i_multiply = 4
+            var i_BOX_WIDTH = 115 * i_multiply;
             var i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
             var i_POS_FACTOR = 1;
-
-            if ("variable" in m_workflowdata) {
+            console.log("workflow_json",workflow_json)
+            if (workflow_json.variable) {
                 //current zoom level stored in workflow.json
-                if ("wf_size" in m_workflowdata["variable"]) {
+                if (workflow_json.variable.wf_size) {
                     //i_BOX_WIDTH = (m_workflowdata["variable"]["wf_size"]);
-                    //i_BOX_HEIGHT = i_BOX_WIDTH / 1.6;
-                    i_POS_FACTOR = (m_workflowdata["variable"]["wf_size"] / i_BOX_WIDTH ) ;
+                    
+                    //at wf_size 115, the box width has to be 115, any other wf_size 
+                    i_POS_FACTOR = (workflow_json.variable.wf_size / 115 ) / i_multiply ;
                 }
             }
 
