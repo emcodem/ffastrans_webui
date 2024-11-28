@@ -1,4 +1,4 @@
-export { webuiVariables_processVariables, addValidation, resolveWebUiVarData };
+export { webuiVariables_processVariables, addValidation, resolveWebUiVarData, translateDhx5To8Vars };
 
 function resolveWebUiVarData(datastr,name){
     //ffastrans var description contains a string json, this is parsed into object here
