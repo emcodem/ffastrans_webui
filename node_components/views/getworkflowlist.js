@@ -173,7 +173,7 @@ module.exports = async function (app, passport) {
 
                 try {
                     filteredWorkflowList = getPermittedWorkflowList(allpermissions, workflowResponse);
-
+                    
                 } catch (ex) {
                     console.error("ERROR: error in getworkflowlist: " + ex);
                     res.status(500);//Send error response here
@@ -292,6 +292,7 @@ function getPermittedWorkflowList(allPermissions, workflowResponse) {
 
     if (!have_filter)
         return workflowlist.workflows;
+    console.debug("Permitted Worfklows for user ")
     return filteredWorkflowList;
 }
 

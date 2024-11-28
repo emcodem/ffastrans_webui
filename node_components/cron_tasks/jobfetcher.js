@@ -37,6 +37,7 @@ module.exports = {
 		//ticket contains at least internal_wf_name data field
 		//m_ticket_cache.last_update = new Date();
 		var response = await axios.get(helpers.build_new_api_url("/tickets"), { timeout: global.config.STATIC_API_TIMEOUT, agent: false, maxSockets: Infinity });
+		console.log("jobfetcher tickets response",response.data)
 		return response.data.tickets;
 	},
 

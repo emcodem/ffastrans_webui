@@ -317,6 +317,29 @@
             buildNodeGridGrid()
             console.log("Getting Job Details of " + getQueryVariable("job_id"))
             get_all_job_details(getQueryVariable("job_id"));
+
+
+            /* 
+                global overriden events using MutationObserver
+            */
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    // Loop through added nodes
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('disable-wheel')) {
+                            disableMouseWheelScrolling(node);
+                            console.log('Mouse wheel scrolling disabled for:', node);
+                        }
+                    });
+                });
+            });
+            observer.observe(document.getElementById("graphContainer"), { childList: true });
+            
+            function disableMouseWheelScrolling(element) {
+                element.addEventListener('wheel', (event) => {
+                    event.preventDefault(); // Disable mouse wheel scrolling
+                }, { passive: false }); // Ensure the listener is non-passive
+            }
         }
 
 		function _getObjectByValue(object, value) { //helper
@@ -635,12 +658,12 @@
                                         '<table name="gui_node" height:' + i_BOX_HEIGHT + ' style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                                         'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                         '<tr class="tr_ffastrans_processor_top" >' +
-                                            '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th>'+
+                                            '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" title="Execution Counter">0</span>' + FF_NODE_TITLE + '</th>'+
                                         '</tr>' +
                                         `<tr style="font-size:8px" title="${FF_NODE_DESC}">`+
                                             `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
                                             //this div is needed to control sub-workflow scrolling/overflow
-                                            `<div name="oida" style="max-height:${i_BOX_HEIGHT/100*72};width:100%;overflow:auto">`+
+                                            `<div name="oida" class="disable-wheel" style="max-height:${i_BOX_HEIGHT/100*72};width:100%;overflow:auto">`+
                                                 FF_NODE_DESC +
                                             '</div>' +
                                             
