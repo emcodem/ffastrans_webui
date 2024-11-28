@@ -131,7 +131,11 @@ function buildSplitInfo(jobInfo,splitId){
     var result = jobInfo[splitId].result;
     var display_name = jobInfo[splitId].sources.pretty_name
     if (jobInfo[splitId].status !== 1){
-        result = jobInfo[splitId].error.msg;
+        try {
+            result = jobInfo[splitId].error.msg
+        } catch {
+            result = jobInfo[splitId].result;
+        }
         display_name = jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file
     }
     var to_return =  {
