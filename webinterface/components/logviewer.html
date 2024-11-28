@@ -89,8 +89,8 @@
             display: inline-block;
             line-height: 1.7em;
             position: absolute;
-            left: -15px;
-            top: 0px;
+            left: -30px;
+            top: -30px;
             text-align: center;
             width: 1.7em;
         }
@@ -630,13 +630,27 @@
                             //    '<tr><th>Customers</th></tr>' +
                             //    '</table>';
                         } else { //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
-                           
-                            var tbl = '<div style="overflow:auto;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
+                          console.log(i_BOX_HEIGHT)
+                            var tbl = '<div style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
                                         '<table name="gui_node" height:' + i_BOX_HEIGHT + ' style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                                         'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
                                         '<tr class="tr_ffastrans_processor_top" >' +
-                                        '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th></tr>' +
-                                        '<tr style="height:70%;font-size:8px"  title="' +FF_NODE_DESC + '"><th class="tr_ffastrans_processor_desc" id="'+FF_NODE_ID+'_body"> ' + FF_NODE_DESC + '</th></tr>' +
+                                            '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" >0</span>' + FF_NODE_TITLE + '</th>'+
+                                        '</tr>' +
+                                        `<tr style="font-size:8px" title="${FF_NODE_DESC}">`+
+                                            `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
+                                            //this div is needed to control sub-workflow scrolling/overflow
+                                            `<div name="oida" style="max-height:${i_BOX_HEIGHT/100*72};width:100%;overflow:auto">`+
+                                                FF_NODE_DESC +
+                                            '</div>' +
+                                            
+                                                //here goes the sub-workflow (or processor desc)
+                                            
+                                        '</th></tr>' 
+                                        
+                                        
+
+                                        
                                         '</table></div>';
                                 
                             return tbl;
@@ -791,7 +805,9 @@
 
                     mxEvent.addMouseWheelListener(mxUtils.bind(this, function(evt, up)
                     {   //zoom on mousewheel event
+                    
                       if (mxEvent.isConsumed(evt)) {
+                        console.log("scroll event already consumed")
                         return;
                       }
                       if (!$('#graphContainer:hover').length > 0) {
@@ -813,6 +829,7 @@
                       view.setTranslate(view.translate.x + deltaX, view.translate.y + deltaY);
                       graph.gridEnabled = gridEnabled;
                       mxEvent.consume(evt);
+                      
                       return;
                         
                     }))
@@ -915,9 +932,8 @@ function asyncsleep(time) {
                         console.log("Sub wf detected, loadinhg json");
                        if (line['data']['wf_id']){
                             m_subWorkflows[line["node"]["id"]] = line['data']['wf_id'];
-                            var _tablehead = document.getElementById(line["node"]["id"].toUpperCase()+"_body");
-                            console.log(_tablehead);
-                            _tablehead.style.backgroundColor ="white";
+                            var _subwfdiv = document.getElementById(line["node"]["id"].toUpperCase()+"_body").firstChild;
+                            _subwfdiv.style.backgroundColor ="white";
                             
                             //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
                             //load current sub-workflows
@@ -939,7 +955,7 @@ function asyncsleep(time) {
                                         jqXHR["wf_id"];
                                         var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
                                         m_workflows.push(sub_wf_json);
-                                        buildMxGraph(_tablehead,sub_wf_json,false);
+                                        buildMxGraph(_subwfdiv,sub_wf_json,false);
                                         
                                         //buildMxGraph(document.getElementById("graphContainer2"),sub_wf_json,true);
                                         
