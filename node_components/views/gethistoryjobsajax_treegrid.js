@@ -41,7 +41,7 @@ module.exports = function(app, express){
 				filterobj = objectWithoutKey("outcome",filterobj);
 			}
 			if (filterobj.file){
-				filterobj["source"] = filterobj.file;
+				filterobj["children.source"] = filterobj.file;
 				filterobj = objectWithoutKey("file",filterobj);
 			}
 			
