@@ -129,8 +129,14 @@ async function getHistoryJobs(start,end, jobid = ''){
 function buildSplitInfo(jobInfo,splitId){
     //returns ffastra
     var result = jobInfo[splitId].result;
-    if (jobInfo[splitId].status == 0){
-        result = jobInfo[splitId].error.msg;
+    var display_name = jobInfo[splitId].sources.pretty_name
+    if (jobInfo[splitId].status !== 1){
+        try {
+            result = jobInfo[splitId].error.msg
+        } catch {
+            result = jobInfo[splitId].result;
+        }
+        display_name = jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file
     }
     var to_return =  {
         /* 
@@ -140,7 +146,7 @@ function buildSplitInfo(jobInfo,splitId){
         "end_time": jobInfo[splitId].end_time,
         "job_id": jobInfo.job_id,
         "result": result,
-        "source": jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file,
+        "source": display_name,
         "split_id": splitId,
         "state": jobInfo[splitId].status, //TODO! OK, thanks emcodem of the past.. what exactly todo here?
         "workflow": jobInfo.workflow.name,
