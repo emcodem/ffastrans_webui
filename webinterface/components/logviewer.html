@@ -116,10 +116,15 @@
             border-collapse: separate !important; /* Don't collapse */
             border-spacing: 0;
         }
-        
+
+        :root {
+            --canvas-font-size-processor: 4em;
+            --canvas-font-size-sub-wf-ctrl: 20px;
+        }
+
         .table_ffastrans_processor_enabled {
             overflow: hidden;
-            font-size: 4em; /*wf description as font size 8, header has 15*/
+            font-size: var(--canvas-font-size-processor); /*wf description as font size 8, header has 15*/
             font-family: Calibri;
             border: 3px rgb(85,85,85);
             background-color: rgb(184,184,184);
@@ -127,13 +132,32 @@
 
         .table_ffastrans_processor_disabled {
             overflow: hidden;
-            font-size: 4em;
+            font-size: var(--canvas-font-size-processor);
             font-family: Calibri;
             border: 3px rgb(85,85,85);
             background-color: rgb(184,184,184);
             opacity: .4
         }
 
+        .sub_wf_ctrl_icons{
+            display:inline-flex;
+            float:right;
+            /* position:absolute;
+            float:right;
+            margin-right:var(--canvas-font-size-sub-wf-ctrl); */
+            font-size: var(--canvas-font-size-sub-wf-ctrl);
+        }
+
+        .sub_wf_ctrl_icons > span{
+            border:1px solid;
+            margin:2px;
+        }
+
+        .sub_wf_ctrl_icons .mdi:hover {
+            display:inline-block;
+            transform: scale(1.1);
+            cursor:pointer;
+        }
 
         .overflow_auto{
             overflow:auto;
@@ -171,6 +195,7 @@
         .dhx_cell_cont_wins {
             overflow: scroll !important;
         }
+
 
 
         /*three dots on text overflow*/
@@ -663,6 +688,9 @@
 
                 // Creates the graph inside the given container
                 var graph = new mxGraph(container);
+                graph.autoExtend=true;
+                graph.border = 50;
+                //graph.resizeContainer=true;
                 m_graphs_by_container_id[container.id] = graph;
                 if (!m_graph) //first graph becomes main graph, html buttons work with it...
                     m_graph = graph; 
@@ -694,35 +722,60 @@
                         var FF_NODE_TYPE    = cell.ffastransobj["type"];
 
                         //create the cell style
-                        if (this.isCellCollapsed(cell)) {
-                          //we dont support collapsing
-                        } else { //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
-                            
-                            //base cell obj
-                            var tbl = '<div class="div_ffastrans_processor_container" style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
-                                        '<table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
-                                        'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
-                                        '<tr class="tr_ffastrans_processor_top" >' +
-                                            '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" title="Execution Counter">0</span>' + FF_NODE_TITLE + '</th>'+
-                                        '</tr>' +
-                                        `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${FF_NODE_ID}_tr_container">`+
-                                            `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
-                                            //this div is needed to control sub-workflow scrolling/overflow
-                                            `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc overflow_auto" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
-                                                FF_NODE_DESC +
-                                            '</div>' +
-                                            
-                                                //here goes the sub-workflow (or processor desc)
-                                            
-                                        '</th></tr>' 
-                                        
-                                        
+                        if (this.isCellCollapsed(cell))//we dont support collapsing
+                          return;
+                        
+                        window.subWfCtrlBtnClick = function(evt,clickedEle){
+                            //onmousedown="event.preventDefault();event.stopPropagation();onmouseup="event.preventDefault();event.stopPropagation();";ondblclick="event.preventDefault();event.stopPropagation();"
+                            event.preventDefault();
+                            event.stopPropagation();
+                            let graphid = clickedEle.dataset.wfContainer;
+                            let action  = clickedEle.attributes.name.value;
+                            if (action == "undock"){
+                                //emit dblclick on parent triggers dhxwindow open
+                                const event = new MouseEvent('dblclick', {bubbles: true,cancelable: true});
+                                clickedEle.parentElement.dispatchEvent(event);
+                            }
+                            else{
+                                m_graphs_by_container_id[graphid][action]();
+                            }
 
-                                        
-                                        '</table></div>';
-                                
-                            return tbl;
                         }
+                        //base cell obj
+                        let sub_wf_btns = `<div class="sub_wf_ctrl_icons">`+
+                                `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-plus"               name="zoomIn"></span>`+
+                                `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-minus"              name="zoomOut"></span>`+
+                                `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-arrow-collapse-all" name="fit"></span>` + 
+                                `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-dock-window"        name="undock"></span>` + 
+                            `</div>`;
+                        if (FF_NODE_TYPE != "sub_wf")
+                            sub_wf_btns = "";
+                        
+                        var tbl = '<div class="div_ffastrans_processor_container" style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
+                                    '<table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                                    'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
+                                    '<tr class="tr_ffastrans_processor_top" >' +
+                                        `<th width="100%" title="'${FF_NODE_TITLE}'"><span id="${FF_NODE_ID}_exec_count" class="exec_count" title="Execution Counter">0</span><div><span>` + FF_NODE_TITLE + "</span>" +
+                                                '</div>' + sub_wf_btns + '</th>'+
+                                    '</tr>' +
+                                    `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${FF_NODE_ID}_tr_container">`+
+                                        `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
+                                        //this div is needed to control sub-workflow scrolling/overflow
+                                        `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc overflow_auto" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
+                                            FF_NODE_DESC +
+                                        '</div>' +
+                                        
+                                            //here goes the sub-workflow canvas svg(or processor desc)
+                                        
+                                    '</th></tr>' 
+                                    
+                                    
+
+                                    
+                                    '</table></div>';
+                            
+                        return tbl;
+                        
                     } else {
                         return '';
                     }
@@ -731,16 +784,16 @@
 
                 graph.addListener(mxEvent.DOUBLE_CLICK, async function (sender, evt) {
                     //window for sub-wf
-                    evt.consume(); //mxgraph stuff
+                    console.log("sender",sender)
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (cell == null) return
                     if (!cell.ffastransobj) return
                     if (!cell.ffastransobj.type == "sub_wf") return
                     if (!cell.ffastransobj.properties.workflow_id) return
-                    
+                    evt.consume(); //mxgraph stuff
                     //we get a reference to graph object of the currently selected sub_wf this way:
                     let currentGraph = m_graphs_by_container_id[cell.ffastransobj.id.toUpperCase() + "_description_container"];
-
+                    currentGraph.fit();
                     let swf_id = cell.ffastransobj.properties.workflow_id;
                     
                     const dhxWindow = new dhx8.dhx.Window({
@@ -912,11 +965,11 @@
                     // Updates the display, fullscreen zoom graph
                     graph.getModel().endUpdate();
 
-                    graph.fit(0, false, 35); //(	border,keepOrigin,margin,enabled,ignoreWidth,ignoreHeight,maxHeight	)
+                    graph.fit(); //(	border,keepOrigin,margin,enabled,ignoreWidth,ignoreHeight,maxHeight	)
 
                     //on initial workflow show, zoom out but only if not sub-wf
                     
-                    graph.zoomOut();
+                    //graph.zoomOut();
 
                     //mxutils.bind passes the current graph instance to the event function as "this". Needed to check which graph is scrolled
                     mxEvent.addMouseWheelListener(mxUtils.bind(graph, function(evt, up)
@@ -1112,8 +1165,11 @@ function asyncsleep(time) {
                         m_unique_nodes[new_key] = (line);
                         m_unique_nodes[new_key]["state"] = "running";
                         //raise proc count on gui
-                        var _o_counter = $("#" + _proc_id).parent().find("span");
-                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1);
+                        var _o_counter = $("#" + _proc_id + "_exec_count");//execution count
+                        
+                        console.log("_o_counter","#" + _proc_id + "_exec_count",_o_counter);
+                        _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
+
                         //progress-circle
                         $("#" + _proc_id).addClass("blinking-progress");
 
