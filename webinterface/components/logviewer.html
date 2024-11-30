@@ -43,6 +43,9 @@
     <!-- FONTAWESOME -->
     <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" ></link>
 
+    <!-- MATERIALDESIGN ICONS -->
+    <link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+
     <!-- DHTMLX dependencies -->
     <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
     <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
@@ -129,6 +132,14 @@
             border: 3px rgb(85,85,85);
             background-color: rgb(184,184,184);
             opacity: .4
+        }
+
+
+        .overflow_auto{
+            overflow:auto;
+        }
+        .overflow_hidden{
+            overflow:hidden;
         }
 
         .tr_ffastrans_processor_desc{
@@ -276,7 +287,8 @@
 
         var m_jobobject = {};
         var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
-        var m_graph = {};
+        var m_graph;
+        var m_graphs_by_container_id = {};
         var m_serverconfig;
         var mainLayout;
         var m_timelineobject =  [];
@@ -340,8 +352,11 @@
                 /* disables scrolling inside processors, prevents subworkflow odd scrollbar behaviour */
                 let hoveredEle = document.elementFromPoint(e.clientX, e.clientY).parentNode.parentNode;
                 let disablescroll = checkParentsForClass(hoveredEle,"div_ffastrans_processor_container",10);
-                if (disablescroll)
+                if (disablescroll){
+                    // console.log("forced disable scroll because parent class div_ffastrans_processor_container" )
                     e.preventDefault(); 
+                }
+                    
             }, { passive: false });
 
 
@@ -383,9 +398,9 @@
 			var menuButtonLabels = ["Load latest Job",
 									"Resubmit Job",
 									"Refresh this page"];
-			var menuButtonHtml = ['<button title="Load log from latest Finished Job" class="btn logviewer_menu"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>',
-								  '<button class="btn logviewer_menu"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>',
-								  '<button class="btn logviewer_menu"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>'
+			var menuButtonHtml = ['<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Load latest Job</button>',
+								  '<button class="btn logviewer_menu"><span class="mdi mdi-repeat"></span> Resubmit Job</button>',
+								  '<button class="btn logviewer_menu"><span class="mdi mdi-refresh"></span> Refresh this page</button>'
 									];
 									
 	        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
@@ -413,13 +428,6 @@
 				mainMenu.addNewSibling(null, label, html);
 			}
 		
-            <!-- mainMenu.addNewSibling(null, "reload_youngest", '<button title="Load log from latest Finished Job" class="btn"><i style = "margin-right:3px" class= "fas fa-rss" ></i>Load latest Job</button>'); -->
-            <!-- mainMenu.addNewSibling(null, "retry_job", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Resubmit Job</button>'); -->
-            <!-- mainMenu.addNewSibling(null, "refresh_page", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-redo-alt" ></i>Refresh this page</button>'); -->
-			
-			
-            //mainMenu.addNewSibling(null, "reload", '<button class="btn"><i style = "margin-right:3px" class= "fas fa-retweet" ></i>Reload</button>');
-            
             mainMenu.attachEvent("onClick", function (id) {
                     if (id == "Refresh this page"){
                         window.location.href = window.location.href;
@@ -489,18 +497,18 @@
 
 
             mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
-                                <button class="btn icon-logviewer-menu" name="b_zoomin" onclick="m_graph.zoomIn()"><i style = "margin-right:3px" class= "fas fa-plus-circle" ></i></button> \
-                                <button class="btn icon-logviewer-menu" name="b_zoomout" onclick="m_graph.zoomOut()"><i style = "margin-right:3px" class= "fas fa-minus-circle" ></i></button> \
-                                <button class="btn icon-logviewer-menu" name="b_fit" onclick="m_graph.fit()" title="Center"><i style="margin-right:3px" class= "fas fa-compress-arrows-alt" ></i></button> \
-                                <button class="btn icon-logviewer-menu"  name="b_image" onclick="export_StyledSVG()" title="Download"><i style = "margin-right:3px" class= "fas fa-download" ></i></button> ');
+                                <button class="btn icon-logviewer-menu" name="b_zoomin" onclick="m_graph.zoomIn()"><span class="mdi mdi-plus"></span></button> \
+                                <button class="btn icon-logviewer-menu" name="b_zoomout" onclick="m_graph.zoomOut()"><span class="mdi mdi-minus"></span></button> \
+                                <button class="btn icon-logviewer-menu" name="b_fit" onclick="m_graph.fit()" title="Center"><span class="mdi mdi-arrow-collapse-all"></span></button> \
+                                <button class="btn icon-logviewer-menu"  name="b_image" onclick="export_StyledSVG()" title="Download"><span class="mdi mdi-download"></button> ');
             mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden;cursor:default;float:left"></div>'
             //+'<div id="graphContainer2" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7"></div>'
             );
             mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                                 <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
-                                <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()" class="icon-logviewer-menu"><i style = "margin-right:3px" class= "fas fa-history " ></i></button>\
+                                <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()" class="icon-logviewer-menu"><span class="mdi mdi-history"></span></button>\
                                 <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
-                                <button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'c\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button> \
+                                <button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleLogViewerDock()"><span class="mdi mdi-eject"></span></button> \
                                 ');
             //mainLayout.cells("c").showInnerScroll();
             mainLayout.cells("c").attachObject("log_div"); //for json_to_table
@@ -516,18 +524,30 @@
             mainLayout.attachEvent("onPanelResizeFinish", function () {
                 saveLayoutSizes(mainLayout, "mainLayout");
             });
+
+            /* undock logviewer stuff*/
+            window.toggleLogViewerDock = toggleLogViewerDock;
+            function toggleLogViewerDock(){
+                if (window._undockedWin){
+                        delete window._undockedWin;
+                        mainLayout.cells('c').dock();
+                        return;
+                }
+                mainLayout.cells("c").undock();
+            }
             mainLayout.attachEvent("onUndock", function (name) {
-                var _win = mainLayout.dhxWins.window(name);
-                _win.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
-                _win.center();
+                window._undockedWin = mainLayout.dhxWins.window(name);
+                _undockedWin.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
+                _undockedWin.center();
             });
 
+            /* contineue layout stuff */
             var autoSizes = mainLayout.listAutoSizes();
             console.log("Layout autosizes",autoSizes);
             
             //Left Layout
             var m_info_layout = mainLayout.cells("a").attachLayout("2E");
-            m_info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'a\').undock()"><i style = "margin-right:3px" class= "fas fa-eject" ></i></button>' +
+            m_info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'a\').undock()"><span class="mdi mdi-eject"></span></button>' +
                 "<span id='general_text'>General</span>");
             m_info_layout.cells("b").setText("Nodes");
             m_info_layout.cells("b").attachObject("node_div");
@@ -614,8 +634,8 @@
         }
 
         var firstrun = true;
-        function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph, todo: panning is legacy, its complete usage here is not clear
-            
+        function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph
+            console.log("Graph conatiner id:",container.id)
             //set default box sizes as defined by ffastrans.au3
             var i_multiply = 4
             var i_BOX_WIDTH = 115 * i_multiply;
@@ -643,12 +663,21 @@
 
                 // Creates the graph inside the given container
                 var graph = new mxGraph(container);
-                
-                m_graph = graph; //todo: m_graph is a lie because it can be a sub-wf!
+                m_graphs_by_container_id[container.id] = graph;
+                if (!m_graph) //first graph becomes main graph, html buttons work with it...
+                    m_graph = graph; 
 
                 graph.setHtmlLabels(true);
                 graph.panningHandler.ignoreCell = true; //disables selection of a single cell but instead allow moving the whole graph
-                graph.setPanning(true);
+                graph.setPanning(panning); 
+                if (!panning)
+                    graph.useScrollbarsForPanning = true;
+                //     evt.preventDefault();
+                //     evt.consume();
+                // });
+
+                
+                //mxPanningHandler(graph);
                 graph.setCellsMovable(false)
                 graph.setCellsSelectable(false)
                 //trackColor = new mxCellTracker(graph, "#666");
@@ -676,10 +705,10 @@
                                         '<tr class="tr_ffastrans_processor_top" >' +
                                             '<th width="100%" title="'+FF_NODE_TITLE+'"><span name="exec_count" class="exec_count" title="Execution Counter">0</span>' + FF_NODE_TITLE + '</th>'+
                                         '</tr>' +
-                                        `<tr style="font-size:8px" title="${FF_NODE_DESC}">`+
+                                        `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${FF_NODE_ID}_tr_container">`+
                                             `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
                                             //this div is needed to control sub-workflow scrolling/overflow
-                                            `<div name="oida" class="div_ffastrans_processor_desc disable-wheel" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;overflow:auto">`+
+                                            `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc overflow_auto" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
                                                 FF_NODE_DESC +
                                             '</div>' +
                                             
@@ -708,9 +737,12 @@
                     if (!cell.ffastransobj) return
                     if (!cell.ffastransobj.type == "sub_wf") return
                     if (!cell.ffastransobj.properties.workflow_id) return
-                    console.log("cell.ffastransobj",cell.ffastransobj)
+                    
+                    //we get a reference to graph object of the currently selected sub_wf this way:
+                    let currentGraph = m_graphs_by_container_id[cell.ffastransobj.id.toUpperCase() + "_description_container"];
+
                     let swf_id = cell.ffastransobj.properties.workflow_id;
-                    const windowHTML = "<div id='window_"+swf_id+"' style='width:100%;height:100%'></div>";
+                    
                     const dhxWindow = new dhx8.dhx.Window({
                         width: 640,
                         height: 420,
@@ -720,8 +752,14 @@
                         movable: true,
                         resizable:true
                     });
+
+                    const windowHTML = "<div id='window_"+swf_id+"' style='width:100%;height:100%'></div>";
                     dhxWindow.attachHTML(windowHTML);
+                    dhxWindow.header.data.add({icon: "mdi mdi-plus", id: "plus"}, 2);
+                    dhxWindow.header.data.add({icon: "mdi mdi-minus", id: "minus"}, 3);
+                    dhxWindow.header.data.add({icon: "mdi mdi-arrow-collapse-all", id: "center"}, 4);
                     dhxWindow.show();
+
                     console.log("Doubleclick evt",cell.ffastransobj);
                     await dhx8.dhx.awaitRedraw();
                     let sub_wf_json = m_workflows.filter(wf => wf.wf_id == swf_id);
@@ -737,53 +775,69 @@
                     //must reset max-height prop 
                     let original_height = sub_wf_graph_ele.style.maxHeight;
                     sub_wf_graph_ele.style.maxHeight = "100%";
-
+                    sub_wf_graph_ele.classList.toggle('overflow_auto');
+                    sub_wf_graph_ele.classList.toggle('overflow_hidden');
+                    
+                    let isFullScreen;
+                    //window control icon click
+                    dhxWindow.header.events.on("click", function (id) {
+                        if (id === "plus") 
+                            currentGraph.zoomIn();
+                        if (id === "minus") 
+                            currentGraph.zoomOut();      
+                        if (id === "center") 
+                            currentGraph.fit();                  
+                    });
+                    
                     //window close
                     dhxWindow.events.on("beforeHide", function(position, events){
                         //bring back the canvas from window into processor description body
                         original_container.appendChild(sub_wf_graph_ele);
                         sub_wf_graph_ele.style.maxHeight = original_height;
+                        sub_wf_graph_ele.classList.toggle('overflow_auto');
+                        sub_wf_graph_ele.classList.toggle('overflow_hidden');
                         return true;
                     });
 
                 });
 
+                // graph.addListener(mxEvent.MOUSE_DOWN, mxUtils.bind(graph, function (sender, evt) { 
+                //     //this dont work, event not fired. plan was to consume panning event if mouse down on another graph
+                //     graph.panningHandler.consumePanningTrigger(evt)
+                // }))
 
-                graph.addListener(mxEvent.CLICK, function (sender, evt) {
-                    //load log for selcted cell
+                graph.addListener(mxEvent.CLICK, mxUtils.bind(graph, function (sender, evt) { 
+
                     var cell = evt.getProperty("cell"); // cell may be null
                     if (!cell)
                         return;
                     
-                    if (cell != null) {
-                        console.log("detected mouseclick on cell",cell)
-                        if (cell.ffastransobj.type == "sub_wf")
-                            return // if click on node in sub-wf, prevents that we show log only of workflow proc
-                        var search = cell["ffastransobj"]["id"].toUpperCase();
-                        var tree = $("#treetable_log").fancytree('getTree');
-                        tree.filterNodes(function (node) {
-                            if (node["data"]["node"]["id"]){
-                                
-                                if (node["data"]["node"]["id"].toUpperCase().match(search)) {
-                                    //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
-                                    return true;
-                                }else{
-                                    return false;
-                                }
+                    console.log("detected mouseclick on cell",cell)
+                    if (cell.ffastransobj.type == "sub_wf")
+                        return // if click on node in sub-wf, prevents that we show log only of workflow proc
+                    var search = cell["ffastransobj"]["id"].toUpperCase();
+                    var tree = $("#treetable_log").fancytree('getTree');
+                    tree.filterNodes(function (node) {
+                        if (node["data"]["node"]["id"]){
+                            
+                            if (node["data"]["node"]["id"].toUpperCase().match(search)) {
+                                //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                                return true;
+                            }else{
+                                return false;
                             }
-                        }, {
-                            mode: "hide"
-                        });
-                    }
-                    else{
-                        //cell is null when click outside of processor, clear log filter
-                        var tree = $("#treetable_log").fancytree('getTree');
-                        tree.clearFilter();
-                        
-                       
-                    }
+                        }
+                    }, {
+                        mode: "hide"
+                    });
+                    
+                    // else{
+                    //     //cell is null when click outside of processor, clear log filter
+                    //     var tree = $("#treetable_log").fancytree('getTree');
+                    //     tree.clearFilter();
+                    // }
                     evt.consume();
-                });
+                }));
 
                 //BUILD THE GRAPH
                 // Gets the default parent for inserting new cells. This
@@ -860,35 +914,24 @@
 
                     graph.fit(0, false, 35); //(	border,keepOrigin,margin,enabled,ignoreWidth,ignoreHeight,maxHeight	)
 
-                     if (!panning){
-                        //sub-wf
-                         return
-                     }
-                    
                     //on initial workflow show, zoom out but only if not sub-wf
                     
                     graph.zoomOut();
 
-                    //else{
-                       // graph.fit(0, true, 0);
-                        //alert()
-                    //}
-                    
-                     m_graph = graph; //todo: should we make m_graph an array of graphs? currently this does not make sense because of sub-wf will override
-
                     //mxutils.bind passes the current graph instance to the event function as "this". Needed to check which graph is scrolled
                     mxEvent.addMouseWheelListener(mxUtils.bind(graph, function(evt, up)
                     {   //zoom on mousewheel event
-                        let graph  = this;
-                        if (mxEvent.isConsumed(evt)) {
-                            console.log("scroll event already consumed")
-                            return;
-                        }
-
                         //this scroll event is fired whenever the user scrolls on the page even outside the graph or over another graph
                         //that means the event is fired multiple times when the user scrolls. With this method we find out if the scroll "target" is part of the graph that has been stored as this by mxUtils.bind
-                        if (!this.container.contains(evt.target)){
+
+                        let graph  = this;
+
+                        if (!this.container.contains(evt.target)){ //if ! graph container contains a child scroll matching event target
                             return
+                        }
+
+                        if (mxEvent.isConsumed(evt)) {
+                            return;
                         }
 
                       var gridEnabled = graph.gridEnabled;
@@ -914,7 +957,6 @@
                 }
             }
         };
-
 
 
 function CustomData(value) {
@@ -1032,7 +1074,7 @@ function asyncsleep(time) {
                                         jqXHR["wf_id"];
                                         var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
                                         m_workflows.push(sub_wf_json);
-                                        buildMxGraph(_subwfdiv,sub_wf_json,true);
+                                        buildMxGraph(_subwfdiv,sub_wf_json,false);
                                         
                                         //buildMxGraph(document.getElementById("graphContainer2"),sub_wf_json,true);
                                         
@@ -1490,7 +1532,7 @@ function asyncsleep(time) {
                         $("#general_text").text("General [" + response["workflow"]["name"] + "]");
                         
                         //populate workflow canvas
-                        buildMxGraph(document.getElementById('graphContainer'),m_workflowdata);
+                        buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,false);//disable panning because we cannot determine if the drag happened outer or inner graph
                         get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
                     }
                 },
