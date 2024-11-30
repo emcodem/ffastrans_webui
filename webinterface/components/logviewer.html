@@ -303,55 +303,55 @@
     </script>
 
     <script type="text/javascript">
-        //madatory url parameter: workflowid
-        //request job from server
-        var m_debuggraph = {};
+//madatory url parameter: workflowid
+//request job from server
+var m_debuggraph = {};
 
-        var m_workflowdata = {}; //deprecated, we got multiple workflows now
-        var m_workflows = []; //deprecated, we got multiple workflows now
+var m_workflowdata = {}; //deprecated, we got multiple workflows now
+var m_workflows = []; //deprecated, we got multiple workflows now
 
-        var m_jobobject = {};
-        var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
-        var m_graph;
-        var m_graphs_by_container_id = {};
-        var m_serverconfig;
-        var mainLayout;
-        var m_timelineobject =  [];
-        var m_userpermissions;
+var m_jobobject = {};
+var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
+var m_graph;
+var m_graphs_by_container_id = {};
+var m_serverconfig;
+var mainLayout;
+var m_timelineobject =  [];
+var m_userpermissions;
 
-        /*load config from server*/
-        function loadserverconfig() {
-        $.ajax({
-            url: ("/getuserpermissions" + "?" + Math.random()),
-            type: "GET",
-            success: function(response) {
+/*load config from server*/
+function loadserverconfig() {
+$.ajax({
+    url: ("/getuserpermissions" + "?" + Math.random()),
+    type: "GET",
+    success: function(response) {
 
-                m_userpermissions = JSON.parse(response);
-                //load serverconfig and initialize page
-					$.ajax({
-						url: ("/getserverconfig" + "?" + Math.random()),
-						type: "GET",
-						success: function(response) {
-							m_serverconfig = JSON.parse(response);
-							init();
-						},
-						error: function(xhr, status) {
-							dhtmlx.message("Fatal error, could not load serverconfig. ");
-							document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
-						}
-					});
-				},
-				error: function(xhr, status) {
-					dhtmlx.message("Fatal error, could not load serverconfig. ");
-					document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
-				}
-
-			});
+        m_userpermissions = JSON.parse(response);
+        //load serverconfig and initialize page
+            $.ajax({
+                url: ("/getserverconfig" + "?" + Math.random()),
+                type: "GET",
+                success: function(response) {
+                    m_serverconfig = JSON.parse(response);
+                    init();
+                },
+                error: function(xhr, status) {
+                    dhtmlx.message("Fatal error, could not load serverconfig. ");
+                    document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+                }
+            });
+        },
+        error: function(xhr, status) {
+            dhtmlx.message("Fatal error, could not load serverconfig. ");
+            document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
         }
 
-        /**
-         * checks if there is one parent element containing the class
-        */
+    });
+}
+
+/**
+ * checks if there is one parent element containing the class
+*/
 function checkParentsForClass(element, targetClass, maxDepth = 10) {
     let currentElement = element;
     let depth = 0;
@@ -1664,7 +1664,7 @@ function buildUrl(what) {
     //old, delete at next iteration
 }
 
-    </script>
+</script>
 </head>
 
 <!-- Page passes the container for the graph to the program -->
