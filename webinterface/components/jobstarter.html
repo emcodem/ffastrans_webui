@@ -748,7 +748,7 @@ function init(){
     });
 
     vault.events.on("UploadComplete", function(files,other){
-        for (i=0;i<files.length;i++){
+        for (let i=0;i<files.length;i++){
 
             if (files[i].status != "uploaded") //onUploadFailEvent did not work, we must catch errors this way
                 continue
@@ -854,7 +854,7 @@ function init(){
             
             var selectedrows =  m_fileBrowserGrid.getSelectedRowId().split(',');
             
-            for (i = 0; i < selectedrows.length; i++) {
+            for (let i = 0; i < selectedrows.length; i++) {
                 var rId = selectedrows[i];
                 window.open("/download?fullpath=" + encodeURIComponent(m_fileBrowserGrid.getUserData(rId,"fullpath")) +"&"+Math.random(), '_blank');
                 await sleep(100);
@@ -1179,7 +1179,7 @@ function sort_custom(a,b,order){//dhtmlx grid custom sorting function
 function selectFileToProcess(){
     //transfer selected file to processing grid
     //for (rowId in m_fileBrowserGrid.getSelectedRowId().split(',')){
-    for (i = 0; i < m_fileBrowserGrid.getSelectedRowId().split(',').length; i++) {
+    for (let i = 0; i < m_fileBrowserGrid.getSelectedRowId().split(',').length; i++) {
         var newId = Math.random();
         m_selectedFileGrid.addRow(newId,"");
         var data_to_copy = m_fileBrowserGrid.getRowData(m_fileBrowserGrid.getSelectedRowId().split(',')[i]);
@@ -1496,7 +1496,7 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     m_workflowTabBar.cells("job_setup_tab").setText("Job Setup ["+wf_object["wf_name"]+"]");
     
     wf_object.variable["start_procs"] = []
-    for (i=0;i<wf_object["nodes"].length;i++){
+    for (let i=0;i<wf_object["nodes"].length;i++){
         if (wf_object["nodes"][i]["start_proc"])
             wf_object.variable["start_procs"].push(wf_object["nodes"][i]);
     }

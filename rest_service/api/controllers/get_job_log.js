@@ -26,7 +26,7 @@ function start(req, res) {
 	console.debug("get_job_log called for: " + jobid);
 	
 	//check if full log exists, if yes, serve contents
-    const path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/full_log.json";  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\full_log.json
+  const path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/full_log.json";  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\full_log.json
 	console.debug("trying to find file " + path)
 	try {
 	  if (fs.existsSync(path)) {
@@ -36,7 +36,7 @@ function start(req, res) {
           res.sendFile(path);
 	  }else{
 		//serve log for running job
-          console.log("Serving log from running job");
+        console.log("Serving log from running job");
         serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",0,0,res);
       }
 	} catch(err) {
@@ -83,7 +83,7 @@ function serveRunningLog(jobdir, start, end, response) {
         response.write("[");
         console.log("Log lines count: " + buffers.length)
         console.log("Log lines wanted: " + COUNT)
-        for (i = START; i < COUNT; i++) {
+        for (let i = START; i < COUNT; i++) {
             console.log(buffers[i].toString());
             response.write(strip_bom(buffers[i].toString()));
             if (i < COUNT - 1) {

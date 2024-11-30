@@ -334,7 +334,7 @@
 				var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
 				console.log("Displaying filtered list of buttons, regex: ", regex);
 				//add filtered btns to Running jobgrid
-				for (_id=0;_id<menuButtonLabels.length;_id++){
+				for (let _id=0;_id<menuButtonLabels.length;_id++){
 					if (menuButtonLabels[_id].match(regex)){
                         finalMainMenuHtml += menuButtonHtmlTemplate[_id];
 						//_appendtext(menuButtonLabels[_id],menuButtonHtmlTemplate[_id])
@@ -343,7 +343,7 @@
 			}else{
 				//just render all btns
 				console.log("Displaying unfiltered list of menu buttons" )
-				for (_id=0;_id<menuButtonLabels.length;_id++){
+				for (let _id=0;_id<menuButtonLabels.length;_id++){
                     finalMainMenuHtml += menuButtonHtmlTemplate[_id];
 					//_appendtext(menuButtonLabels[_id],menuButtonHtmlTemplate[_id])
 				}
@@ -770,7 +770,7 @@
 
                     //create node connections
 
-                    for (i = 0; i < connections.length; i++) {
+                    for (let i = 0; i < connections.length; i++) {
                         var from_id = (connections[i]["from"]);
                         var from_cell = graph.getModel().getCell(from_id);
                         var to_array = connections[i]["to"];
@@ -1079,7 +1079,7 @@ function asyncsleep(time) {
                     //reset all odd even row colors
                     var rootNode = $("#treetable_log").fancytree("getRootNode");
                     var oldnodes = rootNode.children;
-                    for (i = 0; i < oldnodes.length; i++) {
+                    for (let i = 0; i < oldnodes.length; i++) {
                         if (i % 2 == 0) {
                             oldnodes[i].toggleClass("ev_dhx_skyblue", true)
                             oldnodes[i].toggleClass("odd_dhx_skyblue", false)
@@ -1226,7 +1226,7 @@ function asyncsleep(time) {
                     //reset all odd even row colors
                     var rootNode = $("#treetable_nodes").fancytree("getRootNode");
                     var oldnodes = rootNode.children;
-                    for (i = 0; i < oldnodes.length; i++) {
+                    for (let i = 0; i < oldnodes.length; i++) {
                         if (i % 2 == 0) {
                             oldnodes[i].toggleClass("ev_dhx_skyblue", true)
                             oldnodes[i].toggleClass("odd_dhx_skyblue", false)

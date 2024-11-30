@@ -158,7 +158,7 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
             _crongrid.enableTooltips("false,false");
             var existing = this.getValue().split(",");
             //render existing cron entries
-            for (i in existing){
+            for (let i in existing){
                 var _id = _crongrid.uid();
                 //adds div with a special id in grid row, renderCron will transform the div into cron selector
                 _crongrid.addRow(_id,("<div id='sched"+_id+"'></div>"));

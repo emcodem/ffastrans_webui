@@ -160,11 +160,11 @@ var m_workflowdata = {};
                 }
                 //create node connections
 
-                for (i=0;i<connections.length;i++){
+                for (let i=0;i<connections.length;i++){
                     var from_id = (connections[i]["from"]);
                     var from_cell = graph.getModel().getCell(from_id);
                     var to_array = connections[i]["to"];
-                    for (t=0;t<to_array.length;t++){
+                    for (let t=0;t<to_array.length;t++){
                         //for each target, create connection arrow
                         var to_cell = graph.getModel().getCell(to_array[t]["id"]);
                         

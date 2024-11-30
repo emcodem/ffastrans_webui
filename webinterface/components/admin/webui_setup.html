@@ -369,7 +369,7 @@ async function checkIfAdminGroupExists(){
     try{
         var resp = await fetch("/usergrouplist");
         var groups = await resp.json();
-        for (_g of groups){
+        for (let _g of groups){
             if (JSON.stringify(_g).match("GROUPRIGHT_MENU_VIEW_ADMIN")){
                 resp = await fetch("/userlist");
                 var usersresp = await resp.text();

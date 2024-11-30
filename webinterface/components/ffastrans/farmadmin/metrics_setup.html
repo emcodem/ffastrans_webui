@@ -141,7 +141,7 @@
                 var fancytreeobj = [];
                 try{
                     console.log(response["data"]["activeTargets"])
-                   for (i=0;i<response["data"]["activeTargets"].length;i++){
+                   for (let i=0;i<response["data"]["activeTargets"].length;i++){
                         var _cur = response["data"]["activeTargets"][i];
                         fancytreeobj.push({"title":_cur["labels"]["instance"],"state":_cur["health"]});
                          

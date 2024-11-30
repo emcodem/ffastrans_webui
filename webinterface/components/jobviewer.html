@@ -335,14 +335,14 @@
             console.log("Displaying filtered list of buttons, regex: ", regex);
             
             //add filtered btns to Running jobgrid
-            for (_id=0;_id<arr_all_in_a.length;_id++){
+            for (let _id=0;_id<arr_all_in_a.length;_id++){
                 var input_name = arr_all_in_a[_id].match(/name="(.*?)"/)[1];
                 if (regex.test(input_name)){
                     _appendtext('b',arr_all_in_a[_id])
                 }
             }
             //no filter, add filtered btns to History jobgrid
-            for (_id=0;_id<arr_all_in_b.length;_id++){
+            for (let _id=0;_id<arr_all_in_b.length;_id++){
                 var input_name = arr_all_in_b[_id].match(/name="(.*?)"/)[1];
                 if (regex.test(input_name)){
                     _appendtext('c',arr_all_in_b[_id])
@@ -373,7 +373,7 @@
     
     function applyFilter(filtername,filtervalue){
         /* inserts filter into grid header and hits enter */
-        for (i = 0; i < $("input[name=search]").length; i++) {
+        for (let i = 0; i < $("input[name=search]").length; i++) {
             var input = $("input[name=search]")[i];     
             var keyname = input.placeholder.toLowerCase();
             if(keyname.match(filtername.toLowerCase())){
@@ -561,7 +561,7 @@
            
             if (JSON.parse(msg)) {
                 var q_obj = (JSON.parse(msg));
-                for (i=0;i<q_obj.length;i++){
+                for (let i=0;i<q_obj.length;i++){
                     //convert file time to time of user perspective
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" );//if do not do this, time will be off from timezone
                     q_obj[i]["job_start"] = new Date(q_obj[i]["job_start"] + " UTC" ).toISOString().replace("T"," ").replace(/\..*/,""); 
@@ -919,7 +919,7 @@
                 return;
             }
             var array_to_delete = [];
-            for (i = 0; i < selected.length; i++) {}
+            for (let i = 0; i < selected.length; i++) {}
             selected.forEach(function(node) {
                 array_to_delete.push(node.data["job_id"]);
                 node.remove();
@@ -1002,7 +1002,7 @@
                 //reset all odd even row colors
                 var rootNode = $("#treetable_active").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
-                for (i = 0; i < oldnodes.length; i++) {
+                for (let i = 0; i < oldnodes.length; i++) {
                     if (i % 2 == 0) {
                         oldnodes[i].toggleClass("ev_dhx_skyblue", true)
                         oldnodes[i].toggleClass("odd_dhx_skyblue", false)
@@ -1152,12 +1152,12 @@
     //     return filtered
     //     //TESTING FILTER ON SERVER
 
-    //     for (i = 0; i < m_userpermissions.length; i++) {
+    //     for (let i = 0; i < m_userpermissions.length; i++) {
     //         if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
     //             if (filtered == the_list) {
     //                 filtered = [];
     //             }
-    //             for (idx = 0; idx < the_list.length; idx++) {
+    //             for (let idx = 0; idx < the_list.length; idx++) {
     //                 var name = the_list[idx]["workflow"];
     //                 var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
     //                 if (name.match(regex)) {
@@ -1290,7 +1290,7 @@
         }catch(ex){alert("Error building variablecols" + ex)}
 
         var filterobj = {};
-			for (i = 0; i < $("input[name=search]").length; i++) {
+			for (let i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 let searchfor = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
@@ -1330,7 +1330,7 @@
                 var rootNode = $("#treetable_history").fancytree("getRootNode");
                 var oldnodes = rootNode.children;
 
-                for (i = 0; i < oldnodes.length; i++) {
+                for (let i = 0; i < oldnodes.length; i++) {
                     if (i % 2 == 0) {
                         oldnodes[i].toggleClass("ev_dhx_skyblue", false)
                         oldnodes[i].toggleClass("odd_dhx_skyblue", true)
@@ -1649,7 +1649,7 @@
            
 		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
             var show_row = true;
-			for (i = 0; i < $("input[name=search]").length; i++) {
+			for (let i = 0; i < $("input[name=search]").length; i++) {
                 var input = $("input[name=search]")[i];
                 searchfor = $.trim(input.value);
                 var keyname = input.placeholder.toLowerCase();
@@ -1874,7 +1874,7 @@
         //TESTING WORKFLOW FILTER DISABLED, INSTEAD UPDATE HISTORY GRID WHEN NEW HISTORY JOB ARRIVES
         return true;
         //todo: add wf group filter
-        for (i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
+        for (let i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
             if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
 
                 var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
@@ -1943,7 +1943,7 @@
         //remove orphand
         var oldnodes = rootNode.children;
         if (oldnodes) {
-            for (a = 0; a < oldnodes.length; a++) {
+            for (let a = 0; a < oldnodes.length; a++) {
                 if (oldnodes[a].title == qstate) {
                     if (activeJobIds.indexOf(oldnodes[a]["key"]) == -1) {
                         oldnodes[a].remove();
@@ -1965,7 +1965,7 @@
             chr;
         if (string.length === 0)
             return hash;
-        for (i = 0; i < string.length; i++) {
+        for (let i = 0; i < string.length; i++) {
             chr = string.charCodeAt(i);
             hash = ((hash << 5) - hash) + chr;
             hash |= 0; // Convert to 32bit integer

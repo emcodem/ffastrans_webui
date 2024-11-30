@@ -939,7 +939,7 @@ async function getBrowseLocations(){
         //restore user locations
         if (localStorage.getItem("savedbrowselocations")){
                 var _locs = JSON.parse(localStorage.getItem("savedbrowselocations"));
-                for (i=0;i<_locs.length;i++){
+                for (let i=0;i<_locs.length;i++){
                     m_fileBrowseGridMenu.addNewChild("location", _locs[i].path,  _locs[i].path, _locs[i].displayname, false,"","");
                 }
         }
@@ -1130,7 +1130,7 @@ function on_gridWorkflowSelected(wf_name,wf_object){
     m_workflowTabBar.cells("variabletab").setText("Job Setup ["+wf_object["wf_name"]+"]");
     console.log(wf_object)
     wf_object.variable["start_procs"] = []
-    for (i=0;i<wf_object["nodes"].length;i++){
+    for (let i=0;i<wf_object["nodes"].length;i++){
         if (wf_object["nodes"][i]["start_proc"])
             wf_object.variable["start_procs"].push(wf_object["nodes"][i]);
             console.log(wf_object["nodes"][i])
@@ -1140,7 +1140,7 @@ function on_gridWorkflowSelected(wf_name,wf_object){
         dhtmlx.alert("Fatal error parsing workflow, start_proc was not found")
         console.log(wf_object)
     }
-    for (i=0;i<proc_root.length;i++){
+    for (let i=0;i<proc_root.length;i++){
         var proc = proc_root[i];
         var proc_name_default=  proc["name"] || proc["type"]; //on non renamed nodes, name is not defined
         var proc_name = proc_name_default;

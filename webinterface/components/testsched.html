@@ -123,7 +123,7 @@ function eXcell_cron(cell){ //custom cell type for dhtmlx grid, used to show cro
             _crongrid.enableTooltips("false,false");
             var existing = this.getValue().split(",");
             //render existing cron entries
-            for (i in existing){
+            for (let i in existing){
                 var _id = _crongrid.uid();
                 _crongrid.addRow(_id,("<div id='sched"+_id+"'></div>"));
                 renderCron(_id,existing[i]);
@@ -592,7 +592,7 @@ function loadWorkflows(wf_combo,procCombo){
                 }
                 //add options to dropdown
                 m_workflowArray = response['workflows'];
-                for (i in m_workflowArray){
+                for (let i in m_workflowArray){
                     //create a combo option for each workflow
                     var _selected = false;
                     if (currentWf['wf_id'] == m_workflowArray[i]['wf_id']){
@@ -656,13 +656,13 @@ function updateJobs(){
         type: "GET",
         success: function (response) {
             response = JSON.parse(response) 
-            for (i in response){
+            for (let i in response){
                 var _job = response[i]['scheduled_jobs'];
                 console.log("updateing",  response);
                 <!-- var colNameLastStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_start")); -->
                 <!-- var colNameNextStart = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("next_start")); -->
                 <!-- var colNameLastMessage = m_mainGrid.getColIndexById( m_mainGrid.getColumnId("last_message")); -->
-                for (colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                for (let colidx = 0; colidx < m_mainGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
                     if (colName == "last_start"){
                         m_mainGrid.cells(_job["id"],colidx).setValue(_job["last_start"]);//last start
@@ -694,10 +694,10 @@ function loadJobs(dhxGrid){
         type: "GET",
         success: function (response) {
             response = JSON.parse(response) 
-            for (i in response){
+            for (let i in response){
                 var _job = response[i]['scheduled_jobs'];
                 var rowData = [];
-                for (colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
+                for (let colidx = 0; colidx < dhxGrid.getColumnsNum(); colidx++){ //this is for supporting dynamic adding of columns to the grid while at the same time support reordering of columns
                     var colName = m_mainGrid.getColumnId(colidx);
 					console.log("colname",colName,"val",_job[colName])
                     rowData.push(_job[colName]);                    

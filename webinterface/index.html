@@ -536,7 +536,7 @@ async function init(permissions){
     var _perm = JSON.parse(permissions);
     var firstMenuPermissionUrl = "GROUPRIGHT_MENU_VIEW_JOB_STATUS";
     console.log(_perm);
-    for (i=0;i<_perm["items"].length;i++){
+    for (let i=0;i<_perm["items"].length;i++){
         if (i==0)
             firstMenuPermissionUrl = _perm["items"][i]["id"]
         if (_perm["items"][i].id == 'GROUPRIGHT_MENU_VIEW_ADMIN_USERS'){
@@ -651,7 +651,7 @@ function getPermittedWorkflowList(allPermissions,workflowResponse){
         //no auth means everyone sees everything
         return workflowlist.workflows;
     }
-    for (x in allPermissions){
+    for (let x in allPermissions){
                            
         //FILTER WORFKLOWS
         if (allPermissions[x]["key"] == "FILTER_WORKFLOW_GROUP"){
