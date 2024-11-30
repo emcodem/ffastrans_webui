@@ -102,7 +102,7 @@ module.exports = function(app, express){
             //2022-02-20T23:44:56.317+01:00
             for (i=0;i<10;i++){
                 var jobArray =[];
-                for (x=0;x<500000;x++){ 
+                for (x=0;x<100000;x++){ 
                     date_start.setSeconds(date_start.getSeconds() + 10);
                     var dts = moment.tz(date_start, "Asia/Taipei").format("YYYY-MM-DD HH:mm:ss");//2022-06-28T08:42:30.780+02:00
                     date_start.setSeconds(date_start.getSeconds() + 10);
@@ -111,19 +111,35 @@ module.exports = function(app, express){
                     var jobname= '255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=';
                     var outcome = jobname + jobname + jobname + jobname + jobname + jobname + jobname  + jobname;
                     var wf_name = a_workflows[Math.floor(Math.random()*a_workflows.length)].wf_name;
-					jobArray.push({
-						"_id": uuid() + "~1-0-0",
+                    let jobid = uuid();
+					let jobobj = {
+						"_id": jobid + "~1-0-0_main",
 						"state": m_jobStates[getRandomInt()],
 						"workflow": wf_name,
 						"start_time": dts,
 						"end_time": dte,
 						"job_start": dts,
 						"job_end": dte,
-						"file": jobname + i + x,
+						"source": jobname + i + x,
 						"outcome": outcome,
-						"duration": duration
-						
-					});
+						"duration": duration,
+                        children:[]
+					}
+                    let copyobj = JSON.parse(JSON.stringify(jobobj))
+                    copyobj._id = jobid + "~1-0-0";
+                    delete copyobj.children 
+                    jobobj.children.push(copyobj); //must put the first job into children, its currently a copy of the outer job obj
+                    
+                    copyobj = JSON.parse(JSON.stringify(jobobj))
+                    delete copyobj.children 
+                    //create one split
+                    copyobj._id = jobid + "~1-1-1";
+                    copyobj.source = jobid + "anotherfile " + date_start;
+                    copyobj.outcome = "second outcome " + date_start;
+                    jobobj.children.push(copyobj);
+
+
+                    jobArray.push(jobobj);
                 }
                 console.log("Inserting 1000 jobs")
                 await global.db.jobs.insert(jobArray);
@@ -133,8 +149,8 @@ module.exports = function(app, express){
             res.write("generated 1.000.000 jobs");//output json array to client
             res.end();
         }catch(ex){
-            res.writeHead(500,{"Content-Type" : "text/html"});
-            res.write(ex);//output json array to client
+            res.writeHead(500,{"Content-Type" : "application/json"});
+            res.json(ex);
             res.end();
         }
     });
