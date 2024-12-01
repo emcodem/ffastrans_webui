@@ -75,7 +75,6 @@
     #graphContainer {
         /*background: url('../images/canvas_background.png');*/
         position: absolute;
-        border: 1px solid #F2F2F2;
         white-space: nowrap;
         font-family: Arial;
         font-size: 8pt;
@@ -274,6 +273,8 @@
 </script>
 
 <script type="text/javascript">
+
+
 //madatory url parameter: workflowid
 //request job from server
 var m_debuggraph = {};
@@ -293,6 +294,7 @@ let m_subWorkflows = {node_id:"workflow_id"}
 let m_branchGrid;
 /*load config from server*/
 function loadserverconfig() {
+    
 $.ajax({
     url: ("/getuserpermissions" + "?" + Math.random()),
     type: "GET",
@@ -589,7 +591,9 @@ function initBranchGrid(){
             id: "object",
             header: [{ text: "Outcome" },],
             template: function(o_branch){
-                return o_branch.result
+                let to_display = o_branch.result;
+                to_display = o_branch.result.replaceAll(/\r|\n/g,"");
+                return to_display
             },
             htmlEnable: true
         }
