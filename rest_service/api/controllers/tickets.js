@@ -146,7 +146,7 @@ async function get_incoming(returnarray){
 async function get_pending(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
     var a_pending = await common.ticket_files_to_array(path.join(s_tick_path,"pending"));
-   
+    
 	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
     //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 
     //as we dont want to show both at the same time, we ignore the pending tickets from mon_folder to prevent showing the same file twice
@@ -172,6 +172,11 @@ async function get_pending(){
             console.error("Problem parsing pending entry: ", a_pending[key]);
         }
     }
+
+    a_pending = a_pending.filter(o=>{
+        return o.fullpath.match(/~api_submit~|~gui_submit~/)
+    })
+
     for (var key in keys_to_ignore){
         delete a_pending[key];
     }
