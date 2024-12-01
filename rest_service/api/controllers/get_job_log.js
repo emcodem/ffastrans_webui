@@ -71,7 +71,7 @@ function serveRunningLog(jobdir, start, end, response) {
         console.log("Num found log files: " + buffers.length);
         if (START > buffers.length) {
             console.error("Requested more log lines than i have, start was: " + START + " but i only have: " + buffers.length);
-            response.set('ffastrans_log_last_endpos', START)
+            response.set('ffastrans_log_last_endpos', START);
             response.write("[]");
             response.end();
             return;

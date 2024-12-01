@@ -214,33 +214,17 @@
         animation: changeShadowProgress 0.5s infinite alternate;
     }
 
-    @-webkit-keyframes changeShadowProgress {
-        from {
-            box-shadow: 0 0 10px 5px #93ce99;
-        }
-
-        to {
-            box-shadow: 0 0 10px 5px #269922;
-        }
-    }
-
-    @-moz-keyframes changeShadowProgress {
-        from {
-            box-shadow: 0 0 10px 5px #93ce99;
-        }
-
-        to {
-            box-shadow: 0 0 10px 5px #269922;
-        }
-    }
-
+    
+    /* todo: we could use a variable for the sizes in order to support changing the base resolution of the graph (the real processor pixel width) 
+        but as the real processor pixel width is not changed dynamically, we can leave it hardcoded.
+    */
     @keyframes changeShadowProgress {
         from {
-            box-shadow: 0 0 10px 5px #93ce99;
+            box-shadow: 0 0 50px 10px #93ce99;
         }
 
         to {
-            box-shadow: 0 0 10px 5px #269922;
+            box-shadow: 0 0 50px 10px #269922;
         }
     }
 
@@ -251,33 +235,13 @@
         animation: changeShadowError 0.5s infinite alternate;
     }
 
-    @-webkit-keyframes changeShadowError {
-        from {
-            box-shadow: 0 0 10px 5px #a21a1a;
-        }
-
-        to {
-            box-shadow: 0 0 10px 5px #a21a1a;
-        }
-    }
-
-    @-moz-keyframes changeShadowError {
-        from {
-            box-shadow: 0 0 10px 5px #a21a1a;
-        }
-
-        to {
-            box-shadow: 0 0 10px 5px #a21a1a;
-        }
-    }
-
     @keyframes changeShadowError {
         from {
-            box-shadow: 0 0 10px 5px #a21a1a;
+            box-shadow: 0 0 50px 10px #a21a1a;
         }
 
         to {
-            box-shadow: 0 0 10px 5px #a21a1a;
+            box-shadow: 0 0 50px 10px #a21a1a;
         }
     }
 
@@ -1132,7 +1096,7 @@ async function parseJobLog(lines) {
                 _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
 
                 //progress-circle
-                $("#" + _proc_id).addClass("blinking-progress");
+                $("#" + _proc_id).parent().addClass("blinking-progress");
 
             }
             
@@ -1140,11 +1104,11 @@ async function parseJobLog(lines) {
             if (line["event"] == "node end") {
                 m_unique_nodes[new_key]["date_end"] = line["created"];
                 m_unique_nodes[new_key]["state"] = "success";
-                $("#" + _proc_id).removeClass("blinking-progress");
+                $("#" + _proc_id).parent().removeClass("blinking-progress");
 
                 //red border for errored nodes
                 if (line["data"] != null) { //when this exists, we have a node in error
-                    $("#" + _proc_id).addClass("blinking-error");
+                    $("#" + _proc_id).parent().addClass("blinking-error");
                 } 
             }
 
