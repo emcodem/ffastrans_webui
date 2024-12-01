@@ -374,7 +374,7 @@ function buildMainLayout() {
     var menuButtonLabels = ["Load latest Job",
                             "Resubmit Job",
                             "Refresh this page"];
-    var menuButtonHtml = ['<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Load latest Job</button>',
+    var menuButtonHtml = ['<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Latest Finished Job</button>',
                             '<button class="btn logviewer_menu"><span class="mdi mdi-repeat"></span> Resubmit Job</button>',
                             '<button class="btn logviewer_menu"><span class="mdi mdi-refresh"></span> Refresh this page</button>'
                             ];
@@ -417,7 +417,7 @@ function buildMainLayout() {
                     dataType: "json",
                     success: function (response) {
                         if (response["data"]) {
-                            var jid = response["data"][0]["sort_family_name"];
+                            var jid = response["data"][0]["job_id"];
                             window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
                         }
                     },
@@ -437,10 +437,11 @@ function buildMainLayout() {
                 postBody.variables = m_jobobject["variables"];
                 postBody.system = "FFAStrans Web Interface";
                     $.ajax({
-                    url: buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                    url: build_new_api_url("/jobs"),
                     type: "POST",
+                    contentType: 'application/json;charset=UTF-8',
                     crossDomain: true,
-                    data: postBody,
+                    data: JSON.stringify(postBody),
                     success: function(response) {
                         console.log("Job Resubmit response:",response);
                         try{
