@@ -7631,16 +7631,7 @@ span.dhxtabbar_tabs_text_test_dhx_skyblue {
   -o-user-select: none;
   user-select: none;
 }
-.dhxwins_vp_dhx_skyblue div.dhxwin_active div.dhx_cell_wins div.dhx_cell_cont_wins,
-.dhxwins_vp_dhx_skyblue div.dhxwin_inactive div.dhx_cell_wins div.dhx_cell_cont_wins {
-  position: absolute;
-  /*border: 1px solid #d3e6fe;*/
-  /*padding: 1px;*/
-  border: 1px solid #787878;
-  background-color: #787878;
-  overflow: hidden;
-  z-index: 0;
-}
+
 .dhxwins_vp_dhx_skyblue div.dhxwin_active div.dhx_cell_wins div.dhx_cell_cont_wins.dhx_cell_cont_no_borders,
 .dhxwins_vp_dhx_skyblue div.dhxwin_inactive div.dhx_cell_wins div.dhx_cell_cont_wins.dhx_cell_cont_no_borders {
   border: 0px solid #787878 !important;
@@ -8678,6 +8669,14 @@ body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div  > div.dhx_layout-
 	 background:#222
  }
 
+
+/* dhtmlx 8 grid row odd even */
+ /* .alternate_row .dhx_grid-row {
+} */
+ .alternate_row .dhx_grid-row:nth-child(2n) {
+  background: #222;
+}
+
 .dhxform_obj_dhx_skyblue>button:hover,.dhxform_obj_dhx_skyblue div.dhxform_btn:hover,.btn.jobviewer_menu:hover{
 	border: 1px solid #CCCCCC;
 	background-color: #CCCCCC;
@@ -8855,4 +8854,17 @@ border-bottom: 1px solid #333;
 
 .dark-mode-visible{
   display:block !important;
+}
+
+/* logviewer background div for open log in window */
+.dhxwins_vp_dhx_skyblue div.dhxwin_active div.dhx_cell_wins div.dhx_cell_cont_wins,
+.dhxwins_vp_dhx_skyblue div.dhxwin_inactive div.dhx_cell_wins div.dhx_cell_cont_wins {
+  position: absolute;
+  /*border: 1px solid #d3e6fe;*/
+  /*padding: 1px;*/
+  background: var(--dhx-background-primary);
+  border: 1px solid var(--dhx-background-primary);
+  /*background-color: #787878; */
+  overflow: hidden;
+  z-index: 0;
 }

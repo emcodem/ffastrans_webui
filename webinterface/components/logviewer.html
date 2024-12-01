@@ -50,8 +50,8 @@
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 
-<script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"></link>
+<script src="../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"></link>
 
 
 
@@ -63,8 +63,13 @@
         margin: 0px;
         overflow: hidden;
         color: #333;
-        font: 14px Helvetica, Arial, sans-serif;
+        font: 14px;
+        font-family: var(--dhx-font-family);
         line-height: 18px;
+    }
+
+    th{
+        font-weight: normal;
     }
 
     #graphContainer {
@@ -181,7 +186,7 @@
         padding: 0 5px 0 5px !important;
         /* padding: 0.2em;*/
         font-weight: lighter;
-        font-size: 12px
+        font-size: var(--dhx-font-size-normal);
     }
 
     div.gridbox {
@@ -197,7 +202,6 @@
     }
 
 
-
     /*three dots on text overflow*/
     .celltext {
         white-space: nowrap;
@@ -205,6 +209,9 @@
         text-overflow: ellipsis;
         user-select: text;
         margin-left: 6px;
+        font-size: var(--dhx-font-size-normal);
+        color: var(--dhx-font-color-primary);
+        font-family: var(--dhx-font-family);
     }
 
     .blinking-progress {
@@ -529,6 +536,8 @@ function buildMainLayout() {
     info_layout.cells("b").setText("Nodes");
     info_layout.cells("c").setText("Branches");
     info_layout.cells("b").attachObject("node_div");
+    info_layout.cells("c").attachHTMLString('<div id="branch_div" style=""/>');
+    initBranchGrid();
     info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>');
     info_layout.cells("a").showInnerScroll();
     info_layout.cells("b").showInnerScroll();
@@ -538,6 +547,95 @@ function buildMainLayout() {
     });
     restoreLayoutSizes(info_layout, "info_layout", true);
     //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
+}
+
+let m_branchGrid;
+async function refreshBranches(){
+    //until job is finished, update list
+    const response = await fetch(build_new_api_url("/getbranchlog?jobid=" + getQueryVariable("job_id")));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    let data = await response.json(); // Assuming the response is JSON
+    m_branchGrid.data.parse(data.branches);
+    
+}
+
+function initBranchGrid(){
+    //build grid and kick off data loading
+    const columns = [
+        {
+            id: "name",
+            header: [{ text: "Id" }],
+            resizable: true
+        },
+        {
+            id: "object",
+            header: [{ text: "Outcome" },],
+            template: function(o_branch){
+                return o_branch.result
+            },
+            htmlEnable: true
+        }
+    ];
+
+    //to add dhx8 grid to dhx5 layout, we trick a little, layout does not add any id that we can use for attaching grid, just create it:
+    //document.getElementById("branch_div").parentElement.id = "attach_grid_here";
+    //document.getElementById("branch_div").parentElement.style.width = "100%"
+    m_branchGrid = new dhx8.dhx.Grid("branch_div", {
+        columns,
+        css: "alternate_row",
+        keyNavigation: true,
+        autoWidth:true,
+        selection: "row",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        eventHandlers: {
+            onclick: {
+                
+            },
+        },
+    });
+
+    m_branchGrid.selection.events.on("AfterSelect", branchGridSelect);
+    refreshBranches();
+}
+
+function getSelectedGridRows(grid){/*helper to find all selected rows*/
+    let selcel = grid.selection.getCells();
+    if (selcel.length == 0){
+        let singlecel = grid.selection.getCell();
+        if (!singlecel)
+            return []
+        selcel = [singlecel];//we dont use col
+    }
+    if (selcel)
+        return selcel;
+    else
+        return []
+}
+
+async function branchGridSelect(row,col){
+    let selcel = getSelectedGridRows(m_branchGrid);
+    //put ticket to every option for later use in onclick
+    let branchid = selcel[0].row.object.split_id;
+    const response = await fetch(build_new_api_url("/getbranchlog?list_only=false&jobid=" + getQueryVariable("job_id") + "&branchid=" + branchid ));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    let branchjson = await response.json(); // Assuming the response is JSON
+    console.log("branch json downloaded:",branchjson);    
+    
+    //rebuild graph with empty cells could be optimized by reset existing graph
+    m_unique_nodes = [];
+    m_graph.destroy();
+    document.getElementById('graphContainer').innerHTML = "";
+    m_graph = null;
+    buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,false);
+
+    //reload job log filtered by split_id, could be optimized by loading only branch log
+    let a_nodeids = branchjson.branches[0].object.path.map(o=>{return o.id});
+    get_job_log(getQueryVariable("job_id"),0,a_nodeids); 
 }
 
 google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
@@ -1416,9 +1514,9 @@ function appendLogLines(proc_id, a_lines) {
 
 }
 
-function get_job_log(job_id, start) {
+function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path field from finished branch json, array of node objects, they have id field which we filter
     start = typeof start !== 'undefined' ? start : 0;
-    console.log("START: " + start )
+    console.log("getjoblog START: " + start );
     //get all workflows from server  start main with the workflow of interest
     var _url = "/getjoblog?jobid=" + job_id+ "&start="+ start ;
     $.ajax({
@@ -1434,6 +1532,11 @@ function get_job_log(job_id, start) {
                 response[a]["_data"] = response[a]["data"];
             }
 
+            if (a_nodeid_filter){
+                //this is a little dirty, rebuild mxgraph and filter the log lines by branch
+                response = response.filter(logline => a_nodeid_filter.indexOf(logline.node?.id) != -1);
+                
+            }
             await parseJobLog(response);
             console.log("<<<parseJobLog")
             
@@ -1452,6 +1555,7 @@ function get_job_log(job_id, start) {
                 var rootNode = $("#treetable_log").fancytree("getRootNode");
                 rootNode.removeChildren();
                 rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
+                console.log("full log",response);
                 $("#log_div").css("visibility", "visible");
             }
 
@@ -1644,7 +1748,7 @@ function buildUrl(what) {
                 <col width="15%"></col>
                 <col width="50%"></col>
             </colgroup>
-            <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+            <thead class="sticky " style="border:none">
                 <tr class="">
                     <th class="sticky" style="font-weight:normal">Node</th>
                     <th class="sticky" style="font-weight:normal">Time</th>
@@ -1657,17 +1761,17 @@ function buildUrl(what) {
         </table>
     </div>
 
-    <div id="node_div" style="visibility:hidden" style="" class="gridbox_dhx_skyblue gridbox">
+    <div id="node_div" style="visibility:hidden;border:none !important" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_nodes" class="obj">
 
-            <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+            <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="height:20px;color: var(--dhx-font-color-primary);font-family: var(--dhx-font-family);font-weight:normal!important">
                 <tr class="">
-                    <th style="font-weight:normal">State</th>
-                    <th style="font-weight:normal">Node</th>
-                    <th style="font-weight:normal">Duration</th>
-                    <th style="font-weight:normal">Start</th>
-                    <th style="font-weight:normal">Host</th>
-                    <th style="font-weight:normal">Branch</th>
+                    <th >State</th>
+                    <th >Node</th>
+                    <th >Duration</th>
+                    <th >Start</th>
+                    <th >Host</th>
+                    <th >Branch</th>
                 </tr>
             </thead>
         </table>

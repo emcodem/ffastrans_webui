@@ -8630,3 +8630,8 @@ ul.fancytree-container{/* workflow selection */
 .dark-mode-visible{
   display:none;
 }
+
+/* dhtmlx 8 grid row odd even */
+.alternate_row .dhx_grid-row:nth-child(2n) {
+  background: #e5e5e5;
+}

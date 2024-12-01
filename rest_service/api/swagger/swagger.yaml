@@ -86,6 +86,36 @@ paths:
           description: Success
         default:
           description: Error
+  /getbranchlog:
+    x-swagger-router-controller: get_branch_log
+    get:
+      description: Retrieves Branch information by job_id
+      operationId: get_branch_log
+      parameters:
+        - name: jobid
+          in: query
+          description: A JobId
+          required: true
+          schema:
+            type: string
+        - name: branchid
+          in: query
+          description: filter Branch id, e.g. 1-0-0
+          required: false
+          schema:
+            type: string
+        - name: list_only
+          in: query
+          description: faster, prevents reading the files from disk
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
   /review:
     x-swagger-router-controller: review
     get:

@@ -259,6 +259,7 @@ async function start_server( _listenport,globalconf){
         hello:              require(_approot + "/api/controllers/hello_world").get,
         get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
         get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
+        get_branch_log:     require(_approot + "/api/controllers/get_branch_log").get,
         get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
         tickets:            require(_approot + "/api/controllers/tickets").get,
         machines:           require(_approot + "/api/controllers/machines").get,
