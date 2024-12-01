@@ -290,7 +290,7 @@ var mainLayout;
 var m_timelineobject =  [];
 var m_userpermissions;
 let m_subWorkflows = {node_id:"workflow_id"}
-
+let m_branchGrid;
 /*load config from server*/
 function loadserverconfig() {
 $.ajax({
@@ -531,7 +531,7 @@ function buildMainLayout() {
     
     //Left Layout
     let info_layout = mainLayout.cells("a").attachLayout("3E");
-    info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="mainLayout.cells(\'a\').undock()"><span class="mdi mdi-eject"></span></button>' +
+    info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleGeneralDock()"><span class="mdi mdi-eject"></span></button>' +
         "<span id='general_text'>General</span>");
     info_layout.cells("b").setText("Nodes");
     info_layout.cells("c").setText("Branches");
@@ -546,10 +546,26 @@ function buildMainLayout() {
         saveLayoutSizes(info_layout, "info_layout");
     });
     restoreLayoutSizes(info_layout, "info_layout", true);
-    //mainLayout.cells("c").dhxcont.mainCont.style.overflow="auto";
+    
+    info_layout.attachEvent("onUndock", function (name) {
+        window._undockedGeneralWin = info_layout.dhxWins.window(name);
+        _undockedGeneralWin.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
+        _undockedGeneralWin.center();
+    });
+    window.toggleGeneralDock = toggleGeneralDock;
+    function toggleGeneralDock(){
+        if (window._undockedGeneralWin){
+                delete window._undockedGeneralWin;
+                info_layout.cells('a').dock();
+                return;
+        }
+        info_layout.cells("a").undock();
+    }
 }
 
-let m_branchGrid;
+
+
+
 async function refreshBranches(){
     //until job is finished, update list
     const response = await fetch(build_new_api_url("/getbranchlog?jobid=" + getQueryVariable("job_id")));
