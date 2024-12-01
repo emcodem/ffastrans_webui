@@ -3676,9 +3676,7 @@ div.gridbox_dhx_skyblue.gridbox table.hdr td {
   text-align: left;
   position: relative;
 }
-div.gridbox_dhx_skyblue.gridbox {
-  border: 1px solid #d6d6d6;
-}
+
 div.gridbox_dhx_skyblue.gridbox table.obj {
   font-family: Tahoma;
   font-size: 12px;
@@ -8872,4 +8870,14 @@ border-bottom: 1px solid #333;
   -ms-user-select: none;
   -o-user-select: none;
   user-select: none;
+}
+
+/* dhx message boxes are too dark by default */
+.dhx_message {
+  background-color:var(--dhx-background-additional)!important;
+}
+
+/* in logviewer there was a border around log div */
+div.gridbox_dhx_skyblue.gridbox {
+  border: 'unset';
 }
