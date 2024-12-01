@@ -380,12 +380,18 @@ function buildMainLayout() {
 
     mainMenu = mainLayout.attachMenu();
     
-    var menuButtonLabels = ["Load latest Job",
+    var menuButtonLabels = [
+                            "New Tab",
+                            "Load latest Job",
                             "Resubmit Job",
-                            "Refresh this page"];
-    var menuButtonHtml = ['<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Latest Finished Job</button>',
+                            "Refresh this page",
+                            
+                        ];
+    var menuButtonHtml = [  '<button class="btn logviewer_menu"><span class="mdi mdi-open-in-new"></span> New Tab</button>',
+                            '<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Latest Finished Job</button>',
                             '<button class="btn logviewer_menu"><span class="mdi mdi-repeat"></span> Resubmit Job</button>',
-                            '<button class="btn logviewer_menu"><span class="mdi mdi-refresh"></span> Refresh this page</button>'
+                            '<button class="btn logviewer_menu"><span class="mdi mdi-refresh"></span> Refresh this page</button>',
+                            
                             ];
                             
     var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
@@ -414,6 +420,18 @@ function buildMainLayout() {
     }
 
     mainMenu.attachEvent("onClick", function (id) {
+            if (id == "New Tab"){
+                window.open(window.location.href,'_blank');
+                // document.getElementById("nav-questions").setAttribute(window.location.href, "_blank");
+                // document.getElementById("nav-questions").click();
+                // document.getElementById("nav-questions").setAttribute("target", "_blank");
+
+                // document.getElementById("nav-questions").dispatchEvent((function(e){
+                // e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0,
+                //                     false, false, false, false, 0, null);
+                // return e
+                // }(document.createEvent('MouseEvents'))));
+            }
             if (id == "Refresh this page"){
                 window.location.href = window.location.href;
             }
