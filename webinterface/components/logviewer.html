@@ -535,11 +535,13 @@ function buildMainLayout() {
         if (window._undockedWin){
                 delete window._undockedWin;
                 mainLayout.cells('c').dock();
+                document.getElementById("log_div").style.overflow = "scroll";
                 return;
         }
         mainLayout.cells("c").undock();
     }
     mainLayout.attachEvent("onUndock", function (name) {
+        document.getElementById("log_div").style.overflow = "unset"; //logdiv needs scroll when docked but not when undocked
         window._undockedWin = mainLayout.dhxWins.window(name);
         _undockedWin.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
         _undockedWin.center();
@@ -1734,7 +1736,7 @@ function buildUrl(what) {
 <!-- <div style="height:20px;width:20px" id="deleteme"/> -->
 </div>
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
-    <div id="log_div" style="visibility:visible;overflow:scroll;height:100%" class="gridbox_dhx_skyblue gridbox">
+    <div id="log_div" style="visibility:visible;height:100%;overflow:scroll" class="gridbox_dhx_skyblue gridbox">
         <table id="treetable_log"  class="obj">
             <colgroup>
                 <col width="7%"></col>
