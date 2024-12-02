@@ -7293,10 +7293,10 @@ span.dhxtabbar_tabs_text_test_dhx_skyblue {
 .dhxwins_vp_dhx_skyblue div.dhxwin_active {
   position: absolute;
   overflow: hidden;
-  border: 1px solid #d6d6d6;
-  box-shadow: 0 0 3px #cecece;
+  border: 1px solid #00000060;
+  
   border-radius: 3px;
-  background: white;
+  background:  #2e2e2e;
   cursor: inherit;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
@@ -7304,9 +7304,9 @@ span.dhxtabbar_tabs_text_test_dhx_skyblue {
   position: absolute;
   overflow: hidden;
   border: 1px solid #f3e9e0;
-  box-shadow: 0 0 3px #dedede;
+  
   border-radius: 3px;
-  background: white;
+  background:  #2e2e2e;
   cursor: inherit;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
@@ -7317,7 +7317,7 @@ span.dhxtabbar_tabs_text_test_dhx_skyblue {
   border-bottom: 5px solid #404953;
   border-bottom-left-radius: 2px;
   border-bottom-right-radius: 2px;
-  background: white;
+  background:  #2e2e2e;
   z-index: 0;
 }
 .dhxwins_vp_dhx_skyblue div.dhxwin_brd.dhxwin_hdr_hidden {
@@ -7377,9 +7377,7 @@ span.dhxtabbar_tabs_text_test_dhx_skyblue {
   margin: 0px;
   padding: 0px;
   font-weight: bold;
-  border-top: 1px solid white;
-  border-left: 1px solid white;
-  border-right: 1px solid white;
+
   border-top-left-radius: 2px;
   border-top-right-radius: 2px;
   background-color: #525352;
@@ -7402,7 +7400,7 @@ span.dhxtabbar_tabs_text_test_dhx_skyblue {
   filter: progid:DXImageTransform.Microsoft.Gradient(gradientType=0, startColorStr=#525352, endColorStr=#404953);
 }
 .dhxwins_vp_dhx_skyblue div.dhxwin_hdr.dhxwin_hdr_parked {
-  border-bottom: 1px solid white;
+  border-bottom: 1px solid black;
 }
 .dhxwins_vp_dhx_skyblue div.dhxwin_hdr.dhxwin_hdr_hidden {
   visibility: hidden;
@@ -8767,11 +8765,11 @@ input{
 }
 
 .jh-type-object > tbody > tr:nth-child(odd), .jh-type-array > tbody > tr:nth-child(odd){
-  background-color: #222;
+  background-color: var(--dhx-background-primary);
 }
 
 .jh-type-object > tbody > tr:nth-child(even), .jh-type-array > tbody > tr:nth-child(even){
-  background-color: #000;
+  background-color: #222;
 }
 
 .jh-type-object > tbody > tr, .jh-type-array > tbody > tr{
@@ -8892,6 +8890,9 @@ border-bottom: 1px solid #333;
 /* in logviewer there was a border around log div */
 div.gridbox_dhx_skyblue.gridbox {
   border: 'unset';
+}
+#treetable_log th{
+  background-color: var(--dhx-background-primary);
 }
 
 .dhxtabbar_tabs .dhxtabbar_tabs_top{
