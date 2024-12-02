@@ -411,10 +411,10 @@ function init(){
     m_fileBrowserGrid.setHeader(getCurrentFolderHtml());//the headers of columns  
     m_fileBrowserGrid.setColumnIds("Filename,Path,is_folder,Size,Created,Modified,original_size,preview");
     //m_fileBrowserGrid.attachHeader("#text_filter,#text_filter,#text_filter,#text_filter,#text_filter");  
-    m_fileBrowserGrid.setInitWidthsP("75,0,0,10,15,0,0,0");          //the widths of columns  
+    m_fileBrowserGrid.setInitWidthsP("75,0,0,15,15,0,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("sort_custom,str,str,int,str,str,int,str,str");          //the sorting types  
+    m_fileBrowserGrid.setColSorting("sort_custom,str,str,int,str,str,int,str,str,str");          //the sorting types  
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -434,7 +434,7 @@ function init(){
                                     ,,,\
                                     <input autocomplete='off' id='sizefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
                                     <input autocomplete='off' id='datefilter' onclick='(arguments[0]||event).cancelBubble = true'>,\
-                                    ,\
+                                    ,,\
                                     ");
     m_fileBrowserGrid.makeFilter("nfilter",0); //attach filter functionality to html input
     m_fileBrowserGrid.makeFilter("sizefilter",3); 

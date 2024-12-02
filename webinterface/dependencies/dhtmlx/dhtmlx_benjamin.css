@@ -3667,7 +3667,7 @@ div.gridbox_dhx_skyblue.gridbox table.hdr td div.hdrcell {
 }
 div.gridbox_dhx_skyblue.gridbox table.hdr td {
   border-width: 1px 1px 1px 1px;
-  border-color: #545454 #d6d6d6 #d6d6d6 #545454;
+  
   background-color: transparent;
   font-family: Tahoma;
   font-size: 12px;
@@ -3697,11 +3697,12 @@ div.gridbox_dhx_skyblue.gridbox table.obj.row20px tr td {
 div.gridbox_dhx_skyblue.gridbox table.obj tr td {
   padding-top: 1px;
   padding-bottom: 1px;
-  border-right: 1px solid #787878;
-  border-top: 1px solid #787878;
-  border-bottom: 1px solid #787878;
+  border-right: 1px solid #78787830;
+  border-top: 1px solid #78787830;
+  border-bottom: 1px solid #78787830;
 }
 div.gridbox_dhx_skyblue.isModern table.obj.row20px tr td {
+  text-overflow:ellipsis;
   line-height: 23px;
 }
 div.gridbox_dhx_skyblue table.obj.row20px tr td.editable {
@@ -6036,8 +6037,7 @@ div.dhxvault_skin_detect {
   position: relative;
   overflow: hidden;
   border-width: 0px 1px 1px 1px;
-  border-color: #d6d6d6;
-  border-style: solid;
+  
 }
 .dhxlayout_base_dhx_skyblue .dhxlayout_cont div.dhx_cell_menu_def div.dhtmlxMenu_dhx_skyblue_Middle {
   padding: 0px 2px;
@@ -6387,11 +6387,12 @@ div.dhxlayout_sep_sw_dhx_skyblue {
   user-select: none;
 }
 .dhxtabbar_base_dhx_skyblue div.dhx_cell_tabbar div.dhx_cell_cont_tabbar {
+  border: 1px solid #FFFFFF30;
   position: absolute;
-  border-left: 1px solid #d6d6d6;
+  /* border-left: 1px solid #d6d6d6;
   border-right: 1px solid #d6d6d6;
   border-bottom: 1px solid #d6d6d6;
-  border-top: 0px solid white;
+  border-top: 0px solid white; */
   overflow: hidden;
   z-index: 0;
   -webkit-transform: rotateX(0);
@@ -6427,6 +6428,7 @@ div.dhxlayout_sep_sw_dhx_skyblue {
   transform: translate3d(0, 0, 0);
 }
 .dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs div.dhxtabbar_tabs_cont_left div.dhxtabbar_tab {
+  border: 1px solid #FFFFFF30;
   float: left;
   margin-left: -1px;
   margin-right: 0px;
@@ -6537,10 +6539,10 @@ div.dhxlayout_sep_sw_dhx_skyblue {
 .dhxtabbar_base_dhx_skyblue div.dhx_cell_tabbar div.dhx_cell_menu_def {
   position: relative;
   overflow: hidden;
-  border-left: 1px solid #d6d6d6;
+  /* border-left: 1px solid #d6d6d6;
   border-right: 1px solid #d6d6d6;
   border-bottom: 1px solid #d6d6d6;
-  border-top: 0px solid white;
+  border-top: 0px solid white; */
 }
 .dhxtabbar_base_dhx_skyblue div.dhx_cell_tabbar div.dhx_cell_menu_def div.dhtmlxMenu_dhx_skyblue_Middle {
   padding: 0px 2px;
@@ -8310,6 +8312,14 @@ div.dhx_modal_cover {
 /* this furious approach should tell all standard css elements to run in dark mode */
 :root {
   color-scheme:dark;
+  /* for pagination.css */
+  --pagination-bg-color: #ffffff00; /* Dark background --dhx-background-primary --dhx-background-secondary*/
+  --pagination-text-color: #f0f0f0; /* Light text */
+  --pagination-hover-bg: #3e3e3e; /* Dark hover */
+  --pagination-active-bg: #555555; /* Dark active */
+  --pagination-disabled-opacity: 0.3;
+  --pagination-button-bg: #2e2e2e;
+  --pagination-button-text: #f0f0f0;
 }
 
 /* from here style the items manually */
@@ -8363,7 +8373,7 @@ div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected {
 
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal,
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
-  border: 1px solid #ebebeb;
+  border: 1px solid #000;
 }
 
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
@@ -8471,6 +8481,7 @@ span.fancytree-active span.fancytree-title, span.fancytree-selected span.fancytr
 /* tabbar */
 .dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs{
 	background-image:unset;
+  border:1px solid #FFFFFF30;
 	background: var(--dhx-s-grid-header-background);
 }
 
@@ -8505,6 +8516,7 @@ div.gridbox .objbox{ /* selected files grid*/
 
 .dhxtabbar_base_dhx_skyblue div.dhxtabbar_tabs div.dhxtabbar_tabs_base div.dhxtabbar_tabs_line{/* line below tabs*/
 	background-color: var(--dhx-background-primary) ;
+  border: 1px solid #FFFFFF30;
 }
 
 /* dhx 8 mdi images in nav menues*/
@@ -8647,7 +8659,7 @@ body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div  > div.dhx_layout-
 .btn.jobviewer_menu {
 	color:white;
 	background-color:red;
-	border: 1px solid #ebebeb;
+	border:1px solid #000;
 	background: #dddddd00;
 }
 
@@ -8880,4 +8892,8 @@ border-bottom: 1px solid #333;
 /* in logviewer there was a border around log div */
 div.gridbox_dhx_skyblue.gridbox {
   border: 'unset';
+}
+
+.dhxtabbar_tabs .dhxtabbar_tabs_top{
+  border:1px solid 1px solid #000000;
 }
