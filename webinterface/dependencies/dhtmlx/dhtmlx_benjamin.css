@@ -8378,11 +8378,11 @@ div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
 
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled {
   color: #999 !important;
-  background-color:#333;
+  /* background-color:#333; */
 }
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled .fas{
   color: #999 !important;
-  background-color:#333;
+  /* background-color:#333; */
 }
 
 div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected {
@@ -8668,12 +8668,12 @@ body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div  > div.dhx_layout-
 }
 /* menu buttons*/
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
-	background-color:rgb(22, 22, 22);
+	background-color:var(--dhx-background-primary);
 	color:hsla(0, 0%, 100%, .99);
 }
 
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Disabled{
-	background-color:rgb(221, 221, 221);
+	/* background-color:rgb(221, 221, 221); */
 	color:hsla(0, 0%, 100%, .99);
 }
 
