@@ -365,7 +365,7 @@ function init() {
     buildMainLayout();
 
     buildLogGridGrid();
-    buildNodeGridGrid();
+    initNodeGrid();
     console.log("Getting Job Details of " + getQueryVariable("job_id"))
     get_all_job_details(getQueryVariable("job_id"));
 
@@ -602,8 +602,9 @@ function initBranchGrid(){
     const columns = [
         {
             id: "name",
-            header: [{ text: "Id" }],
-            resizable: true
+            header: [{ text: "ID" }],
+            resizable: true,
+            width:"20%"
         },
         {
             id: "object",
@@ -613,7 +614,7 @@ function initBranchGrid(){
                 to_display = o_branch.result.replaceAll(/\r|\n/g,"");
                 return to_display
             },
-            htmlEnable: true
+            width:"80%",
         }
     ];
 
@@ -932,11 +933,6 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
         });
 
-        // graph.addListener(mxEvent.MOUSE_DOWN, mxUtils.bind(graph, function (sender, evt) { 
-        //     //this dont work, event not fired. plan was to consume panning event if mouse down on another graph
-        //     graph.panningHandler.consumePanningTrigger(evt)
-        // }))
-
         graph.addListener(mxEvent.CLICK, mxUtils.bind(graph, function (sender, evt) { 
 
             var cell = evt.getProperty("cell"); // cell may be null
@@ -946,27 +942,9 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             console.log("detected mouseclick on cell",cell)
             if (cell.ffastransobj.type == "sub_wf")
                 return // if click on node in sub-wf, prevents that we show log only of workflow proc
-            var search = cell["ffastransobj"]["id"].toUpperCase();
-            var tree = $("#treetable_log").fancytree('getTree');
-            tree.filterNodes(function (node) {
-                if (node["data"]["node"]["id"]){
-                    
-                    if (node["data"]["node"]["id"].toUpperCase().match(search)) {
-                        //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
-                        return true;
-                    }else{
-                        return false;
-                    }
-                }
-            }, {
-                mode: "hide"
-            });
-            
-            // else{
-            //     //cell is null when click outside of processor, clear log filter
-            //     var tree = $("#treetable_log").fancytree('getTree');
-            //     tree.clearFilter();
-            // }
+            let search = cell["ffastransobj"]["id"].toUpperCase();
+            filterLogByNodeId(search)
+
             evt.consume();
         }));
 
@@ -1088,6 +1066,26 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
         }
     }
 };
+
+
+function filterLogByNodeId(search){
+    /* visually filters log  */
+    var tree = $("#treetable_log").fancytree('getTree');
+    tree.filterNodes(function (node) {
+        if (node["data"]["node"]["id"]){
+            
+            if (node["data"]["node"]["id"].toUpperCase().match(search)) {
+                //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
+                return true;
+            }else{
+                return false;
+            }
+        }
+    }, {
+        mode: "hide"
+    });
+}
+            
 
 function CustomData(value) {
     this.value = value;
@@ -1430,108 +1428,64 @@ function buildLogGridGrid() {
 
 }
 
-function buildNodeGridGrid() {
-    $("#treetable_nodes").fancytree({
-        extensions: ["table", "filter", "gridnav", "multi"],
-        icon: false,
-        checkbox: false,
-        titlesTabbable: true, // Add all node titles to TAB chain
-        focusOnSelect: false,
-        autoScroll: false,
-        autoActivate: false,
-        unselectable: false,
-        activeVisible: false,
-        init: function (event, data) {
-            //ENABLE RESIZE COLUMNS
-            /*                    $("#treetable_nodes").colResizable({
-                                    resizeMode: 'fit',
-                                    hoverCursor: "col-resize",
-                                    dragCursor: "col-resize",
-                                    postbackSafe: true,
-                                    useLocalStorage: true,
-                                    minWidth: 10,
-                                    liveDrag: true,
-                                })*/
-        },
-        select: function (event, data) {
-            //center cell in view
-            var node = m_graph.model.getCell(data.node.data.node.id,true)
-            m_graph.scrollCellToVisible(node);
-            //set row style
-            if (data.node.isSelected()) {
-                data.node.addClass("rowselected");
-            } else {
-                data.node.removeClass("rowselected");
-            }
-        },
-        modifyChild: function (event, data) {
-            //reset all odd even row colors
-            var rootNode = $("#treetable_nodes").fancytree("getRootNode");
-            var oldnodes = rootNode.children;
-            for (let i = 0; i < oldnodes.length; i++) {
-                if (i % 2 == 0) {
-                    oldnodes[i].toggleClass("ev_dhx_skyblue", true)
-                    oldnodes[i].toggleClass("odd_dhx_skyblue", false)
-                } else {
-                    oldnodes[i].toggleClass("odd_dhx_skyblue", true)
-                    oldnodes[i].toggleClass("ev_dhx_skyblue", false)
-                }
-            }
-        },
-        renderColumns: function (event, data) {
-            console.log(">>> renderColumns")
-            var node = data.node;
-            
-            if (data.node.getIndex() % 2 == 0) {
-                node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
-                node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
-            } else {
-                node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
-                node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
-            }
-            //check if this proc already exists
-            
-            //var new_key = node.data["node"]["id"] + node.data["pid"]
-            //node.key = new_key;
-            $tdList = $(node.tr).find(">td");
-            var nodeid = node.data["node"]["id"];
-            var nodename = getNodeNameById(nodeid);
-            //time calculations
-            var duration = "";
-            var created = "";
-            try {
-                created = node.data["created"];
-                created = moment.parseZone(created.replace(/.00$/, ":00"))
-                var end = node.data["date_end"];
-                end = moment.parseZone(end.replace(/.00$/, ":00"))
-                duration = end.diff(created, "seconds");
-            } catch (ex) { }
+function initNodeGrid() {
+    console.log("initNodeGrid");
+    
+    const columns = [
+        { id: "state",   header: [{ text: "State" }], resizable: true, width:"10%" },
+        { id: "name",    header: [{ text: "Name" }],  resizable: true, width:"35%" },
+        { id: "start",   header: [{ text: "Start" }], resizable: true, width:"10%" },
+        { id: "host",    header: [{ text: "Host" }],  resizable: true, width:"30%" },
+        { id: "branch",  header: [{ text: "Branch" }],resizable: true, width:"15%" },
+    ];
 
-            //fill row columns
-            
-            $tdList.eq(0).html("<div class='celltext'>"+node.data["state"]+"</div>"); //.addClass("alignRight");
-            $tdList.eq(1).html("<div class='celltext'>" + nodename + "</div>"); //.addClass("alignRight");
-            $tdList.eq(2).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + duration + "</div>");
-            $tdList.eq(3).html("<div class='celltext' style='text-align:left;'>" + created.format("YYYY-MM-DD HH:mm:ss") + "</div>");
-            $tdList.eq(4).html("<div class='celltext' style='direction:rtl;text-align:left;'>" + node.data["host"] + "</div>");
-            $tdList.eq(5).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
+    const nodeGrid = new dhx8.dhx.Grid("node_div", {
+        columns,
+        css: "alternate_row",
+        keyNavigation: true,
+        autoWidth:true,
+        selection: "row",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        eventHandlers: {
+            onclick: {
+              
+            },
         },
-        // transform gethistoryjobsajax result into tree compatible
-        postProcess: function (event, data) {
-            // data is a treegrid specific object
-            //data["result"] = data["response"]["data"] //setting data["result"] means override the originally loaded data
-        },
-        table: {
-            indentation: 15,
-            nodeColumnIdx: 0,
-        },
-        gridnav: {
-            autofocusInput: false,
-            handleCursorKeys: true
-        }
-    })
+    });
+    nodeGrid.selection.events.on("AfterSelect", nodeGridSelect);
+
+    function nodeGridSelect(data) {
+        console.log("data",data)
+        filterLogByNodeId(data.node_id.toUpperCase());
+    }
+
+    window.refreshNodeGrid = function(data){
+        //transform data for dhxgrid easy loading, return obj state, node, start, host, branch
+        data = data.map(o=>{
+            let returnobj= {};
+            returnobj.data    = o;
+            returnobj.node_id    = o.node.id;
+            returnobj.state = o.state;
+            returnobj.name  = o.node.name;
+            returnobj.host  = o.host;
+            returnobj.branch = o.split_id;
+            try {
+                let created = moment.parseZone(o["created"].replace(/.00$/, ":00"))
+                let end = moment.parseZone(o["date_end"].replace(/.00$/, ":00"))
+                returnobj.start     = created.format("HH:mm:ss");
+                returnobj.duration  = end.diff(created, "seconds");
+            } catch (ex) { }
+            return returnobj;
+        })
+
+        console.log("refresNodeGrid",data)
+        nodeGrid.data.parse(data);
+    }
 
 }
+
+
 
 function getNodeNameById(id) {
     if (!id){
@@ -1599,9 +1553,11 @@ function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path f
 
 
             //load data into node grid
-            var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+            //var rootNode = $("#treetable_nodes").fancytree("getRootNode");
+            
+
             //var nodetree = $("#treetable_nodes").fancytree("getTree");
-            rootNode.removeChildren();
+            //rootNode.removeChildren();
             //turn m_unique_nodes to array
             var result = Object.keys(m_unique_nodes).map(function (key) {
                 
@@ -1614,8 +1570,10 @@ function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path f
             });*/
             
             //add nodegrid rows
-            rootNode.addChildren(result);
-            $("#node_div").css("visibility", "visible");
+            //rootNode.addChildren(result);
+            //$("#node_div").css("visibility", "visible");
+            refreshNodeGrid(result);
+
         },
         error: function (xhr, status) {
             alert("Did not get Log for job " + job_id);
@@ -1799,8 +1757,8 @@ function buildUrl(what) {
         </table>
     </div>
 
-    <div id="node_div" style="visibility:hidden;border:none !important" class="gridbox_dhx_skyblue gridbox">
-        <table id="treetable_nodes" class="obj">
+    <div id="node_div" style="border:none !important" class="gridbox_dhx_skyblue gridbox">
+        <!-- <table id="treetable_nodes" class="obj">
 
             <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="height:20px;color: var(--dhx-font-color-primary);font-family: var(--dhx-font-family);font-weight:normal!important">
                 <tr class="">
@@ -1812,7 +1770,7 @@ function buildUrl(what) {
                     <th >Branch</th>
                 </tr>
             </thead>
-        </table>
+        </table> -->
     </div>
 <canvas id="invisible_export_helper"  style="display:none;width:1920px;height:1080px"></canvas>
 </body>
