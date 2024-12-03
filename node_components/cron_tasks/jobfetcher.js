@@ -438,7 +438,7 @@ async function parseHistoryJobs(all_jobs){
 
 				if(insertedDoc){
 					console.log("New History Job: " , jobArray[i]);
-					global.socketio.emit("newhistoryjob", jobArray[i]);//inform clients about the current num of history job
+					global.socketio.emit("newhistoryjob");//inform clients about the current num of history job
 				}
 					
 				continue;            

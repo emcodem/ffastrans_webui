@@ -1,4 +1,5 @@
 const userpermissions = require("../userpermissions");
+const ffascommon = require("ffastrans_common");
 
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
@@ -160,30 +161,43 @@ module.exports = function(app, express){
 			let cursor = await global.db.jobs.find(final_filterobj,{sort:sorting}).skip(start).limit(count);
 			//var overallcount = await cursor.count();
 			cursor = await cursor.toArray();
-				if ((cursor)){
-					let numResults = 0;
-					let jobArray =[];
-					for (i=0;i<cursor.length;i++){
-						processVariableColumns(cursor[i]);
-						jobArray.push(cursor[i]);
-					}
-					res.writeHead(200,{"Content-Type" : "application/JSON"});
-					res.write(JSON.stringify({"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
-					res.end();
-				}else{
-					
-					res.write("error, did not get cursor from db");//output json array to client
-					res.writeHead(500,{"Content-Type" : "text/html"});
-					
-					res.end();
-				}
-
+			
+			let with_children = cursor.filter(j=>{return j.children.length != 0});
+			if (cursor.length != with_children.length){
+				//attempt workaround where children is not yet set by jobfetcher.
+				console.error("reloading history jobs from db because at least one job had children length zero");
+				await ffascommon.sleep(50);
+				cursor = await global.db.jobs.find(final_filterobj,{sort:sorting}).skip(start).limit(count);
+				//var overallcount = await cursor.count();
+				cursor = await cursor.toArray();
+				with_children = cursor.filter(j=>{return j.children.length != 0});
+				if (with_children.length =! cursor.length)
+					console.error("Found Job without children, webint should pull again...");
+				
+				cursor = with_children; //only return jobs with children
 			}
-            
-		catch (ex){
-				console.log("ERROR: unxepected error in gethistoryjobs: ", ex);
-                res.status(500);//Send error response here
-                res.end();
+			
+			if ((cursor)){
+				let numResults = 0;
+				let jobArray =[];
+				for (i=0;i<cursor.length;i++){
+					processVariableColumns(cursor[i]);
+					jobArray.push(cursor[i]);
+				}
+				res.writeHead(200,{"Content-Type" : "application/JSON"});
+				res.write(JSON.stringify({"actual_count":jobArray.length , "pos":start,data:jobArray}));//output json array to client
+				res.end();
+			}else{
+				
+				res.write("error, did not get cursor from db");//output json array to client
+				res.writeHead(500,{"Content-Type" : "text/html"});
+				res.end();
+			}
+
+		}catch (ex){
+			console.log("ERROR: unxepected error in gethistoryjobs: ", ex);
+			res.status(500);//Send error response here
+			res.end();
 		}
 	});
 }
