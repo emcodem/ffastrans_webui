@@ -3716,23 +3716,6 @@ div.gridbox_dhx_skyblue table.obj.row20px tr td.editable .treegrid_cell {
 div.gridbox_dhx_skyblue.gridbox table.obj tr td.editable div.treegrid_cell {
   padding: 1px 4px !important;
 }
-div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected {
-  background-color: #d6d6d6;
-}
-div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td {
-  background-color: #d6d6d6;
-  color: #000000;
-}
-div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td,
-div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue.rowselected td {
-  background-color: #d6d6d6;
-  border-top: 1px solid #0d0302;
-  border-bottom: 1px solid #0d0302;
-  border-right: 1px solid #d6d6d6;
-}
-div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
-  background-color: #d6d6d6;
-}
 div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue {
   background: #565656;
   border-top: 1px solid #565656;
@@ -8433,6 +8416,25 @@ span.fancytree-title {
 div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td span.fancytree-title{/*job viewer status row state selected*/
 	color:#000
 }
+
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected {
+  background-color: #FFFFFF50;
+}
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td {
+  background-color:#FFFFFF50;
+  color: #000000;
+}
+div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected td,
+div.gridbox_dhx_skyblue.gridbox table.obj tr.odd_dhx_skyblue.rowselected td {
+  background-color: #FFFFFF50;
+  border-top: 1px solid #0d0302;
+  border-bottom: 1px solid #0d0302;
+  border-right: 1px solid #d6d6d6;
+}
+div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
+  background-color: #FFFFFF50;
+}
+
 
 body  {
 	color:hsla(0, 0%, 100%, .99) ;

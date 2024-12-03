@@ -85,9 +85,8 @@
         margin: 0;
         margin-left:5px;
         margin-right:5px;
-        border-radius: 5px;
         height: 15px;
-        background-color: #4CAF50;
+        background-color: #4caf5080;
         padding: 0;
         text-align: center;
         vertical-align: middle;
@@ -431,8 +430,8 @@
 			mainLayout.cells("a").hideArrow();
             mainLayout.cells("a").collapse();
 		}
-        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Running</span>');
-        mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px" >Finished</span>');
+        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#FFFFFF30" >Running</span>');
+        mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px;color:#FFFFFF30" >Finished</span>');
 
         
         //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
@@ -496,9 +495,9 @@
             m_lastsortdir["treetable_history"] = "des";
             console.log("Applying default sorting for active and history grid")
 		
-        socket.on('newhistoryjob', async function(msg) {
+        socket.on('newhistoryjob', async function() {
             var tree = $("#treetable_history").fancytree('getTree');
-            console.log("got newhistoryjob event",msg);
+            
             //check if we are showing the first page
             if (tree.mystuff.page != 1){
                 console.log("loading of new history job suppressed because page is not 1")
