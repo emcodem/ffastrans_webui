@@ -3,6 +3,7 @@
 const fs = require('fs');
 const strip_bom = require('strip-bom');
 var path = require('path');
+const common = require("./common/helpers.js");
 
 module.exports = {
   get: start
@@ -17,7 +18,7 @@ module.exports = {
 var START = 0;
 
 
-function start(req, res) {
+async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var jobid = req.query.jobid;
     START = req.query.start | 0;
@@ -26,14 +27,21 @@ function start(req, res) {
 	console.debug("get_job_log called for: " + jobid);
 	
 	//check if full log exists, if yes, serve contents
-  const path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/full_log.json";  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\full_log.json
-	console.debug("trying to find file " + path)
+  const jobPath = path.join(global.api_config["s_SYS_JOB_DIR"], jobid, "full_log.json");  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\full_log.json
+	console.debug("trying to find file " + jobPath)
 	try {
-	  if (fs.existsSync(path)) {
+    if (!await fs.promises.exists(jobPath)) {
+      const ajob = path.join(global.api_config["s_SYS_CACHE_DIR"] ,"archive", 'jobs', jobid.substring(0, 8), jobid + '.7z');
+      console.log("job don't exist, searching archive: ", ajob)
+      const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
+      const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
+      await common.exeCmd(`"${z7path}" x "${ajob}" -y -o"${out}"`);
+    }
+	  if (await fs.promises.exists(jobPath)) {
 		console.debug("Full Log file exists, returning contents");
           res.set('Content-Type', 'application/json')
           res.set('ffastrans_log_type', 'full')
-          res.sendFile(path);
+          res.sendFile(jobPath);
 	  }else{
 		//serve log for running job
         console.log("Serving log from running job");
@@ -97,6 +105,7 @@ function serveRunningLog(jobdir, start, end, response) {
     })   
          
 }
+
 
 function readFile(file, cb) {
     require('fs').readFile(file, cb)

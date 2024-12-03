@@ -7,6 +7,7 @@ var md2 = require('js-md2');
 var md5 = require('js-md5');
 var fs = require('fs');
 const readlastline =  require('read-last-line');
+const { spawn } = require('child_process');
 
 function _GetNow(){
     return moment().format('Y-MM-DDTHH:mm:ss.SSSZ');
@@ -330,6 +331,27 @@ async function _fileList(dir, pattern = '*', recurse = false, sort = false, repl
     }
 }
 
+async function exeCmd(cmd, args = { shell: true }) {
+    return new Promise(function (resolve, reject) {
+       const child = spawn(cmd, args);
+       child.on('exit', function (code, signal) {
+          resolve(code);
+       });
+       child.on('error', function (code, signal) {
+          reject(code);
+       });
+       child.stdout.on('data', (data) => {
+          // console.log(`${data}`) 
+       });
+  
+       child.stderr.on('data', (data) => {
+          console.error(`stderr: ${data}`);
+       });
+    });
+  } 
+  
+  
+
 function getUserName() {
     const userInfo = os.userInfo();
     return userInfo.username;
@@ -341,6 +363,7 @@ module.exports = {
     ticket_files_to_array       : ticket_files_to_array,
     json_files_to_array_cached  : json_files_to_array_cached,
     _fileList                   : _fileList,
-    getUserName: getUserName,
-    JobTicket                   : JobTicket
+    getUserName                 : getUserName,
+    JobTicket                   : JobTicket,
+    exeCmd                      : exeCmd
 };

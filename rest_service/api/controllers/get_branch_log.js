@@ -3,6 +3,7 @@
 const fs = require('fs');
 const strip_bom = require('strip-bom');
 var path = require('path');
+const common = require("./common/helpers.js");
 
 fs.promises.exists = async function(f) {
   try {
@@ -30,6 +31,13 @@ async function get(req, res) {
   const full_log_path   = path.join(global.api_config["s_SYS_JOB_DIR"], jobid, "full_log.json");
   const branch_log_path = path.join(global.api_config["s_SYS_JOB_DIR"], jobid , "finished");
 	try {
+    if (!await fs.promises.exists(full_log_path)) {
+      const ajob = path.join(global.api_config["s_SYS_CACHE_DIR"] ,"archive", 'jobs', jobid.substring(0, 8), jobid + '.7z');
+      console.log("job don't exist, searching archive: ", ajob)
+      const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
+      const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
+      await common.exeCmd(`"${z7path}" x "${ajob}" -y -o"${out}"`);
+    }
 	  if (await fs.promises.exists(full_log_path))
       returnobj.is_complete = true;
 

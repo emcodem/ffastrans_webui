@@ -21,10 +21,17 @@ async function start(req, res) {
     var jobid = req.query.jobid;
     console.debug("get_job_details called for: " + jobid);
 	//check if full log exists, if yes, serve contents
-    const job_description_path = global.api_config["s_SYS_JOB_DIR"] + jobid + "/.json";  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\.json
+    const job_description_path = path.join(global.api_config["s_SYS_JOB_DIR"], jobid, ".json");  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\.json
     //console.debug("Locating file " + job_description_path)
 	try {
-        if (fs.existsSync(job_description_path)) {
+            if (!await fs.promises.exists(job_description_path)) {
+                const ajob = path.join(global.api_config["s_SYS_CACHE_DIR"] ,"archive", 'jobs', jobid.substring(0, 8), jobid + '.7z');
+                console.log("job don't exist, searching archive: ", ajob)
+                const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
+                const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
+                await common.exeCmd(`"${z7path}" x "${ajob}" -y -o"${out}"`);
+            }
+            if (await fs.promises.exists(job_description_path)) {
                 //console.debug("File exists, reading contents");
                 var job_file_contents = await common.readfile_cached(job_description_path, false);
                 //remove UTF8 BOM
@@ -36,12 +43,13 @@ async function start(req, res) {
                 var o_job = JSON.parse(job_file_contents);
 
                 //security check, is this an abandoned job?
-                if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/full_log.json")){
+                const full_log_path = path.join(global.api_config["s_SYS_JOB_DIR"], jobid, "full_log.json");
+                if (await fs.promises.exists(full_log_path)){
                     if ("status" in o_job){
                         o_job["status"] = "finished"
                     }
                 }
-                if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")) {
+                if (await fs.promises.exists(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")) {
                     console.debug("workflow exists in jobdir " + global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json")
                     fs.readFile(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflow.json", 'utf8', function (err, wf_file_contents) {
                         if (err) {
@@ -55,7 +63,7 @@ async function start(req, res) {
                         return;
                     });
                     return;
-                }else if (fs.existsSync(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows")){
+                }else if (await fs.promises.exists(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows")){
                     //from ffastrans 1.3 we may have sub-workflows
                     var dir = global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows";
                     o_job["workflows"] = {};
@@ -85,7 +93,7 @@ async function start(req, res) {
                     console.log("no workflow json found, trying ",global.api_config["s_SYS_WORKFLOW_DIR"] + "workflow.json")
                     try {
                         var wf_id = JSON.parse(job_file_contents)["workflow"]["id"];
-                        if (fs.existsSync(global.api_config["s_SYS_WORKFLOW_DIR"] + "workflow.json")) {
+                        if (await fs.promises.exists(global.api_config["s_SYS_WORKFLOW_DIR"] + "workflow.json")) {
                             fs.readFile(global.api_config["s_SYS_WORKFLOW_DIR"] + "workflow.json"), 'utf8', function(err, wf_file_contents) {
                                 wf_file_contents = wf_file_contents.trim();
                                 o_job["wf_object"] = JSON.parse(wf_file_contents);
