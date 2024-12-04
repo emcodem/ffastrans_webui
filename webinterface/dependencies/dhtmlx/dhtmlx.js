@@ -6,6 +6,24 @@ License: content of this file is covered by DHTMLX Commercial or enterpri. Usage
 Copyright UAB Dinamenta http://www.dhtmlx.com
 */
 
+
+
+
+/**
+ * Workaround window.dhx4.isIE6 constantly causing an exception by djust defining setter and getter for it
+ */
+let dhx4args;
+Object.defineProperty(window, 'dhx4', {
+    get: function() {
+      console.log('Get dhx4:', dhx4args);
+      return dhx4args;
+    },
+    set: function(value) {
+      dhx4args = value;
+      console.log('Set dhx4:', dhx4args)
+    }
+  });
+
 if (typeof(window.dhx) == "undefined") {
     window.dhx = window.dhx4 = {
         version: "5.1.0",

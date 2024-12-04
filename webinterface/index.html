@@ -480,7 +480,7 @@ async function init(permissions){
     // '<img src="images/francebb_helmet.png" class="helmet steinar itemrowtopright" title="francebb">'+ 
     '<div onclick="onHeaderClick()">\
 	<h1 style="cursor:pointer"><div>\
-            <img class="brand_image" alt="" height="16" src="images/F364x64.png" title="" width="16" style="margin-bottom:6px;float:left"/>\
+            <img class="brand_image" alt="" height="16" src="images/ffastrans.svg" title="" width="16" style="margin-bottom:6px;float:left"/>\
             <div class="ffastransheadertext">FFAStrans&nbsp</div><br/>\
             <div class="instancename ffastransheadertext" id="STATIC_WEBUI_HEADER_NAME"/>\
         </div>\
@@ -550,7 +550,7 @@ async function init(permissions){
             extradiv = "<div data-count='0' id='GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE' class='reviewcount'></div>";
         }
         
-        menu.innerHTML += extradiv + "<a href='' id='"+_perm["items"][i]["text"]+"'' class='menuitem' title='"+title+"' style=\"height:34px; opacity:0.75;background-repeat: no-repeat;background-size: cover;background-image: url('images/"+_perm["items"][i].icon+"')\" id='"+_perm["items"][i].id+"'/>";  
+        menu.innerHTML += extradiv + "<a href='' id='"+_perm["items"][i]["text"]+"'' class='menuitem' title='"+title+"' style=\"height:34px; opacity:0.75;background-repeat: no-repeat;background-size: contain;background-image: url('images/"+_perm["items"][i].id+".svg')\" id='"+_perm["items"][i].id+"'/>";  
     }
     
     //onclick menu item

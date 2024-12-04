@@ -71,18 +71,18 @@ module.exports = function(app, express){
 						let rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
 						let ffasvars = foundVariableColConf[0].col_template.matchAll(rgx);//creates an array of regex matches, [1] will contain the group capture
 						ffasvars = Array.from(ffasvars);
-						let orCondition = []; //array of data, name pairs for search in job.children[].variables[]
+						let andCondition = []; //array of data, name pairs for search in job.children[].variables[]
 						ffasvars.forEach(regexmatch=>{
 							let mongoFilterForVar = {
 									"data": {$regex: new RegExp(escapeRegExp(value.filter),"i")}, //the search filter from Userinterface search input
 									"name": regexmatch[1] //the ffas varname as seen in the variablecol template butwithout %%
 								}
-							orCondition.push(mongoFilterForVar);
+								andCondition.push(mongoFilterForVar);
 						})
 						//locate all variable names in the search template
 						newfilter["children.variables"] = {
 							$elemMatch: {
-								$or: orCondition
+								$and: andCondition
 							  }
 						}
 

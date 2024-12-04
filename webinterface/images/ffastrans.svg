@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <linearGradient gradientUnits="userSpaceOnUse" x1="680.728" y1="1" x2="680.728" y2="1025.49" id="gradient-3" gradientTransform="matrix(-0.843598, -0.536973, 0.625445, -0.982594, 924.939026, 1376.666504)">
+      <stop offset="0" style="stop-color: rgb(180, 208, 81);"/>
+      <stop offset="1" style="stop-color: rgb(22, 47, 0);"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" x1="511.103" y1="-0.119" x2="511.103" y2="1024" id="gradient-0" gradientTransform="matrix(-0.886833, -0.462091, 0.512717, -0.983989, 697.319536, 1249.577353)">
+      <stop offset="0" style="stop-color: rgb(251, 251, 246);"/>
+      <stop offset="1" style="stop-color: rgb(212, 212, 212);"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" x1="511.94" y1="-0.37" x2="511.94" y2="1024.47" id="gradient-1" gradientTransform="matrix(-0.837929, -0.54578, 0.637103, -0.978139, 450.307143, 1290.029088)">
+      <stop offset="0" style="stop-color: rgb(98, 139, 248);"/>
+      <stop offset="1" style="stop-color: rgb(11, 42, 129);"/>
+    </linearGradient>
+  </defs>
+  <path fill="#7F9936"/>
+  <path fill="#7F9A39"/>
+  <path fill="#829B3E"/>
+  <path fill="#769132"/>
+  <path fill="#879E4E"/>
+  <path fill="#7A923C"/>
+  <path fill="#879D4F"/>
+  <path fill="#4263BB"/>
+  <path fill="#395AB5"/>
+  <path fill="#2E51B1"/>
+  <path fill="#4E6BBC"/>
+  <path fill="#2D4FAE"/>
+  <path fill="#3255B1"/>
+  <path fill="#3A5BB3"/>
+  <path fill="#2B4EAD"/>
+  <path fill="#2A4EAC"/>
+  <path fill="#3A5AB1"/>
+  <path fill="#3152AC"/>
+  <g class="layer" transform="matrix(1, 0, 0, 1, 0, 0)">
+    <title>Layer 1</title>
+    <path d="M 292.16 -0.37 C 296.07 -0.369 952.83 -0.05 1024 0 C 1024.07 72 1024.48 727.79 1024.5 731.62 C 1024.66 767.32 703.74 1024.49 696.94 1024.47 C 686.82 1024.45 70.9 1024.06 0 1024 C -0.08 951.94 -0.6 295.61 -0.62 291.78 C -0.78 262.96 19.681 -0.44 292.16 -0.37 Z" id="svg_1" style="fill: url(&quot;#gradient-1&quot;);"/>
+    <path d="M 802.223 -0.592 C 1020.657 -3.06 879.796 -0.496 1022.203 -1.707 C 1022.283 86.173 1026.658 728.803 1026.5 732.62 C 1014.024 1034.656 710.952 1025.061 706.489 1025.39 C 704.25 1025.555 387.599 1025.686 335.069 1025.596 C 335.059 1002.186 334.459 731.17 334.729 701.34 C 411.949 701.34 490.44 701 570 701 C 570.29 654.54 569.25 498.644 569.79 444.284 C 647.01 444.284 724.176 443.526 803.736 443.526 C 803.736 297.006 802.223 150.368 802.223 -0.592 Z" id="svg_2" style="paint-order: stroke markers; transform-box: fill-box; transform-origin: 50% 50%; fill: url(&quot;#gradient-3&quot;);" transform="matrix(0.999993, 0.003867, -0.003867, 0.999993, 0.001785, -0.000682)"/>
+    <path d="M 690 0 C 727.62 0 765.445 -0.119 804.205 -0.119 C 804.205 146.401 804 293.04 804 444 C 726.78 444 649.56 444 570 444 C 570 477.33 568.49 689.27 568 700 C 490.78 700 413.56 700 334 700 C 334.03 727.29 333.11 1004.69 333 1024 C 295.05 1024 257.1 1024 218 1024 C 218 876.82 218 729.64 218 578 C 295.88 578 373.76 578 454 578 C 454 493.52 454 409.04 454 322 C 531.88 322 609.76 322 690 322 C 690 215.74 690 109.48 690 0 Z" id="svg_3" transform="matrix(1 0 0 1 0 0)" style="fill: url(&quot;#gradient-0&quot;);"/>
+  </g>
+</svg>
