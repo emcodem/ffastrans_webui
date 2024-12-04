@@ -817,12 +817,15 @@
         
         if (id == "a_details") {
             var jobid = (selected[0].data["job_id"]);
-            var url = "logviewer.html?job_id=" + jobid;
-            var dhxwins = new dhtmlXWindows();
-            //dhxwins.attachViewportTo(window.parent.document.body);
-            var win = dhxwins.createWindow("Job Details", 10, 10, window.innerWidth-20,window.innerHeight-20);
-            win.setText("Job Details");
-            win.attachURL(url);
+            openLogViewer(jobid);
+            // var url = "logviewer.html?job_id=" + jobid;
+            // var dhxwins = new dhtmlXWindows();
+            // //dhxwins.attachViewportTo(window.parent.document.body);
+            // var win = dhxwins.createWindow("Job Details", 10, 10, window.innerWidth-20,window.innerHeight-20);
+            // win.setText("Job Details");
+            // win.attachURL(url);
+
+
         }
         if (id == "a_abort") {
             jobCommand(selected, "abort");//jobid for incoming jobs is the filename of mons/i file
@@ -1142,6 +1145,19 @@
         window.onresize = function(){
             win.setDimension(window.innerWidth-20,window.innerHeight-20);
         }
+
+     
+        //support closing with escape key from within iframe
+        dhxwins.attachEvent("onContentLoaded", function(win){
+                //support esc key for close window
+                console.log("CONTENTLOADED")
+				var ifr = win.getFrame();
+                ifr.contentWindow.focus();
+                console.log("iframe",ifr.contentWindow)
+                var elem = ifr.contentWindow.m_closefunc = function(){
+                    win.close()
+                }
+        });
     }
 
     //DEPRECATED, WE FILTER ON SERVER NOW

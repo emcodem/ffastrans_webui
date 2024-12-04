@@ -15,12 +15,10 @@ Copyright UAB Dinamenta http://www.dhtmlx.com
 let dhx4args;
 Object.defineProperty(window, 'dhx4', {
     get: function() {
-      console.log('Get dhx4:', dhx4args);
       return dhx4args;
     },
     set: function(value) {
       dhx4args = value;
-      console.log('Set dhx4:', dhx4args)
     }
   });
 

@@ -220,6 +220,9 @@
         animation: changeShadowProgress 0.5s infinite alternate;
     }
 
+    .blinking-selected {
+        border-bottom: calc(var(--canvas-font-size-processor)/2) solid #0000ff78
+    }
     
     /* todo: we could use a variable for the sizes in order to support changing the base resolution of the graph (the real processor pixel width) 
         but as the real processor pixel width is not changed dynamically, we can leave it hardcoded.
@@ -228,7 +231,6 @@
         from {
             box-shadow: 0 0 50px 10px #93ce99;
         }
-
         to {
             box-shadow: 0 0 50px 10px #269922;
         }
@@ -292,6 +294,20 @@ var m_timelineobject =  [];
 var m_userpermissions;
 let m_subWorkflows = {node_id:"workflow_id"}
 let m_branchGrid;
+
+
+/** Support closing the dhtmlx window in parent window, when this is loaded as iframe 
+* Parent window must set m_closefunc to the function that closes the dhx win
+*/
+
+var m_closefunc = function(){}//must be set by parent window
+function hotKey(event){
+	if (event.isComposing || event.keyCode === 27){//esc
+		m_closefunc();
+	} 
+}
+window.addEventListener("keydown", hotKey);
+
 /*load config from server*/
 function loadserverconfig() {
     
@@ -381,16 +397,21 @@ function buildMainLayout() {
     mainMenu = mainLayout.attachMenu();
     
     var menuButtonLabels = [
+                            "Close",
                             "New Tab",
                             "Load latest Job",
                             "Resubmit Job",
                             "Refresh this page",
+                           
                             
                         ];
-    var menuButtonHtml = [  '<button class="btn logviewer_menu"><span class="mdi mdi-open-in-new"></span> New Tab</button>',
+    var menuButtonHtml = [  
+                            '<button class="btn logviewer_menu" style="float:left"><span class="mdi mdi-close"></span> Close</button>',
+                            '<button class="btn logviewer_menu"><span class="mdi mdi-open-in-new"></span> New Tab</button>',
                             '<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Latest Finished Job</button>',
                             '<button class="btn logviewer_menu"><span class="mdi mdi-repeat"></span> Resubmit Job</button>',
                             '<button class="btn logviewer_menu"><span class="mdi mdi-refresh"></span> Refresh this page</button>',
+                           
                             
                             ];
                             
@@ -420,6 +441,9 @@ function buildMainLayout() {
     }
 
     mainMenu.attachEvent("onClick", function (id) {
+            if (id == "Close"){
+                m_closefunc();
+            }
             if (id == "New Tab"){
                 window.open(window.location.href,'_blank');
                 // document.getElementById("nav-questions").setAttribute(window.location.href, "_blank");
@@ -552,18 +576,24 @@ function buildMainLayout() {
     // console.log("Layout autosizes",autoSizes);
     
     //Left Layout
+    
     let info_layout = mainLayout.cells("a").attachLayout("3E");
     info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleGeneralDock()"><span class="mdi mdi-eject"></span></button>' +
         "<span id='general_text'>General</span>");
-    info_layout.cells("b").setText("Nodes");
-    info_layout.cells("c").setText("Branches");
-    info_layout.cells("b").attachObject("node_div");
-    info_layout.cells("c").attachHTMLString('<div id="branch_div" style=""/>');
-    initBranchGrid();
     info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>');
     info_layout.cells("a").showInnerScroll();
+
+    info_layout.cells("c").setText("Nodes");
+    info_layout.cells("c").attachObject("node_div"); 
+    info_layout.cells("c").showInnerScroll();   
+
+    info_layout.cells("b").setText("Branches");
+    info_layout.cells("b").attachHTMLString('<div id="branch_div" style=""/>');
     info_layout.cells("b").showInnerScroll();
-    info_layout.cells("c").showInnerScroll();
+
+
+    initBranchGrid();
+    
     info_layout.attachEvent("onPanelResizeFinish", function () {
         saveLayoutSizes(info_layout, "info_layout");
     });
@@ -606,7 +636,7 @@ function initBranchGrid(){
             id: "name",
             header: [{ text: "ID" }],
             resizable: true,
-            width:"20%"
+            
         },
         {
             id: "object",
@@ -616,7 +646,7 @@ function initBranchGrid(){
                 to_display = o_branch.result.replaceAll(/\r|\n/g,"");
                 return to_display
             },
-            width:"80%",
+           
         }
     ];
 
@@ -936,16 +966,21 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
         });
 
         graph.addListener(mxEvent.CLICK, mxUtils.bind(graph, function (sender, evt) { 
-
-            var cell = evt.getProperty("cell"); // cell may be null
-            if (!cell)
+            if (evt.properties.event.defaultPrevented)//it was a drag
                 return;
+            var cell = evt.getProperty("cell");
+
+            if (!cell){ //click on canvas
+                filterLogByNodeId();
+                return;
+            }
             
             console.log("detected mouseclick on cell",cell)
             if (cell.ffastransobj.type == "sub_wf")
                 return // if click on node in sub-wf, prevents that we show log only of workflow proc
-            let search = cell["ffastransobj"]["id"].toUpperCase();
-            filterLogByNodeId(search)
+            let nodeId = cell["ffastransobj"]["id"].toUpperCase();
+            
+            filterLogByNodeId(nodeId);
 
             evt.consume();
         }));
@@ -1070,13 +1105,20 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 };
 
 
-function filterLogByNodeId(search){
+function filterLogByNodeId(nodeId){
     /* visually filters log  */
     var tree = $("#treetable_log").fancytree('getTree');
+    toggleNodeSelected(nodeId);
+
+    if (!nodeId){
+        tree.clearFilter();
+        return;
+    }
+
     tree.filterNodes(function (node) {
         if (node["data"]["node"]["id"]){
             
-            if (node["data"]["node"]["id"].toUpperCase().match(search)) {
+            if (node["data"]["node"]["id"].toUpperCase().match(nodeId)) {
                 //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
                 return true;
             }else{
@@ -1430,22 +1472,32 @@ function buildLogGridGrid() {
 
 }
 
+function toggleNodeSelected(nodeid){
+    //there can be only one node selected at a time. 
+    $(".blinking-selected").removeClass("blinking-selected");
+    if (nodeid)
+        $("#" + nodeid).parent().addClass("blinking-selected");
+}
+
 function initNodeGrid() {
     console.log("initNodeGrid");
     
     const columns = [
-        { id: "state",   header: [{ text: "State" }], resizable: true, width:"10%" },
-        { id: "name",    header: [{ text: "Name" }],  resizable: true, width:"35%" },
-        { id: "start",   header: [{ text: "Start" }], resizable: true, width:"10%" },
-        { id: "host",    header: [{ text: "Host" }],  resizable: true, width:"30%" },
-        { id: "branch",  header: [{ text: "Branch" }],resizable: true, width:"15%" },
+        { id: "state",   header: [{ text: "State" }],       width:100 },
+        { id: "name",    header: [{ text: "Name" }],                    },
+        { id: "start",   header: [{ text: "Start" }],       width:100},
+        { id: "duration",   header: [{ text: "Duration" }], width:100},
+        { id: "host",    header: [{ text: "Host" }],   },
+        { id: "branch",  header: [{ text: "Branch" }], },
     ];
 
     const nodeGrid = new dhx8.dhx.Grid("node_div", {
         columns,
         css: "alternate_row",
+        resizable: true,
         keyNavigation: true,
         autoWidth:true,
+        adjust: true,
         selection: "row",
         rowHeight: 20,
         headerRowHeight: 30,
@@ -1460,6 +1512,7 @@ function initNodeGrid() {
     function nodeGridSelect(data) {
         console.log("data",data)
         filterLogByNodeId(data.node_id.toUpperCase());
+        toggleNodeSelected(data.node_id.toUpperCase());
     }
 
     window.refreshNodeGrid = function(data){
@@ -1469,7 +1522,7 @@ function initNodeGrid() {
             returnobj.data    = o;
             returnobj.node_id    = o.node.id;
             returnobj.state = o.state;
-            returnobj.name  = o.node.name;
+            returnobj.name  = o.node.name || o.node.type;
             returnobj.host  = o.host;
             returnobj.branch = o.split_id;
             try {
@@ -1481,7 +1534,9 @@ function initNodeGrid() {
             return returnobj;
         })
 
-        console.log("refresNodeGrid",data)
+        console.log("refresNodeGrid",data);
+        console.log("refresNodeGrid workflowdata",m_workflowdata);
+        
         nodeGrid.data.parse(data);
     }
 
@@ -1562,9 +1617,7 @@ function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path f
             //rootNode.removeChildren();
             //turn m_unique_nodes to array
             var result = Object.keys(m_unique_nodes).map(function (key) {
-                
                 m_unique_nodes[key]["key"] = key;
-                
                 return m_unique_nodes[key];
             });
             /*result = result.filter(function (el) {
