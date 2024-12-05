@@ -706,7 +706,8 @@ async function branchGridSelect(row,col){
 
     //reload job log filtered by split_id, could be optimized by loading only branch log
     let a_nodeids = branchjson.branches[0].object.path.map(o=>{return o.id});
-    get_job_log(getQueryVariable("job_id"),0,a_nodeids); 
+    let a_branchids = branchjson.branches[0].object.path.map(o=>{return o.split});
+    get_job_log(getQueryVariable("job_id"),0,a_nodeids,a_branchids); 
 }
 
 google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
@@ -1072,7 +1073,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
                 let graph  = this;
 
-                if (!this.container.contains(evt.target)){ //if ! graph container contains a child scroll matching event target
+                if (this.container && !this.container.contains(evt.target)){ //if ! graph container contains a child scroll matching event target
                     return
                 }
 
@@ -1587,7 +1588,7 @@ function appendLogLines(proc_id, a_lines) {
 
 }
 
-function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path field from finished branch json, array of node objects, they have id field which we filter
+function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //branch_path is path field from finished branch json, array of node objects, they have id field which we filter
     start = typeof start !== 'undefined' ? start : 0;
     console.log("getjoblog START: " + start );
     //get all workflows from server  start main with the workflow of interest
@@ -1606,9 +1607,12 @@ function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path f
             }
 
             if (a_nodeid_filter){
-                //this is a little dirty, rebuild mxgraph and filter the log lines by branch
+                //filter the log by nodeids specified
                 response = response.filter(logline => a_nodeid_filter.indexOf(logline.node?.id) != -1);
-                
+            }
+            if (a_branchid_filter){
+                //filter log by branchid specified
+                response = response.filter(logline => a_branchid_filter.indexOf(logline.split_id) != -1);
             }
             await parseJobLog(response);
             console.log("<<<parseJobLog")
@@ -1619,7 +1623,7 @@ function get_job_log(job_id, start=0, a_nodeid_filter) { //branch_path is path f
                 var _start = request.getResponseHeader('ffastrans_log_last_endpos');
                 
                 console.log("Job still running, getting next log lines from start: " + _start);
-                window.setTimeout(function () { get_job_log(job_id, _start) }, 3000);
+                window.setTimeout(function () { get_job_log(job_id, _start)}, 3000);
                 var rootNode = $("#treetable_log").fancytree("getRootNode");
                 rootNode.addChildren(response);
                 $("#log_div").css("visibility", "visible");
