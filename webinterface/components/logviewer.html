@@ -1522,7 +1522,18 @@ function initNodeGrid() {
             returnobj.data    = o;
             returnobj.node_id    = o.node.id;
             returnobj.state = o.state;
-            returnobj.name  = o.node.name || o.node.type;
+            returnobj.name  = function(){
+                if (o.node.name)
+                    return o.node.name;
+                else{
+                    //try finding node name in workflow 
+                    let _filt = m_workflowdata.nodes.filter(n=>{return n.id==o.node.id});
+                    if (_filt.length > 0)
+                        return _filt[0].name;
+                    
+                    return o.node.type;
+                }
+            }()
             returnobj.host  = o.host;
             returnobj.branch = o.split_id;
             try {

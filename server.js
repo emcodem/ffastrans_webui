@@ -45,7 +45,7 @@ function sleep(ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
     });
-  }   
+  }
 
 //catch all uncaught exceptions - keeps the server running
 process.on('uncaughtException', function(err) {
