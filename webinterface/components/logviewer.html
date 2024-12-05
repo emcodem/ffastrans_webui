@@ -974,7 +974,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 filterLogByNodeId();
                 return;
             }
-            
+
             console.log("detected mouseclick on cell",cell)
             if (cell.ffastransobj.type == "sub_wf")
                 return // if click on node in sub-wf, prevents that we show log only of workflow proc
@@ -1511,9 +1511,21 @@ function initNodeGrid() {
     nodeGrid.selection.events.on("AfterSelect", nodeGridSelect);
 
     function nodeGridSelect(data) {
-        console.log("data",data)
+        console.log("data",data);
+        
         filterLogByNodeId(data.node_id.toUpperCase());
         toggleNodeSelected(data.node_id.toUpperCase());
+
+        //check which graph contains the cell and center it
+        Object.keys(m_graphs_by_container_id).forEach( key => {
+            let g = m_graphs_by_container_id[key];
+            let c = g.getModel().getCell(data.node_id.toUpperCase());
+            if (c){
+                g.scrollCellToVisible(c, true);
+            }
+            //todo: if this is a sub_wf, iterate back over all containing graphs and center the topmost one
+        })
+        
     }
 
     window.refreshNodeGrid = function(data){
