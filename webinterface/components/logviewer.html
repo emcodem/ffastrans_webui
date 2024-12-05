@@ -707,7 +707,9 @@ async function branchGridSelect(row,col){
     //reload job log filtered by split_id, could be optimized by loading only branch log
     let a_nodeids = branchjson.branches[0].object.path.map(o=>{return o.id});
     let a_branchids = branchjson.branches[0].object.path.map(o=>{return o.split});
+    m_subWorkflows = [];
     get_job_log(getQueryVariable("job_id"),0,a_nodeids,a_branchids); 
+    
 }
 
 google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
