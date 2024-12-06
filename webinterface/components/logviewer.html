@@ -862,8 +862,11 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                         `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-arrow-collapse-all" name="fit"></span>` + 
                         `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-dock-window"        name="undock"></span>` + 
                     `</div>`;
-                if (FF_NODE_TYPE != "sub_wf")
+                let description_container_classes = "overflow_auto";
+                if (FF_NODE_TYPE != "sub_wf"){
                     sub_wf_btns = "";
+                    description_container_classes = "";
+                }
                 
                 var tbl = '<div class="div_ffastrans_processor_container" style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
                             '<table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
@@ -875,7 +878,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                             `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${FF_NODE_ID}_tr_container">`+
                                 `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
                                 //this div is needed to control sub-workflow scrolling/overflow
-                                `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc overflow_auto" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
+                                `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc ${description_container_classes}" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
                                     FF_NODE_DESC +
                                 '</div>' +
                                 
