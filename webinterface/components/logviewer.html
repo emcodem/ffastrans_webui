@@ -853,7 +853,6 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                     else{
                         m_graphs_by_container_id[graphid][action]();
                     }
-
                 }
                 //base cell obj
                 let sub_wf_btns = `<div class="sub_wf_ctrl_icons">`+
@@ -1237,8 +1236,9 @@ async function parseJobLog(lines) {
                                 jqXHR["wf_id"];
                                 var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
                                 m_workflows.push(sub_wf_json);
+                                console.time("buildMxGraph");
                                 buildMxGraph(_subwfdiv,sub_wf_json,false);
-                                
+                                console.timeEnd("buildMxGraph");
                                 //buildMxGraph(document.getElementById("graphContainer2"),sub_wf_json,true);
                                 
                             }catch(ex){
@@ -1257,7 +1257,7 @@ async function parseJobLog(lines) {
             
             //wait until sub-wf is drawn in order to guarantee the nodes are already there
             while (sub_workflow_is_loading){
-                await asyncsleep(1000)
+                await asyncsleep(1)
             }
                                 
             //check if node is unique for nodegrid
