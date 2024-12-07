@@ -208,7 +208,7 @@ async function parseRunningJobs(a_running){
 			}catch(exc){
 				console.error("Could not parse start time from API response jobarray entry:",jobArray[i],exc);
 			}
-			current_job.wf_name = jobArray[i]["workflow"];
+			current_job.wf_name = jobArray[i]["workflow"].toString();
 			all_jobs.push(current_job);
 
 		}//for all jobs
@@ -241,7 +241,7 @@ function parseQueuedJobs(responseBody){
 							q_obj[i]["title"] = "Queued";
 							q_obj[i]["steps"] = "";
 							q_obj[i]["progress"] = "0";
-							q_obj[i]["workflow"] = q_obj[i]["workflow"]; 
+							q_obj[i]["workflow"] = q_obj[i]["workflow"].toString(); 
 							if ("sources" in q_obj[i]){
 								if ("sources" in q_obj[i] && Object.keys(q_obj[i].sources).length != 0){
 									q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
@@ -353,7 +353,7 @@ async function parseHistoryJobs(all_jobs){
 					jobArray[i] = objectWithoutKey("end_time"	,jobArray[i]);
 
 					jobArray[i].duration = (getDurationStringFromDates(jobArray[i].job_start, jobArray[i].job_end )+"");
-					jobArray[i].wf_name = jobArray[i]["workflow"];
+					jobArray[i].wf_name = jobArray[i]["workflow"].toString();
 					
 					//filter deleted jobs from new joblist
 					if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1){
