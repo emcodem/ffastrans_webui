@@ -1719,7 +1719,10 @@
                 }
                 if (input.dataset && input.dataset["isvariablecol"] && this_input_filter){
                     //prepare filter for variablecol
-                    search_obj["variablecol"] = {col_header_name:input.placeholder,filter:this_input_filter};
+                    if (!search_obj["variablecols"] )
+                        search_obj["variablecols"] = [];
+
+                    search_obj["variablecols"].push({col_header_name:input.placeholder,filter:this_input_filter});
                     input.nextElementSibling.style.display = "";
                     continue;
                 }else{

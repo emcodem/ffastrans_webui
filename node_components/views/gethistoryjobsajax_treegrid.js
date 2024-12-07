@@ -15,6 +15,7 @@ module.exports = function(app, express){
 			}
 			let allowedWorkflows = [];
 			let allWorkflows = await global.db.jobs.distinct("workflow");
+			allWorkflows = allWorkflows.map(wf=>{return wf.toString()}); //ensure its a string not a number or else
 			if (req.user){
 				//var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
 				//serve only workflows the user has rights for
@@ -56,39 +57,53 @@ module.exports = function(app, express){
 						newfilter.workflow = value;
 						continue;
 					}
-					if (key == "variablecol"){
+					else if (key == "variablecols"){
 						/**
 						 * Setup search obj for variablecol. Varcols can contain multiple ffastrans user_vars
 						 * Mongodb contains job.children[].variables[], each variable has data and name. We want to search only in variables that are used in the variablecolumn template
 						 */
 						
-						let foundVariableColConf = global.config.job_viewer.variable_columns.filter(colconf=>{
-							return colconf.col_header_name == value.col_header_name;
-						});
-						if (foundVariableColConf.length == 0)
+						if (!Array.isArray(value)){
+							console.error("variablecols filter is not array",value);
 							continue;
-
-						let rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
-						let ffasvars = foundVariableColConf[0].col_template.matchAll(rgx);//creates an array of regex matches, [1] will contain the group capture
-						ffasvars = Array.from(ffasvars);
-						let andCondition = []; //array of data, name pairs for search in job.children[].variables[]
-						ffasvars.forEach(regexmatch=>{
-							let mongoFilterForVar = {
-									"data": {$regex: new RegExp(escapeRegExp(value.filter),"i")}, //the search filter from Userinterface search input
-									"name": regexmatch[1] //the ffas varname as seen in the variablecol template butwithout %%
-								}
-								andCondition.push(mongoFilterForVar);
-						})
-						//locate all variable names in the search template
-						newfilter["children.variables"] = {
-							$elemMatch: {
-								$and: andCondition
-							  }
 						}
+						let a_filter_variable_cols = value;
+
+						a_filter_variable_cols.forEach(current_filter => {
+							let foundVariableColConf = global.config.job_viewer.variable_columns.filter(colconf=>{
+								return colconf.col_header_name == current_filter.col_header_name;
+							});
+							if (foundVariableColConf.length == 0)
+								return;
+	
+							let rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
+							let ffasvars = foundVariableColConf[0].col_template.matchAll(rgx);//creates an array of regex matches, [1] will contain the group capture
+							ffasvars = Array.from(ffasvars);
+							let andCondition = []; //array of data, name pairs for search in job.children[].variables[]
+							ffasvars.forEach(regexmatch=>{
+								let mongoFilterForVar = {
+										"data": {$regex: new RegExp(escapeRegExp(current_filter.filter),"i")}, //the search filter from Userinterface search input
+										"name": regexmatch[1] //the ffas varname as seen in the variablecol template butwithout %%
+									}
+									andCondition.push(mongoFilterForVar);
+							})
+							//locate all variable names in the search template
+							newfilter["children.variables"] = {
+								$elemMatch: {
+									$and: andCondition
+								  }
+							}
+						})
+
+
 
 						continue;
 					}
-					newfilter[key] = {$regex: new RegExp(escapeRegExp(value),"i")}
+					else{
+						//normal filter column
+						newfilter[key] = {$regex: new RegExp(escapeRegExp(value),"i")}
+					}
+
 				}
 				filterobj = newfilter;
 			}
