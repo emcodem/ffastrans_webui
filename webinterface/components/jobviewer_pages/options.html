@@ -5,8 +5,8 @@
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
 
-<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
-<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
 <script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
@@ -60,47 +60,95 @@
 <script>
 /* stores jobviewer config in localStorage, reloads page on change */
 function init(){
-    var m_subForm  = new dhtmlXForm("optsform");
-    m_subForm.addItem("data", {type: "input", width:40,name: "jobviewer_rows_per_page",     label: "Rows per Page:", labelWidth:100,  offsetLeft:10, value: localStorage.getItem("jobviewer_rows_per_page") || "100"});
-    m_subForm.addItem("data", {type: "checkbox", name: "jobviewer_showrowcolors_history",   label: "Row Colors:",   labelWidth:100, offsetLeft:10,checked:localStorage.getItem("jobviewer_showrowcolors_history")=="1" });
-    m_subForm.addItem("data", {type: "checkbox", name: "global_skin_dark",                  label: "Dark Skin:",    labelWidth:100, offsetLeft:10,checked:localStorage.getItem("global_skin_dark")=="1" });
-    m_subForm.addItem("data", {type: "button", value:"Save",offsetLeft:10 });
-        
-    m_subForm.attachEvent("onButtonClick", function(name){
-        var is_valid = true;
-        m_subForm.forEachItem(function(name){
-        //collect user_variables
-            var value = m_subForm.getItemValue(name);
-            console.log("Saving Options: ",name,value)
-            
-            if (name == "jobviewer_rows_per_page"){
-                if (!value.match(/^\d+$/) || value == "0" ){
-                    alert("Enter a valid number in rows per page");
-                    is_valid = false;
-                    return;
-                }
-                if (value > 1000){
-                    alert("Value for rows per page is too large, max is 1000");
-                }
-                localStorage.setItem(name,value);
-                
-            }else{
-                //if (name == "jobviewer_showrowcolors_history"){
-                localStorage.setItem(name,value);
-                //}
+    const config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		width:"100%", height:"100%",rows:
+		[
+			{
+				rows: [
+					{
+						id: "options_layout_cell",
+						resizable:false,
+						height:"100%",
+						padding: "0px",  
+						margin: "0px",
+					}
+				]
+			}
+		]
+	}
+    m_mainLayout = new dhx8.dhx.Layout("optsform", config);
 
-            }
-            
-        })
-        if(is_valid)
+    
+	var manual_form_config = {
+    
+    // sets alignment for rows
+    align: "start", // "center", "end", "between", "around", "evenly"
+    padding: "20px",   
+	height: "100%",
+	
+    rows: [
+        {
+				padding: "10px", 
+				rows:[
+						{
+							name:"jobviewer_rows_per_page", 
+                            type: "input",
+                            inputType:"number",
+                            
+                            max: 1000,
+                            min:1,
+                            label: "Rows per Page:",
+                            labelPosition: "left",labelWidth: "140",
+                            value: localStorage.getItem("jobviewer_rows_per_page") || "100",
+                            width: 220
+						},
+                        {
+							name:"jobviewer_showrowcolors_history", 
+                            type: "checkbox",
+                            label: "Row Colors:",
+                            labelPosition: "left",labelWidth: "140",
+                            checked:localStorage.getItem("jobviewer_showrowcolors_history")=="1",
+						},
+                        {
+							name:"global_skin_dark", 
+                            type: "checkbox",
+                            label: "Dark Skin:",
+                            labelPosition: "left",labelWidth: "140",
+                            checked:localStorage.getItem("global_skin_dark")=="1",
+						},
+						{type: "spacer",name: "spacer",height:10},
+                        {cols: [
+                                {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save","hidden":false,name: "btn_save", width:100,value:"Save"},
+                        ]},
+					
+				],
+			
+			}
+		]
+	}
+	m_mainForm = new dhx8.dhx.Form(null, manual_form_config);
+    m_mainLayout.getCell("options_layout_cell").attach(m_mainForm);
+
+    m_mainForm.events.on("click", function(name,e){
+		if(name == "btn_save"){
+            let values = m_mainForm.getValue();
+            console.log("values",values)
+            Object.keys(values).map(k=>{
+                if (k=="global_skin_dark"){
+                    values[k] = values[k] == true ? "1" : false; //for legacy reasons we store 1 instead of true
+                }
+                if (k=="jobviewer_showrowcolors_history"){
+                    values[k] = values[k] == true ? "1" : false; //for legacy reasons we store 1 instead of true
+                }
+                localStorage.setItem(k,values[k]);
+            });
             parent.window.parent.window.location.reload();
-    }); 
+        }
+	});	
 
-    $("#savebtn").click(function(e) {
-        //we rely here on the fact that even if we are an iframe, the main page will benefit from the stuff in localstorage that we set here.
+    return;
 
-    });
-   
 
 };
 
@@ -113,32 +161,7 @@ function init(){
 
 <body onload="init()">
     <div id="optsform">
-<!-- <div class="dhxform_base">
-    <form class="dhxform_obj_dhx_skyblue" style="width:90%" >
-        <div class="fs_dhxform_item_label_top" style="padding-left: 20px !important; padding-top: 20px !important; ">
-            <fieldset class="dhxform_fs" style="padding-left:20px">
-                <legend class="fs_legend" >Style</legend>
-                <div class="dhxform_item_label_left" style="padding-left: 10px !important;">
-                <div class="form-group form-check">
-                    <input type="checkbox" class="form-check-input active" id="showRowColorsCheckbox" >
-                    <label class="form-check-label" for="showRowColorsCheckbox">Enable Row Colors for Job Status</label>
-                </div>
-                <div class="dhxform_control" role="link" tabindex="0" dir="ltr" style="width: 150px;">
-                    <input id="" class="dhxform_textarea"  type="TEXT" ></input>
-               </div>             
-               
-               
-                    <div class="dhxform_label dhxform_label_align_left" title="Enter some filename"><label for="savebtn">Output Filename:</label></div>
-                    <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;">
-                        <div id="savebtn" style="cursor:pointer !important;" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div>
-                    </div>               
-                </div> 
-            </fieldset>
-            
-        </div>
 
-    </form>
-</div> -->
 </div> 
 </body>
 
