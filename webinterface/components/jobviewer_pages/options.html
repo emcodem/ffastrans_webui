@@ -53,31 +53,62 @@
     legend{
         width:initial;
     }
+    .searchbox{
+        display:none
+    }
+    .dxi-checkbox-marked:before,.dxi-checkbox-blank-outline:before{
+        font-size:13
+    }
    
 </style>
 
 
-<script>
+<script type="module">
 /* stores jobviewer config in localStorage, reloads page on change */
-function init(){
+window.init=init;
+let m_history_conf_grid;
+
+async function init(){
     const config = {
         //type: "wide",//"line" | "wide" | "space" | "none";
-		width:"100%", height:"100%",rows:
+        type:"wide",
+        margin:0,
+        padding:0,
+		width:"98%", height:"100%",rows:
 		[
 			{
 				rows: [
-					{
+
+                    {
+						id: "options_layout_grid_conf_cell",
+						resizable:false,
+						
+                        cols:[
+                            {
+                                header:"Active Grid Config",
+                                id: "active_grid_conf_cell",
+                                resizable:false,
+                                html:"&nbsp;Coming soon...",
+                                width:"50%",
+                            },
+                            {
+                                header:"History Grid Config",
+                                id: "history_grid_conf_cell",
+                                resizable:false,
+                                width:"48%",
+                            },
+                        ]
+					},
+                    {
 						id: "options_layout_cell",
 						resizable:false,
-						height:"100%",
-						padding: "0px",  
-						margin: "0px",
-					}
+						height:250,
+					},
 				]
 			}
 		]
 	}
-    m_mainLayout = new dhx8.dhx.Layout("optsform", config);
+    let m_mainLayout = new dhx8.dhx.Layout("optsform", config);
 
     
 	var manual_form_config = {
@@ -95,7 +126,6 @@ function init(){
 							name:"jobviewer_rows_per_page", 
                             type: "input",
                             inputType:"number",
-                            
                             max: 1000,
                             min:1,
                             label: "Rows per Page:",
@@ -127,11 +157,12 @@ function init(){
 			}
 		]
 	}
-	m_mainForm = new dhx8.dhx.Form(null, manual_form_config);
+	let m_mainForm = new dhx8.dhx.Form(null, manual_form_config);
     m_mainLayout.getCell("options_layout_cell").attach(m_mainForm);
 
     m_mainForm.events.on("click", function(name,e){
 		if(name == "btn_save"){
+            saveHistoryConf();
             let values = m_mainForm.getValue();
             console.log("values",values)
             Object.keys(values).map(k=>{
@@ -147,13 +178,105 @@ function init(){
         }
 	});	
 
-    return;
-
+    let _hgrid = await buildHistoryConfigGrid();
+    m_mainLayout.getCell("history_grid_conf_cell").attach(_hgrid);
 
 };
 
+/**
+ * Builds and stores a config object in localStorage
+*/
+function saveHistoryConf(){
+    //attach index 
+    let to_save = m_history_conf_grid.data.map((entry,index)=>{
+        entry.merit = index;
+        return entry;
+    });
+    localStorage.setItem("jobviewer_history_grid_column_config",JSON.stringify(to_save));
+    console.log("saving history grid config",to_save);
 
+}
 
+async function buildHistoryConfigGrid(){
+    const columns = [
+	    {
+            id: "header",
+            header: ["Name"],
+            type: "text",
+            sortable: false,
+            template: (d,row)=>{
+                return(row.header[0])
+            },
+            htmlEnable:true
+        },	    
+        {
+            id: "user_hidden",
+            header: ["Hidden"],
+            template: (user_hidden) => {
+                // if (visible === undefined)
+                //     visible = true
+                return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
+            },
+            sortable: false,
+            htmlEnable: true,
+        }
+    ];
+
+    //prepare grid data loading
+    let colres = await fetch("/gethistory_jobviewercolumns");
+    if (!colres.ok)
+            return dhx8.dhx.message({ expire: 3000, text: "Error loading historygrid config"});
+    let all_historycols = await colres.json();
+    console.log("from_server:",all_historycols)
+
+    if (localStorage.jobviewer_history_grid_column_config){
+        //merge existing userconf
+        try{
+            let userconf = JSON.parse(localStorage.jobviewer_history_grid_column_config);
+            all_historycols = all_historycols.map(c=>{
+                let c_user = userconf.filter(_usercol=>{return c.id == _usercol.id});
+                if (c_user.length != 1)
+                    return c;
+                c.merit = c_user[0].merit;
+                c.user_hidden = c_user[0].user_hidden;
+                return c;
+            })
+        }catch(ex){
+            console.error("Unexpected error restoring grid state",ex);
+            delete localStorage.jobviewer_history_grid_column_config
+        }
+    }
+    console.log("restored userconf:",all_historycols)
+
+    //build grid
+    const grid = new dhx8.dhx.Grid(null, {
+        columns: columns,
+        data: all_historycols,
+        
+        keyNavigation: true,
+        autoWidth: true,
+        height: "auto",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        dragItem: "both",
+        selection: "row",
+        eventHandlers: {
+            onclick: {
+                checkbox: (event, { row }) => {
+                    
+                    if (row.user_hidden) {
+                        grid.data.update(row.id, { user_hidden: false });
+                    } else {
+                        grid.data.update(row.id, { user_hidden: true });
+                    }
+                }
+            }
+        },
+    });
+    m_history_conf_grid = grid;
+
+    return grid;
+}
 
 </script>
 

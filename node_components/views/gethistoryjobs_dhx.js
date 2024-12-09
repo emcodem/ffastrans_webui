@@ -4,7 +4,7 @@ const ffascommon = require("ffastrans_common");
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
 
-	app.get('/gethistoryjobsajax_treegrid', async (req, res) => {
+	app.get('/gethistoryjobs_dhx', async (req, res) => {
 		try{
 			if (req.method != 'GET' && req.method != 'POST') {
 				console.log("ERROR: gethistoryjobsajax_treegrid method not allowed: " + req.method);
@@ -32,7 +32,7 @@ module.exports = function(app, express){
 			//start count
 			let start = req.query.start||0;
 			start = JSON.parse(start);
-			let count = req.query.count||1000;
+			let count = req.query.count||100;
 			count = JSON.parse(count)
 			count = count + 0;
 			let filterobj = req.query.filterobj||"{}";
@@ -47,8 +47,8 @@ module.exports = function(app, express){
 				filterobj = objectWithoutKey("file",filterobj);
 			}
 			
-			console.log("New search in job history, filterobj:")
-			console.log(filterobj)
+			console.log("New search in job history, ","sortcol",req.query.sortcol,"filterobj:",filterobj)
+
 			//make regex for text fields
 			if (Object.keys(filterobj).length  != 0){
 				newfilter = {};
@@ -118,7 +118,7 @@ module.exports = function(app, express){
 			if (sortcol == "wf_name"){
 				sortcol = "workflow";
 			}
-			if (typeof sortcol == 'undefined' || sortcol == null){
+			if (typeof sortcol == 'undefined' || sortcol == null || sortcol == ""){
 				sortcol = 'job_end'
 			}
 			let direction = req.query.direction;

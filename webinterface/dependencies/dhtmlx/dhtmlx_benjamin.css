@@ -8470,6 +8470,7 @@ body  {
 
 ul.fancytree-container {
 	background-color: unset;
+  border:none !important;
 }
 
 

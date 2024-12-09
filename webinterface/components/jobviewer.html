@@ -39,8 +39,8 @@
 
 <script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
 
-<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
-<script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<script src="../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
     //theme changeer
@@ -189,9 +189,9 @@
 	}
 	
     .history_div{
-        display:grid;
-        height:100%;
-        grid:'table_container' minmax(0,1fr);
+        /* display:grid; */
+        /* height:100%; */
+        /* grid:'table_container' minmax(0,1fr); */
     }
 
     ul.fancytree-container {
@@ -209,7 +209,30 @@
         background-color: unset;  /* override default bg color #4169e1 of fancytree */;
     }
 
+    /* NEW STUFF */
+    /* searchbox is invisible unless hovered or has text */
+    .searchbox {
+            opacity: 0;
+            position:absolute;
+            right: 25;
+            left: 10;
+            /* pointer-events: none; */
+            transition: opacity 0.3s ease;
+    }
+    .searchbox:hover,.searchbox:focus {
+            opacity: 1;
+            pointer-events: auto;
+    }
+    
+    .searchbox:not(:placeholder-shown) {
+            opacity: 1;/* Keep the textbox visible if it has content */
+    }
 
+    .ffastrans_grid_style{
+        --dhx-font-family:"Tahoma";
+        --dhx-font-size-normal:12px
+    }
+    
 </style>
 
 
@@ -224,7 +247,8 @@
     var socket = io();
 
     /* GLOBALS */
-    var mainLayout, runningJobGrid, finishedJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
+    var mainLayout, runningJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
+    let m_historyGrid;
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
 	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
@@ -269,8 +293,7 @@
     function toggleJobControl(id,selected_is_on){
         //enable/disable menu buttons
         console.log("ToggleJobControl");
-        var tree = $(id).fancytree('getTree');
-        var all_selected_nodes = tree.getSelectedNodes();
+
         var element_names = [];
         if (id.match("active")){
             element_names = ["a_details","a_abort","a_pause","a_resume"];
@@ -278,32 +301,20 @@
         if (id.match("history")){
             element_names = ["b_details","b_resubmit","b_delete_selected"];
         }
+
         element_names.forEach(function(name){
             try{
-                document.getElementsByName(name)[0].disabled = (all_selected_nodes == 0);
+                document.getElementsByName(name)[0].disabled = !selected_is_on;
                 var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];  
-                if (all_selected_nodes != 0){
+                if (selected_is_on){
                     icon.classList.remove("disabled")
                 }else{
                     icon.classList.add("disabled")
                 }
             }catch(ex){
-                console.trace(ex)
+                //who
             }
         })
-
-        //show priorty only when a row was selected with non active state
-        
-        // console.log("all_selected_nodes",all_selected_nodes);
-        // let havenon_active = all_selected_nodes.filter(n => n.title != "Active");
-        // document.getElementsByName("a_priority")[0].disabled = (havenon_active.length == 0);
-        // var icon = document.getElementsByName("a_priority")[0].getElementsByTagName("i")[0];
-        // console.log(icon)
-        // if (havenon_active.length == 0){
-        //     icon.classList.add("disabled");                       
-        // }else{
-        //     icon.classList.remove("disabled"); 
-        // }
         
     }
     
@@ -317,13 +328,13 @@
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
         // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
-        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="click_b_header(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
+        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="history_grid_actions(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
         
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
         
-        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
-        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
-        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="click_b_header(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
+        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
+        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
+        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
         var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
         
         //check user permissions
@@ -372,16 +383,25 @@
     
     function applyFilter(filtername,filtervalue){
         /* inserts filter into grid header and hits enter */
-        for (let i = 0; i < $("input[name=search]").length; i++) {
-            var input = $("input[name=search]")[i];     
-            var keyname = input.placeholder.toLowerCase();
-            if(keyname.match(filtername.toLowerCase())){
-                console.log("Applying filter from URL: " + filtername)
-                input.value = filtervalue;
-                 var e = $.Event( "keyup", { keyCode: 13 } );
-                 $(input).trigger(e);
+        const searchboxes = document.querySelectorAll('.searchbox');
+        searchboxes.forEach((searchbox) => {
+            let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;
+            if (header_id.toUpperCase().match(filtername.toUpperCase())){
+                searchbox.value = filtervalue;
+                
+                $(searchbox).trigger("input");
             }
-         }  
+        })
+        // for (let i = 0; i < $("input[name=search]").length; i++) {
+        //     var input = $("input[name=search]")[i];     
+        //     var keyname = input.placeholder.toLowerCase();
+        //     if(keyname.match(filtername.toLowerCase())){
+        //         console.log("Applying filter from URL: " + filtername)
+        //         input.value = filtervalue;
+        //          var e = $.Event( "keyup", { keyCode: 13 } );
+        //          $(input).trigger(e);
+        //     }
+        //  }  
     }
 
     /* build basic page layout and init periodic job loading*/
@@ -457,7 +477,7 @@
         restoreLayoutSizes(mainLayout, "mainLayout");
 
         //attach grids
-        mainLayout.cells("c").attachObject("history_div");
+        mainLayout.cells("c").attachObject("history_div_container");
         mainLayout.cells("c").showInnerScroll();
         mainLayout.cells("b").attachObject("active_div");
         mainLayout.cells("b").showInnerScroll();
@@ -496,63 +516,64 @@
             console.log("Applying default sorting for active and history grid")
 		
         socket.on('newhistoryjob', async function() {
-            var tree = $("#treetable_history").fancytree('getTree');
+            //m_historyGrid.loadGridData();
+            // var tree = $("#treetable_history").fancytree('getTree');
             
-            //check if we are showing the first page
-            if (tree.mystuff.page != 1){
-                console.log("loading of new history job suppressed because page is not 1")
-                return;
-            }
-            tree.getNewData();
-            return;
+            // //check if we are showing the first page
+            // if (tree.mystuff.page != 1){
+            //     console.log("loading of new history job suppressed because page is not 1")
+            //     return;
+            // }
+            // tree.getNewData();
+            // return;
 
 
 
-            //legacy jobs field mapping, need for update from <1.3.9
-            msg.title = msg.state;
-            msg.key = msg._id;
+            // //legacy jobs field mapping, need for update from <1.3.9
+            // msg.title = msg.state;
+            // msg.key = msg._id;
 
-            if (applyWorkflowFilter(msg) == false) {
-            //apply user permissions
-				return;
-            }
-			if (history_search_is_active()){
-			//apply search if any
-				if (!search_history_check_new_row(msg)){
-					return;
-				}
-			}
-            //server informs us about new history jobs in db, if there are new, we fetch them
-            var rootNode = $("#treetable_history").fancytree("getRootNode");
+            // if (applyWorkflowFilter(msg) == false) {
+            // //apply user permissions
+			// 	return;
+            // }
+			// if (history_search_is_active()){
+			// //apply search if any
+			// 	if (!search_history_check_new_row(msg)){
+			// 		return;
+			// 	}
+			// }
+            // //server informs us about new history jobs in db, if there are new, we fetch them
+            // var rootNode = $("#treetable_history").fancytree("getRootNode");
 
-            var existing_node = rootNode.tree.getNodeByKey(msg.key)
-            //store the position of existing nodes (for update)
-            if (existing_node) {
-                existing_node.fromDict(msg);
-                return;
-            }
+            // var existing_node = rootNode.tree.getNodeByKey(msg.key)
+            // //store the position of existing nodes (for update)
+            // if (existing_node) {
+            //     existing_node.fromDict(msg);
+            //     return;
+            // }
 			
-            firstnode = rootNode.findFirst("");
-            if (firstnode) {
-                if (firstnode.extraClasses == "odd_dhx_skyblue") {
-                    msg.extraClasses = "ev_dhx_skyblue";
-                } else {
-                    msg.extraClasses = "odd_dhx_skyblue";
-                }
-            }
+            // firstnode = rootNode.findFirst("");
+            // if (firstnode) {
+            //     if (firstnode.extraClasses == "odd_dhx_skyblue") {
+            //         msg.extraClasses = "ev_dhx_skyblue";
+            //     } else {
+            //         msg.extraClasses = "odd_dhx_skyblue";
+            //     }
+            // }
 
-			//cleanup too many nodes to support running the webinterface for indefinite time
-			while(rootNode.countChildren(false) > m_max_history_gridrows){
-				rootNode.getLastChild().remove();
-			}
+			// //cleanup too many nodes to support running the webinterface for indefinite time
+			// while(rootNode.countChildren(false) > m_max_history_gridrows){
+			// 	rootNode.getLastChild().remove();
+			// }
             
-			//add new node
-            var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
-            //take care about grid sorting
+			// //add new node
+            // var childNode = rootNode.addChildren(msg, $("#treetable_history").fancytree("getRootNode").getFirstChild());
+            // //take care about grid sorting
             
-            //save grid selection
-            await sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
-			//restore grid selection
+            // //save grid selection
+            // await sortGrid("treetable_history", m_lastsortelementid["treetable_history"], m_lastsortdir["treetable_history"]);
+			// //restore grid selection
 			
         });
 
@@ -627,14 +648,7 @@
         //history grid is sorted in buildHistoryGrid
         sortGrid("treetable_active", m_lastsortelementid["treetable_active"], m_lastsortdir["treetable_active"]);
 		
-        function debounce(func){
-            //used to prevent firing window onresize "while the window is resized", e.g. wait 100ms for no size change and only then execute the function
-            var timer;
-            return function(event){
-                if(timer) clearTimeout(timer);
-                timer = setTimeout(func,500,event);
-            };
-        };
+
 
 		window.onresize = debounce(function(){
             /* takes care about column resize matters */
@@ -646,21 +660,30 @@
                 attachColResizeable("#treetable_active")
                 attachColResizeable("#treetable_history")
 			},100)
-		});
+		},500);
 		
     }
+
+    function debounce(func,timeout){
+            //used to prevent firing window onresize "while the window is resized", e.g. wait 100ms for no size change and only then execute the function
+            var timer;
+            return function(event){
+                if(timer) clearTimeout(timer);
+                timer = setTimeout(func,timeout,event);
+            };
+        };
 
     function validateColSizes(){
         try{
             //this was the best way we found to force a max-size for a table column, colResizable plugin does not support maxwidth
-            let historystatecolw = localStorage.getItem("treetable_history").match(/^\d+/)[0];
+            //let historystatecolw = localStorage.getItem("treetable_history").match(/^\d+/)[0];
             let activestatecolw = localStorage.getItem("treetable_active").match(/^\d+/)[0];
-            if (historystatecolw > 86){
-                console.log("State column size is bigger than 85, forcing maxsize");
-                console.log("before",localStorage.getItem("treetable_history"))
-                let newHistWidthList = localStorage.getItem("treetable_history").replace(/^\d+/,85);
-                localStorage.setItem("treetable_history",newHistWidthList);
-            }
+            // if (historystatecolw > 86){
+            //     console.log("State column size is bigger than 85, forcing maxsize");
+            //     console.log("before",localStorage.getItem("treetable_history"))
+            //     let newHistWidthList = localStorage.getItem("treetable_history").replace(/^\d+/,85);
+            //     localStorage.setItem("treetable_history",newHistWidthList);
+            // }
             if (activestatecolw > 86){
                 console.log("before",localStorage.getItem("treetable_active"))
                 let newHistWidthList = localStorage.getItem("treetable_active").replace(/^\d+/,85);
@@ -879,54 +902,45 @@
 
     function show_options_window(){
         var dhxwins = new dhtmlXWindows();
-        var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 300);
+        var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 600);
         win.setText("View Options ");
         win.attachURL("jobviewer_pages/options.html");
-        
     }
 
-    function click_b_header(id,node) {
+    window.history_grid_actions= history_grid_actions;
+    function history_grid_actions(id,node) {
         //if we have node argument, we are called from context menu
-        var tree = $('#treetable_history').fancytree('getTree');
-        var selected = tree.getSelectedNodes();
-         
         if (id == "b_options") {
             show_options_window();
             return;
         }
-        
+
+        let selected = m_historyGrid.selection.getCells();
+  
         if (selected.length == 0 ) {
             dhtmlx.alert("Please select row");
             return;
         }
-        if (id == "b_resubmit") {
+        if (id.match("resubmit")) {
             selected.forEach(function(node) {
-                resubmit_job(node["data"]["guid"]||node["data"]["job_id"]);
+                resubmit_job(node.row.guid||node.row.job_id);
             })
         }
-        if (id == "b_details") {
-            if (selected.length == 0) {
-                dhtmlx.alert("Please select row to show details");
-                return;
-            }
-            var jobid = (selected[0].data["job_id"]); 
+        if (id.match("details")) {
+            var jobid = (selected[0].row.job_id); 
             openLogViewer(jobid);
-
-            //window.open(url, '_blank');
         }
-        if (id == "b_delete_selected") {
-            //delete selected jobs
-            if (selected.length == 0) {
-                dhtmlx.alert("Please select rows to delete ");
-                return;
-            }
-            var array_to_delete = [];
+        if (id.match("delete")) {
+            let array_to_delete = [];
+            let a_gridids = [];
             for (let i = 0; i < selected.length; i++) {}
-            selected.forEach(function(node) {
-                array_to_delete.push(node.data["job_id"]);
-                node.remove();
+            selected.forEach(function(cell_and_row) {
+                array_to_delete.push(cell_and_row.row.job_id);
+                a_gridids.push(cell_and_row.row.id)
             });
+            m_historyGrid.data.remove(a_gridids);
             socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
+            
         }
         
     }
@@ -1212,16 +1226,43 @@
             return contextmenu;
         }
     }
+
+    function getContextMenuHistoryGrid_ex(allpossible){
+        //opens context menu
+                
+        var contextmenu = {};
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            for (var _idx in allpossible){
+               if (allpossible[_idx]){
+                    if (allpossible[_idx].name.match(regex)){
+                        console.log(allpossible[_idx]);
+                        var newitem = {};
+                        newitem[_idx] = allpossible[_idx];
+                        $.extend(contextmenu, newitem);
+                        console.log(contextmenu);
+                    }
+               } 
+            }
+            return contextmenu;
+        }else{
+            //just render all btns
+            console.log("Displaying unfiltered list of menu buttons" );
+            contextmenu = allpossible;
+            return contextmenu;
+        }
+    }
     
-    function buildPagination(config)
+    function buildPagination(config,dhxgrid)
     {
         var total = config.total;
-        var tree = $('#treetable_history').fancytree('getTree');
-        if (tree.mystuff.page != 1){
+        // var tree = $('#treetable_history').fancytree('getTree');
+        if (dhxgrid.mystuff.page != 1){
             //skip rebuilding pagination if we show another page than first
             return;
         }
-        //history grid pagination
         $('#pagination-container').pagination({
             totalNumber: total,
             pageSize: m_max_history_gridrows,
@@ -1237,16 +1278,19 @@
                     },
             callback: function(data, pagination) {
                 //click on some page number
-                if (pagination.pageNumber != tree.mystuff.page){
+                if (pagination.pageNumber != dhxgrid.mystuff.page){
                     //a new  page was selected, reload tree
-                    var start = (pagination.pageNumber-1) * m_max_history_gridrows;
-                    var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(tree.mystuff.filterobj));
-                    tree.mystuff.page = pagination.pageNumber;
-                    tree.reload({
-                        url: sourceUrl,
-                        cache: false
-                    });
-                    
+                    // var start = (pagination.pageNumber-1) * m_max_history_gridrows;
+                    // var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(tree.mystuff.filterobj));
+                     
+                    // tree.mystuff.page = pagination.pageNumber;
+                    // tree.reload({
+                    //     url: sourceUrl,
+                    //     cache: false
+                    // });
+                    dhxgrid.mystuff.page = pagination.pageNumber;
+                    dhxgrid.loadGridData();
+
                     if (pagination.pageNumber != 1){
                         document.getElementById("span_text_finished").innerHTML = 'Finished <span style="color:orange">(Page ' +pagination.pageNumber+ ')</span>'
                         //addMenuButtons()
@@ -1299,336 +1343,231 @@
 
     }
 
-    function buildHistoryGrid() {
-        try{
-            addVariableColumns();
-        }catch(ex){alert("Error building variablecols" + ex)}
-
-        var filterobj = {};
-			for (let i = 0; i < $("input[name=search]").length; i++) {
-                var input = $("input[name=search]")[i];
-                let searchfor = $.trim(input.value);
-                var keyname = input.placeholder.toLowerCase();
-                
-                if (searchfor) {
-                    filterobj[keyname]= searchfor;
-                }
+    function bla(){
+        if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
+            let variablecolumns = m_serverconfig.job_viewer.variable_columns;
+            for (let i=0;i<variablecolumns.length;i++){
+                let copy = htmltemplate;
+                copy = copy.replaceAll("col_header_name",variablecolumns[i].col_header_name);
+                trh.insertAdjacentHTML('beforeend', copy);
             }
-    
-        if (document.getElementById("history-job_end-sorticon-dis")){
-			$("div[id$='sorticon-dis']").attr('hidden', false);
-			//hide only the sorticon of interest
-			$('div[id$="'+"history-job_end-sorticon-dis"+'"]').attr('hidden', true);
-			console.log("disable","history-job_end-sorticon-dis");
-		}
-        $('i[id="history-job_end-sorticon"]').addClass("down-arrow");
+        }
+    }
+    async function buildHistoryGrid(){
 
-        var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol=job_end&direction=des&count="+m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(filterobj));
-        //var sourceUrl = "testdata.xml";
-        var histTree = $("#treetable_history").fancytree({
-            
-            extensions: ["contextMenu", "table", "gridnav", "multi"],
-            checkbox: false,
-            titlesTabbable: false, // Add all node titles to TAB chain
-            source: {
-                url: sourceUrl,
-                cache: true,
-            },
-            icon: false,
-            multi: { //multiselct
-                mode: ""
-            },
-			
-            modifyChild: function(event, data) {
-                
-                //reset all odd even row colors
-                var rootNode = $("#treetable_history").fancytree("getRootNode");
-                var oldnodes = rootNode.children;
-
-                for (let i = 0; i < oldnodes.length; i++) {
-                    if (i % 2 == 0) {
-                        oldnodes[i].toggleClass("ev_dhx_skyblue", false)
-                        oldnodes[i].toggleClass("odd_dhx_skyblue", true)
-                    } else {
-                        oldnodes[i].toggleClass("odd_dhx_skyblue", false)
-                        oldnodes[i].toggleClass("ev_dhx_skyblue", true)
-                    }
-                }
-            },
-
-            renderColumns: function(event, data) {
-                /* in this event, fancytree already created a "node" for us, containing a "data" object (data.node.data) from backend, e.g. a ffastrans job with tasks array */
-                /* also we got a table row (node.tr) with as many columns as there are table heads in the tr_treetable_history */
-                /* however, the table row is empty, we must now fill in the data */
-
-                let node = data.node;
-                if (data.node.extraClasses == null) { //need to do this whenever rowcount changes -->
-                    if (data.node.getIndex() % 2 == 0) {
-                        node.toggleClass("ev_dhx_skyblue"); //apply dthmlx style to node
-                    } else {
-                        node.toggleClass("odd_dhx_skyblue"); //apply dthmlx style to node
-                    }
-                }
-                
-                node.addClass("hist_row"); //for context menu
-                if (localStorage.getItem("jobviewer_showrowcolors_history") == "1"){
-                    node.addClass("css_jobviewer_history_row_status_"+data.node["title"]); //for context menu
-                }
-                
-                let $tdList = $(node.tr).find(">td");
-
-                //aaaaaaaaa
-                const _headercontainer = document.getElementById('tr_treetable_history');
-                const history_tablehaeders = Array.from(_headercontainer.querySelectorAll('th'));//nodecollection to js array to make func findIndex available
-                let _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "wf_name");
-                if (_idx != -1)
-                    $tdList.eq(_idx).html("<div class='celltext' title='"+ node.data.workflow +"'>" + node.data.workflow + "</div>");
-
-                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "job_start");
-                if (_idx != -1) 
-                    $tdList.eq(_idx).html("<div class='celltext'>" + node.data.job_start + "</div>");
-
-                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "duration");
-                if (_idx != -1) 
-                    $tdList.eq(_idx).html("<div class='celltext'>" + node.data.duration + "</div>");
-
-                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "job_end");
-                if (_idx != -1) 
-                    $tdList.eq(_idx).html("<div class='celltext'>" + node.data.job_end + "</div>");
-
-                
-                //FILENAME
-                var parsedFileName = node.data.source;
-                try{
-                    //try parsing filename from possible path -- DO NOT REMOVE THIS; we don't want jobfetcher to parse and store the normalized name
-                    try{
-                        if (Array.isArray(JSON.parse(parsedFileName))){
-                            parsedFileName = JSON.parse(parsedFileName)[0] + " (List: " + JSON.parse(parsedFileName).length + ")"; 
-                        }
-                    }catch(ex){}
-                    if (parsedFileName.match(/ffconcat version 1.0/)){
-                        console.log("GOT FFCONCAT",parsedFileName.match(/'(.*?)'/))
-                        parsedFileName = parsedFileName.match(/file '(.*?)'/)[1];
-                        console.log("concat parsed fname",parsedFileName)
-                        
-                    }
-                    //try to get filename only, everything after last backslash or slash
-                    if (parsedFileName.match(/[^\\]+$/).length == 1 && parsedFileName.match(/[^\\]+$/)[0] != ""){
-                        parsedFileName = parsedFileName.match(/[^\\]+$/)[0]; //remove everything after last backslash
-                    }
-                    if (parsedFileName.match(/[^\/]+$/).length == 1 && parsedFileName.match(/[^\/]+$/)[0] != ""){
-                        parsedFileName = (parsedFileName.split("/").pop());
-                    }
-
-                }catch(ex){}
-
-                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "file");
-                if (_idx != -1) 
-                    $tdList.eq(_idx).html("<div class='celltext_rtl' title='"+parsedFileName+"'><bdi>" + parsedFileName + "</bdi></div>");
-
-                //OUTCOME
-                var outcome = node.data.result || node.data.outcome;
-                outcome = decodeEntities(outcome)
-
-                if (outcome.length == 10000) {
-                    dhtmlx.message("Detected oversized outcome in job, consider deleting the job.\nSource: " + node.data.source + " \nDate Start: " + node.data.job_start);
-                    outcome += " (text was truncated by webinterace...) "
-                }
-
-                _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "outcome");
-                if (_idx != -1) 
-                    $tdList.eq(_idx).html("<div class='celltext' title='"+outcome+"'>" +outcome + "</div>"); //outcome can be lengthy
-
-                
-                //VARIABLE COLUMNS
-                let all_vc = m_serverconfig.job_viewer?.variable_columns || [];
-                all_vc.forEach(_vc=>{
-                    let _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === _vc.col_header_name);
-                    if (_idx != -1) 
-                        $tdList.eq(_idx).html("<div class='celltext' >" + node.data[_vc.col_header_name] + "</div>"); //outcome can be lengthy
-                    else
-                        alert("Error, could not find th for variable_column " + _vc.col_header_name);
+        let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
+        //grid columns are defined on server side
+        let colres = await fetch("/gethistory_jobviewercolumns");
+        if (!colres.ok)
+                return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
+        let gridcolumns = await colres.json();
+        
+        //apply user state
+        if (localStorage.jobviewer_history_grid_column_config){
+            try{
+                //inject merit and hidden state from user config (options.html)
+                let userconf = JSON.parse(localStorage.jobviewer_history_grid_column_config);
+                gridcolumns = gridcolumns.map(c=>{
+                    let uc = userconf.filter(uc=>{return uc.id == c.id});
+                    if (uc.length != 1)
+                        return c;
+                    c.hidden    = uc[0].user_hidden;
+                    c.merit     = uc[0].merit;
+                    return c;
                 });
 
-                // _idx = history_tablehaeders.findIndex(obj => obj.attributes.name.nodeValue === "file");
-                // if (_idx != -1) 
-                //     $tdList.eq(7).html("<div class='celltext' title=''>" + JSON.stringify(node.data.variables) + "</div>"); //outcome can be lengthy
+                gridcolumns.sort((a, b) => a.merit - b.merit);
+            }catch(ex){console.error("Cannot restore user column config",ex)}
+        }
 
-				var percent = m_serverconfig["STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT"].split(",");
-				for(i=0;i<percent.length;i++){
-					if (percent[i] == "0%"){
-						console.log("Hiding finished grid col",$tdList.eq(i))
-						$tdList.eq(i).css("display","none")
-						//console.log($tdList.eq(i))
-					}
-				}
-				
-            },
-            init: function(event, data) {
-                //ENABLE RESIZE COLUMNS
-                attachColResizeable("#treetable_history");
-            },
-            postProcess: function(event, data) {
-                // transform gethistoryjobsajax result into tree compatible
-                // data is a treegrid specific object
-                console.log("history grid postprocessing",data.response.data.length)
-                //transform from db object to tree compatible //set key
-                var joblist = data.response.data;
+
+        console.log("gridcols with userdata",gridcolumns)
+
+        /* build the grid */
+        const grid = new dhx8.dhx.Grid("history_div", {
+            columns: gridcolumns,
+            keyNavigation: true,
+            autoWidth: true,
+            resizable: true,
+            multiselection:true,
+            height: "auto",
+            rowHeight: 20,
+            headerRowHeight: 30,
+            selection: "row",
+            css: "alternate_row ffastrans_grid_style",
+            eventHandlers: {
                 
-                data["result"] = translateJobs(joblist) //setting data["result"] means override the originally loaded data
+                oninput:{
+                    searchbox: debounce((event,  args) => {
+                        //debounce function prevents this to fire multiple times parallel while user is typing
+                        //only if user did not type for 500ms, function will fire
+                        grid.filterobj = collectFilters();
+                        grid.data.removeAll();
+                        loadGridData();
+                    },750),
+                },
+                onclick: {
+                    /* expand row with children */ 
+                    expander: (event,  {row} ) => {//expander is in classlist of state htmle template
+                        console.log(row)
+                        if (row.expanded) {
+                            grid.data.update(row.id, { expanded: false });
+                            document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-down', 'dxi-chevron-right');
+                            let to_remove = [];
+                            grid.data.forEach(function(item, index, array) {
+                                if (item.parentid == row.id)
+                                    to_remove.push(item.id);
+                            });
+                            
+                            grid.data.remove(to_remove);
 
-                //get total count separately because it takes lots of time, note that we add the getcount parameter in url
-                var tree = $('#treetable_history').fancytree('getTree');
-                var _url = "/gethistoryjobsajax_treegrid?getcount=1&filterobj="+ encodeURIComponent(JSON.stringify(tree.mystuff["filterobj"]));
-                $.ajax({
-                    url: _url,
-                    type: "GET",
-                    contentType: "application/JSON",
-                    crossDomain: true,
-                    success: function(response) {
-                        buildPagination({total:response["total_count"]});
-                    },
-                    error: function(response){
-                        console.log("error counting",response)
+                        } else {
+                            grid.data.update(row.id, { expanded: true });
+                            document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-right', 'dxi-chevron-down');
+                            expandgridrow();
+                            function expandgridrow(rid){
+                                //add the child rows into grid after 
+                                const index = grid.data.getIndex(row.id);
+                                grid.data.add(row.children.map(c=>{//each branch row
+                                        c.parentid = row.id,
+                                        c.state="<p style='text-indent:30px'>" + c.state;
+                                        c.source="<p style='text-indent:30px'>" + c.source;
+                                        c.outcome="<p style='text-indent:30px'>" + c.outcome;
+                                        return c
+                                    }),index+1);
+                            }
+                        }
                     }
-                })
-            },
-            table: {
-                /* nodeColumnIdx 0 is status col, indentation defines size of indent of child jobs */
-                indentation: 15,
-                nodeColumnIdx: 0,
-            },
-            gridnav: {
-                autofocusInput: false,
-                handleCursorKeys: true
-            },
-            select: function(event, data) {
-                if (data.node.isSelected()) {
-                    data.node.addClass("rowselected");
-                    toggleJobControl("#treetable_history",true);
-                } else {
-                    data.node.removeClass("rowselected");
-                    toggleJobControl("#treetable_history",true);
                 }
             },
-            contextMenu: {
-                selector: "hist_row",
-                menu: getContextMenuHistoryGrid( 
-                    {
-                        "details": {
-                            "name": "Job Details"
-                        },
-                        "resubmit": {
-                            "name": "Resubmit from Start"
-                        },
-                        "delete_selected": {
-                            "name": "Delete selected"
-                        },
-                    }) ,
-                actions: function(node, action, options) {
-                        
-                        clearSelection(); //disable browser internal line selection if user selected multiple rows using shift. TODO: catch shift globally and do this
-                        var tree = $('#treetable_history').fancytree('getTree');
-                        var selected = tree.getSelectedNodes();
-                         $.extend(selected,node);
-                         console.log(action,selected)
-                        if (action.indexOf( "details") != -1) {
-                            var jobid = (node.data["job_id"]); //jobid contains splitid, job_id can be shared by multiple jobs
-                            openLogViewer(jobid);
-                        }
-                        if (action == "delete_selected") {
-                            node.setSelected();
-                            click_b_header("b_delete_selected",node);
-                        }
-                        if (action == "resubmit") {
-                            node.setSelected();
-                            click_b_header("b_resubmit",node)
-                        }
+        });
+        m_historyGrid = grid;
+        //custom fields keep track of current state
+        grid.filterobj      = {};
+        grid.sortcol        = "";
+        grid.sortdir        = "";
+        grid.mystuff        = {page:1}
+        grid.loadGridData   = loadGridData;
 
-                    }
-                }//contextmenu
-            
+        /* Row select */
+        grid.selection.events.on("AfterSelect", (row, column) => {
+            toggleJobControl("history",true);
+        });
+
+        /* Sorting */
+        grid.events.on("beforeSort", (column, dir) => {
+            /* remove all rows and reload sorted data from server */
+            grid.sortcol =  column.id;
+            grid.sortdir =  dir;
+            grid.data.removeAll();
+            loadGridData();
+            return true;
         });
         
+        /* Searching */
+        function collectFilters(){ //collects all search values
+            let filterobj = {};
+            filterobj.variablecols = [];
+            const searchboxes = document.querySelectorAll('.searchbox');
+            searchboxes.forEach((searchbox) => {
+                if (searchbox.value == "")
+                    return;
 
-        //extend tree by custom stuff, used mainly to build the paging
-        $("#treetable_history").fancytree('getTree').mystuff = {"maxrows":100,"filterobj":{},"page":1,"sortcol":"job_end","sortdir":"des"}
+                let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;                
+                if (searchbox.dataset.variablecol){
+                    filterobj.variablecols.push({col_header_name:header_id,filter:searchbox.value});
+                }else
+                    filterobj[header_id] = searchbox.value;
+                
+            })
+            return filterobj;
+        }
 
-        //custom tree functions
-        $("#treetable_history").fancytree('getTree').getNewData = async function(){
-            /* 
-               update grid data from server
-               in the past jobfetcher pushed new jobs via sockets to the clients but this means
-               that clients receive jobs they should dont even have permission to and filtering was done on the client
-            */
+        /* Data loading */
+        async function loadGridData(){
+            let urlSearchParams =  new URLSearchParams({});
+            urlSearchParams.append("count", m_max_history_gridrows);
+            urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
+            urlSearchParams.append("sortcol", grid.sortcol);
+            urlSearchParams.append("direction", grid.sortdir);
+            urlSearchParams.append("start", grid.mystuff.page == 1 ? 0 : m_max_history_gridrows * (grid.mystuff.page-1));
 
-            var tree = $('#treetable_history').fancytree('getTree');
-            var rootNode = $("#treetable_history").fancytree("getRootNode");
-            //load data from server
-            var response = await $.ajax({
-                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + encodeURIComponent(JSON.stringify(tree.mystuff.filterobj)),
-                type: 'GET',
-            });
-            var joblist = JSON.parse(response).data;
-            joblist = translateJobs(joblist);
+            let url = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
+            var response = await fetch(url);
+            if (!response.ok)
+                return dhx8.dhx.message({ expire: 3000, text: "Error loading grid data"});
+            const json = await response.json();
+            grid.data.parse(json.data);
+            console.log("fetched",json);
+
+            urlSearchParams.append("getcount", 1);
+            let counturl = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
+            var countresponse = await fetch(counturl);
+            if (!countresponse.ok)
+                return dhx8.dhx.message({ expire: 3000, text: "Error counting grid data"});
             
-            //check if there is anything new, if yes append only the new rows in order to prevent disturbing ongoing user interaction
-            for (var i=0;i<joblist.length;i++){
-                rootNode = $("#treetable_history").fancytree("getRootNode");
-                var exists = tree.getNodeByKey(joblist[i].key);
-                if (!exists){
-                    var at_index = i;
-                    console.log("rootNode.children.length ",rootNode.children.length )
-                    if (rootNode.children.length == 0){
-                        exists = rootNode.addChildren(joblist[i]);//empty grid 
-                    }
-                    else if (at_index == joblist.length-1)
-                        exists = rootNode.addChildren(joblist[i]);//insert as last node
-                    else
-                        exists = rootNode.addChildren(joblist[i],i);//insert 
-                    console.log("Added treenode",exists)
-                }else{
-                    //check if we have new finished branches
-                    if (joblist[i].children){
-                        if (!exists.children || (exists.children.length != joblist[i].children.length)){
-                            console.log("Detected need to patch existing treenode, childcount changed.")
-                            exists.applyPatch(joblist[i]);
-                        }
-                    }
+            const countjson = await countresponse.json();
+            console.log("countresponse",countjson)
+            buildPagination({total:countjson.total_count},grid);
 
-                }
+        }
+
+        attachGridContextMenu()
+        loadGridData();
+
+
+    }//buildHistoryGrid
+
+    function attachGridContextMenu(){
+        
+        const contextMenu = new dhx8.dhx.ContextMenu(null, { css: 'grid-context-menu' });
+        let menuitems = [
+            {
+                type: 'menuItem',id: 'details',value: 'Job Details'
+            },
+            // {
+            //     type: 'menuItem',id: 'prio',value: 'Priority', items:[
+            //         { type:"menuItem", id:"prio_0",value:"0 (Low)" },
+            //         { type:"menuItem", id:"prio_1",value:"1" },
+            //         { type:"menuItem", id:"prio_2",value:"2" },
+            //         { type:"menuItem", id:"prio_3",value:"3" },
+            //         { type:"menuItem", id:"prio_4",value:"4 (High)" }
+            //     ]
+            // },
+            {
+                type: 'menuItem',id: 'resubmit',value: 'Resubmit'
+            },
+			{
+                type: 'menuItem',id: 'delete',value: 'Delete'
             }
-            //cleanup too many nodes to support running the webinterface for indefinite time
-			while(rootNode.countChildren(false) > m_max_history_gridrows){
-				rootNode.getLastChild().remove();
-			}
-        } 
+        ]
 
-        //todo: display sort icon on job_end col
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            contextitems = contextitems.filter(itm=>{
+                if (itm.name.match(regex))
+                    return itm;
+            })
+        }
 
-        //search btn
-        $('input[name=search]').bind("enterKey", search_history_grid);
-
-        //delete filter imgs
-        $('img[title=\"delete filters\"]').bind("click", function(e){
-            //reset value in search input (must be next element before the filter img)
-            $(this.previousElementSibling).val("");
-            e.stopPropagation()
-            if (this.previousElementSibling.placeholder == "Workflow"){
-                var tree = $("#workflowtree").fancytree('getTree');
-                tree.selectAll(false);
-                dhtmlx.message("Workflow Filters Cleared")
-            }
-            $(this.previousElementSibling).trigger("enterKey")
+        contextMenu.data.parse(menuitems);
+        /* context events */
+        contextMenu.events.on("click", function(menu_id,e){
+            history_grid_actions(menu_id);
         });
 
-        $("input[name=search]").keyup(function(e) {
-            if (e.keyCode == 13) {
-                $(this).trigger("enterKey");
-            }
+        m_historyGrid.events.on('CellRightClick', function (row, column, e) {
+            m_historyGrid.selection.setCell(row.id, column);
+            dhx8.dhx.awaitRedraw().then(function () {
+                contextMenu.showAt(e);
+            });
+            event.preventDefault();
+            return false;
         });
-
-    } //buildhistorygrid
+    }
 
     function translateJobs(joblist){
         /* modifies list of database jobs into tree compatible */
@@ -1705,51 +1644,6 @@
 			return searchCount;
 	}
 	
-
-
-	function search_history_grid(btn_event){
-        /* normalize search from input, show filter icon and reload trees*/
-		 var search_obj = {};
-            for (let i = 0; i < $("input[name=search]").length; i++) {
-                var input = $("input[name=search]")[i];
-                let this_input_filter = $.trim(input.value);
-                var keyname = input.placeholder.toLowerCase();
-                if(keyname.match(/start|end/)){
-                    keyname = "job_" + keyname;
-                }
-                if (input.dataset && input.dataset["isvariablecol"] && this_input_filter){
-                    //prepare filter for variablecol
-                    if (!search_obj["variablecols"] )
-                        search_obj["variablecols"] = [];
-
-                    search_obj["variablecols"].push({col_header_name:input.placeholder,filter:this_input_filter});
-                    input.nextElementSibling.style.display = "";
-                    continue;
-                }else{
-                    //prepare plain text filter
-                    if (this_input_filter)
-                        search_obj[keyname] = (this_input_filter);
-                }
-                //add/remove filter icon
-                if (this_input_filter) {
-                    input.nextElementSibling.style.display = "";
-                }else{
-                    input.nextElementSibling.style.display = "none";
-                }
-            }
-            var tree = $('#treetable_history').fancytree('getTree');
-            tree.mystuff.filterobj = search_obj;
-            tree.mystuff.page = 1;
-            tree.reload({
-                url: "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&count="+m_max_history_gridrows+"&filterobj=" + encodeURIComponent(JSON.stringify(tree.mystuff.filterobj)),
-                cache: false
-            });
-            console.log("Current history filter: ", search_obj);
-
-            var activetree = $('#treetable_active').fancytree('getTree');
-            activetree.clear(); //remove all nodes from active tree, filtered ones will be added at next iteration
-	}
-
     function saveLayoutSizes(dhxLayout, name) {
         //store layout cells height and with into html5 storage (in percentage of document height)
         var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
@@ -2295,9 +2189,15 @@
             </table>
         </div>
 
-        <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
-        <div id="history_div" class="history_div" >
-            <div id="table_container" style="overflow-y:scroll;" class="gridbox_dhx_skyblue gridbox">
+        <!-- height calc solution was the only way i found to have pagination and history div in same grid layout cell, todo: move on to dhx8 layout and put the 2 in separate layout cells -->
+         <div id="history_div_container" style=""> 
+            <div id="history_div" class="history_div" style="height: calc(100% - 38px)"></div> 
+            <div id="pagination" >
+                 <div id="data-container"></div>
+                 <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
+             </div>
+        </div>
+            <!--<div id="table_container" style="overflow-y:scroll;" class="gridbox_dhx_skyblue gridbox">
                 <table id="treetable_history" class="obj">
                     <colgroup id="colgroup_history">
                         <col width="5%"></col>
@@ -2310,8 +2210,8 @@
                     <thead class="sticky dhtmlxMenu_dhx_skyblue_Middle" style="position: sticky;top: 0;border:none">
                         <tr id="tr_treetable_history">
                             <th id="history-state" name="state" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">    		<div style="display:flex;margin-left:10px"><div id="history-state-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div>  <i id="history-state-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="State" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search"  incremental autocomplete="off" />                     <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
-                            <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-wf_name-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px;margin-right:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /><img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                             <th id="history-job_start" name="job_start" onclick="sortGrid('treetable_history',this.id)" data-sort_dir=""> 	<div style="display:flex;margin-left:10px"><div id="history-job_start-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_start-sorticon" name="treetable_history-sorticon"></i>      <input placeholder="Start" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
+                            <th id="history-wf_name" name="wf_name" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-wf_name-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-wf_name-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Workflow" style="width:90%;height:18px;margin-left:5px;margin-right:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /><img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                             <th id="history-duration" name="duration" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">     <div style="display:flex;margin-left:10px"><div id="history-duration-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-duration-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="Duration" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off">		            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                             <th id="history-job_end" name="job_end" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">       <div style="display:flex;margin-left:10px"><div id="history-job_end-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-job_end-sorticon" name="treetable_history-sorticon"></i>        <input placeholder="End" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />			            <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
                             <th id="history-file" name="file" onclick="sortGrid('treetable_history',this.id)" data-sort_dir="">             <div style="display:flex;margin-left:10px"><div id="history-file-sorticon-dis"><div class="up-arrow up-arrow-dis"> </div><div class="down-arrow down-arrow-dis"></div></div><i id="history-file-sorticon" name="treetable_history-sorticon"></i>           <input placeholder="File" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" /> 		                <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img></div></th>
@@ -2321,18 +2221,16 @@
                     </thead>
                 </table>
             </div>
-            <div id="pagination" style="flex: 0 0 250px;">
-                <div id="data-container"></div>
-                <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
-            </div>
-        </div>
+            
+        </div> -->
+
          <!-- WORKFLOW FILTER TEMPLATE -->
         <div id="workflow_filter_menu" class="workflow_filter_background">
             <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
                 <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
                 <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->
                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
-                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="border-radius:5px;width:30px;height:30px;" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" style='font-size: 7px;'> 
+                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="width:25px;height:25px;font-size:10px;margin-top:3px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" > 
                         <i class="fas fa-ban" ></i>
                     </button>
                     </div>
