@@ -22,8 +22,8 @@ module.exports = function(app, express){
             }
 
             //inject status for grid display
-            lastactive = lastactive.map(j=>{j.status = "Active";return j});
-            lastqueued = lastqueued.map(j=>{j.status = "Queued";return j});
+            lastactive = lastactive.map(j=>{j.state = "Active";return j});
+            lastqueued = lastqueued.map(j=>{j.state = "Queued";return j});
 
             let allactive = [...lastactive,...lastqueued];
 

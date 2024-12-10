@@ -29,8 +29,8 @@
     html, body {
         width:100%;
         height:100%;
-        margin: 0 px;
-        overflow: hidden;
+        margin: 0;
+        overflow: auto;
     }
 
 	hr {
@@ -67,14 +67,15 @@
 /* stores jobviewer config in localStorage, reloads page on change */
 window.init=init;
 let m_history_conf_grid;
+let m_active_conf_grid;
 
 async function init(){
     const config = {
         //type: "wide",//"line" | "wide" | "space" | "none";
         type:"wide",
-        margin:0,
-        padding:0,
-		width:"98%", height:"100%",rows:
+        
+        padding:5,
+		width:"100%", height:"100%",rows:
 		[
 			{
 				rows: [
@@ -88,8 +89,8 @@ async function init(){
                                 header:"Active Grid Config",
                                 id: "active_grid_conf_cell",
                                 resizable:false,
-                                html:"&nbsp;Coming soon...",
-                                width:"50%",
+                                
+                                width:"48%",
                             },
                             {
                                 header:"History Grid Config",
@@ -102,7 +103,7 @@ async function init(){
                     {
 						id: "options_layout_cell",
 						resizable:false,
-						height:250,
+						height:200,
 					},
 				]
 			}
@@ -115,12 +116,9 @@ async function init(){
     
     // sets alignment for rows
     align: "start", // "center", "end", "between", "around", "evenly"
-    padding: "20px",   
-	height: "100%",
-	
     rows: [
         {
-				padding: "10px", 
+				
 				rows:[
 						{
 							name:"jobviewer_rows_per_page", 
@@ -162,7 +160,10 @@ async function init(){
 
     m_mainForm.events.on("click", function(name,e){
 		if(name == "btn_save"){
-            saveHistoryConf();
+            //save column config
+            saveGridConf();
+
+            //save options form
             let values = m_mainForm.getValue();
             console.log("values",values)
             Object.keys(values).map(k=>{
@@ -180,13 +181,15 @@ async function init(){
 
     let _hgrid = await buildHistoryConfigGrid();
     m_mainLayout.getCell("history_grid_conf_cell").attach(_hgrid);
+    let _agrid = await buildActiveConfigGrid();
+    m_mainLayout.getCell("active_grid_conf_cell").attach(_agrid);
 
 };
 
 /**
  * Builds and stores a config object in localStorage
 */
-function saveHistoryConf(){
+function saveGridConf(){
     //attach index 
     let to_save = m_history_conf_grid.data.map((entry,index)=>{
         entry.merit = index;
@@ -194,6 +197,14 @@ function saveHistoryConf(){
     });
     localStorage.setItem("jobviewer_history_grid_column_config",JSON.stringify(to_save));
     console.log("saving history grid config",to_save);
+    
+    let to_save_active = m_active_conf_grid.data.map((entry,index)=>{
+        entry.merit = index;
+        return entry;
+    });
+    localStorage.setItem("jobviewer_active_grid_column_config",JSON.stringify(to_save_active));
+    console.log("saving active grid config",to_save_active);
+    
 
 }
 
@@ -235,45 +246,13 @@ async function buildHistoryConfigGrid(){
                 c.user_hidden = c_user[0].user_hidden;
                 return c;
             })
+            all_historycols.sort((a, b) => a.merit - b.merit);
         }catch(ex){
             console.error("Unexpected error restoring grid state",ex);
             delete localStorage.jobviewer_history_grid_column_config
         }
     }
     console.log("restored userconf:",all_historycols)
-
-
-    // const grid = new dhx8.dhx.Grid(null, {
-    //     columns: [
-    //         {
-    //             id: "header",
-    //             header: ["NameAA"],
-    //             type: "text",
-    //             sortable: false,
-    //             template: (d,row)=>{
-    //                 console.log("row the boad",row)
-    //                 return(row.header[0])
-    //             },
-    //             htmlEnable:true
-    //         },	    
-    //         {
-    //             id: "user_hidden",
-    //             header: ["Hidden"],
-    //             template: (user_hidden) => {
-    //                 // if (visible === undefined)
-    //                 //     visible = true
-    //                 return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
-    //             },
-    //             sortable: false,
-    //             htmlEnable: true,
-    //         }
-    //     ],
-    //     autoWidth: true,
-    //     data: [{header:["aa"],bla:""}]
-    // });
-    // await dhx8.dhx.awaitRedraw()
-    // return grid;
-
 
     //build grid
     const grid = new dhx8.dhx.Grid(null, {
@@ -305,12 +284,88 @@ async function buildHistoryConfigGrid(){
     return grid;
 }
 
+async function buildActiveConfigGrid(){
+    const columns = [
+	    {
+            id: "header",
+            header: ["Name"],
+            type: "text",
+            sortable: false,
+            template: (d,row)=>{
+                return(row.header[0])
+            },
+            htmlEnable:true
+        },	    
+        {
+            id: "user_hidden",
+            header: ["Hidden"],
+            template: (user_hidden) => {
+                return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
+            },
+            sortable: false,
+            htmlEnable: true,
+        }
+    ];
+
+
+    let all_cols = parent.window.getActiveGridColumns();
+    console.log("active_cols",all_cols);
+    if (localStorage.jobviewer_active_grid_column_config){
+        //merge existing userconf
+        try{
+            let userconf = JSON.parse(localStorage.jobviewer_active_grid_column_config);
+            all_cols = all_cols.map(c=>{
+                let c_user = userconf.filter(_usercol=>{return c.id == _usercol.id});
+                if (c_user.length != 1)
+                    return c;
+                c.merit = c_user[0].merit;
+                c.user_hidden = c_user[0].user_hidden;
+                console.log("show userconf",c)
+                return c;
+            })
+            all_cols.sort((a, b) => a.merit - b.merit);
+        }catch(ex){
+            console.error("Unexpected error restoring grid state",ex);
+            delete localStorage.jobviewer_active_grid_column_config
+        }
+    }
+    console.log("restored userconf active cols:",all_cols)
+
+    //build grid
+    const grid = new dhx8.dhx.Grid(null, {
+        columns: columns,
+        debug:true,
+        keyNavigation: true,
+        autoWidth: true,
+        height: "auto",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        dragItem: "both",
+        selection: "row",
+        eventHandlers: {
+            onclick: {
+                checkbox: (event, { row }) => {
+                    if (row.user_hidden) {
+                        grid.data.update(row.id, { user_hidden: false });
+                    } else {
+                        grid.data.update(row.id, { user_hidden: true });
+                    }
+                }
+            }
+        },
+    });
+    m_active_conf_grid = grid;
+    console.log("parsing grid data active",all_cols)
+    grid.data.parse([...all_cols]);
+    return grid;
+}
+
 </script>
 
 </head>
 
 <body onload="init()">
-    <div id="optsform">
+    <div id="optsform" style="width:100%;height:100%">
 
 </div> 
 </body>

@@ -85,7 +85,7 @@
         margin: 0;
         /* margin-left:5px;
         margin-right:5px; */
-        height:80%;
+        
         line-height: 140%;
         font-size: 10;
         
@@ -683,45 +683,24 @@ function on_treeWorkflowSelected(event, data){
 //     });
 // }
 
-function show_priority_window(){
-    //currently not active because button a_priority is not active
-    const windowHTML = "Higher priority jobs will be processed before lower priority";
-    const dhxWindow = new dhx8.dhx.Window({
-        width: 440,
-        height: 520,
-        title: "New Priority",
-        modal: false,
-        closable: true,
-        movable: true
-    });
-    
-    const list = new dhx8.dhx.List(null, {
-    });
-
-    list.data.parse([
-        {text:"4 - Very high",value:4},
-        {text:"3 - High",    value:3},
-        {text:"2 - Normal",  value:2},
-        {text:"1 - Low",     value:1},
-        {text:"0 - Very low",value:0}
-    ]);
-
-    list.events.on("click", function (what) {
-        var selected_value = list.data.getIndex(list.selection.getId());
-        var tree = $('#treetable_active').fancytree('getTree');
-        var selected = tree.getSelectedNodes();
-        jobCommand(selected,"priority",selected_value);
-        dhxWindow.destructor();
-    });
-    dhxWindow.attach(list)
-    dhxWindow.show();
-}   
 
 function show_options_window(){
-    var dhxwins = new dhtmlXWindows();
-    var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 600);
-    win.setText("View Options ");
-    win.attachURL("jobviewer_pages/options.html");
+    const dhxWindow = new dhx8.dhx.Window({
+        width: 600,
+        height: 600,
+        title: "Options",
+        modal: false,
+        closable: true,
+        movable: true,
+        resizable:true
+    });
+
+    dhxWindow.attachHTML('<iframe height="100%" width="100%" style="border:none" src="jobviewer_pages/options.html"></iframe>');
+    dhxWindow.show()
+    // var dhxwins = new dhtmlXWindows();
+    // var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 600);
+    // win.setText("View Options ");
+    // win.attachURL("jobviewer_pages/options.html");
 }
 
 window.history_grid_actions= history_grid_actions;
@@ -781,6 +760,10 @@ function active_grid_actions(id,node) {
     //         resubmit_job(node.row.guid||node.row.job_id);
     //     })
     // }
+    if (id == "a_details") {
+        var jobid = (selected[0].row.job_id); 
+        openLogViewer(jobid);
+    }
     if (id == "a_abort") {
         jobCommand(selected, "abort");//jobid for incoming jobs is the filename of mons/i file
     }
@@ -791,41 +774,16 @@ function active_grid_actions(id,node) {
         jobCommand(selected, "resume");
     }
     if (id == "a_priority") {
-        show_priority_window();
+        // show_priority_window();
     }
 }
 
-async function buildActiveGrid() {
-    console.log("building activegrid")
-    let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
-    //grid columns are defined on server side
-    let colres = await fetch("/get_jobviewercolumns");
-    if (!colres.ok)
-        return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
-    let gridcolumns = await colres.json()
-    gridcolumns = gridcolumns.active;
-
-    // //apply user state
-    if (localStorage.jobviewer_history_grid_column_config){
-        try{
-            //inject merit and hidden state from user config (options.html)
-            let userconf = JSON.parse(localStorage.jobviewer_history_grid_column_config);
-            gridcolumns = gridcolumns.map(c=>{
-                let uc = userconf.filter(uc=>{return uc.id == c.id});
-                if (uc.length != 1)
-                    return c;
-                c.hidden    = uc[0].user_hidden;
-                c.merit     = uc[0].merit;
-                return c;
-            });
-
-            gridcolumns.sort((a, b) => a.merit - b.merit);
-        }catch(ex){console.error("Cannot restore user column config",ex)}
-    }
-
-    gridcolumns = [
+function getActiveGridColumns(){
+    //let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
+    let searchboxhtml = ``;
+    return [
                 {
-                    id: "status",maxWidth: 100,header: ["<span>State</span>" + searchboxhtml],sortable: true, 
+                    id: "state",maxWidth: 100,header: ["<span>State</span>" + searchboxhtml],sortable: true, 
                     template:function(val,row,column){
                         if (row.children && row.children.length > 1){
                             let expander = `<div id="${row.job_id}_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right" 
@@ -847,17 +805,48 @@ async function buildActiveGrid() {
                 },
                 {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
                 {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
-				{id: "proc",     	header: ["<span>Step</span>"+ searchboxhtml],       sortable: true,htmlEnable: true, 
+				{id: "proc",     	header: ["<span>Step</span>"+ searchboxhtml],       sortable: true,htmlEnable: true, maxWidth: 600,
 					template: function(val,row,column){
 						return "Prio " + (row.priority || "") + " | " + row.proc + " | " + row.host
 				} },
 				//Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host 
-                {id: "result",      header: ["<span>Message</span>" + searchboxhtml],   sortable: true,htmlEnable: true },
-				{id: "progress",    header: ["<span>Progress</span>" + searchboxhtml],  sortable: true,htmlEnable: true, template: function(val,row,column){
+                {id: "status",      header: ["<span>Status</span>" + searchboxhtml],   sortable: true,htmlEnable: true },
+				{id: "progress",    header: ["<span>Progress</span>" + searchboxhtml],  sortable: true,htmlEnable: true, width: 200,template: function(val,row,column){
                     return '<div class="progressbar" style=" width:' + row.progress + '%">' + row.progress + '% ' + row.steps.replace(/ /g, "") + '</div>'
                 }},
 				
-            ];
+        ];
+}
+
+async function buildActiveGrid() {
+    console.log("building activegrid")
+    
+    //grid columns are defined on server side
+    // let colres = await fetch("/get_jobviewercolumns");
+    // if (!colres.ok)
+    //     return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
+    // let gridcolumns = await colres.json()
+    gridcolumns = getActiveGridColumns();
+
+    // //apply user state
+    if (localStorage.jobviewer_active_grid_column_config){
+        try{
+            //inject merit and hidden state from user config (options.html)
+            let userconf = JSON.parse(localStorage.jobviewer_active_grid_column_config);
+            gridcolumns = gridcolumns.map(c=>{
+                let uc = userconf.filter(uc=>{return uc.id == c.id});
+                if (uc.length != 1)
+                    return c;
+                c.hidden    = uc[0].user_hidden;
+                c.merit     = uc[0].merit;
+                return c;
+            });
+
+            gridcolumns.sort((a, b) => a.merit - b.merit);
+        }catch(ex){console.error("Cannot restore user column config",ex)}
+    }
+
+    //gridcolumns = getActiveGridColumns();
 
     console.log("active gridcols with userdata",gridcolumns)
 
@@ -1201,15 +1190,7 @@ async function buildActiveGrid() {
     }
     async function buildHistoryGrid(){
 
-        
-        //grid columns are defined on server side
-        // let colres = await fetch("/get_jobviewercolumns");
-        // if (!colres.ok)
-        //         return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
-        // let gridcolumns = await colres.json();
-        // gridcolumns = gridcolumns.history;
-        
-        const gridcolumns = getHistoryGridColumns();
+        let gridcolumns = getHistoryGridColumns();
 
         //apply user state
         if (localStorage.jobviewer_history_grid_column_config){
@@ -1374,15 +1355,6 @@ async function buildActiveGrid() {
             {
                 type: 'menuItem',id: 'details',value: 'Job Details'
             },
-            // {
-            //     type: 'menuItem',id: 'prio',value: 'Priority', items:[
-            //         { type:"menuItem", id:"prio_0",value:"0 (Low)" },
-            //         { type:"menuItem", id:"prio_1",value:"1" },
-            //         { type:"menuItem", id:"prio_2",value:"2" },
-            //         { type:"menuItem", id:"prio_3",value:"3" },
-            //         { type:"menuItem", id:"prio_4",value:"4 (High)" }
-            //     ]
-            // },
             {
                 type: 'menuItem',id: 'resubmit',value: 'Resubmit'
             },
@@ -1583,31 +1555,21 @@ async function buildActiveGrid() {
         });
     }
 
-    function jobCommand(fancy_node_array, action, value) {
+    function jobCommand(dhx_grid_rows, action, value) {
         //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
-        console.log("jobcommand", fancy_node_array,action,value)
+        console.log("jobcommand", dhx_grid_rows,action,value)
         console.log(m_serverconfig)
-        fancy_node_array.forEach(function(node) {
-            //emcodem: check ffastrans version
-            // if (node["data"]["state"] == "Queued" || node["data"]["state"] == "Incoming") {
-            //     dhtmlx.message("Sorry, "+node["data"]["state"]+" Jobs cannot be controlled yet");
-            //     return;
-            // 
+        dhx_grid_rows.forEach(function(node) {
 
             var postBody = {
                 "action": action,
-                "job_id"   : node.data.job_id,
-                "split_id": node.data.split_id
+                "job_id"   : node.row.job_id,
+                "split_id": node.row.split_id
             };
             var jobid = "";
-            if (node.data["ticket_path"]){
-                //incoming
-                postBody["value"] = node.data["ticket_path"];
-            }
 
             if (value){
                 postBody["value"] = value;
-                
             }
             $.ajax({
                 url: build_new_api_url("/jobs"),//("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
@@ -1617,7 +1579,7 @@ async function buildActiveGrid() {
                 data: JSON.stringify(postBody),
                 success: function(response) {
                     console.log("success")
-                    dhtmlx.message("Success " + action + " " + node.data.job_id);
+                    dhtmlx.message("Success " + action + " " + node.row.job_id);
                 },
                 error: function(xhr, status) {
                     console.error(xhr)
@@ -1733,12 +1695,12 @@ async function buildActiveGrid() {
     <div style="display:none">
         <!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
-        <div id="active_div" style="" class="gridbox_dhx_skyblue gridbox">
+        <div id="active_div" class="gridbox_dhx_skyblue gridbox">
        
         </div>
 
         <!-- height calc solution was the only way i found to have pagination and history div in same grid layout cell, todo: move on to dhx8 layout and put the 2 in separate layout cells -->
-         <div id="history_div_container" style=""> 
+         <div id="history_div_container" > 
             <div id="history_div" class="history_div" style="height: calc(100% - 38px)"></div> 
             <div id="pagination" >
                  <div id="data-container"></div>
@@ -1750,9 +1712,7 @@ async function buildActiveGrid() {
          <!-- WORKFLOW FILTER TEMPLATE -->
         <div id="workflow_filter_menu" class="workflow_filter_background">
             <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
-                <!-- <button title="Expand all Folders"    name="expand_wf"    class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_expand" style='margin-left:5px;font-size: 7px;'> <i class="fas fa-plus"></i></button> -->
-                <!-- <button title="Collapse all Folders"  name="collapse_wf"  class="workflow_filter_menu_item" onclick="wokrflow_tree_control(this)" id="wf_filter_unexpand" style='font-size: 7px;'> <i class="fas fa-minus"></i></button> -->
-                <div style="float:left;display:block;margin-top:5px;margin-left:5px">
+                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
                     <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="width:25px;height:25px;font-size:10px;margin-top:3px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" > 
                         <i class="fas fa-ban" ></i>
                     </button>

@@ -8601,9 +8601,9 @@ bootstrap stuff on metrics
   overflow: hidden;
   cursor: default;
 }
-/* THE BUTTONS */
+/* THE FORM BUTTONS */
 
-.dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn,.dhx_button--view_flat.dhx_button--color_primary,.dhx_button--view_link,.dhx_button--view_link.dhx_button--color_primary  {
+ .dhxform_obj_dhx_skyblue>button,.dhxform_obj_dhx_skyblue div.dhxform_btn,.dhx_button--view_flat.dhx_button--color_primary,.dhx_button--view_link.dhx_button--color_primary  {/*.dhx_button--view_link, */
   font-family: Tahoma;
   font-size: 12px;
   color: #000000;
