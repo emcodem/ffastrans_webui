@@ -213,8 +213,6 @@ async function buildHistoryConfigGrid(){
             id: "user_hidden",
             header: ["Hidden"],
             template: (user_hidden) => {
-                // if (visible === undefined)
-                //     visible = true
                 return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
             },
             sortable: false,
@@ -222,13 +220,9 @@ async function buildHistoryConfigGrid(){
         }
     ];
 
-    //prepare grid data loading
-    let colres = await fetch("/gethistory_jobviewercolumns");
-    if (!colres.ok)
-            return dhx8.dhx.message({ expire: 3000, text: "Error loading historygrid config"});
-    let all_historycols = await colres.json();
-    console.log("from_server:",all_historycols)
 
+    let all_historycols = parent.window.getHistoryGridColumns();
+    console.log("all_historycols",all_historycols);
     if (localStorage.jobviewer_history_grid_column_config){
         //merge existing userconf
         try{
@@ -248,11 +242,44 @@ async function buildHistoryConfigGrid(){
     }
     console.log("restored userconf:",all_historycols)
 
+
+    // const grid = new dhx8.dhx.Grid(null, {
+    //     columns: [
+    //         {
+    //             id: "header",
+    //             header: ["NameAA"],
+    //             type: "text",
+    //             sortable: false,
+    //             template: (d,row)=>{
+    //                 console.log("row the boad",row)
+    //                 return(row.header[0])
+    //             },
+    //             htmlEnable:true
+    //         },	    
+    //         {
+    //             id: "user_hidden",
+    //             header: ["Hidden"],
+    //             template: (user_hidden) => {
+    //                 // if (visible === undefined)
+    //                 //     visible = true
+    //                 return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
+    //             },
+    //             sortable: false,
+    //             htmlEnable: true,
+    //         }
+    //     ],
+    //     autoWidth: true,
+    //     data: [{header:["aa"],bla:""}]
+    // });
+    // await dhx8.dhx.awaitRedraw()
+    // return grid;
+
+
     //build grid
     const grid = new dhx8.dhx.Grid(null, {
         columns: columns,
-        data: all_historycols,
-        
+        // data: all_historycols,
+        debug:true,
         keyNavigation: true,
         autoWidth: true,
         height: "auto",
@@ -263,7 +290,6 @@ async function buildHistoryConfigGrid(){
         eventHandlers: {
             onclick: {
                 checkbox: (event, { row }) => {
-                    
                     if (row.user_hidden) {
                         grid.data.update(row.id, { user_hidden: false });
                     } else {
@@ -274,7 +300,8 @@ async function buildHistoryConfigGrid(){
         },
     });
     m_history_conf_grid = grid;
-
+    console.log("parsing grid data",all_historycols)
+    grid.data.parse([...all_historycols]);
     return grid;
 }
 

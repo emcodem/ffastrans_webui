@@ -8,7 +8,7 @@ module.exports = function(app, express){
     * we store this here instead of on the client side because we need this on multiple places(jobviewer and options)
     * also, how else could we apply userpermissions 
     */
-	app.get('/gethistory_jobviewercolumns', async (req, res) => {
+	app.get('/get_jobviewercolumns', async (req, res) => {
 		try{
 			let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
             const columns = [
@@ -19,8 +19,9 @@ module.exports = function(app, express){
                     sortable: true, 
                     template:function(val,row,column){
                         if (row.children && row.children.length > 1){
-                            let expander = `<div id="${row.job_id}_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right" 
-                                             role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>`
+							let jobid = row.job_id
+                            let expander = '<div id="'+jobid+'_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right'+ 
+                                             'role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>'
                             return expander + val;
                         }
                         return val;
@@ -54,7 +55,43 @@ module.exports = function(app, express){
                 }
             }
     
+
+			/* ACTIVE */
             
+			const active_columns = [
+                {
+                    id: "status",maxWidth: 100,header: ["<span>State</span>" + searchboxhtml],sortable: true, 
+                    template:function(val,row,column){
+                        if (row.children && row.children.length > 1){
+                            let expander = `<div id="${row.job_id}_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right" 
+                                             role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>`
+                            return expander + val;
+                        }
+                        return val;
+                    },
+                    htmlEnable:true
+                },	    
+                {
+                    id: "workflow",
+                    width:300,
+                    header: ["<span>Workflow</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,
+                    template:function(val,row,column){
+                        return val
+                    }
+    
+                },
+                {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
+                {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
+				{id: "proc",     	header: ["<span>Step</span>"+ searchboxhtml],    sortable: true,htmlEnable: true, 
+					template: function(val,row,column){
+						return row.prio + "|" + row.proc + "|" + row.host
+				} },
+				//Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host 
+                {id: "outcome",     header: ["<span>Outcome</span>"+ searchboxhtml],    sortable: true,htmlEnable: true },
+				{id: "progress",     header: ["<span>Progress</span>"+ searchboxhtml],    sortable: true,htmlEnable: true },
+				
+            ];
+
 			// if (req.user){
 			// 	//var permissions = await userpermissions.getpermissionlistAsync (req.user.local.username);
 			// 	//serve only workflows the user has rights for
@@ -86,7 +123,7 @@ module.exports = function(app, express){
 			// )
 
             //res.writeHead(200,{"Content-Type" : "application/JSON"});
-            res.json(columns);//output json array to client
+            res.json({history:columns, active:active_columns});//output json array to client
             res.end();
 			
 

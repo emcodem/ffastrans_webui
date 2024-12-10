@@ -122,7 +122,7 @@ async function getJobs(){
 	
 	let hostnames = global.config.STATIC_API_HOSTS.split(",");
 	for (let h of hostnames)
-		HISTORY_URLS.push([helpers.build_new_api_url("/api/json/v2/jobs/?start=0&count=100",h,global.config["STATIC_API_NEW_PORT"])]);
+		HISTORY_URLS.push([helpers.build_new_api_url("/jobs/?start=0&count=100",h,global.config["STATIC_API_NEW_PORT"])]);
 
 	for (var _currentUrl of HISTORY_URLS){
 		console.time("Jobfetcher duration for: " + _currentUrl);
@@ -263,7 +263,8 @@ function parseQueuedJobs(responseBody){
 			
 			//send the new jobs to connected clients, todo: only notify clients about new stuff
 			if (responseBody.tickets.queued){
-				global.socketio.emit("queuedjobs", JSON.stringify(q_obj));            
+				global.lastqueued = JSON.stringify(q_obj);
+				global.socketio.emit("queuedjobs");            
 			}else{
 				console.log("Error, we should not come here, queued")
 				global.socketio.emit("queuedjobs", "[]");

@@ -168,6 +168,7 @@ async function get_pending(){
             }
             a_pending[key]["submit"] = a_pending[key]["submit"];
             a_pending[key]["nodes"] = {"next":"None","type":"None"};
+            a_pending[key]["priority"] = path.parse(a_pending[key].fullpath).name.split("~")[0];
         }catch(ex){
             console.error("Problem parsing pending entry: ", a_pending[key]);
         }

@@ -9,8 +9,9 @@ module.exports = {
 async function getActiveJobs(start=0,end=1000, jobid = '*'){
     /* scan db/monitor folder for .json files */
     let returnArray = [];
-    let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
-    let listDir = path.join(jobDir, ".list"); //ffastrans > 1.4.0.7 wants the jsons to be read from .list folder in order to mitigate locked files issue
+    let jobDir      = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
+    let ticketDir   = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","running");
+    let listDir     = path.join(jobDir, ".list"); //ffastrans > 1.4.0.7 wants the jsons to be read from .list folder in order to mitigate locked files issue
     try {
         await fs.access(listDir);
     } catch (error) {
@@ -31,6 +32,16 @@ async function getActiveJobs(start=0,end=1000, jobid = '*'){
             let jobJson = await fs.readFile(jobJson_Path,"utf-8");
             jobJson = JSON.parse(jobJson.replace(/^\uFEFF/, ''));
             contents.priority = jobJson.priority;
+            
+            if (!contents.priority){
+                //read prio from ticket if any
+                try{
+                    let tickets = await helpers._fileList(ticketDir, "*" + jobid + "*" + contents.split_id +  '*.json', 0, 0, 'files');
+                    if (tickets.length == 1){
+                        contents.priority = path.parse(tickets[0]).name.split("~")[0];
+                    }
+                }catch(ex){}
+            }
             returnArray.push(contents);
         }catch(ex){
             console.error("Unexpected Error parsing active jobs job file. Message:",ex)
