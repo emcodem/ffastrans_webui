@@ -8910,3 +8910,8 @@ div.gridbox_dhx_skyblue.gridbox {
 .dhxtabbar_tabs .dhxtabbar_tabs_top{
   border:1px solid 1px solid #000000;
 }
+
+.dhx_grid-cell__content{
+  z-index:100;
+  color: rgb(240, 240, 240)
+}
