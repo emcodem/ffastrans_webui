@@ -1,0 +1,1 @@
+{"version":3,"file":"calculateProcessingProgress.d.ts","sourceRoot":"","sources":["../src/calculateProcessingProgress.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,kBAAkB,EAAE,MAAM,8BAA8B,CAAA;AACtE,OAAO,KAAK,EAAE,QAAQ,EAAE,MAAM,0BAA0B,CAAA;AAExD,MAAM,CAAC,OAAO,UAAU,2BAA2B,CACjD,KAAK,EAAE,MAAM,CAAC,MAAM,EAAE,QAAQ,CAAC,GAAG,EAAE,GAAG,CAAC,CAAC,GACxC,kBAAkB,CAyBpB"}
