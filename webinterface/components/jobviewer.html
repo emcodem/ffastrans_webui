@@ -1138,17 +1138,6 @@ async function buildActiveGrid() {
 
     }
 
-    function bla(){
-        if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
-            let variablecolumns = m_serverconfig.job_viewer.variable_columns;
-            for (let i=0;i<variablecolumns.length;i++){
-                let copy = htmltemplate;
-                copy = copy.replaceAll("col_header_name",variablecolumns[i].col_header_name);
-                trh.insertAdjacentHTML('beforeend', copy);
-            }
-        }
-    }
-
     window.getHistoryGridColumns = getHistoryGridColumns;
     function getHistoryGridColumns(){
         
@@ -1278,6 +1267,56 @@ async function buildActiveGrid() {
         grid.sortdir        = "";
         grid.mystuff        = {page:1}
         grid.loadGridData   = loadGridData;
+
+        //restore grid widths if any
+        if (localStorage.jobviewer_historygrid_widths){
+            try{
+                let conf = JSON.parse(localStorage.jobviewer_historygrid_widths);
+                let order = "";
+                let wSum = 0;
+                let colcount = 0;
+                grid.config.columns.map(c=>{
+                    order += c.id;
+                    wSum += c.$width;
+                    colcount++;
+                });
+                if (order != conf.order){ //out of order
+                    delete localStorage.jobviewer_historygrid_widths;
+                }else{//apply col widths
+                    let idx = 0;
+                    let newGridCols = getHistoryGridColumns();
+                    grid.config.columns.map(c=>{
+                        let targetc = newGridCols.filter(tc=>{return tc.id == c.id});
+                        order += c.id;
+                        targetc[0].width = (wSum/100 * conf.percent[idx]);
+                        
+                        console.log("Restore ",c.id,(wSum/100 * conf.percent[idx]))
+                        
+                        idx++;
+                        if (idx+1 > colcount)
+                            return;
+                    });
+                    grid.setColumns( newGridCols);
+                }
+            }catch(ex){
+                delete localStorage.jobviewer_historygrid_widths;
+            }
+        }
+
+        //resize columns
+        grid.events.on("resize", (column, event) => {
+            let allColWidths = {order:"",percent:[]}
+            let sum_widths = 0;
+            grid.config.columns.map(c=>{
+                sum_widths += c.$width;
+                allColWidths.order += c.id;
+            })
+            grid.config.columns.map(c=>{
+                allColWidths.percent.push(100/sum_widths * c.$width);
+                console.log("Store ",c.id,(100/sum_widths * c.$width))
+            });
+            localStorage.setItem("jobviewer_historygrid_widths",JSON.stringify(allColWidths));
+        });
 
         /* Row select */
         grid.selection.events.on("AfterSelect", (row, column) => {

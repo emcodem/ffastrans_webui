@@ -147,8 +147,13 @@ async function init(){
 						},
 						{type: "spacer",name: "spacer",height:10},
                         {cols: [
-                                {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save","hidden":false,name: "btn_save", width:100,value:"Save"},
-                        ]},
+                                {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save",name: "btn_save", width:100,value:"Save"},
+                                {type: "spacer",name: "spacer",width:100},
+                                {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_reset_state",name: "btn_reset", width:100,value:"Reset Page"},
+                        ],
+                        width:"100%",
+                        align:"evenly"
+                        },
 					
 				],
 			
@@ -159,6 +164,12 @@ async function init(){
     m_mainLayout.getCell("options_layout_cell").attach(m_mainForm);
 
     m_mainForm.events.on("click", function(name,e){
+        if(name == "btn_reset"){
+            if (window.confirm("Reset all settings?")){
+                localStorage.clear();
+                parent.window.parent.window.location.reload();
+            }
+        }
 		if(name == "btn_save"){
             //save column config
             saveGridConf();
