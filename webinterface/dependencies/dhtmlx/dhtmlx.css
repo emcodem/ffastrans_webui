@@ -8636,6 +8636,11 @@ ul.fancytree-container{/* workflow selection */
   background: #e5e5e5;
 }
 
+.dhx_grid-cell__content{
+  z-index:100;
+  color: rgb(15, 15, 15);
+}
+
 /* table header in log viewer was transparent */
 #treetable_log th{
   background-color: var(--dhx-background-primary);
