@@ -19,6 +19,10 @@
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script><!-- special loading order because otherwise vault causes error-->
 <script src="../dependencies/dhtmlx/vault/vault.js"></script>
 
+<!-- uppy -->
+<link  href="../dependencies/uppy/uppy_min.css"  rel="stylesheet"/>
+<script src="../typescript_client/clientdist/dist/main.js"></script>
+
 
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
@@ -578,12 +582,35 @@ function init(){
     }
 
 	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault')/>");
-    
-    var vault = new dhx.Vault('vault', {
-        uploader:{ 
-            target:"/backend/upload" 
-       }
+
+    let uppytheme = "light";
+    if (localStorage.global_skin_dark == "1"){
+        uppytheme = "dark";
+    }
+    new Uppy()
+	.use(Dashboard, { inline: true, target: document.getElementById("vault"),theme:uppytheme })
+	.use(Tus, { endpoint: '/uppy',chunkSize:67108864,parallelUploads :1 })
+    .on("upload-success",function(file,response){
+        var newId = (new Date()).valueOf() + Math.random();
+        var newrowdata = {};
+        newrowdata["Filename"] = file.name;
+        newrowdata["Path"] = file.name;
+        newrowdata["is_folder"] = false;
+        newrowdata["Modified"] =  new Date(file.data.lastModified).toISOString();
+        newrowdata["Created"] = new Date(file.data.lastModified).toISOString()
+        newrowdata["original_size"] = file.data.size;
+        newrowdata["Size"] = file.data.size;
+        newrowdata["source_of_adding"] = "Upload";
+        m_selectedFileGrid.addRow(newId,[]);
+        m_selectedFileGrid.setRowData(newId,newrowdata);
+        console.log("uppy finish",file.name)
     });
+    
+    // var vault = new dhx.Vault('vault', {
+    //     uploader:{ 
+    //         target:"/backend/upload" 
+    //    }
+    // });
 
     //workflow forms
     m_jobLayout = m_mainLayout.cells("b").attachLayout({
@@ -736,39 +763,39 @@ function init(){
     }
     
     //file uploaded event
-    vault.events.on("BeforeAdd", function(file){  
-    // file is an object with details
-        if (!window.onbeforeunload){
-            window.onbeforeunload = function(){  
-                return 'Are all uploads complete?';
-            };
-        }
+    // vault.events.on("BeforeAdd", function(file){  
+    // // file is an object with details
+    //     if (!window.onbeforeunload){
+    //         window.onbeforeunload = function(){  
+    //             return 'Are all uploads complete?';
+    //         };
+    //     }
 
-        return true;   
-    });
+    //     return true;   
+    // });
 
-    vault.events.on("UploadComplete", function(files,other){
-        for (let i=0;i<files.length;i++){
+    // vault.events.on("UploadComplete", function(files,other){
+    //     for (let i=0;i<files.length;i++){
 
-            if (files[i].status != "uploaded") //onUploadFailEvent did not work, we must catch errors this way
-                continue
+    //         if (files[i].status != "uploaded") //onUploadFailEvent did not work, we must catch errors this way
+    //             continue
             
-            var newId = (new Date()).valueOf() + Math.random();
-            var newrowdata = {};
-            newrowdata["Filename"] = files[i].name;
-            newrowdata["Path"] = files[i].name;
-            newrowdata["is_folder"] = false;
-            newrowdata["Modified"] =  new Date(files[i].file.lastModified).toISOString();
-            newrowdata["Created"] = new Date(files[i].file.lastModified).toISOString()
-            newrowdata["original_size"] = files[i].size;
-            newrowdata["Size"] = files[i].size;
-            newrowdata["source_of_adding"] = "Upload";
-            console.log(files[i])
-            m_selectedFileGrid.addRow(newId,[]);
-            m_selectedFileGrid.setRowData(newId,newrowdata);
-        }
-        window.onbeforeunload = null
-    });
+    //         var newId = (new Date()).valueOf() + Math.random();
+    //         var newrowdata = {};
+    //         newrowdata["Filename"] = files[i].name;
+    //         newrowdata["Path"] = files[i].name;
+    //         newrowdata["is_folder"] = false;
+    //         newrowdata["Modified"] =  new Date(files[i].file.lastModified).toISOString();
+    //         newrowdata["Created"] = new Date(files[i].file.lastModified).toISOString()
+    //         newrowdata["original_size"] = files[i].size;
+    //         newrowdata["Size"] = files[i].size;
+    //         newrowdata["source_of_adding"] = "Upload";
+    //         console.log(files[i])
+    //         m_selectedFileGrid.addRow(newId,[]);
+    //         m_selectedFileGrid.setRowData(newId,newrowdata);
+    //     }
+    //     window.onbeforeunload = null
+    // });
     // vault.events.on("UploadFail", function(file){
     //     alert("Upload failed");
     // });
@@ -1800,7 +1827,9 @@ async function startJobs(form,selectedWorkflow){
         }
 
         if (source == "Upload"){
-            _filepath = m_realUploadpath + _filepath;
+            m_realUploadpath = m_realUploadpath.replace(/\\$/,"");
+            m_realUploadpath = m_realUploadpath.replace(/\/$/,"");
+            _filepath = m_realUploadpath + "/" +  _filepath;
         }
         
         if (source == "Segment"){

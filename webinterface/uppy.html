@@ -1,47 +1,17 @@
-<head><link
-  href="https://releases.transloadit.com/uppy/v4.8.0/uppy.min.css"
-  rel="stylesheet"
-/>
+<head>
+    <link  href="https://releases.transloadit.com/uppy/v4.8.0/uppy.min.css"  rel="stylesheet"/>
+
+<script src="typescript_client/clientdist/dist/main.js"></script>
 
 </head>
 
 <body>
-<!-- 2. Initialize -->
-<!--  
-<script type="module">
-  import {
-    Uppy,
-    Dashboard,
-    DragDrop,
-    Tus,
-  } from 'https://releases.transloadit.com/uppy/v4.8.0/uppy.min.mjs'
-
-  let uppy = new Uppy().use(Dashboard, { inline: true, target: document.body });
-
-  uppy.use(Tus, {
-	endpoint: '/uppy',
-	// async onBeforeRequest(req) {
-	// 	console.log("beforereq")
-	// },
-	// onShouldRetry(err, retryAttempt, options, next) {
-	// 	console.log("shouldretry")
-	// 	return next();
-	// },
-	// async onAfterResponse(req, res) {
-	// 	console.log("afterres")
-	// },
-});
-
-// uppy.use(DragDrop, {
-// 	target: document.body,
-// });
-
-  //   let uppy = new Uppy().use(DragDrop, { target: '#files-drag-drop' });
-//   uppy.use(Tus, { endpoint: '/uppy' })
-
-</script> -->
 <div style="height:50%" id="drag-drop"></div>
 
-<script src="typescript_client/clientdist/dist/main.js"></script>
 
+<script>
+    new Uppy()
+	.use(Dashboard, { inline: true, target: 'body' })
+	.use(Tus, { endpoint: '/uppy',chunkSize:67108864,parallelUploads :1 });
+</script>
 </body>

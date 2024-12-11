@@ -1,6 +1,5 @@
 const express = require('express');
-const {Server} = require('@tus/server')
-const {FileStore} = require('@tus/file-store')
+
 
 const mustacheExpress = require('mustache-express');
 const app = express();
@@ -432,9 +431,9 @@ async function init(conf){
 
     require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
     require('./node_components/passport/passport')(passport); // pass passport for configuration
-    require("./upload_backend/common")(app, express);
-    require("./upload_backend/saverename")(app, express);
-    require("./upload_backend/getFullUploadPath")(app, express);
+    // require("./upload_backend/common")(app, express);
+    // require("./upload_backend/saverename")(app, express);
+    // require("./upload_backend/getFullUploadPath")(app, express);
     require("./node_components/filebrowser")(app, express);
     require("./node_components/getserverconfig")(app, express);
     require("./node_components/logparser")(app, express);
@@ -464,17 +463,9 @@ async function init(conf){
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/databasemaintenance_views")(app, passport);
 
+    require("./node_components/uppy")(app, passport);
+
     //upload backend
-    fs.ensureDir("c:/temp/files")
-    const tusServer = new Server({
-        path: '/uppy',
-        datastore: new FileStore({directory: 'C:/temp/files'}),
-      });
-    
-    app.all('*', (req, res) => {
-        tusServer.handle(req, res);
-    });
-    global.tusServer = tusServer; //needed to reset upload path when changed in admin config
 
     //Registers user configured additinal webfolders
     await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS);

@@ -1,0 +1,1 @@
+this folder is a first step in direction of typescript and/or ES6 modules. currently it is only used to build and hold uppy
