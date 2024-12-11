@@ -156,6 +156,8 @@ module.exports = function(app, express){
 				return;
 			}
 
+			//sort children
+
 			//  var sort = {"$sort":{}};
 			//  sort["$sort"][sortcol] = direction;
 			//  var cursor = await global.db.jobs.aggregate(
@@ -193,6 +195,11 @@ module.exports = function(app, express){
 				//cursor = with_children; //only return jobs with children
 			}
 			
+			//sort children
+			if ((cursor)){}
+
+
+			//
 			if ((cursor)){
 				let numResults = 0;
 				let jobArray =[];
@@ -216,6 +223,25 @@ module.exports = function(app, express){
 			res.end();
 		}
 	});
+}
+
+
+function sortChildren(jobArray,sortobj){
+	jobArray.map(job=>{
+		if (!job.children || job.children.length != 0)
+			return
+
+			job.children = job.children.sort((a, b) => {
+            const valueA = a[sortobj.sortField] ? new Date(a[sortobj.sortField]) : null;
+            const valueB = b[sortobj.sortField] ? new Date(b[sortobj.sortField]) : null;
+
+            if (sortDirection === "asc") {
+                return valueA - valueB;
+            } else {
+                return valueB - valueA;
+            }
+        });
+	})
 }
 
 /**
