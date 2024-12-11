@@ -1,0 +1,363 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script src="../../dependencies/moment/moment.js"></script>
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<script src="../../dependencies/jquery/jquery.js"></script>
+<link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+<!-- unbelieveable how many dependencies we need for codemirror json -->
+
+<style>
+* {
+  /* ↓ Now literally all elements display a sans-serif font */
+  font-family: "Tahoma";
+}
+
+.CodeMirror { height: 100%; }
+
+.CodeMirror-lint-tooltip
+{
+    z-index: 2147483648; /* codemirror tooltip would be hidden because of dhtmlx window overlay. dhtmlx z-index is 2147483647 */
+    opacity: 0.7 !important;
+}
+
+.custom_msg{
+    /*we re-use dhx default message class but override some props to fit our needs */
+    width:unset;
+    font-weight:unset;
+    padding:4px;
+    margin:4px;
+    box-shadow:var(--dhx-border-shadow-small);
+    cursor:unset;
+    font-size:10;
+}
+
+.dhx_grid-cell{
+    font-size:12
+}
+
+.dhx_button--size_medium{
+    text-transform:unset;
+}
+
+.option_grid_button{
+   height:70%;width:30px;
+   margin:5px;
+}
+
+.dhx_button .dhx_toolbar-button__text{
+    font-size:12 !important
+}
+
+</style>
+
+<script>
+var m_maingrid;m_last_data= null;m_var_layout = null;
+var m_filter_statics = false;
+
+var label_map = function(what){
+    var map = {
+        "farm_hostname":"Name",
+        "farm_ip_address" : "IP",
+        "farm_active_jobs":"Active Jobs",
+        "farm_core_usage":"Core Usage",
+        "farm_cpu_roof":"CPU Roof",
+        "farm_cpu_info":"CPU Info",
+        "farm_last_heartbeat":"Last Heartbeat",
+        "farm_ffas_start":"Last Start",
+        "farm_ffas_shutdown":"Last Shutdown",
+    }
+
+    return map[what];
+}
+
+
+async function loadData(){
+    try{
+        var locations = await  $.ajax({
+            url:  ( build_new_api_url("/machines")),
+            type: "GET"
+        });
+        return locations;
+    }catch(ex){
+        dhx8.dhx.alert({
+            header: "Not possible",
+            text: "Error getting workflow list, Message: "+ JSON.stringify(ex),
+            buttons: ["ok"]
+        });
+    }
+
+}
+
+async function saveVariableAjax(var_name_and_data){
+    var data = await  $.ajax({
+        url:  (build_new_api_url("/variables")),
+        type: "POST",
+        contentType:"application/json",
+        
+        data: JSON.stringify(var_name_and_data)
+    });
+    loadGridData(true);//reload with every save
+    dhx8.dhx.message({
+        text:"Success Saving Variables", 
+        css:"expire", 
+        expire:2000
+    });
+    return data;
+}
+
+async function deleteVariableAjax(var_name_and_data){
+    var data = await  $.ajax({
+        url:  (build_new_api_url("/variables?name=" + var_name_and_data.name)),
+        type: "DELETE",
+        contentType:"application/json",
+        
+        data: JSON.stringify(var_name_and_data)
+    });
+    loadGridData(true);//reload with every save
+    return data;
+}
+
+function build_new_api_url(what) {
+        return "/new_proxy" + what;
+}
+
+function init(){
+    buildLayout();
+}
+
+async function buildLayout(){
+    //LAYOUT
+    const mainlayout_config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		width:"100%", height:"100%",
+        type:"wide",
+        rows:
+		[   
+            { id: "toolbar", height: "content" },
+            ,
+            {
+                cols:[
+                    {
+                            header:"Farm Hosts",
+                            id: "main",
+                            resizable:true,
+                            padding: "0px",  
+                            margin: "0px",
+                            
+                    }
+                ]
+            }
+		]
+	}
+
+    
+    var layout = new dhx8.dhx.Layout("layout", mainlayout_config);
+    layout.getCell("main").progressShow();
+   
+    //GRID
+    m_maingrid = new dhx8.dhx.Grid(null, {
+        htmlEnable: true,
+        columns: [
+            //id is "direct" access to the workflow json, it is evalled in loadGridData
+            {  readonly:true, id: "computername",        header: [{ content: "inputFilter" },{ text: label_map("farm_hostname")}]},
+            {  readonly:true, id: "ip_address",        header: [{ content: "inputFilter" },{ text: label_map("farm_ip_address")}]},
+            //{  readonly:true, id: "active_jobs",         header: [{ content: "inputFilter" },{ text: label_map("farm_active_jobs") }]},
+            {  readonly:true, id: "core_usage",  header: [{ content: "inputFilter" },{ text: label_map("farm_core_usage") }],width:100},
+            {  readonly:true, id: "cpu_roof",        header: [{ content: "inputFilter" },{ text: label_map("farm_cpu_roof") }],width:100},
+            {  readonly:true, id: "cpu",     header: [{ content: "inputFilter" },{ text: label_map("farm_cpu_info") }],
+                template:function(cpu_data){
+                    //return JSON.stringify(cpu_data);
+                   return cpu_data["cores"] + " Cores, " +cpu_data["architecture"] + ", ID: " +cpu_data["identifier"]  + ", Rev: " + cpu_data["revision"] 
+                }
+            },
+            {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }],
+                template:function(date){    
+                    const now = moment();
+                    const diffInMinutes = now.diff(moment(date), 'minutes');
+                    let colordot = "&#128994"; //green
+                    if (diffInMinutes > 3) colordot = "&#128993";//yellow
+                    if (diffInMinutes > 5) colordot = "&#128308";//red
+                    
+                    return colordot + " " + moment(date).format('YYYY-MM-DD HH:mm:ss');
+                },
+                htmlEnable: true
+            },
+            {  readonly:true, id: "ffas_start_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }],
+                template:function(date){
+                    
+                    return  moment(date).format('YYYY-MM-DD HH:mm:ss');   
+                }
+            },
+            {  readonly:true, id: "ffas_end_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}],
+                template:function(date){
+                    
+                    return  moment(date).format('YYYY-MM-DD HH:mm:ss');   
+                }
+            },
+          
+
+        ],
+        editable: false,
+        autoWidth: true,
+        resizable: true,//allow manual resize
+        selection:"row",
+        htmlEnable: false,
+        
+    });
+
+    m_maingrid.events.on("beforeEditStart", function(row,col,editorType){
+        // doubleclick row opens editor
+        //editWebUiTypeVar()
+        //return false;
+    });
+    //TOOLBAR
+    const cfg = [
+        //BUTTONS DISABLED BECAUSE FUNCTION NOT YET IMPLEMENTED
+        // {
+        //     id: "btnedit",
+        //     type: "button",
+        //     value: "Edit",
+        //     icon: "mdi mdi-cogs",
+        //     size: "small",
+        //     color: "secondary",
+        //     css: "dhxform_obj_dhx_skyblue"
+        // },        
+    //    {
+    //         id: "btndel",
+    //         type: "button",
+    //         value: "Delete",
+    //         icon: "dxi dxi-close",
+    //         size: "small",
+    //         color: "secondary",
+    //         css: "dhxform_obj_dhx_skyblue"      
+    //     }
+    ]
+    const toolbar = new dhx8.dhx.Toolbar(null, {
+        css:"dhx_widget--bordered"
+        });
+    toolbar.data.add(cfg);
+    toolbar.events.on("click", function(id,e){
+        
+        if(id == "btndel")
+            cloneMonitor()
+        if(id == "btnedit")
+            editMonitorWindow()
+
+    });
+
+    await loadGridData(true);
+    layout.getCell("toolbar").attach(toolbar);
+    layout.getCell("main").attach(m_maingrid);
+    layout.getCell("main").progressHide(); 
+}
+
+
+async function loadGridData(force=false){
+    console.trace("loadGridData called.., force:",force)
+
+    var data = await(loadData());
+    if (data != m_last_data || force){
+        m_last_data = data;
+    }else{
+        return;
+    }
+    console.log("gridcols",m_maingrid)
+    
+    for (var i =0 ;i<data.machines.length;i++){
+        var _cur = data.machines[i];
+        var coretext = "";
+        try{
+           
+            coretext = " Cores: " + _cur["cpu"]["cores"] + " " +_cur["cpu"]["architecture"] + " " +"" +_cur["cpu"]["identifier"] ;
+            _cur.cpu_info = coretext;
+        }
+        catch(ex){
+
+        }
+    }
+    m_maingrid.data.parse([]);
+    m_maingrid.data.parse(data.machines);
+    await dhx8.dhx.awaitRedraw();
+}
+
+
+function deleteSelected(){
+    const selectedCells = m_maingrid.selection.getCells();
+    if (selectedCells.length == 0){
+        return;
+    }
+
+    var to_delete = selectedCells[0].row;
+    
+
+    dhx8.dhx.alert({
+        header: "Not possible",
+        text: "Selected Variable is used ("+to_delete.use_count+"), you must edit your workflows to not make use of the variable before deleting it.",
+        buttons: ["ok"]
+    });
+
+
+    dhx8.dhx.confirm({
+        header: "Confirm delete",
+        text: "Delete "+to_delete.name+"?",
+    }).then(function (i) { 
+        try{
+            deleteVariableAjax(to_delete);
+        }catch(ex){
+            console.log("Error deleting".ex)
+            alert("Error deleting variable: " + ex.responseText)
+            console.log("Error deleting",ex.responseText)
+        }
+        m_maingrid.data.remove(selectedCells[0].row.id);
+    });
+    
+}
+
+
+function constructFormEmptyLabel(labelW = 130){
+        return {type: "text", name: "form_ignore_" + Math.random(), label: "", labelPosition: "left",width:labelW,value: ""};
+}
+
+function constructFormBool(_name,_value,labelW = 80){
+        console.log(_name,_value)
+        return {   
+            is_bool : true, //not part of dhtmlx, marks a bool checkbox component
+            labelPosition: "left",
+            labelWidth: labelW,
+            type: "checkbox",
+            label: label_map(_name),
+            name: _name,
+            checked: _value
+        }
+}
+
+
+
+
+
+</script>
+</head>
+<body onload="init()">
+<div id="windowcontainer">
+
+</div>
+</body>
+</html>

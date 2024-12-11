@@ -467,13 +467,14 @@ async function init(conf){
     //upload backend
     fs.ensureDir("c:/temp/files")
     const tusServer = new Server({
-        path: '/files',
+        path: '/uppy',
         datastore: new FileStore({directory: 'C:/temp/files'}),
       });
     
     app.all('*', (req, res) => {
         tusServer.handle(req, res);
     });
+    global.tusServer = tusServer; //needed to reset upload path when changed in admin config
 
     //Registers user configured additinal webfolders
     await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS);

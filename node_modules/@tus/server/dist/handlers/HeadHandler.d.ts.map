@@ -1,0 +1,1 @@
+{"version":3,"file":"HeadHandler.d.ts","sourceRoot":"","sources":["../../src/handlers/HeadHandler.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,WAAW,EAAC,MAAM,eAAe,CAAA;AAEzC,OAAO,EAAgC,KAAK,mBAAmB,EAAC,MAAM,YAAY,CAAA;AAElF,OAAO,KAAK,IAAI,MAAM,WAAW,CAAA;AAEjC,qBAAa,WAAY,SAAQ,WAAW;IACpC,IAAI,CACR,GAAG,EAAE,IAAI,CAAC,eAAe,EACzB,GAAG,EAAE,IAAI,CAAC,cAAc,EACxB,OAAO,EAAE,mBAAmB;CA6D/B"}

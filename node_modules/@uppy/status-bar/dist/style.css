@@ -1,0 +1,783 @@
+/* -------------------------------------------------------------------
+  Microtip
+
+  Modern, lightweight css-only tooltips
+  Just 1kb minified and gzipped
+
+  @author Ghosh
+  @package Microtip
+
+----------------------------------------------------------------------
+  1. Base Styles
+  2. Direction Modifiers
+  3. Position Modifiers
+-------------------------------------------------------------------- */
+/* ------------------------------------------------
+  [1] Base Styles
+------------------------------------------------- */
+.uppy-Root [aria-label][role~=tooltip] {
+  position: relative;
+}
+
+.uppy-Root [aria-label][role~=tooltip]::before,
+.uppy-Root [aria-label][role~=tooltip]::after {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  transform: translate3d(0, 0, 0);
+  transform-origin: top;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  opacity: 0;
+  transition: all var(--microtip-transition-duration, 0.18s) var(--microtip-transition-easing, ease-in-out) var(--microtip-transition-delay, 0s);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.uppy-Root [aria-label][role~=tooltip]::before {
+  background-size: 100% auto !important;
+  content: "";
+}
+
+.uppy-Root [aria-label][role~=tooltip]::after {
+  box-sizing: content-box;
+  padding: 0.5em 1em;
+  color: #fff;
+  font-weight: var(--microtip-font-weight, normal);
+  font-size: var(--microtip-font-size, 13px);
+  white-space: nowrap;
+  text-transform: var(--microtip-text-transform, none);
+  background: rgba(17, 17, 17, 0.9);
+  border-radius: 4px;
+  content: attr(aria-label);
+}
+
+.uppy-Root [aria-label][role~=tooltip]:hover::before,
+.uppy-Root [aria-label][role~=tooltip]:hover::after,
+.uppy-Root [aria-label][role~=tooltip]:focus::before,
+.uppy-Root [aria-label][role~=tooltip]:focus::after {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------
+  [2] Position Modifiers
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position|=top]::before {
+  bottom: 100%;
+  left: 50%;
+  width: 18px;
+  height: 6px;
+  margin-bottom: 5px;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2236px%22%20height%3D%2212px%22%3E%3Cpath%20fill%3D%22rgba%2817,%2017,%2017,%200.9%29%22%20transform%3D%22rotate%280%29%22%20d%3D%22M2.658,0.000%20C-13.615,0.000%2050.938,0.000%2034.662,0.000%20C28.662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E") no-repeat;
+  transform: translate3d(-50%, 0, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position|=top]::after {
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 11px;
+  transform: translate3d(-50%, 0, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position|=top]:hover::before {
+  transform: translate3d(-50%, -5px, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=top]:hover::after {
+  transform: translate3d(-50%, -5px, 0);
+}
+
+/* ------------------------------------------------
+  [2.1] Top Left
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position=top-left]::after {
+  bottom: 100%;
+  transform: translate3d(calc(-100% + 16px), 0, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=top-left]:hover::after {
+  transform: translate3d(calc(-100% + 16px), -5px, 0);
+}
+
+/* ------------------------------------------------
+  [2.2] Top Right
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position=top-right]::after {
+  bottom: 100%;
+  transform: translate3d(calc(0% - 16px), 0, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=top-right]:hover::after {
+  transform: translate3d(calc(0% - 16px), -5px, 0);
+}
+
+/* ------------------------------------------------
+  [2.3] Bottom
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position|=bottom]::before {
+  top: 100%;
+  bottom: auto;
+  left: 50%;
+  width: 18px;
+  height: 6px;
+  margin-top: 5px;
+  margin-bottom: 0;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2236px%22%20height%3D%2212px%22%3E%3Cpath%20fill%3D%22rgba%2817,%2017,%2017,%200.9%29%22%20transform%3D%22rotate%28180%2018%206%29%22%20d%3D%22M2.658,0.000%20C-13.615,0.000%2050.938,0.000%2034.662,0.000%20C28.662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E") no-repeat;
+  transform: translate3d(-50%, -10px, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position|=bottom]::after {
+  top: 100%;
+  left: 50%;
+  margin-top: 11px;
+  transform: translate3d(-50%, -10px, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position|=bottom]:hover::before {
+  transform: translate3d(-50%, 0, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=bottom]:hover::after {
+  transform: translate3d(-50%, 0, 0);
+}
+
+/* ------------------------------------------------
+  [2.4] Bottom Left
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position=bottom-left]::after {
+  top: 100%;
+  transform: translate3d(calc(-100% + 16px), -10px, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=bottom-left]:hover::after {
+  transform: translate3d(calc(-100% + 16px), 0, 0);
+}
+
+/* ------------------------------------------------
+  [2.5] Bottom Right
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position=bottom-right]::after {
+  top: 100%;
+  transform: translate3d(calc(0% - 16px), -10px, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=bottom-right]:hover::after {
+  transform: translate3d(calc(0% - 16px), 0, 0);
+}
+
+/* ------------------------------------------------
+  [2.6] Left
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position=left]::before,
+.uppy-Root [role~=tooltip][data-microtip-position=left]::after {
+  top: 50%;
+  right: 100%;
+  bottom: auto;
+  left: auto;
+  transform: translate3d(10px, -50%, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=left]::before {
+  width: 6px;
+  height: 18px;
+  margin-right: 5px;
+  margin-bottom: 0;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2212px%22%20height%3D%2236px%22%3E%3Cpath%20fill%3D%22rgba%2817,%2017,%2017,%200.9%29%22%20transform%3D%22rotate%28-90%2018%2018%29%22%20d%3D%22M2.658,0.000%20C-13.615,0.000%2050.938,0.000%2034.662,0.000%20C28.662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E") no-repeat;
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=left]::after {
+  margin-right: 11px;
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=left]:hover::before,
+.uppy-Root [role~=tooltip][data-microtip-position=left]:hover::after {
+  transform: translate3d(0, -50%, 0);
+}
+
+/* ------------------------------------------------
+  [2.7] Right
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-position=right]::before,
+.uppy-Root [role~=tooltip][data-microtip-position=right]::after {
+  top: 50%;
+  bottom: auto;
+  left: 100%;
+  transform: translate3d(-10px, -50%, 0);
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=right]::before {
+  width: 6px;
+  height: 18px;
+  margin-bottom: 0;
+  margin-left: 5px;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2212px%22%20height%3D%2236px%22%3E%3Cpath%20fill%3D%22rgba%2817,%2017,%2017,%200.9%29%22%20transform%3D%22rotate%2890%206%206%29%22%20d%3D%22M2.658,0.000%20C-13.615,0.000%2050.938,0.000%2034.662,0.000%20C28.662,0.000%2023.035,12.002%2018.660,12.002%20C14.285,12.002%208.594,0.000%202.658,0.000%20Z%22/%3E%3C/svg%3E") no-repeat;
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=right]::after {
+  margin-left: 11px;
+}
+
+.uppy-Root [role~=tooltip][data-microtip-position=right]:hover::before,
+.uppy-Root [role~=tooltip][data-microtip-position=right]:hover::after {
+  transform: translate3d(0, -50%, 0);
+}
+
+/* ------------------------------------------------
+  [3] Size
+------------------------------------------------- */
+.uppy-Root [role~=tooltip][data-microtip-size=small]::after {
+  width: 80px;
+  white-space: initial;
+}
+
+.uppy-Root [role~=tooltip][data-microtip-size=medium]::after {
+  width: 150px;
+  white-space: initial;
+}
+
+.uppy-Root [role~=tooltip][data-microtip-size=large]::after {
+  width: 260px;
+  white-space: initial;
+}
+
+.uppy-StatusBar {
+  position: relative;
+  z-index: 1001;
+  display: flex;
+  height: 46px;
+  color: #fff;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 40px;
+  background-color: #fff;
+  transition: height 0.2s;
+}
+[data-uppy-theme=dark] .uppy-StatusBar {
+  background-color: #1f1f1f;
+}
+
+.uppy-StatusBar::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #eaeaea;
+  content: "";
+}
+[data-uppy-theme=dark] .uppy-StatusBar::before {
+  background-color: #757575;
+}
+
+.uppy-StatusBar[aria-hidden=true] {
+  height: 0;
+  overflow-y: hidden;
+}
+
+.uppy-StatusBar.is-complete .uppy-StatusBar-progress {
+  background-color: #1bb240;
+}
+
+.uppy-StatusBar.is-error .uppy-StatusBar-progress {
+  background-color: #e32437;
+}
+
+.uppy-StatusBar.is-complete .uppy-StatusBar-statusIndicator {
+  color: #1bb240;
+}
+
+.uppy-StatusBar.is-error .uppy-StatusBar-statusIndicator {
+  color: #e32437;
+}
+
+.uppy-StatusBar:not([aria-hidden=true]).is-waiting {
+  height: 65px;
+  background-color: #fff;
+  border-top: 1px solid #eaeaea;
+}
+[data-uppy-theme=dark] .uppy-StatusBar:not([aria-hidden=true]).is-waiting {
+  background-color: #1f1f1f;
+  border-top: 1px solid #333;
+}
+
+.uppy-StatusBar-progress {
+  position: absolute;
+  z-index: 1001;
+  height: 2px;
+  background-color: #1269cf;
+  transition: background-color, width 0.3s ease-out;
+}
+.uppy-StatusBar-progress.is-indeterminate {
+  background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.3) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.3) 75%, transparent 75%, transparent);
+  background-size: 64px 64px;
+  animation: uppy-StatusBar-ProgressStripes 1s linear infinite;
+}
+
+@keyframes uppy-StatusBar-ProgressStripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 64px 0;
+  }
+}
+.uppy-StatusBar.is-preprocessing .uppy-StatusBar-progress,
+.uppy-StatusBar.is-postprocessing .uppy-StatusBar-progress {
+  background-color: #f6a623;
+}
+
+.uppy-StatusBar.is-waiting .uppy-StatusBar-progress {
+  display: none;
+}
+
+[dir="ltr"] .uppy-StatusBar-content {
+  padding-left: 10px;
+}
+
+[dir="rtl"] .uppy-StatusBar-content {
+  padding-right: 10px;
+}
+
+.uppy-StatusBar-content {
+  position: relative;
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: #333;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+[dir="ltr"] .uppy-size--md .uppy-StatusBar-content {
+  padding-left: 15px;
+}
+[dir="rtl"] .uppy-size--md .uppy-StatusBar-content {
+  padding-right: 15px;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-content {
+  color: #eaeaea;
+}
+
+[dir="ltr"] .uppy-StatusBar-status {
+  padding-right: 0.3em;
+}
+
+[dir="rtl"] .uppy-StatusBar-status {
+  padding-left: 0.3em;
+}
+
+.uppy-StatusBar-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-weight: normal;
+  line-height: 1.4;
+}
+
+.uppy-StatusBar-statusPrimary {
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+}
+.uppy-StatusBar-statusPrimary button.uppy-StatusBar-details {
+  margin-left: 5px;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-statusPrimary {
+  color: #eaeaea;
+}
+
+.uppy-StatusBar-statusSecondary {
+  display: inline-block;
+  margin-top: 1px;
+  color: #757575;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-statusSecondary {
+  color: #bbb;
+}
+
+[dir="ltr"] .uppy-StatusBar-statusSecondaryHint {
+  margin-right: 5px;
+}
+
+[dir="rtl"] .uppy-StatusBar-statusSecondaryHint {
+  margin-left: 5px;
+}
+
+.uppy-StatusBar-statusSecondaryHint {
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+}
+[dir="ltr"] .uppy-size--md .uppy-StatusBar-statusSecondaryHint {
+  margin-right: 8px;
+}
+[dir="rtl"] .uppy-size--md .uppy-StatusBar-statusSecondaryHint {
+  margin-left: 8px;
+}
+
+[dir="ltr"] .uppy-StatusBar-statusIndicator {
+  margin-right: 7px;
+}
+
+[dir="rtl"] .uppy-StatusBar-statusIndicator {
+  margin-left: 7px;
+}
+
+.uppy-StatusBar-statusIndicator {
+  position: relative;
+  top: 1px;
+  color: #525252;
+}
+.uppy-StatusBar-statusIndicator svg {
+  vertical-align: text-bottom;
+}
+
+[dir="ltr"] .uppy-StatusBar-actions {
+  right: 10px;
+}
+
+[dir="rtl"] .uppy-StatusBar-actions {
+  left: 10px;
+}
+
+.uppy-StatusBar-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1004;
+  display: flex;
+  align-items: center;
+}
+
+.uppy-StatusBar.is-waiting .uppy-StatusBar-actions {
+  position: static;
+  width: 100%;
+  height: 100%;
+  padding: 0 15px;
+  background-color: #fafafa;
+}
+[data-uppy-theme=dark] .uppy-StatusBar.is-waiting .uppy-StatusBar-actions {
+  background-color: #1f1f1f;
+}
+
+.uppy-StatusBar:not([aria-hidden=true]).is-waiting.has-ghosts {
+  flex-direction: column;
+  height: 90px;
+}
+.uppy-size--md .uppy-StatusBar:not([aria-hidden=true]).is-waiting.has-ghosts {
+  flex-direction: row;
+  height: 65px;
+}
+.uppy-StatusBar:not([aria-hidden=true]).is-waiting.has-ghosts .uppy-StatusBar-actions {
+  flex-direction: column;
+  justify-content: center;
+}
+.uppy-size--md .uppy-StatusBar:not([aria-hidden=true]).is-waiting.has-ghosts .uppy-StatusBar-actions {
+  flex-direction: row;
+  justify-content: initial;
+}
+
+.uppy-StatusBar-actionCircleBtn {
+  margin: 3px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.uppy-StatusBar-actionCircleBtn:focus {
+  outline: none;
+}
+.uppy-StatusBar-actionCircleBtn::-moz-focus-inner {
+  border: 0;
+}
+.uppy-StatusBar-actionCircleBtn:focus {
+  box-shadow: 0 0 0 3px rgba(18, 105, 207, 0.5);
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionCircleBtn:focus {
+  outline: none;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionCircleBtn::-moz-focus-inner {
+  border: 0;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionCircleBtn:focus {
+  box-shadow: 0 0 0 2px rgba(170, 225, 255, 0.85);
+}
+.uppy-StatusBar-actionCircleBtn:hover {
+  opacity: 1;
+}
+.uppy-StatusBar-actionCircleBtn:focus {
+  border-radius: 50%;
+}
+
+.uppy-StatusBar-actionCircleBtn svg {
+  vertical-align: bottom;
+}
+
+.uppy-StatusBar-actionBtn {
+  display: inline-block;
+  color: #1269cf;
+  font-size: 10px;
+  line-height: inherit;
+  vertical-align: middle;
+}
+.uppy-size--md .uppy-StatusBar-actionBtn {
+  font-size: 11px;
+}
+
+.uppy-StatusBar-actionBtn--disabled {
+  opacity: 0.4;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--disabled {
+  opacity: 0.7;
+}
+
+[dir="ltr"] .uppy-StatusBar-actionBtn--retry {
+  margin-right: 6px;
+}
+
+[dir="rtl"] .uppy-StatusBar-actionBtn--retry {
+  margin-left: 6px;
+}
+
+.uppy-StatusBar-actionBtn--retry {
+  position: relative;
+  height: 16px;
+  padding: 1px 6px 3px 18px;
+  color: #fff;
+  line-height: 1;
+  background-color: #ff4b23;
+  border-radius: 8px;
+}
+.uppy-StatusBar-actionBtn--retry:focus {
+  outline: none;
+}
+.uppy-StatusBar-actionBtn--retry::-moz-focus-inner {
+  border: 0;
+}
+.uppy-StatusBar-actionBtn--retry:focus {
+  box-shadow: 0 0 0 3px rgba(18, 105, 207, 0.5);
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--retry:focus {
+  outline: none;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--retry::-moz-focus-inner {
+  border: 0;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--retry:focus {
+  box-shadow: 0 0 0 2px rgba(170, 225, 255, 0.85);
+}
+.uppy-StatusBar-actionBtn--retry:hover {
+  background-color: #f92d00;
+}
+[dir="ltr"] .uppy-StatusBar-actionBtn--retry svg {
+  left: 6px;
+}
+[dir="rtl"] .uppy-StatusBar-actionBtn--retry svg {
+  right: 6px;
+}
+.uppy-StatusBar-actionBtn--retry svg {
+  position: absolute;
+  top: 3px;
+}
+
+.uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload {
+  width: 100%;
+  padding: 15px 10px;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  background-color: #1bb240;
+}
+.uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload:hover {
+  background-color: #189c38;
+}
+[data-uppy-theme=dark] .uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload {
+  background-color: #1c8b37;
+}
+[data-uppy-theme=dark] .uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload:hover {
+  background-color: #18762f;
+}
+
+.uppy-size--md .uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload {
+  width: auto;
+  padding: 13px 22px;
+}
+
+.uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload.uppy-StatusBar-actionBtn--disabled:hover {
+  background-color: #1bb240;
+  cursor: not-allowed;
+}
+
+[data-uppy-theme=dark] .uppy-StatusBar.is-waiting .uppy-StatusBar-actionBtn--upload.uppy-StatusBar-actionBtn--disabled:hover {
+  background-color: #1c8b37;
+}
+
+.uppy-StatusBar:not(.is-waiting) .uppy-StatusBar-actionBtn--upload {
+  color: #1269cf;
+  background-color: transparent;
+}
+
+[dir="ltr"] .uppy-StatusBar-actionBtn--uploadNewlyAdded {
+  padding-right: 3px;
+}
+
+[dir="rtl"] .uppy-StatusBar-actionBtn--uploadNewlyAdded {
+  padding-left: 3px;
+}
+
+[dir="ltr"] .uppy-StatusBar-actionBtn--uploadNewlyAdded {
+  padding-left: 3px;
+}
+
+[dir="rtl"] .uppy-StatusBar-actionBtn--uploadNewlyAdded {
+  padding-right: 3px;
+}
+
+.uppy-StatusBar-actionBtn--uploadNewlyAdded {
+  padding-bottom: 1px;
+  border-radius: 3px;
+}
+.uppy-StatusBar-actionBtn--uploadNewlyAdded:focus {
+  outline: none;
+}
+.uppy-StatusBar-actionBtn--uploadNewlyAdded::-moz-focus-inner {
+  border: 0;
+}
+.uppy-StatusBar-actionBtn--uploadNewlyAdded:focus {
+  box-shadow: 0 0 0 3px rgba(18, 105, 207, 0.5);
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--uploadNewlyAdded:focus {
+  outline: none;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--uploadNewlyAdded::-moz-focus-inner {
+  border: 0;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--uploadNewlyAdded:focus {
+  box-shadow: 0 0 0 2px rgba(170, 225, 255, 0.85);
+}
+.uppy-StatusBar.is-preprocessing .uppy-StatusBar-actionBtn--uploadNewlyAdded, .uppy-StatusBar.is-postprocessing .uppy-StatusBar-actionBtn--uploadNewlyAdded {
+  display: none;
+}
+
+.uppy-StatusBar-actionBtn--done {
+  padding: 7px 8px;
+  line-height: 1;
+  border-radius: 3px;
+}
+.uppy-StatusBar-actionBtn--done:focus {
+  outline: none;
+}
+.uppy-StatusBar-actionBtn--done::-moz-focus-inner {
+  border: 0;
+}
+.uppy-StatusBar-actionBtn--done:hover {
+  color: #0e51a0;
+}
+.uppy-StatusBar-actionBtn--done:focus {
+  background-color: #dfe6f1;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--done:focus {
+  background-color: #333;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-actionBtn--done {
+  color: #02baf2;
+}
+
+.uppy-size--md .uppy-StatusBar-actionBtn--done {
+  font-size: 14px;
+}
+
+.uppy-StatusBar-serviceMsg {
+  padding-left: 10px;
+  color: #000;
+  font-size: 11px;
+  line-height: 1.1;
+}
+.uppy-size--md .uppy-StatusBar-serviceMsg {
+  padding-left: 15px;
+  font-size: 14px;
+}
+[data-uppy-theme=dark] .uppy-StatusBar-serviceMsg {
+  color: #eaeaea;
+}
+
+.uppy-StatusBar-serviceMsg-ghostsIcon {
+  position: relative;
+  top: 2px;
+  left: 6px;
+  width: 10px;
+  vertical-align: text-bottom;
+  opacity: 0.5;
+}
+.uppy-size--md .uppy-StatusBar-serviceMsg-ghostsIcon {
+  top: 1px;
+  left: 10px;
+  width: 15px;
+}
+
+[dir="ltr"] .uppy-StatusBar-details {
+  left: 2px;
+}
+
+[dir="rtl"] .uppy-StatusBar-details {
+  right: 2px;
+}
+
+.uppy-StatusBar-details {
+  position: relative;
+  top: 0;
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 12px;
+  text-align: center;
+  vertical-align: middle;
+  background-color: #939393;
+  border-radius: 50%;
+  cursor: help;
+  -webkit-appearance: none;
+          appearance: none;
+}
+
+.uppy-StatusBar-details::after {
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+[dir="ltr"] .uppy-StatusBar-spinner {
+  margin-right: 10px;
+}
+
+[dir="rtl"] .uppy-StatusBar-spinner {
+  margin-left: 10px;
+}
+
+.uppy-StatusBar-spinner {
+  animation-name: uppy-StatusBar-spinnerAnimation;
+  animation-duration: 1s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  fill: #1269cf;
+}
+
+.uppy-StatusBar.is-preprocessing .uppy-StatusBar-spinner,
+.uppy-StatusBar.is-postprocessing .uppy-StatusBar-spinner {
+  fill: #f6a623;
+}
+
+@keyframes uppy-StatusBar-spinnerAnimation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

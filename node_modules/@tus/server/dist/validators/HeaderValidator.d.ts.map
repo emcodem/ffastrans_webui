@@ -1,0 +1,1 @@
+{"version":3,"file":"HeaderValidator.d.ts","sourceRoot":"","sources":["../../src/validators/HeaderValidator.ts"],"names":[],"mappings":"AAEA,KAAK,SAAS,GAAG,CAAC,KAAK,CAAC,EAAE,MAAM,KAAK,OAAO,CAAA;AAE5C,eAAO,MAAM,UAAU,wBAqFrB,CAAA;AAEF,wBAAgB,cAAc,CAAC,IAAI,EAAE,MAAM,EAAE,KAAK,CAAC,EAAE,MAAM,GAAG,OAAO,CAOpE"}

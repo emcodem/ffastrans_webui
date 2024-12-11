@@ -1,0 +1,233 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<script src="../../dependencies/jquery/jquery.js"></script>
+<style>
+
+
+</style>
+<script>
+
+var m_maingrid;
+var m_last_data= null;
+var m_alertmsg;
+
+
+
+function init(){
+    buildLayout();
+}
+
+async function loadVariableColumns(){
+    var locations = await  $.ajax({
+        url:  ("/variablecolumns"),
+        type: "GET"
+    });
+    return locations;
+}
+
+async function saveVariableColumns(data){
+    try{
+        var result = await  $.ajax({
+            url:  ("/variablecolumns"),
+            type: "POST",
+            contentType: "application/json",
+            data:JSON.stringify(data)
+        });
+        dhx8.dhx.message({
+                text:"Saved", 
+                css:"expire", 
+                expire:2000
+            });
+    }catch(ex){
+        alert("Unexpected error saving, contact developer and send server logs");
+    }
+}
+
+
+
+
+function buildLayout(){
+    //LAYOUT
+    let help = `<pre style="font-family:inherit;white-space:pre"><h3>Variable Columns</h3>
+            Manage custom columns in the Job Status Viewer History Grid.
+        
+        <b>Column Header Name</b>
+
+            The Name of the Column
+
+        <b>Display Template</b>
+
+            This can contain one or more FFASTrans <i>User Variables</i> and also any Text or even HTML.
+            If the Variable you supply here has not been populated from a job/workflow, it will be replaced by nothing.
+            Inbuilt Variables like %s_source% will not work, you have to use a populate processor and copy their value to your own user_variable for using it.
+
+            Template Example 1, simply the content of a variable or nothing if the job didnt set the variable:
+            %s_myvariable%
+
+            Template Example 2, a mix of text, html and a variable:
+            &#x3C;i&#x3E;%s_myvariable%&#x3C;/i&#x3E;&#x3C;b&#x3E;%s_anothervariable%&#x3C;/b&#x3E;
+        </pre>
+    `;
+    const layout_config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		type: "space",
+        width:"100%", height:"100%",rows:
+		[   
+            { id: "toolbar", height: "content" },
+			{
+				cols: [ 
+					{
+                        header:"Job Viewer Variable Columns (History Jobs only)",
+						id: "main",
+						resizable:true,
+						padding: "0px",  
+						margin: "0px",
+					},
+                    {
+                        header:" ",
+						id: "help",
+						resizable:true,
+						padding: "10px",  
+						width: "30%",
+                        html:help
+					}
+                ]
+			}
+		]
+	}
+        
+    var layout = new dhx8.dhx.Layout("layout", layout_config);
+
+    //GRID
+    m_maingrid = new dhx8.dhx.Grid("grid", {
+        columns: [
+            {  id: "col_header_name",   header: [{ text: "Column Header Name" }] },
+            {  id: "col_template",          header: [{ text: "Display Template" }], },
+            {  id:"id",hidden:true,header:[] }
+        ],
+
+        editable: true,
+        autoWidth: true,
+        resizable: true,//allow manual resize
+        selection:"row",
+        
+    });
+    m_maingrid.events.on("beforeEditStart", (row, column, editorType) => {
+        
+    });
+
+    //TOOLBAR
+    const cfg = [
+        {
+            id: "btnsave",
+            type: "button",
+            value: "Save",
+            icon: "dxi dxi-content-save",
+            size: "small",
+            color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
+        },
+        {
+        type:"separator"
+        },
+        {
+            id: "btadd",
+            type: "button",
+            value: "Add New",
+            icon: "dxi dxi-plus",
+            size: "small",
+            color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
+        },{
+            id: "btndel",
+            type: "button",
+            value: "Delete",
+            icon: "dxi dxi-close",
+            size: "small",
+            color: "secondary",
+            css:"dhxform_obj_dhx_skyblue"
+        }
+    
+    ]
+    const toolbar = new dhx8.dhx.Toolbar(null, {
+        css:"dhx_widget--bordered"
+        });
+    toolbar.data.add(cfg);
+    toolbar.events.on("click", function(id,e){
+        if(id == "btadd")
+            addNewEntry()
+        if(id == "btndel")
+            deleteSelected()
+        if(id == "btnsave")
+            saveGridData()
+    });
+    layout.getCell("main").attach(m_maingrid);
+    layout.getCell("toolbar").attach(toolbar);
+    loadGridData();
+    
+}
+
+async function saveGridData(){
+    let state = m_maingrid.data.serialize();
+    console.log("gridstate",state);
+    state = state.map(data => {
+        //removes dhtmlx id property
+        return {
+                col_header_name:data.col_header_name,
+                col_template:data.col_template,
+                id: data.id
+            }
+    })
+    
+await saveVariableColumns(state);
+    m_last_data = JSON.parse(JSON.stringify(state));
+}
+
+async function loadGridData(){
+    var data = await(loadVariableColumns());
+    
+    console.log("loading",data)
+    m_last_data = JSON.parse(JSON.stringify(data));
+    m_maingrid.data.parse(data);
+}
+
+function deleteSelected(){
+    const selectedCells = m_maingrid.selection.getCells();
+    if (selectedCells.length == 0){
+        return;
+    }
+    m_maingrid.data.remove(selectedCells[0].row.id);
+}
+
+function addNewEntry(){
+    //bring up form and post result to server
+    var row = m_maingrid.data.add({id:Math.random(),col_header_name:"Example Variable",col_template:"s_exaple_variable"});
+    m_maingrid.selection.setCell(row);
+    return;
+}
+
+</script>
+</head>
+<body onload="init()">
+
+</body>
+</html>

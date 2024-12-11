@@ -11,7 +11,7 @@
                                 // named "node_modules" from 
                                 // the explore tree
         // alternative version
-        "dist": true    // this excludes the folder 
+        //"dist": true    // this excludes the folder 
                                 // only from the root of
                                 // your workspace 
     }

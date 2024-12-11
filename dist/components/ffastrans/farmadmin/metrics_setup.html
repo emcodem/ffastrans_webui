@@ -1,0 +1,466 @@
+<html>
+<head>
+
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="../../../dependencies/jquery/jquery.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+<link rel="stylesheet" href="../../../dependencies/fontawesome/css/all.css" />
+<link href="../../../dependencies/bootstrap/bootstrap-4.6.0-dist/css/bootstrap.min.css" rel="stylesheet" >
+<script src="../../../dependencies/bootstrap/bootstrap-4.6.0-dist/js/bootstrap.bundle.min.js" ></script>
+<script src="../../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
+<link rel="stylesheet" href="../../../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+<script src="../../../dependencies/dhtmlx/dhtmlx.js"></script>
+
+<script src="../../../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
+<link rel="stylesheet" href="../../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<link rel="stylesheet" href="../../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width:100%;
+        height:100%;
+        margin: 0px;
+        overflow: scroll;
+        font-family:"Tahoma";
+    }
+
+	hr {
+	  margin-top: 1rem;
+	  margin-bottom: 1rem;
+	  border: 0;
+	  border-top: 1px solid rgba(0, 0, 0, 0.1);
+	}
+    div, label, input{
+        font-size:12px; 
+       
+    }
+    form{
+        width:100%
+    }
+    
+    label{
+
+        display: inline-block;
+        width: 150px;
+        text-align: right;
+      
+    }
+    legend{
+        width:initial;
+    }
+   
+</style>
+
+<script>
+    /* GLOBALS */
+    var m_serverconfig, m_userpermissions, m_lastTreedata;
+    var m_loadinterval;
+    /*load config from server*/
+    function loadserverconfig() {
+        $.ajax({
+            url: ("/getuserpermissions" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+
+                m_userpermissions = JSON.parse(response);
+                //load serverconfig and initialize page
+                $.ajax({
+                    url: ("/getserverconfig" + "?" + Math.random()),
+                    type: "GET",
+                    success: function(response) {
+                        console.log("got server conf")
+                        m_serverconfig = JSON.parse(response);
+                        init();
+                    },
+                    error: function(xhr, status) {
+                        document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+                    }
+                });
+            },
+            error: function(xhr, status) {
+                document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+            }
+
+        });
+
+    }
+
+        
+    /* build basic page layout and init periodic job loading*/
+    function init() {
+
+        //check if html5 features supported
+        if (typeof(Storage) !== "undefined") {} else {
+            alert("ERROR, no html5 store support, cannot save view state")
+        }
+		//button hover style
+		$("div").hover(function(){
+		  $(this).parent().addClass("dhxform_btn_over");  //Add the active class to the area is hovered
+		}, function () {
+		  $(this).parent().removeClass("dhxform_btn_over");
+		});
+		
+        //grafana urls
+        document.getElementById("grafana_base").value = m_serverconfig.grafana_base;
+        document.getElementById("grafana_url_hosts").value = m_serverconfig.grafana_url_hosts;
+        document.getElementById("grafana_url_jobs").value = m_serverconfig.grafana_url_jobs;
+
+        // periodically update currently configured metris clients
+        m_loadinterval = window.setInterval(function(){load()},1000);
+        load();
+    }
+    
+    function load(){
+            $.ajax({
+            url: ("/metrics_control" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+                //fill grafana url texboxes
+ 
+                //fill data retention textbox
+				if (document.getElementById("prometheus_data_retention").value == ""){
+					document.getElementById("prometheus_data_retention").value = response["prometheus_data_retention"];
+				}
+                //transform response to fancytree compatible
+                var fancytreeobj = [];
+                try{
+                    console.log(response["data"]["activeTargets"])
+                   for (let i=0;i<response["data"]["activeTargets"].length;i++){
+                        var _cur = response["data"]["activeTargets"][i];
+                        fancytreeobj.push({"title":_cur["labels"]["instance"],"state":_cur["health"]});
+                         
+                   }  
+
+                   fancytreeobj.sort(function(a, b) {
+                      return a.title > b.title ? 1: -1;
+                      return 0;
+                    });
+
+                }catch(ex){
+                    alert("" + ex)
+                }
+                if (JSON.stringify(m_lastTreedata) != JSON.stringify(fancytreeobj)){
+                    console.log(JSON.stringify(m_lastTreedata), "!=", JSON.stringify(fancytreeobj));
+                    m_lastTreedata = fancytreeobj;
+                    buildHostsGrid(fancytreeobj);                
+                }
+
+            },
+            error: function(xhr, status) {
+                err_html = "<div style='margin:10px'>";
+                err_html += "Fatal error, could not load metrics_setup. Is Metrics Collector (Prometheus) server running?<br/>" + xhr.responseText;
+                err_html += "<br><br>Do you want to try and install Metrics Services (Prometheus and Grafana) on the Machine where this Webinterface is running on?";
+                err_html += "<br/><br/><input style='margin-left:0px;width:30%' type='submit' onclick='install_prometeus()' value=' Install '/>";
+                err_html += "</div>"
+                document.body.innerHTML = err_html;
+            }
+
+        });
+    
+    }
+    function buildHostsGrid(setup_json){
+    	
+        //var sourceUrl = "testdata.xml";
+        $("#treetable_hosts").fancytree({
+            extensions: [ "table", "gridnav", "multi"],
+            icon: false,
+            checkbox: false,
+            titlesTabbable: true, // Add all node titles to TAB chain
+            source: setup_json,
+            table: {
+                indentation: 15,
+                nodeColumnIdx: 0,
+            },
+            gridnav: {
+                autofocusInput: false,
+                handleCursorKeys: true
+            },
+            multi: { //multiselct
+                mode: "",
+            },
+            init: function(event, data) {
+                //ENABLE RESIZE COLUMNS
+                console.log("TREE INIT")
+            },
+            renderColumns: function(event, data) {
+                var node = data.node;
+                node.addClass("act_row"); //for context menu
+                if (data.node.getIndex() % 2 == 0) {
+                    node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                    node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                } else {
+                    node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
+                    node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
+                }
+
+                $tdList = $(node.tr).find(">td");
+                //title is hostname
+                $tdList.eq(1).html("<div class='celltext' title='"+ node.data.state +"'>" + node.data.state + "</div>"); //.addClass("alignRight");
+
+            },
+            postProcess: function(event, data) {
+				
+            },
+            dblclick: function(event, data) {},
+            select: function(event, data) {
+                if (data.node.isSelected()) {
+                    data.node.addClass("rowselected");
+                } else {
+                    data.node.removeClass("rowselected");
+                }
+            },
+
+        })
+
+    }
+    
+    function install_prometeus(){
+        $.ajax({
+            url: ("/metrics_control" + "?" + Math.random()),
+            type: "PUT",
+            success: function(response) {
+                //transform response to fancytree compatible
+                alert(success);
+            },
+            error: function(xhr, status) {
+                
+                window.setTimeout(function(){
+                    
+                    err_html = "<div style='margin:10px'>";
+                    err_html += "Error installing: <br/>" + xhr.responseText;
+                    err_html += "<br/><br/>Please try to install the service manually: webinterface/tools/install_metrics_server.bat"
+                    err_html += "<br/><br/>Once the FFAStrans Metrics Services are installed and running, reload this page"
+                    err_html += "</div>"
+                    document.body.innerHTML = err_html;
+                },2000);
+                clearInterval(m_loadinterval)
+                
+            }
+
+        });
+    }
+    
+    function build_new_api_url(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/new_proxy" + what;
+        } else {
+            var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+            var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            return _url;
+        }
+    }
+
+    function install(){
+        var dhxwins = new dhtmlXWindows();
+        //dhxwins.attachViewportTo(window.parent.document.body);
+        var win = dhxwins.createWindow("Add Host to Monitor", window.innerWidth/2, window.innerHeight/4, 600, 400);
+        win.setText("View Options ");
+        win.attachURL("metrics_setup_pages/add_host.html");
+    }
+    
+	function saveRetention(){
+		var value = document.getElementById("prometheus_data_retention").value;
+		clearInterval(m_loadinterval);
+        console.log("Saving retention: ",value);
+		var loading_ele = document.getElementById("retention-loading");
+		loading_ele.style.visibility = "visible";
+		
+        $.ajax({
+          url: "/metrics_control" + "?" + Math.random(),
+          type: 'PUT',
+          contentType: "application/json; charset=utf-8",
+          data: JSON.stringify({"prometheus_data_retention" : value}),
+          success: function(data) {
+            dhtmlx.message("Success saving retention time and restarting service")
+			//wait until prom has been really fired up and re-init service installation checking
+			window.setTimeout(function(){m_loadinterval = window.setInterval(function(){load()},1000)},10000);
+			loading_ele.style.visibility = "hidden";
+          },
+          error: function(err){
+            console.log(err);
+            alert("Error saving retention time. " + JSON.stringify(err));
+			//m_loadinterval = window.setInterval(function(){load()},1000);
+			loading_ele.style.visibility = "hidden";
+          }
+        });
+	}
+      
+    async function saveGrafanaUrls(){
+        var hosturl = document.getElementById("grafana_url_hosts").value;
+        var joburl = document.getElementById("grafana_url_jobs").value;
+        var base = document.getElementById("grafana_base").value;
+        var response = await  $.ajax({
+             url: ("/adminconfig_update_parts"),
+             type: "POST",
+             data:{
+                "grafana_base":base,
+                "grafana_url_hosts":hosturl,
+                "grafana_url_jobs":joburl
+             }
+        })
+        dhtmlx.message("Success");
+       
+    }
+
+    function uninstall(){
+        var tree = $("#treetable_hosts").fancytree('getTree');
+        var all_selected_nodes = tree.getSelectedNodes();
+        if (all_selected_nodes.length == 0){
+            dhtmlx.message("No rows were selected");
+            return
+        }
+        var to_delete = []
+        all_selected_nodes.forEach(function(treenode){
+			if (treenode.title.indexOf("3003") != -1){
+				alert("You can only remove Windows monitoring, removing port 3003 (FFAStrans monitoring) is not supportd, if you want to do that, please uninstall webinterface from the selected host.\n")
+			}else{
+				to_delete.push(treenode.title)
+				
+			}
+        })
+        console.log("Removing from monitoring: ",to_delete);
+        $.ajax({
+          url: "/metrics_control" + "?" + Math.random(),
+          type: 'DELETE',
+          contentType: "application/json; charset=utf-8",
+          data: JSON.stringify(to_delete),
+          success: function(data) {
+            dhtmlx.message("Success deleting nodes from monitoring, make sure you copy the folder prometheus_clientsuninstall the metrics client from the affected machine.")
+          },
+          error: function(err){
+            console.log(err);
+            alert("Error deleting nodes from monitoring: " + err)
+          }
+        });
+        
+        
+    }
+    
+    
+</script>
+
+<body onload="loadserverconfig()" >
+
+<div class="dhxform_base">
+    <form class="dhxform_obj_dhx_skyblue" style="width:90%" >
+	
+        <div class="fs_dhxform_item_label_top" style="padding-left: 20px ">
+            <!-- <fieldset class="dhxform_fs" style="padding-left:20px"> -->
+                <!-- <legend class="fs_legend" >General</legend> -->
+                <!-- <div class="form-group dhxform_label dhxform_label_align_left"> -->
+                    <!-- <label for="grafanaurl_jobs">Job Metrics Grafana Url</label> -->
+                    <!-- <input type="text" class="dhxform_textarea" id="grafanaurl_jobs" > -->
+                <!-- </div> -->
+                <!-- <div class="form-group dhxform_label dhxform_label_align_left"> -->
+                    <!-- <label for="grafanaurl_hosts">Host Metrics Grafana Url </label> -->
+                    <!-- <input type="text" class="dhxform_textarea" id="grafanaurl_hosts" > -->
+                    <!-- <small id="help1" class="form-text text-muted">If you create your own Grafana Dashboards, enter the links here.</small> -->
+                <!-- </div> -->
+                <!-- <div class="form-group form-check"> -->
+                    <!-- <input type="checkbox" class="form-check-input " id="exampleCheck1"> -->
+                    <!-- <label class="form-check-label" for="exampleCheck1">Check me out</label> -->
+                <!-- </div> -->
+                  
+                <!-- <div class="dhxform_btn" role="link" tabindex="0" dir="ltr" style="width: 150px;"> -->
+                    <!-- <div class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div> -->
+                    <!-- <div class="dhxform_btn_filler" disabled="true"></div> -->
+                <!-- </div>                -->
+            <!-- </fieldset> -->
+            
+
+
+			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+			
+                <legend class="fs_legend">Data retention</legend>       
+						   <div style="width: 100%;margin-bottom: 10px;" class="form-group dhxform_label dhxform_label_align_left">
+								
+								How many days to keep the Data (default 15) - this will influence the size of the prometheus database directory. 
+                                <br/>Example: DB Size should be less than 5 GB for 15 days and about 5 hosts. 
+								<br/>
+								Change causes "ffastrans metrics collector" Service restart.
+								<br/><br/>
+                                <label>Data Retention:</label>
+								<input id="prometheus_data_retention" style="width: 50px" rows="1" ></input>
+							</div>
+							 <div class="dhxform_btn" role="link"><div style="display: table-cell;float:none;width:100px;margin-left:10px" onclick="saveRetention()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save and restart</div></div>
+							 <div id="retention-loading" style="visibility:hidden" class="spinner-border" role="status">
+							  <span class="sr-only">Loading...</span>
+							</div>
+			</fieldset>		
+				
+			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+				
+                <legend class="fs_legend">Monitored Hosts</legend>
+				You can add or remove machine monitoring (CPU, Memory, Harddisk...) of FFAStrans hosts in your farm. <br/>
+Notice that FFAStrans "Job Metrics" is reported here but it cannot be added or removed (port 3003).<br/><br/>
+Make sure you copy and install install_metrics_clients.bat and prometheus_clients folder to the machine you want to add and that the FFAStrans Metrics client service is running.<br/>
+
+                    <div style="display: table-row" class="" role="link" tabindex="0" dir="ltr" style="width: 150px;">
+                        <div class="dhxform_btn" role="link"><div style="display: table-cell;float:none;width:100px" onclick="install()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Add new Host</div></div>
+                        <div style="display: table-cell;width:10px"  class=""></div>
+                        <div class="dhxform_btn" role="link"><div  style="display: table-cell;float:none;width:100px" onclick="uninstall()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Remove Host</div></div>
+                        <div class="dhxform_btn_filler" disabled="true"></div>
+                    </div>  
+                     
+                    <div id="active_div" style="width:100%" class="gridbox_dhx_skyblue gridbox">
+                        <table id="treetable_hosts" class="obj">
+                            <colgroup id="colgroup_active" >
+                                <col width="5%"></col>
+                                <col width="10%"></col>      
+                            </colgroup>
+                            <thead class="dhtmlxMenu_dhx_skyblue_Middle" style="border:none">
+                                <tr id="tr_treetable_active">
+                                    <th id="host-name" name="name" onclick="sortGrid('treetable_hosts',this.id)" data-sort_dir="" >        <i id="active-state-sorticon" name="treetable_hosts-sorticon" ></i>Hostname</th>
+                                    <th id="host-state" name="workflow" onclick="sortGrid('treetable_hosts',this.id)" data-sort_dir="">   <i id="active-workflow-sorticon" name="treetable_hosts-sorticon" ></i>State</th>
+                                 </tr>
+                            </thead>
+                        </table>
+                    </div>
+                
+            </fieldset>
+
+            <fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+			
+                <legend class="fs_legend">Grafana URLs</legend>   
+                          These URL's are displayed here in the Job/Host Metrics Tab. If you enable https, have an external Grafana Server or custom Dashboards you can change them.
+                          <br/>Note that we configure serve_from_sub_path and root_url in grafana custom.ini because we "proxy" all requests to grafana through webinterface url /grafana_proxy
+                          <br/>Note that once installed, you can access grafana directly on http://localhost:3004 
+                          <br/>    <br/>    
+						   <div style="width: 100%;margin-bottom: 10px; display:block" >
+                            <div>
+                                <label>Grafana Base:</label>
+                                    <input id="grafana_base" style="width: 80%;" rows="1" ></input>
+                            </div>
+                                <div>
+                                    <label>Job Metrics Url:</label>
+                                        <input id="grafana_url_jobs" style="width: 80%;" rows="1" ></input>
+                                </div>
+                                <div>
+                                    <label>Host Metrics Url:</label>
+                                    <input id="grafana_url_hosts" style="width: 80%;" rows="1" ></input>
+                                </div>
+                            </div>
+							 <div class="dhxform_btn" role="link"><div style="display: table-cell;float:none;width:100px;margin-left:10px" onclick="saveGrafanaUrls()" class="dhxform_btn_txt dhxform_btn_txt_autowidth">Save</div></div>
+							 
+			</fieldset>	
+
+        </div>
+    </form>
+</div>
+</body>

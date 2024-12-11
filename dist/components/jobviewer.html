@@ -1,0 +1,1782 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
+
+<script src="../dependencies/jquery/jquery.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css" />
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+
+<!-- <link href="../dependencies/fancytree/modules/jquery.resizableColumns.css" rel="stylesheet"> -->
+<!-- <script src="../dependencies/fancytree/modules/jquery.resizableColumns.js"></script> -->
+
+<link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+<script src="../dependencies/fancytree/modules/colResizable-1.6.min.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.dnd.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.edit.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.gridnav.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.table.js" type="text/javascript"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.multi.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.persist.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
+<script src="../dependencies/fancytree/modules/jquery.fancytree.contextmenu.js"></script>
+
+<!-- pagination -->
+<script src="../dependencies/pagination/pagination.min.js"></script>
+<link rel="stylesheet" href="../dependencies/pagination/pagination.css" type="text/css"> 
+
+<!-- jquery-contextmenu (https://github.com/swisnl/jQuery-contextMenu) -->
+<link rel="stylesheet"
+      href="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.css" />
+<script src="../dependencies/fancytree/modules/jQuery-contextMenue/jquery.contextMenu.min.js">
+</script>
+
+<script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
+
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<script src="../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        /* width: 100%; */
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+        color: #333;
+        font: 12px Tahoma;
+        line-height: 18px;
+        
+    }
+
+    .fas {
+        opacity: 0.9;                /* Opacity (Transparency) */
+        color: rgba(0, 0, 0, 0.9);   /* RGBA Color (Alternative Transparency) */
+        
+    }
+
+    button {
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .progressbar {
+        margin: 0;
+        /* margin-left:5px;
+        margin-right:5px; */
+        
+        line-height: 140%;
+        font-size: 10;
+        
+        background-color: #4caf5080;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    /*layout headers (big blue lines)*/
+    .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr {
+        height: 25px;
+        line-height: 23px;
+        font-size: 12px;
+    }
+
+    /*collapse icon in layout header*/
+    .dhxlayout_base_material div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_ha {
+        background-position: -32px -5px;
+        z-index: 1;
+        margin-top: -3;
+    }
+    /*collapse icon in layout header*/
+    div.dhx_cell_layout div.dhx_cell_hdr div.dhxlayout_arrow.dhxlayout_arrow_vb {
+        margin-top: -8px;
+        z-index: 1;
+    }
+
+    /*fancytree line break*/
+    table.fancytree-ext-table tbody tr td {
+        /*white-space: nowrap;*/
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    /* tree column resize issues*/
+    table {
+        border: 1px;
+        table-layout: fixed;
+        width: 100%;
+        outline: none;
+    }
+    /* tree column resize issues*/
+    th,
+    td {
+        border: 1px;
+        overflow: hidden;
+        font-weight: unset;
+        
+    }
+    th{
+        border-right: 1px solid grey;
+    }
+    /* text in tree title column */
+    span.fancytree-title {
+        padding: 0 0 0;
+    }
+    /*three dots on text overflow*/
+    .celltext {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: text;
+        margin-left: 6px;
+		margin-right: 6px;
+    }
+	.celltext_rtl {
+		direction:rtl;
+		text-align:left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: text;
+        margin-left: 6px;
+		margin-right: 6px;
+    }
+
+    .celltext_clicked {
+        text-overflow: clip;
+        white-space: normal;
+        word-break: break-all;
+        user-select: text;
+    }
+   
+    /*context menu stuff*/
+    td:hover {
+        opacity:0.5;
+    }
+    .context-menu-active {
+        opacity:0.5;
+    }
+	
+	/*keeps sort icon on top*/
+	i[id^='history-']{
+		
+		margin-top:3px;
+	}
+	/*keeps sort icon on top*/
+	i[id^='active-']{
+		
+		margin-top:3px;
+	}
+	
+    .history_div{
+        /* display:grid; */
+        /* height:100%; */
+        /* grid:'table_container' minmax(0,1fr); */
+    }
+
+    ul.fancytree-container {
+        font-size:12px !important;
+    }
+    
+    div.gridbox table.obj td { /* prevent success column to line break when small*/
+        white-space: nowrap !important;
+    }
+    table.fancytree-ext-table tbody tr.fancytree-focused{
+        background-color: unset; /* override default bg color #4169e1 of fancytree */
+    }
+    
+    table.fancytree-ext-table tbody tr.fancytree-active {
+        background-color: unset;  /* override default bg color #4169e1 of fancytree */;
+    }
+
+    /* NEW STUFF */
+    /* searchbox is invisible unless hovered or has text */
+    .searchbox {
+            opacity: 0;
+            position:absolute;
+            right: 25;
+            left: 10;
+            /* pointer-events: none; */
+            transition: opacity 0.3s ease;
+    }
+    .searchbox:hover,.searchbox:focus {
+            opacity: 1;
+            pointer-events: auto;
+    }
+    
+    .searchbox:not(:placeholder-shown) {
+            opacity: 1;/* Keep the textbox visible if it has content */
+    }
+
+    .ffastrans_grid_style{
+        --dhx-font-family:"Tahoma";
+        --dhx-font-size-normal:12px
+    }
+
+    .dhx_grid-selected-row{
+        background:  rgba(0, 255, 0, 0.250)
+    }
+    
+</style>
+
+
+<style id="row_status_colors" type="text/css" id="customstyle">
+
+
+</style>
+
+
+<script>
+    /* init SOCKET.IO */
+    var socket = io();
+
+    /* GLOBALS */
+    var mainLayout, runningJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
+    let m_historyGrid;
+    var m_rowColorError = "#f28d80"
+    var m_rowColorCancelled = "#ffcc80"
+	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
+    var m_query = {}; //url parameters
+
+    /* global function override */
+    dhtmlx.message= function(what){
+        dhx8.dhx.message({ expire: 3000, text: what});
+    }
+
+    /*load config from server*/
+    function loadserverconfig() {
+        $.ajax({
+            url: ("/getuserpermissionsasync" + "?" + Math.random()),
+            type: "GET",
+            success: function(response) {
+
+                m_userpermissions = JSON.parse(response);
+                //load serverconfig and initialize page
+                $.ajax({
+                    url: ("/getserverconfig" + "?" + Math.random()),
+                    type: "GET",
+                    success: function(response) {
+                        m_serverconfig = JSON.parse(response);
+                        init();
+                    },
+                    error: function(xhr, status) {
+                        dhtmlx.message("Fatal error, could not load serverconfig. ");
+                        document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+                    }
+                });
+            },
+            error: function(xhr, status) {
+                dhtmlx.message("Fatal error, could not load serverconfig. ");
+                document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+            }
+
+        });
+
+    }
+
+    function toggleJobControl(id,selected_is_on){
+        //enable/disable menu buttons
+        console.log("ToggleJobControl");
+
+        var element_names = [];
+        if (id.match("active")){
+            element_names = ["a_details","a_abort","a_pause","a_resume"];
+        }
+        if (id.match("history")){
+            element_names = ["b_details","b_resubmit","b_delete_selected"];
+        }
+
+        element_names.forEach(function(name){
+            try{
+                document.getElementsByName(name)[0].disabled = !selected_is_on;
+                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];  
+                if (selected_is_on){
+                    icon.classList.remove("disabled")
+                }else{
+                    icon.classList.add("disabled")
+                }
+            }catch(ex){
+                //who
+            }
+        })
+        
+    }
+    
+    /* render menu buttons based on permissions*/
+    function addMenuButtons(){
+        
+        //menu buttons html
+        //do not forget to add the button name to togglejobcontrol if you add more btns 
+        var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i>Job Details</button> ';
+        var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i>Abort</button> ';
+        var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
+        var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
+        // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
+        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="history_grid_actions(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
+        
+        var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
+        
+        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i>Job Details</button> ';
+        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i>Resubmit</button> ';
+        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
+        
+        //check user permissions
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            
+            //add filtered btns to Running jobgrid
+            for (let _id=0;_id<arr_all_in_a.length;_id++){
+                var input_name = arr_all_in_a[_id].match(/name="(.*?)"/)[1];
+                if (regex.test(input_name)){
+                    _appendtext('b',arr_all_in_a[_id])
+                }
+            }
+            //no filter, add filtered btns to History jobgrid
+            for (let _id=0;_id<arr_all_in_b.length;_id++){
+                var input_name = arr_all_in_b[_id].match(/name="(.*?)"/)[1];
+                if (regex.test(input_name)){
+                    _appendtext('c',arr_all_in_b[_id])
+                }
+            }
+        }else{
+            //just render all btns
+            console.log("Displaying unfiltered list of menu buttons" )
+            _appendtext('b',arr_all_in_a.join("") );
+            _appendtext('c', b_details + b_resubmit + b_delete_selected);
+        }
+        function _appendtext (cellid, to_append){//helper
+            //appends text to mainLayout.cells("b") and mainLayout.cells("c")
+            mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
+        }
+    }
+
+    function _getObjectByValue(object, value) {//helper
+        var to_return = [];
+        for (var _idx in object){
+           var _v =  object[_idx]["key"];
+           if (_v == value){
+            to_return.push(object[_idx]);
+           }
+        }
+        return to_return;
+    }
+    
+    function applyFilter(filtername,filtervalue){
+        /* inserts filter into grid header and hits enter */
+        const searchboxes = document.querySelectorAll('.searchbox');
+        searchboxes.forEach((searchbox) => {
+            let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;
+            if (header_id.toUpperCase().match(filtername.toUpperCase())){
+                searchbox.value = filtervalue;
+                
+                $(searchbox).trigger("input");
+            }
+        })
+       
+    }
+
+    /* build basic page layout and init periodic job loading*/
+    function init() {
+        
+        //search params from URL go to their corresponding search inputs
+        var query = window.location.search.substring(1);
+        query = parse_query_string(query);
+        m_query = query;
+        console.log("Querystring",query)
+        //insert filter from url into search text fields
+        for (var filtername in query) {
+            if (query.hasOwnProperty(filtername) && filtername != "") {
+                console.log(filtername + " -> " + query[filtername]);
+                applyFilter(filtername, query[filtername])
+            }
+        }
+
+        //check if html5 features supported
+        if (typeof(Storage) !== "undefined") {} else {
+            dhtmlx.message("ERROR, no html5 store support, cannot save view state")
+        }
+
+        mainLayout = new dhtmlXLayoutObject({
+            parent: document.body,
+            pattern: "3L",
+            cells: [
+					{id: "a", text: "Workflow Filter", collapsed_text: "<span id='workflow_filter_header_collaped' style='display:flex;cursor:pointer'><b>Workflows</b></span>"},
+					{id: "b", text: ""},
+					{id: "c", text: ""}
+				]
+        });
+
+        mainLayout.cells("a").showInnerScroll()
+        mainLayout.cells("a").setMinWidth(150);
+        mainLayout.cells("a").setWidth(350);
+        mainLayout.cells("a").collapse(); 
+		
+		if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
+			buildWorfklowTree(); //load workflows
+			mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
+		
+		}else{
+			console.log("alternate server is true!")
+			mainLayout.cells("a").setCollapsedText("");
+			mainLayout.cells("a").hideArrow();
+            mainLayout.cells("a").collapse();
+		}
+        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#888888" >Running</span>');
+        mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
+
+        
+        //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
+        $('#workflow_filter_header_collaped').click(()=>{
+            mainLayout.cells("a").expand()
+            restoreLayoutSizes(mainLayout, "mainLayout");
+        });
+        mainLayout.attachEvent("onCollapse", function(name){
+                $('#workflow_filter_header_collaped').click(()=>{
+                    mainLayout.cells("a").expand()
+                    restoreLayoutSizes(mainLayout, "mainLayout");
+                });
+                localStorage.setItem("mainLayout_c_collapsed", "true");
+                console.log("saving collapsed state")
+        });
+        mainLayout.attachEvent("onExpand", function(name){
+                localStorage.setItem("mainLayout_c_collapsed", "false");
+        });
+        
+        mainLayout.cells("c").setWidth($(document).width() / 3);
+        //mainLayout.cells("c").setText("Finished");
+        mainLayout.cells("b").setHeight($(document).height() / 3.5);
+        restoreLayoutSizes(mainLayout, "mainLayout");
+
+        //attach grids
+        mainLayout.cells("c").attachObject("history_div_container");
+        mainLayout.cells("c").showInnerScroll();
+        mainLayout.cells("b").attachObject("active_div");
+        mainLayout.cells("b").showInnerScroll();
+        
+        
+        //url parameter hideheaders
+        if (query["hideheaders"]){
+            mainLayout.cells("b"). hideHeader();
+            mainLayout.cells("c"). hideHeader();
+        }
+
+        //ur param hideactive
+        if (query["hideactive"]){
+            mainLayout.cells("b").collapse()
+            mainLayout.cells("b").hideArrow();
+            $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";          
+        }
+        if (query["hidehistory"]){
+            mainLayout.cells("c").collapse()
+            mainLayout.cells("c").hideArrow();
+            $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";           
+        }
+        //menu text and buttons
+        addMenuButtons();
+        
+        mainLayout.attachEvent("onPanelResizeFinish", function() {
+            saveLayoutSizes(mainLayout, "mainLayout");
+        });
+
+        m_lastsortelementid = {}
+        m_lastsortdir = {}
+        m_lastsortelementid["treetable_active"] = "active-state";
+        m_lastsortdir["treetable_active"] = "asc";
+        m_lastsortelementid["treetable_history"] = "history-job_start";
+        m_lastsortdir["treetable_history"] = "des";
+        console.log("Applying default sorting for active and history grid")
+		
+        //Build the grids
+        buildHistoryGrid();
+        buildActiveGrid();
+
+        //Socket events
+        socket.on('newhistoryjob', async function() {
+            m_historyGrid.loadGridData();
+            
+        });
+		
+        socket.on('queuedjobs', function(msg) {
+ 
+        });
+        socket.on('activejobs', async function(msg) {
+            m_activeGrid.loadGridData();
+        })
+
+        socket.on('error', function(msg) {
+            dhtmlx.message(msg);
+        });
+        socket.on('msg', function(msg) {
+            dhtmlx.message(msg);
+        });
+        socket.on('alert', function(msg) {
+            dhtmlx.alert(msg);
+        });
+        
+        
+        /* check if new activejobs forever */
+        window.setInterval(function() {
+            m_activeGrid.loadGridData();
+        }, parseInt(3000));
+        
+		
+    }
+
+function debounce(func,timeout){
+        //used to prevent firing window onresize "while the window is resized", e.g. wait 100ms for no size change and only then execute the function
+        var timer;
+        return function(event){
+            if(timer) clearTimeout(timer);
+            timer = setTimeout(func,timeout,event);
+        };
+    };
+
+function buildWorfklowTree(){
+
+    $.ajax({
+        url:  "/getworkflowlist",
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        success: function (response) {
+            console.log("workflows",response)
+            if (response['workflows'].length == 0){
+                alert("Did not get any workflows from FFASTRANS API");
+            }else{
+                m_workflowArray = response['workflows'];
+                
+                mainLayout.cells("a").progressOff();
+                mainLayout.cells("a").detachObject();
+                mainLayout.cells("a").attachObject("workflow_filter_menu");
+                
+                //search button
+                $("input[name=wf_filter]").keyup(function(e){
+                    var n,
+                        tree = $("#workflowtree").fancytree('getTree');
+                        opts = {},
+                        filterFunc = tree.filterNodes,
+                        match = $(this).val();
+                        if(e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ""){
+                            tree.clearFilter();
+                            return;
+                        }
+                    // Pass a string to perform case insensitive matching
+                    n = filterFunc.call(tree, match, opts);
+                    
+                }).focus();
+                
+                //finally build workflow tree
+                parseWorkflows(m_workflowArray,{"selectMode":2,"dom_id":"workflowtree","extensions":["filter","multi","persist"]},on_treeWorkflowSelected,function(){/*no click evt*/});
+                var sel = $("#workflowtree").fancytree('getTree').getSelectedNodes();
+
+                if (sel.length != 0){
+                    //on initial page load, don't apply the filter if empty
+                    applyWorkflowSearch(sel);
+                }
+                
+            }
+        },
+        error: function (xhr, status) {
+            mainLayout.cells("a").progressOff();
+            dhtmlx.message("ERROR getting WORKFLOWS, please check FFAStrans Path in Admin settings on the left. or you have an invalid expression in filter?");
+        }
+    });
+}
+
+function applyWorkflowSearch(selectednodes){
+    var searchpatterns = [];
+    selectednodes.forEach(function(n){
+        if (n.folder){
+            //unselect folders
+            console.log("unselecting folder",n.title)
+            n.setSelected(false)
+        }else{
+            searchpatterns.push(n.title);
+        }
+    })
+    console.log("Applying filter search from applyWorkflowSearch",searchpatterns)
+    applyFilter("workflow",searchpatterns.join("|"));
+}
+    
+
+function on_treeWorkflowSelected(event, data){
+    //user selected a workflow, modify workflowfilter
+    
+    var s = data.tree.getSelectedNodes();
+    console.log("on_treeWorkflowSelected");
+    applyWorkflowSearch(s);
+}
+
+    
+// function setInitialColumnWidths(){
+
+//     /*only set column widths if there ar no stored ones*/
+//     var do_restore = true;
+//     if ("treetable_active" in localStorage){
+//         console.log("Not restoring InitialColumnwidths as it is not the first time user opened the site")
+//         do_restore = false;
+//     }
+//     console.log("Setting initial width percent values")
+//     var running_percent = m_serverconfig["STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT"].split(",");
+//     console.log(running_percent)
+//     var idx = 0;
+//     $('#colgroup_active').children('col').each(function () {
+//         try{
+        
+//             if (!running_percent[idx] && do_restore){
+//                 $($('#colgroup_active').children('col')[idx]).css("width","4%"); //minimum width
+//             }
+//             if (running_percent[idx] && (do_restore)){
+//                 console.log($($('#colgroup_active').children('col')[idx]),running_percent[idx])
+//                 $($('#colgroup_active').children('col')[idx]).css("width",running_percent[idx])
+//             }
+//             if (running_percent[idx] == "0%"){
+//                 //hide if admin config is 0%
+//                 $($('#tr_treetable_active').children('th')[idx]).css("display","none")
+//             }
+                    
+//         }catch(ex){
+//             console.log(ex)
+//         }
+//         idx++;
+//     });
+    
+//     var history_percent = m_serverconfig["STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT"].split(",");
+//     idx = 0;
+//     $('#colgroup_history').children('col').each(function () {
+//         try{
+//             if (!history_percent[idx] && do_restore){
+//                 $($('#colgroup_active').children('col')[idx]).css("width","4%"); //minimum width
+//             }
+//             if (history_percent[idx] && ( do_restore)){
+//                 $($('#colgroup_history').children('col')[idx]).css("width",history_percent[idx])
+//             }
+//             if (history_percent[idx] == "0%"){
+//                 $($('#tr_treetable_history').children('th')[idx]).css("display","none");
+//             }
+//         }catch(ex){		
+//         }
+//         idx++;
+//     });
+// }
+
+
+function show_options_window(){
+    const dhxWindow = new dhx8.dhx.Window({
+        width: 600,
+        height: 600,
+        title: "Options",
+        modal: false,
+        closable: true,
+        movable: true,
+        resizable:true
+    });
+
+    dhxWindow.attachHTML('<iframe height="100%" width="100%" style="border:none" src="jobviewer_pages/options.html"></iframe>');
+    dhxWindow.show()
+    // var dhxwins = new dhtmlXWindows();
+    // var win = dhxwins.createWindow("View Options", window.innerWidth/2, window.innerHeight/4, 600, 600);
+    // win.setText("View Options ");
+    // win.attachURL("jobviewer_pages/options.html");
+}
+
+window.history_grid_actions= history_grid_actions;
+function history_grid_actions(id,node) {
+    //if we have node argument, we are called from context menu
+    if (id == "b_options") {
+        show_options_window();
+        return;
+    }
+
+    let selected = m_historyGrid.selection.getCells();
+
+    if (selected.length == 0 ) {
+        dhtmlx.alert("Please select row");
+        return;
+    }
+    if (id.match("resubmit")) {
+        selected.forEach(function(node) {
+            resubmit_job(node.row.guid||node.row.job_id);
+        })
+    }
+    if (id.match("details")) {
+        var jobid = (selected[0].row.job_id); 
+        openLogViewer(jobid);
+    }
+    if (id.match("delete")) {
+        let array_to_delete = [];
+        let a_gridids = [];
+        for (let i = 0; i < selected.length; i++) {}
+        selected.forEach(function(cell_and_row) {
+            array_to_delete.push(cell_and_row.row.job_id);
+            a_gridids.push(cell_and_row.row.id)
+        });
+        m_historyGrid.data.remove(a_gridids);
+        socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
+        
+    }
+}
+
+    
+window.active_grid_actions= active_grid_actions;
+function active_grid_actions(id,node) {
+    //if we have node argument, we are called from context menu
+    if (id == "b_options") {
+        show_options_window();
+        return;
+    }
+
+    let selected = m_activeGrid.selection.getCells();
+
+    if (selected.length == 0 ) {
+        dhtmlx.alert("Please select row");
+        return;
+    }
+    // if (id.match("resubmit")) {
+    //     selected.forEach(function(node) {
+    //         resubmit_job(node.row.guid||node.row.job_id);
+    //     })
+    // }
+    if (id == "a_details") {
+        var jobid = (selected[0].row.job_id); 
+        openLogViewer(jobid);
+    }
+    if (id == "a_abort") {
+        jobCommand(selected, "abort");//jobid for incoming jobs is the filename of mons/i file
+    }
+    if (id == "a_pause") {
+        jobCommand(selected, "pause");
+    }
+    if (id == "a_resume") {
+        jobCommand(selected, "resume");
+    }
+    if (id == "a_priority") {
+        // show_priority_window();
+    }
+}
+
+function getActiveGridColumns(){
+    //let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
+    let searchboxhtml = ``;
+    return [
+                {
+                    id: "state",maxWidth: 100,header: ["<span>State</span>" + searchboxhtml],sortable: true, 
+                    template:function(val,row,column){
+                        if (row.children && row.children.length > 1){
+                            let expander = `<div id="${row.job_id}_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right" 
+                                             role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>`
+                            return expander + val;
+                        }
+                        return val;
+                    },
+                    htmlEnable:true
+                },	    
+                {
+                    id: "workflow",
+                    width:300,
+                    header: ["<span>Workflow</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,
+                    template:function(val,row,column){
+                        return val
+                    }
+    
+                },
+                {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
+                {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
+				{id: "proc",     	header: ["<span>Step</span>"+ searchboxhtml],       sortable: true,htmlEnable: true, maxWidth: 600,
+					template: function(val,row,column){
+						return "Prio " + (row.priority || "") + " | " + row.proc + " | " + row.host
+				} },
+				//Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host 
+                {id: "status",      header: ["<span>Status</span>" + searchboxhtml],   sortable: true,htmlEnable: true },
+				{id: "progress",    header: ["<span>Progress</span>" + searchboxhtml],  sortable: true,htmlEnable: true, width: 200,template: function(val,row,column){
+                    return '<div class="progressbar" style=" width:' + row.progress + '%">' + row.progress + '% ' + row.steps.replace(/ /g, "") + '</div>'
+                }},
+				
+        ];
+}
+
+async function buildActiveGrid() {
+    console.log("building activegrid")
+    
+    //grid columns are defined on server side
+    // let colres = await fetch("/get_jobviewercolumns");
+    // if (!colres.ok)
+    //     return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
+    // let gridcolumns = await colres.json()
+    gridcolumns = getActiveGridColumns();
+
+    // //apply user state
+    if (localStorage.jobviewer_active_grid_column_config){
+        try{
+            //inject merit and hidden state from user config (options.html)
+            let userconf = JSON.parse(localStorage.jobviewer_active_grid_column_config);
+            gridcolumns = gridcolumns.map(c=>{
+                let uc = userconf.filter(uc=>{return uc.id == c.id});
+                if (uc.length != 1)
+                    return c;
+                c.hidden    = uc[0].user_hidden;
+                c.merit     = uc[0].merit;
+                return c;
+            });
+
+            gridcolumns.sort((a, b) => a.merit - b.merit);
+        }catch(ex){console.error("Cannot restore user column config",ex)}
+    }
+
+    //gridcolumns = getActiveGridColumns();
+
+    console.log("active gridcols with userdata",gridcolumns)
+
+    /* build the grid */
+    const grid = new dhx8.dhx.Grid("active_div", {
+        columns: gridcolumns,
+        keyNavigation: true,
+        autoWidth: true,
+        resizable: true,
+        multiselection:true,
+        height: "auto",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        selection: "row",
+        css: "alternate_row ffastrans_grid_style",
+        eventHandlers: {
+            oninput:{
+                searchbox: debounce((event,  args) => {
+                    //debounce function prevents this to fire multiple times parallel while user is typing
+                    //only if user did not type for 500ms, function will fire
+                    grid.filterobj = collectFilters();
+                    grid.data.removeAll();
+                    loadGridData();
+                },750),
+            }
+            
+        },
+    });
+
+    m_activeGrid = grid;
+    //custom fields keep track of current state
+    grid.filterobj      = {};
+    grid.sortcol        = "";
+    grid.sortdir        = "";
+    grid.mystuff        = {page:1}
+    grid.loadGridData   = loadGridData;
+
+    /* Row select */
+    grid.selection.events.on("AfterSelect", (row, column) => {
+        toggleJobControl("active",true);
+    });
+
+    /* Sorting */
+    // grid.events.on("beforeSort", (column, dir) => {
+    //     /* remove all rows and reload sorted data from server */
+    //     // grid.sortcol =  column.id;
+    //     // grid.sortdir =  dir;
+    //     // grid.data.removeAll();
+    //     // loadGridData();
+    //     return true;
+    // });
+
+    /* Searching */
+    function collectFilters(){ //collects all search values
+        let filterobj = {};
+        filterobj.variablecols = [];
+        const searchboxes = document.querySelectorAll('.searchbox');
+        searchboxes.forEach((searchbox) => {
+            if (searchbox.value == "")
+                return;
+
+            let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;                
+            if (searchbox.dataset.variablecol){
+                filterobj.variablecols.push({col_header_name:header_id,filter:searchbox.value});
+            }else
+                filterobj[header_id] = searchbox.value;
+            
+        })
+        return filterobj;
+    }
+
+    /* Data loading */
+    async function loadGridData(){
+        let urlSearchParams =  new URLSearchParams({});
+        
+        // urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
+        // urlSearchParams.append("sortcol", grid.sortcol);
+        // urlSearchParams.append("direction", grid.sortdir);
+        // urlSearchParams.append("start", grid.mystuff.page == 1 ? 0 : m_max_history_gridrows * (grid.mystuff.page-1));
+
+        let url = "/getactivejobs_dhx?"+urlSearchParams.toString();
+        var response = await fetch(url);
+        if (!response.ok)
+            return dhx8.dhx.message({ expire: 3000, text: "Error loading grid data"});
+        const newData = await response.json();
+
+        //update existing
+        newData.map(r=>{
+            r.id = r.job_id + r.split_id;
+            return r;
+        })
+
+        //
+
+        let existing    = grid.data.serialize();
+        let existingIds = existing.map(r=>{return r.id});
+        let newIds      = newData.map(r=>{return r.id});
+        let newRows     = newData.filter(   r=>{return existingIds.indexOf(r.id) == -1});
+        let existingRows = newData.filter(  r=>{return existingIds.indexOf(r.id) != -1});
+        let missing     = existing.filter(  r=>{return newIds.indexOf(r.id) == -1})
+        let missingIds  = missing.map(r=>{return r.id});
+
+        grid.data.add(newRows);
+        missingIds.forEach(rid=>{grid.selection.removeCell(rid);}); //unselect
+        grid.data.remove(missingIds);
+        existingRows.map(r=>{
+            grid.data.update(r.id, newData.filter(nrow=>{return nrow.id == r.id})[0]);
+        });
+        //grid.data.parse(json);
+
+        const selectedCells = grid.selection.getCells();
+        if (selectedCells.length == 0)
+            toggleJobControl("active",false);
+
+        
+    }
+
+    attachGridContextMenu()
+    loadGridData();
+
+
+}//buildActiveGrid
+
+
+    function openLogViewer(jobid){
+        var url = "logviewer.html?job_id=" + jobid;
+        var dhxwins = new dhtmlXWindows();
+        var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
+        win.setText("Job Details");
+        win.attachURL(url);
+        window.onresize = function(){
+            win.setDimension(window.innerWidth-20,window.innerHeight-20);
+        }
+
+        //support closing with escape key from within iframe
+        dhxwins.attachEvent("onContentLoaded", function(win){
+                //support esc key for close window
+                console.log("CONTENTLOADED")
+				var ifr = win.getFrame();
+                ifr.contentWindow.focus();
+                console.log("iframe",ifr.contentWindow)
+                var elem = ifr.contentWindow.m_closefunc = function(){
+                    win.close()
+                }
+        });
+    }
+
+    function getContextMenuHistoryGrid(allpossible){
+        //opens context menu
+                
+        var contextmenu = {};
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            for (var _idx in allpossible){
+               if (allpossible[_idx]){
+                    if (allpossible[_idx].name.match(regex)){
+                        console.log(allpossible[_idx]);
+                        var newitem = {};
+                        newitem[_idx] = allpossible[_idx];
+                        $.extend(contextmenu, newitem);
+                        console.log(contextmenu);
+                    }
+               } 
+            }
+            return contextmenu;
+        }else{
+            //just render all btns
+            console.log("Displaying unfiltered list of menu buttons" );
+            contextmenu = allpossible;
+            return contextmenu;
+        }
+    }
+
+    function getContextMenuHistoryGrid_ex(allpossible){
+        //opens context menu
+                
+        var contextmenu = {};
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            for (var _idx in allpossible){
+               if (allpossible[_idx]){
+                    if (allpossible[_idx].name.match(regex)){
+                        console.log(allpossible[_idx]);
+                        var newitem = {};
+                        newitem[_idx] = allpossible[_idx];
+                        $.extend(contextmenu, newitem);
+                        console.log(contextmenu);
+                    }
+               } 
+            }
+            return contextmenu;
+        }else{
+            //just render all btns
+            console.log("Displaying unfiltered list of menu buttons" );
+            contextmenu = allpossible;
+            return contextmenu;
+        }
+    }
+    
+    function buildPagination(config,dhxgrid)
+    {
+        var total = config.total;
+        // var tree = $('#treetable_history').fancytree('getTree');
+        if (dhxgrid.mystuff.page != 1){
+            //skip rebuilding pagination if we show another page than first
+            return;
+        }
+        $('#pagination-container').pagination({
+            totalNumber: total,
+            pageSize: m_max_history_gridrows,
+            showGoInput: true,
+            showGoButton: true,
+            dataSource: function(done){
+                        //this is mandatory but pretty useless, we can store custom data in the pagination object. we just store the row indexes
+                        var result = [];
+                        for (var i = 1; i < this.totalNumber; i++) {
+                            result.push(i);
+                        }
+                        done(result);
+                    },
+            callback: function(data, pagination) {
+                //click on some page number
+                if (pagination.pageNumber != dhxgrid.mystuff.page){
+                    //a new  page was selected, reload tree
+                    // var start = (pagination.pageNumber-1) * m_max_history_gridrows;
+                    // var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(tree.mystuff.filterobj));
+                     
+                    // tree.mystuff.page = pagination.pageNumber;
+                    // tree.reload({
+                    //     url: sourceUrl,
+                    //     cache: false
+                    // });
+                    dhxgrid.mystuff.page = pagination.pageNumber;
+                    dhxgrid.loadGridData();
+
+                    if (pagination.pageNumber != 1){
+                        document.getElementById("span_text_finished").innerHTML = 'Finished <span style="color:orange">(Page ' +pagination.pageNumber+ ')</span>'
+                        //addMenuButtons()
+                    }else{
+                        document.getElementById("span_text_finished").innerHTML = 'Finished</span>'
+                        //addMenuButtons()
+                    }
+                }
+
+                var html = "<span></span>";
+                $('#data-container').html(html);
+                
+            }
+        })
+    }
+
+    
+    function addVariableColumns(){
+
+        // let htmltemplate = `
+        //     <th id="history-variable" name="variable" data-sort_dir="">       
+        //         <div style="display:flex;margin-left:10px">
+        //             <div id="history-variable-sorticon-dis">
+        //                     <div class="up-arrow up-arrow-dis"></div>
+        //                     <div class="down-arrow down-arrow-dis"></div>
+        //             </div>
+        //             <i id="history-variable-sorticon" name="treetable_history-sorticon"></i>        
+        //             <input placeholder="Variable" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		           
+        //             <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>
+        //         </div>
+        //     </th>`;
+
+        let htmltemplate = `
+            <th name="col_header_name" data-sort_dir="">       
+                <div style="display:flex;margin-left:10px">       
+                    <input placeholder="col_header_name" data-isvariablecol=true style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />
+                    <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>	           
+                </div>
+            </th>`;
+
+        const trh = document.getElementById('tr_treetable_history');
+        if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
+            let variablecolumns = m_serverconfig.job_viewer.variable_columns;
+            for (let i=0;i<variablecolumns.length;i++){
+                let copy = htmltemplate;
+                copy = copy.replaceAll("col_header_name",variablecolumns[i].col_header_name);
+                trh.insertAdjacentHTML('beforeend', copy);
+            }
+        }
+
+    }
+
+    window.getHistoryGridColumns = getHistoryGridColumns;
+    function getHistoryGridColumns(){
+        
+        let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
+
+        let c = [
+            {
+                id: "state",
+                maxWidth: 100,
+                header: ["<span>State</span>" + searchboxhtml],
+                sortable: true, 
+                template:function(val,row,column){
+                    if (row.children && row.children.length > 1){
+                        let jobid = row.job_id
+                        let expander = '<div id="'+jobid+'_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right"'+ 
+                                            'role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>'
+                        return expander + val;
+                    }
+                    return val;
+                },
+                htmlEnable:true
+            },	    
+            {
+                id: "workflow",
+                width:300,
+                adjust:"data",
+                header: ["<span>Workflow</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,
+                template:function(val,row,column){
+                    return val
+                }
+
+            },
+            {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "duration",    header: ["<span>Duration</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,  maxWidth: 80},
+            {id: "job_end",     header: ["<span>End</span>"+ searchboxhtml],        sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
+            {id: "outcome",     header: ["<span>Outcome</span>"+ searchboxhtml],    sortable: true,htmlEnable: true }
+        ]; //gridcolumns
+        return c;
+    }
+    async function buildHistoryGrid(){
+
+        let gridcolumns = getHistoryGridColumns();
+
+        //apply user state
+        if (localStorage.jobviewer_history_grid_column_config){
+            try{
+                //inject merit and hidden state from user config (options.html)
+                let userconf = JSON.parse(localStorage.jobviewer_history_grid_column_config);
+                gridcolumns = gridcolumns.map(c=>{
+                    let uc = userconf.filter(uc=>{return uc.id == c.id});
+                    if (uc.length != 1)
+                        return c;
+                    c.hidden    = uc[0].user_hidden;
+                    c.merit     = uc[0].merit;
+                    return c;
+                });
+
+                gridcolumns.sort((a, b) => a.merit - b.merit);
+            }catch(ex){console.error("Cannot restore user column config",ex)}
+        }
+
+
+        console.log("gridcols with userdata",gridcolumns)
+
+        /* build the grid */
+        const grid = new dhx8.dhx.Grid("history_div", {
+            columns: gridcolumns,
+            keyNavigation: true,
+            autoWidth:true,
+            resizable: true,
+            multiselection:true,
+            height: "auto",
+            rowHeight: 20,
+            headerRowHeight: 30,
+            selection: "row",
+            css: "alternate_row ffastrans_grid_style",
+            eventHandlers: {
+                
+                oninput:{
+                    searchbox: debounce((event,  args) => {
+                        //debounce function prevents this to fire multiple times parallel while user is typing
+                        //only if user did not type for 500ms, function will fire
+                        grid.filterobj = collectFilters();
+                        grid.data.removeAll();
+                        loadGridData();
+                    },750),
+                },
+                onclick: {
+                    /* expand row with children */ 
+                    expander: (event,  {row} ) => {//expander is in classlist of state htmle template
+                        console.log(row)
+                        if (row.expanded) {
+                            grid.data.update(row.id, { expanded: false });
+                            document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-down', 'dxi-chevron-right');
+                            let to_remove = [];
+                            grid.data.forEach(function(item, index, array) {
+                                if (item.parentid == row.id)
+                                    to_remove.push(item.id);
+                            });
+                            
+                            grid.data.remove(to_remove);
+
+                        } else {
+                            grid.data.update(row.id, { expanded: true });
+                            document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-right', 'dxi-chevron-down');
+                            expandgridrow();
+                            function expandgridrow(rid){
+                                //add the child rows into grid after 
+                                const index = grid.data.getIndex(row.id);
+                                grid.data.add(row.children.map(c=>{//each branch row
+                                        c.parentid = row.id,
+                                        c.state="<p style='text-indent:30px'>" + c.state;
+                                        c.source="<p style='text-indent:30px'>" + c.source;
+                                        c.outcome="<p style='text-indent:30px'>" + c.outcome;
+                                        return c
+                                    }),index+1);
+                            }
+                        }
+                    }
+                }
+            },
+        });
+        m_historyGrid = grid;
+        //custom fields keep track of current state
+        grid.filterobj      = {};
+        grid.sortcol        = "";
+        grid.sortdir        = "";
+        grid.mystuff        = {page:1}
+        grid.loadGridData   = loadGridData;
+
+        //restore grid widths if any
+        // if (localStorage.jobviewer_historygrid_widths){
+        //     try{
+        //         let conf = JSON.parse(localStorage.jobviewer_historygrid_widths);
+        //         let order = "";
+        //         let wSum = 0;
+        //         let colcount = 0;
+        //         grid.config.columns.map(c=>{
+        //             order += c.id;
+        //             wSum += c.$width;
+        //             colcount++;
+        //         });
+        //         if (order != conf.order){ //out of order
+        //             delete localStorage.jobviewer_historygrid_widths;
+        //         }else{//apply col widths
+        //             let idx = 0;
+        //             let newGridCols = getHistoryGridColumns();
+        //             grid.config.columns.map(c=>{
+        //                 let targetc = newGridCols.filter(tc=>{return tc.id == c.id});
+        //                 // if (idx+2 > colcount){
+        //                 //     targetc[0].autoWidth = true;
+        //                 //     return;
+        //                 // }
+        //                 targetc[0].width = (wSum/100 * conf.percent[idx]);
+                        
+        //                 console.log("Restore ",c.id,(wSum/100 * conf.percent[idx]))
+                        
+        //                 idx++;
+
+                            
+        //             });
+        //             grid.setColumns( newGridCols);
+        //         }
+        //     }catch(ex){
+        //         delete localStorage.jobviewer_historygrid_widths;
+        //     }
+        // }
+
+        // //resize columns
+        // grid.events.on("resize", (column, event) => {
+        //     let allColWidths = {order:"",percent:[]}
+        //     let sum_widths = 0;
+        //     grid.config.columns.map(c=>{
+        //         sum_widths += c.$width;
+        //         allColWidths.order += c.id;
+        //     })
+        //     grid.config.columns.map(c=>{
+        //         allColWidths.percent.push(100/sum_widths * c.$width);
+        //         console.log("Store ",c.id,(100/sum_widths * c.$width))
+        //     });
+        //     localStorage.setItem("jobviewer_historygrid_widths",JSON.stringify(allColWidths));
+        // });
+
+        /* Row select */
+        grid.selection.events.on("AfterSelect", (row, column) => {
+            toggleJobControl("history",true);
+        });
+
+        /* Sorting */
+        grid.events.on("beforeSort", (column, dir) => {
+            /* remove all rows and reload sorted data from server */
+            grid.sortcol =  column.id;
+            grid.sortdir =  dir;
+            grid.data.removeAll();
+            loadGridData();
+            return true;
+        });
+        
+        /* Searching */
+        function collectFilters(){ //collects all search values
+            let filterobj = {};
+            filterobj.variablecols = [];
+            const searchboxes = document.querySelectorAll('.searchbox');
+            searchboxes.forEach((searchbox) => {
+                if (searchbox.value == "")
+                    return;
+
+                let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;                
+                if (searchbox.dataset.variablecol){
+                    filterobj.variablecols.push({col_header_name:header_id,filter:searchbox.value});
+                }else
+                    filterobj[header_id] = searchbox.value;
+                
+            })
+            return filterobj;
+        }
+
+        /* Data loading */
+        async function loadGridData(){
+            let urlSearchParams =  new URLSearchParams({});
+            urlSearchParams.append("count", m_max_history_gridrows);
+            urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
+            urlSearchParams.append("sortcol", grid.sortcol);
+            urlSearchParams.append("direction", grid.sortdir);
+            urlSearchParams.append("start", grid.mystuff.page == 1 ? 0 : m_max_history_gridrows * (grid.mystuff.page-1));
+
+            let url = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
+            var response = await fetch(url);
+            if (!response.ok)
+                return dhx8.dhx.message({ expire: 3000, text: "Error loading grid data"});
+            const json = await response.json();
+            grid.data.parse(json.data);
+            console.log("fetched",json);
+
+            urlSearchParams.append("getcount", 1);
+            let counturl = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
+            var countresponse = await fetch(counturl);
+            if (!countresponse.ok)
+                return dhx8.dhx.message({ expire: 3000, text: "Error counting grid data"});
+            
+            const countjson = await countresponse.json();
+            console.log("countresponse",countjson)
+            buildPagination({total:countjson.total_count},grid);
+
+        }
+
+        attachGridContextMenu()
+        loadGridData();
+
+
+    }//buildHistoryGrid
+
+    function attachGridContextMenu(){
+        
+        const contextMenu = new dhx8.dhx.ContextMenu(null, { css: 'grid-context-menu' });
+        let menuitems = [
+            {
+                type: 'menuItem',id: 'details',value: 'Job Details'
+            },
+            {
+                type: 'menuItem',id: 'resubmit',value: 'Resubmit'
+            },
+			{
+                type: 'menuItem',id: 'delete',value: 'Delete'
+            }
+        ]
+
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            contextitems = contextitems.filter(itm=>{
+                if (itm.name.match(regex))
+                    return itm;
+            })
+        }
+
+        contextMenu.data.parse(menuitems);
+        /* context events */
+        contextMenu.events.on("click", function(menu_id,e){
+            history_grid_actions(menu_id);
+        });
+
+        m_historyGrid.events.on('CellRightClick', function (row, column, e) {
+            m_historyGrid.selection.setCell(row.id, column);
+            dhx8.dhx.awaitRedraw().then(function () {
+                contextMenu.showAt(e);
+            });
+            event.preventDefault();
+            return false;
+        });
+    }
+
+    function translateJobs(joblist){
+        /* modifies list of database jobs into tree compatible */
+        for (var i=0;i<joblist.length;i++){
+            try{
+                var c = joblist[i];//mainjob
+                if (c._id){
+                    joblist[i].key = c._id;
+                }
+                c.title = c.state;
+                if (c.children){
+                    for (var c_idx =0;c_idx<c.children.length;c_idx++){
+                        c.children[c_idx]["title"] = c.children[c_idx]["state"];
+                        //c.result += c.children[c_idx].outcome + " ";
+                    }
+                }else{
+                    c.children = [];
+                }
+                if (c.children.length == 1){
+                    //if only 1 child, show as single job
+                    joblist[i] = JSON.parse(JSON.stringify(c.children[0]));
+                    joblist[i].key = c._id;
+                }
+
+            }catch(ex){
+                console.error("Error postprocessing line ",c,ex)
+            }
+        }
+        return joblist;
+    }
+
+	function search_history_check_new_row(new_row){
+           
+		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
+            var show_row = true;
+			for (let i = 0; i < $("input[name=search]").length; i++) {
+                var input = $("input[name=search]")[i];
+                searchfor = $.trim(input.value);
+                var keyname = input.placeholder.toLowerCase();
+                if(keyname.match(/start|end/)){
+                    keyname = "job_" + keyname;
+                }
+                if (searchfor) {
+					console.log("Checking if new row field ", keyname, "value:",new_row[keyname],"matches",searchfor)
+                    var regex = new RegExp(searchfor, 'gi');
+
+                    if (new_row[keyname].match(regex)){
+                        console.log("match",regex)
+						show_row = show_row == false ? show_row : true;
+					}else{
+                        console.log("no match",regex)
+                        show_row = show_row == false ? show_row : false;
+                    }
+                }else{
+                    show_row = show_row == false ? show_row : true;
+                }
+            }
+            
+            return show_row;
+
+	}
+	
+	function history_search_is_active(){
+		/* is a filter active? */
+			var searchCount = 0;
+			for (let i = 0; i < $("input[name=search]").length; i++) {
+                var input = $("input[name=search]")[i];
+                match = $.trim(input.value);
+                if (match) {
+                    searchCount++;
+                }
+            }
+            console.log("History Search num of filters:",searchCount)
+			return searchCount;
+	}
+	
+    function saveLayoutSizes(dhxLayout, name) {
+        //store layout cells height and with into html5 storage (in percentage of document height)
+        var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
+        var ah = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+        var bw = (dhxLayout.cells("c").getWidth() / document.body.scrollWidth);
+        var bh = (dhxLayout.cells("c").getHeight() / document.body.scrollHeight);
+        var cw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
+        var ch = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
+        localStorage.setItem(name + "_aw", aw);
+        localStorage.setItem(name + "_ah", ah);
+        localStorage.setItem(name + "_bw", bw);
+        localStorage.setItem(name + "_bh", bh);
+        if (!dhxLayout.cells("a").isCollapsed()){
+            localStorage.setItem(name + "_cw", cw);
+            localStorage.setItem(name + "_ch", ch);
+        }
+        localStorage.setItem(name + "_c_collapsed", dhxLayout.cells("a").isCollapsed());
+    }
+
+    function restoreLayoutSizes(dhxLayout, name) {
+        if (localStorage.getItem(name + "_aw")) {
+            if (localStorage.getItem(name + "_c_collapsed") == "false"  && !m_serverconfig["alternate-server"]){
+                dhxLayout.cells("a").expand();
+            }
+            var aw = localStorage.getItem(name + "_aw");
+            var ah = localStorage.getItem(name + "_ah");
+            var bw = localStorage.getItem(name + "_bw");
+            var bh = localStorage.getItem(name + "_bh");
+            var cw = localStorage.getItem(name + "_cw");
+            var ch = localStorage.getItem(name + "_ch");
+            dhxLayout.cells("b").setWidth(aw * document.body.scrollWidth);
+            dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
+            dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
+            dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
+            
+            if (dhxLayout.cells("a").isCollapsed() == false){
+                console.log("CW",cw)
+                dhxLayout.cells("a").setWidth(cw * document.body.scrollWidth);
+                dhxLayout.cells("a").setHeight(ch * document.body.scrollHeight);
+            }
+
+        }
+        
+    }
+
+
+    function resubmit_job(job_id) {
+        //get all workflows from server and start main with the workflow of interest
+        job_id = job_id.split("~")[0];
+        var _url = "/getjobdetails?jobid=" + job_id;
+        $.ajax({
+            url: build_new_api_url(_url),
+            type: "GET",
+            crossDomain: true,
+            success: function(response) {
+
+                if (response['wf_object'].length == 0) {
+                    alert("Did not get any workflow in job from FFASTRANS API");
+                } else {
+					console.log("res: ",response)
+                    var postBody = {};
+                    postBody.start_proc = response["nodes"]["start"]["id"];
+                    postBody.wf_id = response["workflow"]["id"];
+                    postBody.inputfile = response["sources"]["localized_file"];
+                    postBody.variables = response["variables"];
+                    postBody.system = "FFAStrans Web Interface";
+                    
+					console.log("submitting wf: ",postBody)
+                    $.ajax({
+                        url: build_new_api_url("/jobs"),//buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
+                        type: "POST",
+                        crossDomain: true,
+                        contentType: "application/json",
+                        data: JSON.stringify(postBody),
+                        success: function(response) {
+                            dhtmlx.message("Sucess")
+                        },
+                        error: function(xhr, status) {
+                            console.log(xhr.responseText)
+                            dhtmlx.alert("Error submitting workflow: " + xhr.responseText);
+                        }
+                    });
+                }
+            },
+            error: function(xhr, status) {
+                alert("ERROR getting workflow of job " + job_id + ", please check FFAStrans Path in Admin settings on the left.. ");
+            }
+        });
+    }
+
+    function jobCommand(dhx_grid_rows, action, value) {
+        //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
+        console.log("jobcommand", dhx_grid_rows,action,value)
+        console.log(m_serverconfig)
+        dhx_grid_rows.forEach(function(node) {
+
+            var postBody = {
+                "action": action,
+                "job_id"   : node.row.job_id,
+                "split_id": node.row.split_id
+            };
+            var jobid = "";
+
+            if (value){
+                postBody["value"] = value;
+            }
+            $.ajax({
+                url: build_new_api_url("/jobs"),//("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
+                type: "PUT",
+                context: this,
+                contentType: "application/json",
+                data: JSON.stringify(postBody),
+                success: function(response) {
+                    console.log("success")
+                    dhtmlx.message("Success " + action + " " + node.row.job_id);
+                },
+                error: function(xhr, status) {
+                    console.error(xhr)
+                    dhtmlx.message("ERROR aborting job, contact developer. Status:" + status);
+                }
+            });
+        })
+
+    }
+
+
+    function applyWorkflowFilter(o_job) {
+        /* DEPRECATED */
+        //returns true or false based on userpermission job filter
+        //TESTING WORKFLOW FILTER DISABLED, INSTEAD UPDATE HISTORY GRID WHEN NEW HISTORY JOB ARRIVES
+        return true;
+        //todo: add wf group filter
+        for (let i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
+            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
+
+                var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
+                if (o_job["workflow"].match(regex)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true; //if there is no filter, render all jobs
+    }
+
+    function addActiveJobsToGrid(targetGridObj,jobArray, qstate){
+        //todo: do the dhtmlx magic
+    }
+
+    /* HELPERS */
+
+    function pad(n, z) { //add leading zero if there is none
+        z = z || '0';
+        n = n + '';
+        return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
+    }
+
+
+    
+    function build_new_api_url(what) {
+        if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
+            return "/new_proxy" + what;
+        } else {
+            var protocol = m_serverconfig.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+            var _url = protocol + m_serverconfig['STATIC_API_HOST'] + ":" + m_serverconfig['STATIC_API_NEW_PORT'] + what;
+            return _url;
+        }
+    }
+        
+        
+    function parse_query_string(query) {
+      var vars = query.split("&");
+      var query_string = {};
+      for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        var key = decodeURIComponent(pair[0]);
+        var value = decodeURIComponent(pair[1]);
+        // If first entry with this name
+        if (typeof query_string[key] === "undefined") {
+          query_string[key] = decodeURIComponent(value);
+          // If second entry with this name
+        } else if (typeof query_string[key] === "string") {
+          var arr = [query_string[key], decodeURIComponent(value)];
+          query_string[key] = arr;
+          // If third or later entry with this name
+        } else {
+          query_string[key].push(decodeURIComponent(value));
+        }
+      }
+      return query_string;
+    }
+    
+                   
+    function decodeEntities(encodedString) {
+        var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+        var translate = {
+            "nbsp":" ",
+            "amp" : "&",
+            "quot": "\"",
+            "lt"  : "<",
+            "gt"  : ">"
+        };
+        return encodedString.replace(translate_re, function(match, entity) {
+            return translate[entity];
+        }).replace(/&#(\d+);/gi, function(match, numStr) {
+            var num = parseInt(numStr, 10);
+            return String.fromCharCode(num);
+        });
+    }
+
+    function wokrflow_tree_control(what){
+        var tree = $("#workflowtree").fancytree('getTree');
+        if (what.id == "wf_filter_clear"){
+            tree.selectAll(false);
+        }
+        if (what.id == "wf_filter_unexpand"){
+            
+        }
+        if (what.id == "wf_filter_clear"){
+            
+        }
+    }
+</script>
+
+<body onload="loadserverconfig()">
+
+    <div style="display:none">
+        <!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
+        <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
+        <div id="active_div" class="gridbox_dhx_skyblue gridbox">
+       
+        </div>
+
+        <!-- height calc solution was the only way i found to have pagination and history div in same grid layout cell, todo: move on to dhx8 layout and put the 2 in separate layout cells -->
+         <div id="history_div_container" > 
+            <div id="history_div" class="history_div" style="height: calc(100% - 38px)"></div> 
+            <div id="pagination" >
+                 <div id="data-container"></div>
+                 <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
+             </div>
+        </div>
+           
+
+         <!-- WORKFLOW FILTER TEMPLATE -->
+        <div id="workflow_filter_menu" class="workflow_filter_background">
+            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
+                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
+                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="width:25px;height:25px;font-size:10px;margin-top:3px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" > 
+                        <i class="fas fa-ban" ></i>
+                    </button>
+                    </div>
+                <div style="float:left;margin-top:10px;margin-left:10px;display:flex;max-width:180px;white-space:nowrap;overflow:hidden">
+                    <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input> 
+                
+                </div>
+           </div> 
+            <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
+        </div>
+        
+        
+    </div><!-- global hiding div -->
+    
+    <!-- html code to be loaded by javascript into dhtmlx cells. This is not directly shown on the page but loaded as a template on demand -->
+    <div style="display:none" id="dhtmlx attachObject Templates">
+
+    </div>
+</body>

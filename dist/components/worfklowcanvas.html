@@ -1,0 +1,293 @@
+<html>
+<head>
+	<title>FFAStrans Workflow</title>
+
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+
+<style type="text/css">
+/* it's important to set width/height to 100% for full-screen init */
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    overflow: hidden;
+    color: #333;
+    font: 14px Helvetica, Arial, sans-serif;
+    line-height: 18px;
+}
+    
+#graphContainer {
+    background: url('../images/canvas_background.png');
+    position: absolute;
+    border: 1px solid #F2F2F2;
+    white-space: nowrap;
+    font-family: Arial;
+    font-size: 8pt;
+    display: block;
+    width: 100%;
+    height:100%;
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+
+.table_ffastrans_processor{
+     overflow: hidden;
+     width:200px;
+     height:200px;
+     border: 6px rgb(85,85,85);
+     border-style: solid;
+     background-color: rgb(184,184,184);;
+     //border-color: #ff0000
+}
+
+.tr_ffastrans_processor_top{
+     background-color: rgb(119,119,119);
+     height:30%;
+     color:white;
+}
+
+</style>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<!-- Sets the basepath for the library if not in same directory -->
+<script type="text/javascript">
+    mxBasePath = '../dependencies/mxgraph/javascript/src';
+</script>
+<script src="../dependencies/jquery/jquery.js"></script>
+
+<!-- Loads and initializes the library -->
+<script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>
+
+<!-- Example code -->
+<script type="text/javascript">
+//madatory url parameter: workflowid
+//request job from server
+
+var m_workflowdata = {};
+
+    // Program starts here. Creates a sample graph in the
+    // DOM node with the specified ID. This function is invoked
+    // from the onLoad event handler of the document (see below).
+    function main(container)
+    {
+        // Checks if the browser is supported
+        if (!mxClient.isBrowserSupported())
+        {
+            // Displays an error message if the browser is not supported.
+            mxUtils.error('Browser is not supported!', 200, false);
+        }
+        else
+        {
+            // Disables the built-in context menu
+            mxEvent.disableContextMenu(container);
+            
+            // Creates the graph inside the given container
+            var graph = new mxGraph(container);
+            graph.setHtmlLabels(true);
+            graph.panningHandler.ignoreCell = true;
+            graph.setPanning(true);
+
+            graph.getLabel = function(cell)
+            {   //takes care of the table styling and inserts ffastrans values into the cells
+                if (this.getModel().isVertex(cell))
+                {
+                    //calculate the text to display on canvas
+                    var FF_NODE_TITLE = cell.ffastransobj["type"];
+                    
+                    var FF_NODE_DESC = cell.ffastransobj["description"]||""; 
+                    
+                    //create the cell style
+                    if (this.isCellCollapsed(cell))
+                    {
+                        return '<table style="overflow:hidden;" border="1" cellpadding="4" class="title" style="height:100%;">' +
+                            '<tr><th>Customers</th></tr>' +
+                            '</table>';
+                    }
+                    else
+                    {   //rounded;stroke-width:10px;strokeColor=rgb(85,85,85);fillColor=rgb(184,184,184)
+                        return '<table class="table_ffastrans_processor" >' +
+                            '<tr class="tr_ffastrans_processor_top" ><th colspan="2">'+FF_NODE_TITLE+'</th></tr>' +
+                            '<tr style="height:70%;"><th colspan="2">'+FF_NODE_DESC+'</th></tr>' +
+                            '</table>';
+                    }
+                }
+                else
+                {
+                    return '';
+                }
+            };
+
+            //GRAPH EVENTS
+                graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
+
+                var cell = evt.getProperty("cell"); // cell may be null
+                    if (cell != null) {
+                        SelectGraphCell(cell);
+                        graph.setSelectionCell(cell);
+                    }
+                    evt.consume();
+                });
+
+
+            //BUILD THE GRAPH
+            // Gets the default parent for inserting new cells. This
+            // is normally the first child of the root (ie. layer 0).
+            var parent = graph.getDefaultParent();
+                            
+            // Adds cells to the model in a single step
+            graph.getModel().beginUpdate();
+            try
+            {
+                var style = graph.getStylesheet().getDefaultVertexStyle()
+                style[mxConstants.STYLE_FONTSIZE] = '10';
+                style[mxConstants.STYLE_VERTICAL_ALIGN] = mxConstants.ALIGN_TOP;
+                
+                var connections = [];//build an object used to create the connections between the nodes
+                //parse ffastrans workflow json
+                var nodes = m_workflowdata["nodes"];
+                for (var key in nodes) {
+                            var x = nodes[key]["proc_x"];
+                            var y =  nodes[key]["proc_y"];
+                             
+                            var v1 = graph.insertVertex(parent, nodes[key]["id"], 'Hello,', x,y,200, 200,'strokeColor=rgb(85,85,85,0);fillColor=rgb(184,184,184,0)');
+                            nodes[key].originalname = key;//expand ffastrans properties by name of processor
+                            v1.ffastransobj = nodes[key];
+                            v1.data = new CustomData('v1');//todo: get out what this is used for
+                            connections.push({"from":nodes[key]["id"],"to": nodes[key].outbounds||[]})
+                }
+                //create node connections
+
+                for (let i=0;i<connections.length;i++){
+                    var from_id = (connections[i]["from"]);
+                    var from_cell = graph.getModel().getCell(from_id);
+                    var to_array = connections[i]["to"];
+                    for (let t=0;t<to_array.length;t++){
+                        //for each target, create connection arrow
+                        var to_cell = graph.getModel().getCell(to_array[t]["id"]);
+                        
+                        if (to_cell.ffastransobj["execute_on"] == "success"){//todo: ask steinar why the numbers are so strange
+                            var color = "rgb(0,200,0)";//execute_on success color
+                        }
+                        if (to_cell.ffastransobj["execute_on"] == "error"){//todo: ask steinar why the numbers are so strange
+                            color= "rgb(200,0,0)";//execute_on error color
+                        }
+                        if (to_cell.ffastransobj["execute_on"] == "always"){//todo: ask steinar why the numbers are so strange
+                            color= "rgb(0,0,0)";//execute_on always color
+                        }
+                        
+                        graph.insertEdge(parent, null, '', from_cell, to_cell,"strokeColor="+color+";strokeWidth=4");
+                    }
+                } 
+                //done with building the graph, auto arrange    
+                var layout = new mxCompactTreeLayout(graph);
+                layout.execute(graph.getDefaultParent());  
+            }
+            finally
+            {
+                // Updates the display
+                graph.getModel().endUpdate();
+            }
+        }
+        // Adds an option to view the XML of the graph
+        document.body.appendChild(mxUtils.button('View XML', function()
+        {
+            var encoder = new mxCodec();
+            var node = encoder.encode(graph.getModel());
+            mxUtils.popup(mxUtils.getXml(node), true);
+        }));
+    };
+
+
+
+    function CustomData(value)
+    {
+        this.value = value;
+    }
+    
+    var codec = new mxObjectCodec(new CustomData());
+
+    codec.encode = function(enc, obj)
+    {
+        var node = enc.document.createElement('CustomData');
+        mxUtils.setTextContent(node, JSON.stringify(obj));
+       
+        return node;
+    };
+    
+    codec.decode = function(dec, node, into)
+    {
+        var obj = JSON.parse(mxUtils.getTextContent(node));
+        obj.constructor = CustomData;
+        
+        return obj;
+    };
+
+    mxCodecRegistry.register(codec);
+        
+//PARSE GET PARAMS    
+function getQueryVariable(variable) {
+      var query = window.location.search.substring(1);
+      var vars = query.split("&");
+      for (var i=0;i<vars.length;i++) {
+        var pair = vars[i].split("=");
+        if (pair[0] == variable) {
+          return pair[1];
+        }
+      } 
+}
+
+function getWorkflows(wf_id){
+//get all workflows from server and start main with the workflow of interest
+    $.ajax({
+        url: getQueryVariable("wf_url"),
+        type: "GET",
+        crossDomain: true,
+        dataType: "json",
+        success: function (response) {
+            if (response['workflows'].length == 0){
+                alert("Did not get any workflows from FFASTRANS API");
+            }else{
+                workflowArray = response['workflows'];
+                for(var wf in workflowArray){
+                    if (wf_id == workflowArray[wf].wf_id){
+                        m_workflowdata = workflowArray[wf];
+                        main(document.getElementById('graphContainer'));
+                        return;
+                    }
+                }
+                
+            }
+        },
+        error: function (xhr, status) {
+            alert("ERROR getting workflows, please check FFAStrans Path in Admin settings on the left.. ");
+        }
+    });
+}
+
+function start(){
+//get Workflow details from server and filter for wf_id
+    getWorkflows(getQueryVariable("wf_id"))
+}
+
+</script>
+</head>
+
+<!-- Page passes the container for the graph to the program -->
+<body onload="start()">
+<script>
+    //init needs to be called by parent of this iframe
+    function init(worfklow_obj){
+        var workflowid = getQueryVariable("wf_id");
+
+    }
+    
+</script>
+	<!-- Creates a container for the graph with a grid wallpaper -->
+	<div id="graphContainer"
+		style="position:relative;overflow:hidden;background:url('../images/canvas_background.png');cursor:default;">
+	</div>
+</body>
+</html>

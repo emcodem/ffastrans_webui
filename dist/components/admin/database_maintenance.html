@@ -1,0 +1,329 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script src="../../dependencies/dhtmlx/8.0.0/suite.js"></script>
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<script src="../../dependencies/jquery/jquery.js"></script>
+
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
+        overflow: hidden;
+    }
+
+	.testcss > .dhx_button {
+		background-color: #e0e0e0;
+		color:black;
+		text-transform: none;
+	}
+	.dhxform_obj_dhx_skyblue > button :hover {
+		background: linear-gradient(#cb1d1d, #000000);
+		
+	}
+
+</style>
+
+<script>
+
+/* GLOBALS */
+var m_mainLayout,m_mainForm, m_serverconfig;
+/* build basic page layout and init periodic job loading*/
+function init(){
+    
+	buildForm()
+	//registerButtonClicks();
+
+}
+
+function buildForm(){
+	const config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+		width:"100%", height:"100%",rows:
+		[
+			{
+				rows: [
+					{
+						id: "automatic_stuff",
+						resizable:false,
+						height:"content",
+						header:"Automatic Deletion Setup",
+						padding: "0px",  
+						margin: "0px",
+					},
+					{
+						id: "manual_stuff",
+						height:"content",
+						resizable:false,
+						header:"Export History Data",
+						padding: "0px",  
+						margin: "0px",
+					}
+				]
+			}
+		]
+	}
+
+
+    //LAYOUT
+    m_mainLayout = new dhx.Layout(document.body, config);
+	const today_start = new Date().setHours(0,0,0);
+	const today_end   = new Date();
+	
+	var manual_form_config = {
+    
+    // sets alignment for rows
+    align: "start", // "center", "end", "between", "around", "evenly"
+    padding: "20px",   
+	height: "content",
+    rows: [
+        {
+				padding: "10px", 
+				// sets alignment for columns
+				align: "center",  // "center", "end", "between", "around", "evenly"
+				rows:[
+						{
+							cols : [
+								{
+								"labelWidth":70,
+								"type": "checkbox",
+								"label": "Error",
+								"checked": true,
+								"name" : "Error",
+								},{
+								"labelWidth":70,
+								"type": "checkbox",
+								"label": "Success",
+								"checked": true,
+								"name" : "Success",
+								},{
+								"labelWidth":70,
+								"type": "checkbox",
+								"label": "Cancelled",
+								"checked": true,
+								"name" : "Cancelled",
+								}
+						]},
+						{
+						cols: [
+							{type: "datepicker", timePicker: true, value: today_start, name: "db_start_date", label: "Date Start", dateFormat: "%Y-%m-%d %H:%i:%s"},
+							{type: "spacer",name: "spacer"},
+							{type: "datepicker", timePicker: true, value: today_end, name: "db_end_date", label: "Date End", dateFormat: "%Y-%m-%d %H:%i:%s"},   
+						]},
+						{
+							"name":"olderthan",
+							"type": "input",
+							"label": "Older than days",
+							"labelPosition": "top",
+							"labelWidth": "140",
+							"required": false,
+							
+							"preMessage": "If you input days, the date selection is ignored.",
+							"successMessage": "If you input days, the date selection is ignored.",
+							"errorMessage": "If you input days, the date selection is ignored."
+						},
+						
+						{type: "spacer",name: "spacer",height:30},
+					{cols: [
+							{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_export_history","hidden":false,name: "btn_export_history", width:100,value:"Download JSON Export"},
+							/*{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_purge_history","hidden":false,name: "btn_purge_history", width:100,value:"Delete"},*/
+					]},
+					
+				],
+			
+			}
+		]
+	}
+	m_mainForm = new dhx.Form(null, manual_form_config);
+	m_mainLayout.getCell("manual_stuff").attach(m_mainForm);
+
+	//BUILD AUTO DELETION FORM
+	var autoFormConfig = {
+		align: "start", // "center", "end", "between", "around", "evenly"
+		padding: "20",   
+		height: "150",
+		rows: [
+				{
+					"name":"database_maintenance_autodelete",
+					"type": "input",
+					"inputType" : "number",
+					"label": "Maximum Job Age",
+					"labelPosition": "left",
+					"labelWidth": "140",
+					"required": false,
+					"validation":"integer",
+					"value" : m_serverconfig.database_maintenance_autodelete,
+					"preMessage": "Auto delete jobs older than X days done Hourly and at program start. ",
+					"successMessage": "Auto delete jobs older than X days done Hourly and at program start.",
+					"errorMessage": "Must be a number"
+				},
+				{cols:[
+					{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save_autodelete","hidden":false,
+					name: "btn_save_autodelete", width:150,value:"Save Max Age"},
+					{type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_force_autodelete","hidden":false,
+					name: "btn_force_autodelete", width:150,value:"Execute Now"},
+				]},
+		]
+	}
+
+	var autodelForm = new dhx.Form(null, autoFormConfig);
+	m_mainLayout.getCell("automatic_stuff").attach(autodelForm);
+
+	m_mainForm.events.on("click", function(name,e){
+		if(name == "btn_export_history")
+			do_export();
+		if(name == "btn_purge_history")
+			do_purge();
+	});	
+
+	autodelForm.events.on("click", function(name,e){
+		if(name == "btn_save_autodelete")
+			save_autodelete(autodelForm.getValue());
+		if(name == "btn_force_autodelete")
+			force_autodelete();
+	});	
+}
+
+function force_autodelete(){
+	$.ajax({
+		url: ("/database_maintenance_autodelete" + "?" + Math.random()),
+		type: "DELETE",
+		success: function(response) {
+			dhx.message({ expire: 3000, text: "Success... "  });
+		},
+		error: function(xhr, status) {
+			console.log("XHR Status",status);
+			console.log(xhr);
+			alert("Fatal error, see console");
+		}
+	});
+}
+
+function save_autodelete(obj){
+	$.ajax({
+		url: ("/database_maintenance_autodelete" + "?" + Math.random()),
+		type: "POST",
+		data:obj,
+		dataType:"json",
+		success: function(response) {
+			dhx.message({ expire: 3000, text: "Success... "  });
+		},
+		error: function(xhr, status) {
+			console.log("XHR Status",status);
+			console.log(xhr);
+			alert("Fatal error, see console");
+		}
+	});
+}
+
+function do_validate(){
+	var values = m_mainForm.getValue()
+	
+	if(values.db_start_date > values.db_end_date){
+		dhx.alert({
+			header:"Date error",
+			text:"Start date must be older than end date",
+			buttons: ["ok"],
+			buttonsAlignment:"center"
+		});
+		return false;
+	}
+	return true;
+}
+
+async function do_export(){
+	var values = m_mainForm.getValue();
+	if (!do_validate() || (!m_mainForm.validate() && values.olderthan!= ""))
+		return;
+	
+	console.log("formv values",values);
+	window.open("/database_maintenance_download?parameters=" + encodeURIComponent(JSON.stringify(values)), "_blank");
+	//m_mainForm.send("/database_download","POST");
+	//await fetch("/database_download");
+	
+}
+
+function do_purge(){
+	var values = m_mainForm.getValue()
+	do_validate();
+}
+
+function loadserverconfig() {
+	
+	$.ajax({
+		url: ("/getserverconfig" + "?" + Math.random()),
+		type: "GET",
+		success: function(response) {
+			console.log("got server conf")
+			m_serverconfig = JSON.parse(response);
+			console.log("SERVERCONFIG:",m_serverconfig)
+			init();
+		},
+		error: function(xhr, status) {
+			dhtmlx.message("Fatal error, could not load serverconfig. ");
+			document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
+		}
+	});
+}
+
+
+
+function testConfig(){
+	console.log("starting test");
+    var o_testmail = {};
+    o_testmail["test_rcpt"] = document.getElementById("test_rcpt").value;
+    o_testmail["test_subject"] = document.getElementById("test_subject").value;
+	o_testmail["test_body"] = document.getElementById("test_body").value;
+	
+	document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain fqdn\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
+	$.ajax({
+		url: ("/admin_alert_email_tester" + "?" + Math.random()),
+		type: "POST",
+		data: o_testmail,
+		success: function(response) {
+			console.log("TEST OK",response);
+			try{
+				response= JSON.parse(response);
+				response = JSON.stringify(response, undefined, 2);
+			}catch(ex){
+			
+			}
+			document.getElementById("testresult").innerHTML = response;
+			
+		},
+		error: function(xhr, status) {
+			console.log("TEST FAIL");
+			document.getElementById("testresult").innerHTML = xhr.responseText;
+		}
+	});
+}
+
+
+
+/* */
+
+</script>
+
+</head>
+<body onload="loadserverconfig()" style="overflow:auto">
+
+</body>

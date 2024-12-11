@@ -1,0 +1,1 @@
+{"version":3,"file":"OptionsHandler.d.ts","sourceRoot":"","sources":["../../src/handlers/OptionsHandler.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,WAAW,EAAC,MAAM,eAAe,CAAA;AAGzC,OAAO,KAAK,IAAI,MAAM,WAAW,CAAA;AAIjC,qBAAa,cAAe,SAAQ,WAAW;IACvC,IAAI,CAAC,GAAG,EAAE,IAAI,CAAC,eAAe,EAAE,GAAG,EAAE,IAAI,CAAC,cAAc;CAkB/D"}

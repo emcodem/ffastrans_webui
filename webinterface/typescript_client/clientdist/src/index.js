@@ -10,4 +10,4 @@ import '@uppy/dashboard/dist/style.min.css';
 
 new Uppy()
 	.use(Dashboard, { inline: true, target: 'body' })
-	.use(Tus, { endpoint: '/files',chunkSize:1024000 });
+	.use(Tus, { endpoint: '/uppy',chunkSize:67108864,parallelUploads :1 });

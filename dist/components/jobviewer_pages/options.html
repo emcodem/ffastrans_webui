@@ -1,0 +1,384 @@
+<html>
+<head>
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<script src="../../dependencies/jquery/jquery.js"></script>
+<link rel="icon" href="favicon.ico?v=1.1">
+<link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
+
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
+<script src="../../dependencies/dhtmlx/dhtmlx.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<style>
+    /* it's important to set width/height to 100% for full-screen init */
+    html, body {
+        width:100%;
+        height:100%;
+        margin: 0;
+        overflow: auto;
+    }
+
+	hr {
+	  margin-top: 1rem;
+	  margin-bottom: 1rem;
+	  border: 0;
+	  border-top: 1px solid rgba(0, 0, 0, 0.1);
+	}
+    div, label, input{
+        font-size:12px; 
+       
+    }
+    form{
+        width:100%
+    }
+    
+    label{
+        display:block;
+    }
+    legend{
+        width:initial;
+    }
+    .searchbox{
+        display:none
+    }
+    .dxi-checkbox-marked:before,.dxi-checkbox-blank-outline:before{
+        font-size:13
+    }
+   
+</style>
+
+
+<script type="module">
+/* stores jobviewer config in localStorage, reloads page on change */
+window.init=init;
+let m_history_conf_grid;
+let m_active_conf_grid;
+
+async function init(){
+    const config = {
+        //type: "wide",//"line" | "wide" | "space" | "none";
+        type:"wide",
+        
+        padding:5,
+		width:"100%", height:"100%",rows:
+		[
+			{
+				rows: [
+
+                    {
+						id: "options_layout_grid_conf_cell",
+						resizable:false,
+						
+                        cols:[
+                            {
+                                header:"Active Grid Config",
+                                id: "active_grid_conf_cell",
+                                resizable:false,
+                                
+                                width:"48%",
+                            },
+                            {
+                                header:"History Grid Config",
+                                id: "history_grid_conf_cell",
+                                resizable:false,
+                                width:"48%",
+                            },
+                        ]
+					},
+                    {
+						id: "options_layout_cell",
+						resizable:false,
+						height:200,
+					},
+				]
+			}
+		]
+	}
+    let m_mainLayout = new dhx8.dhx.Layout("optsform", config);
+
+    
+	var manual_form_config = {
+    
+    // sets alignment for rows
+    align: "start", // "center", "end", "between", "around", "evenly"
+    rows: [
+        {
+				
+				rows:[
+						{
+							name:"jobviewer_rows_per_page", 
+                            type: "input",
+                            inputType:"number",
+                            max: 1000,
+                            min:1,
+                            label: "Rows per Page:",
+                            labelPosition: "left",labelWidth: "140",
+                            value: localStorage.getItem("jobviewer_rows_per_page") || "100",
+                            width: 220
+						},
+                        {
+							name:"jobviewer_showrowcolors_history", 
+                            type: "checkbox",
+                            label: "Row Colors:",
+                            labelPosition: "left",labelWidth: "140",
+                            checked:localStorage.getItem("jobviewer_showrowcolors_history")=="1",
+						},
+                        {
+							name:"global_skin_dark", 
+                            type: "checkbox",
+                            label: "Dark Skin:",
+                            labelPosition: "left",labelWidth: "140",
+                            checked:localStorage.getItem("global_skin_dark")=="1",
+						},
+						{type: "spacer",name: "spacer",height:10},
+                        {cols: [
+                                {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save",name: "btn_save", width:100,value:"Save"},
+                                {type: "spacer",name: "spacer",width:100},
+                                {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_reset_state",name: "btn_reset", width:100,value:"Reset Page"},
+                        ],
+                        width:"100%",
+                        align:"evenly"
+                        },
+					
+				],
+			
+			}
+		]
+	}
+	let m_mainForm = new dhx8.dhx.Form(null, manual_form_config);
+    m_mainLayout.getCell("options_layout_cell").attach(m_mainForm);
+
+    m_mainForm.events.on("click", function(name,e){
+        if(name == "btn_reset"){
+            if (window.confirm("Reset all settings?")){
+                localStorage.clear();
+                parent.window.parent.window.location.reload();
+            }
+        }
+		if(name == "btn_save"){
+            //save column config
+            saveGridConf();
+
+            //save options form
+            let values = m_mainForm.getValue();
+            console.log("values",values)
+            Object.keys(values).map(k=>{
+                if (k=="global_skin_dark"){
+                    values[k] = values[k] == true ? "1" : false; //for legacy reasons we store 1 instead of true
+                }
+                if (k=="jobviewer_showrowcolors_history"){
+                    values[k] = values[k] == true ? "1" : false; //for legacy reasons we store 1 instead of true
+                }
+                localStorage.setItem(k,values[k]);
+            });
+            parent.window.parent.window.location.reload();
+        }
+	});	
+
+    let _hgrid = await buildHistoryConfigGrid();
+    m_mainLayout.getCell("history_grid_conf_cell").attach(_hgrid);
+    let _agrid = await buildActiveConfigGrid();
+    m_mainLayout.getCell("active_grid_conf_cell").attach(_agrid);
+
+};
+
+/**
+ * Builds and stores a config object in localStorage
+*/
+function saveGridConf(){
+    //attach index 
+    let to_save = m_history_conf_grid.data.map((entry,index)=>{
+        entry.merit = index;
+        return entry;
+    });
+    localStorage.setItem("jobviewer_history_grid_column_config",JSON.stringify(to_save));
+    console.log("saving history grid config",to_save);
+    
+    let to_save_active = m_active_conf_grid.data.map((entry,index)=>{
+        entry.merit = index;
+        return entry;
+    });
+    localStorage.setItem("jobviewer_active_grid_column_config",JSON.stringify(to_save_active));
+    console.log("saving active grid config",to_save_active);
+    
+
+}
+
+async function buildHistoryConfigGrid(){
+    const columns = [
+	    {
+            id: "header",
+            header: ["Name"],
+            type: "text",
+            sortable: false,
+            template: (d,row)=>{
+                return(row.header[0])
+            },
+            htmlEnable:true
+        },	    
+        {
+            id: "user_hidden",
+            header: ["Hidden"],
+            template: (user_hidden) => {
+                return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
+            },
+            sortable: false,
+            htmlEnable: true,
+        }
+    ];
+
+
+    let all_historycols = parent.window.getHistoryGridColumns();
+    console.log("all_historycols",all_historycols);
+    if (localStorage.jobviewer_history_grid_column_config){
+        //merge existing userconf
+        try{
+            let userconf = JSON.parse(localStorage.jobviewer_history_grid_column_config);
+            all_historycols = all_historycols.map(c=>{
+                let c_user = userconf.filter(_usercol=>{return c.id == _usercol.id});
+                if (c_user.length != 1)
+                    return c;
+                c.merit = c_user[0].merit;
+                c.user_hidden = c_user[0].user_hidden;
+                return c;
+            })
+            all_historycols.sort((a, b) => a.merit - b.merit);
+        }catch(ex){
+            console.error("Unexpected error restoring grid state",ex);
+            delete localStorage.jobviewer_history_grid_column_config
+        }
+    }
+    console.log("restored userconf:",all_historycols)
+
+    //build grid
+    const grid = new dhx8.dhx.Grid(null, {
+        columns: columns,
+        // data: all_historycols,
+        debug:true,
+        keyNavigation: true,
+        autoWidth: true,
+        height: "auto",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        dragItem: "both",
+        selection: "row",
+        eventHandlers: {
+            onclick: {
+                checkbox: (event, { row }) => {
+                    if (row.user_hidden) {
+                        grid.data.update(row.id, { user_hidden: false });
+                    } else {
+                        grid.data.update(row.id, { user_hidden: true });
+                    }
+                }
+            }
+        },
+    });
+    m_history_conf_grid = grid;
+    console.log("parsing grid data",all_historycols)
+    grid.data.parse([...all_historycols]);
+    return grid;
+}
+
+async function buildActiveConfigGrid(){
+    const columns = [
+	    {
+            id: "header",
+            header: ["Name"],
+            type: "text",
+            sortable: false,
+            template: (d,row)=>{
+                return(row.header[0])
+            },
+            htmlEnable:true
+        },	    
+        {
+            id: "user_hidden",
+            header: ["Hidden"],
+            template: (user_hidden) => {
+                return `<i class="checkbox dxi ${user_hidden ? "dxi-checkbox-marked" : "dxi-checkbox-blank-outline"}"></i>`
+            },
+            sortable: false,
+            htmlEnable: true,
+        }
+    ];
+
+
+    let all_cols = parent.window.getActiveGridColumns();
+    console.log("active_cols",all_cols);
+    if (localStorage.jobviewer_active_grid_column_config){
+        //merge existing userconf
+        try{
+            let userconf = JSON.parse(localStorage.jobviewer_active_grid_column_config);
+            all_cols = all_cols.map(c=>{
+                let c_user = userconf.filter(_usercol=>{return c.id == _usercol.id});
+                if (c_user.length != 1)
+                    return c;
+                c.merit = c_user[0].merit;
+                c.user_hidden = c_user[0].user_hidden;
+                console.log("show userconf",c)
+                return c;
+            })
+            all_cols.sort((a, b) => a.merit - b.merit);
+        }catch(ex){
+            console.error("Unexpected error restoring grid state",ex);
+            delete localStorage.jobviewer_active_grid_column_config
+        }
+    }
+    console.log("restored userconf active cols:",all_cols)
+
+    //build grid
+    const grid = new dhx8.dhx.Grid(null, {
+        columns: columns,
+        debug:true,
+        keyNavigation: true,
+        autoWidth: true,
+        height: "auto",
+        rowHeight: 20,
+        headerRowHeight: 30,
+        dragItem: "both",
+        selection: "row",
+        eventHandlers: {
+            onclick: {
+                checkbox: (event, { row }) => {
+                    if (row.user_hidden) {
+                        grid.data.update(row.id, { user_hidden: false });
+                    } else {
+                        grid.data.update(row.id, { user_hidden: true });
+                    }
+                }
+            }
+        },
+    });
+    m_active_conf_grid = grid;
+    console.log("parsing grid data active",all_cols)
+    grid.data.parse([...all_cols]);
+    return grid;
+}
+
+</script>
+
+</head>
+
+<body onload="init()">
+    <div id="optsform" style="width:100%;height:100%">
+
+</div> 
+</body>
+
+</html>
