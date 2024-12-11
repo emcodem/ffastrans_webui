@@ -1,0 +1,1 @@
+{"version":3,"file":"ErrorWithCause.d.ts","sourceRoot":"","sources":["../src/ErrorWithCause.ts"],"names":[],"mappings":"AAGA,cAAM,cAAe,SAAQ,KAAK;IACzB,cAAc,EAAE,OAAO,CAAA;IAEvB,KAAK,EAAE,KAAK,CAAC,OAAO,CAAC,CAAA;gBAG1B,OAAO,CAAC,EAAE,qBAAqB,CAAC,gBAAgB,CAAC,CAAC,CAAC,CAAC,EACpD,OAAO,CAAC,EAAE,qBAAqB,CAAC,gBAAgB,CAAC,CAAC,CAAC,CAAC;CAUvD;AAED,eAAe,cAAc,CAAA"}

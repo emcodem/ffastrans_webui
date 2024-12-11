@@ -1,5 +1,5 @@
 const userpermissions = require("../userpermissions");
-const ffascommon = require("ffastrans_common");
+
 
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
@@ -181,7 +181,7 @@ module.exports = function(app, express){
 			if (cursor.length != with_children.length){
 				//attempt workaround where children is not yet set by jobfetcher.
 				console.error("reloading history jobs from db because at least one job had children length zero");
-				await ffascommon.sleep(50);
+				await sleep(50);
 				cursor = await global.db.jobs.find(final_filterobj,{sort:sorting}).skip(start).limit(count);
 				//var overallcount = await cursor.count();
 				cursor = await cursor.toArray();
@@ -217,6 +217,12 @@ module.exports = function(app, express){
 		}
 	});
 }
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+}   
 
 /**
  * Inline modifies job and applies variable templates from variablecolumns if any

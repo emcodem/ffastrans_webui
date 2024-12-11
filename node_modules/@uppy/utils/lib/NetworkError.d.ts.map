@@ -1,0 +1,1 @@
+{"version":3,"file":"NetworkError.d.ts","sourceRoot":"","sources":["../src/NetworkError.ts"],"names":[],"mappings":"AAAA,cAAM,YAAa,SAAQ,KAAK;IACvB,KAAK,EAAE,OAAO,CAAA;IAEd,cAAc,EAAE,IAAI,CAAA;IAEpB,OAAO,EAAE,IAAI,GAAG,cAAc,CAAA;gBAEzB,KAAK,EAAE,OAAO,EAAE,GAAG,GAAE,IAAI,GAAG,cAAqB;CAS9D;AAED,eAAe,YAAY,CAAA"}

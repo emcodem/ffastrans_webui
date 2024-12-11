@@ -1,4 +1,7 @@
 const express = require('express');
+const {Server} = require('@tus/server')
+const {FileStore} = require('@tus/file-store')
+
 const mustacheExpress = require('mustache-express');
 const app = express();
 global.expressapp = app;
@@ -461,7 +464,17 @@ async function init(conf){
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/databasemaintenance_views")(app, passport);
 
-       
+    //upload backend
+    fs.ensureDir("c:\\temp\\files")
+    const tusServer = new Server({
+        path: 'C:\\temp\\files',
+        datastore: new FileStore({directory: 'C:\\temp\\files'}),
+      });
+    
+    app.all('*', (req, res) => {
+        tusServer.handle(req, res);
+    });
+
     //Registers user configured additinal webfolders
     await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS);
 

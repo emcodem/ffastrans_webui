@@ -1,5 +1,5 @@
 const userpermissions = require("../userpermissions");
-const ffascommon = require("ffastrans_common");
+
 
 module.exports = function(app, express){
 
@@ -213,6 +213,10 @@ function hashCode (string) {
 	return hash;
 };
   
-  
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+}   
   
   

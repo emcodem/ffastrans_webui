@@ -1,0 +1,1 @@
+{"version":3,"file":"secondsToTime.d.ts","sourceRoot":"","sources":["../src/secondsToTime.ts"],"names":[],"mappings":"AAAA,UAAU,IAAI;IACZ,KAAK,EAAE,MAAM,CAAA;IACb,OAAO,EAAE,MAAM,CAAA;IACf,OAAO,EAAE,MAAM,CAAA;CAChB;AAED,MAAM,CAAC,OAAO,UAAU,aAAa,CAAC,UAAU,EAAE,MAAM,GAAG,IAAI,CAM9D"}

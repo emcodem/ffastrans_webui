@@ -1,0 +1,47 @@
+<head><link
+  href="https://releases.transloadit.com/uppy/v4.8.0/uppy.min.css"
+  rel="stylesheet"
+/>
+
+</head>
+
+<body>
+<!-- 2. Initialize -->
+
+<script type="module">
+  import {
+    Uppy,
+    Dashboard,
+    DragDrop,
+    Tus,
+  } from 'https://releases.transloadit.com/uppy/v4.8.0/uppy.min.mjs'
+
+
+  import {Person} from "/webinterface/typescript_client/clientdist/client.js"
+
+  let uppy = new Uppy().use(Dashboard, { inline: true, target: document.body });
+
+  uppy.use(Tus, {
+	endpoint: '/uppy',
+	// async onBeforeRequest(req) {
+	// 	console.log("beforereq")
+	// },
+	// onShouldRetry(err, retryAttempt, options, next) {
+	// 	console.log("shouldretry")
+	// 	return next();
+	// },
+	// async onAfterResponse(req, res) {
+	// 	console.log("afterres")
+	// },
+});
+
+// uppy.use(DragDrop, {
+// 	target: document.body,
+// });
+
+  //   let uppy = new Uppy().use(DragDrop, { target: '#files-drag-drop' });
+//   uppy.use(Tus, { endpoint: '/uppy' })
+
+</script>
+
+</body>

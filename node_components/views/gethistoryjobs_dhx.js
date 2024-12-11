@@ -1,5 +1,4 @@
 const userpermissions = require("../userpermissions");
-const ffascommon = require("ffastrans_common");
 
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 

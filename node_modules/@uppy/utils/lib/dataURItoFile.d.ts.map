@@ -1,0 +1,1 @@
+{"version":3,"file":"dataURItoFile.d.ts","sourceRoot":"","sources":["../src/dataURItoFile.ts"],"names":[],"mappings":"AAEA,MAAM,CAAC,OAAO,UAAU,aAAa,CACnC,OAAO,EAAE,MAAM,EACf,IAAI,EAAE;IAAE,QAAQ,CAAC,EAAE,MAAM,CAAC;IAAC,IAAI,CAAC,EAAE,MAAM,CAAA;CAAE,GACzC,IAAI,CAEN"}
