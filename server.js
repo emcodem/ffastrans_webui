@@ -465,10 +465,10 @@ async function init(conf){
     require("./node_components/views/databasemaintenance_views")(app, passport);
 
     //upload backend
-    fs.ensureDir("c:\\temp\\files")
+    fs.ensureDir("c:/temp/files")
     const tusServer = new Server({
-        path: 'C:\\temp\\files',
-        datastore: new FileStore({directory: 'C:\\temp\\files'}),
+        path: '/files',
+        datastore: new FileStore({directory: 'C:/temp/files'}),
       });
     
     app.all('*', (req, res) => {
