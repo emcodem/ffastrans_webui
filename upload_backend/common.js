@@ -9,7 +9,7 @@ module.exports = function(app, express){
 
 	//download files - not yet supported nor used
 	app.use('/backend/upload/files/:file', (req, res) => {
-		var file = global.config.STATIC_UPLOADPATH +req.params.file;
+		var file = path.join(global.config.STATIC_UPLOADPATH +req.params.file);
 		res.download(file);
 	});
 
@@ -22,7 +22,7 @@ module.exports = function(app, express){
 				console.log(fieldname, o_fileinfo.filename);
 				const saveTo = path.join(global.config.STATIC_UPLOADPATH, o_fileinfo.filename);
 				response.link = `${o_fileinfo.filename}`;
-
+				console.log("Upload file path: ",saveTo);
 				file.pipe(fs.createWriteStream(saveTo));
 			});
 			busboy.on('field', (fieldname, val) => {
