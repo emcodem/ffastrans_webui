@@ -9,7 +9,7 @@ module.exports = function(app, express){
 
 	//download files - not yet supported nor used
 	app.use('/backend/upload/files/:file', (req, res) => {
-		var file = path.join(global.config.STATIC_UPLOADPATH +req.params.file;
+		var file = path.join(global.config.STATIC_UPLOADPATH +req.params.file);
 		res.download(file);
 	});
 
