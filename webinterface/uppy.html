@@ -7,7 +7,7 @@
 
 <body>
 <!-- 2. Initialize -->
-
+<!--  
 <script type="module">
   import {
     Uppy,
@@ -15,9 +15,6 @@
     DragDrop,
     Tus,
   } from 'https://releases.transloadit.com/uppy/v4.8.0/uppy.min.mjs'
-
-
-  import {Person} from "/webinterface/typescript_client/clientdist/client.js"
 
   let uppy = new Uppy().use(Dashboard, { inline: true, target: document.body });
 
@@ -42,6 +39,9 @@
   //   let uppy = new Uppy().use(DragDrop, { target: '#files-drag-drop' });
 //   uppy.use(Tus, { endpoint: '/uppy' })
 
-</script>
+</script> -->
+<div id="drag-drop"></div>
+
+<script src="typescript_client/clientdist/dist/main.js"></script>
 
 </body>
