@@ -1437,7 +1437,7 @@ async function buildActiveGrid() {
             var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
             console.log("Displaying filtered list of buttons, regex: ", regex);
             menuitems = menuitems.filter(itm=>{
-                if (itm.name.match(regex))
+                if (itm.value.match(regex))
                     return itm;
             })
         }
