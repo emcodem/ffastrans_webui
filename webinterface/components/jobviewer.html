@@ -1436,7 +1436,7 @@ async function buildActiveGrid() {
             //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
             var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
             console.log("Displaying filtered list of buttons, regex: ", regex);
-            contextitems = contextitems.filter(itm=>{
+            menuitems = menuitems.filter(itm=>{
                 if (itm.name.match(regex))
                     return itm;
             })
