@@ -240,6 +240,9 @@
         background:  rgba(0, 255, 0, 0.250)
     }
     
+    .dhx_grid-cell__content{
+        user-select: text;
+    }
 </style>
 
 
@@ -1107,40 +1110,40 @@ async function buildActiveGrid() {
     }
 
     
-    function addVariableColumns(){
+    // function addVariableColumns(){
 
-        // let htmltemplate = `
-        //     <th id="history-variable" name="variable" data-sort_dir="">       
-        //         <div style="display:flex;margin-left:10px">
-        //             <div id="history-variable-sorticon-dis">
-        //                     <div class="up-arrow up-arrow-dis"></div>
-        //                     <div class="down-arrow down-arrow-dis"></div>
-        //             </div>
-        //             <i id="history-variable-sorticon" name="treetable_history-sorticon"></i>        
-        //             <input placeholder="Variable" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		           
-        //             <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>
-        //         </div>
-        //     </th>`;
+    //     // let htmltemplate = `
+    //     //     <th id="history-variable" name="variable" data-sort_dir="">       
+    //     //         <div style="display:flex;margin-left:10px">
+    //     //             <div id="history-variable-sorticon-dis">
+    //     //                     <div class="up-arrow up-arrow-dis"></div>
+    //     //                     <div class="down-arrow down-arrow-dis"></div>
+    //     //             </div>
+    //     //             <i id="history-variable-sorticon" name="treetable_history-sorticon"></i>        
+    //     //             <input placeholder="Variable" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		           
+    //     //             <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>
+    //     //         </div>
+    //     //     </th>`;
 
-        let htmltemplate = `
-            <th name="col_header_name" data-sort_dir="">       
-                <div style="display:flex;margin-left:10px">       
-                    <input placeholder="col_header_name" data-isvariablecol=true style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />
-                    <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>	           
-                </div>
-            </th>`;
+    //     let htmltemplate = `
+    //         <th name="col_header_name" data-sort_dir="">       
+    //             <div style="display:flex;margin-left:10px">       
+    //                 <input placeholder="col_header_name" data-isvariablecol=true style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />
+    //                 <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>	           
+    //             </div>
+    //         </th>`;
 
-        const trh = document.getElementById('tr_treetable_history');
-        if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
-            let variablecolumns = m_serverconfig.job_viewer.variable_columns;
-            for (let i=0;i<variablecolumns.length;i++){
-                let copy = htmltemplate;
-                copy = copy.replaceAll("col_header_name",variablecolumns[i].col_header_name);
-                trh.insertAdjacentHTML('beforeend', copy);
-            }
-        }
+    //     const trh = document.getElementById('tr_treetable_history');
+    //     if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
+    //         let variablecolumns = m_serverconfig.job_viewer.variable_columns;
+    //         for (let i=0;i<variablecolumns.length;i++){
+    //             let copy = htmltemplate;
+    //             copy = copy.replaceAll("col_header_name",variablecolumns[i].col_header_name);
+    //             trh.insertAdjacentHTML('beforeend', copy);
+    //         }
+    //     }
 
-    }
+    // }
 
     window.getHistoryGridColumns = getHistoryGridColumns;
     function getHistoryGridColumns(){
@@ -1178,8 +1181,25 @@ async function buildActiveGrid() {
             {id: "duration",    header: ["<span>Duration</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span>End</span>"+ searchboxhtml],        sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
-            {id: "outcome",     header: ["<span>Outcome</span>"+ searchboxhtml],    sortable: true,htmlEnable: true }
+            {id: "outcome",     header: ["<span>Outcome</span>"+ searchboxhtml],    sortable: true,htmlEnable: true, 
+                template: function(val,row,col){
+                    if (val.length > 5000)
+                        val = val.substring(0, 5000);
+                    val=val.replaceAll("\n","");
+            }}
         ]; //gridcolumns
+
+        if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
+            let variablecolumns = m_serverconfig.job_viewer.variable_columns;
+            for (let i=0;i<variablecolumns.length;i++){
+                c.push({
+                    id: variablecolumns[i].col_header_name,
+                    header: ["<span>"+variablecolumns[i].col_header_name+"</span>"+ searchboxhtml],
+                    sortable: false,
+                    htmlEnable: true
+                });
+            }
+        }
         return c;
     }
     async function buildHistoryGrid(){
@@ -1219,6 +1239,7 @@ async function buildActiveGrid() {
             headerRowHeight: 30,
             selection: "row",
             css: "alternate_row ffastrans_grid_style",
+           
             eventHandlers: {
                 
                 oninput:{
