@@ -606,7 +606,17 @@ function init(){
     }
 
     let uppy = new Uppy();
-	uppy.use(Dashboard, { inline: true, target: document.getElementById("vault"),theme:uppytheme })
+	uppy.use(Dashboard, { 
+        inline: true, 
+        target: document.getElementById("vault"),
+        theme:uppytheme,
+        debug:true,
+        logger: {
+            debug: (...args) => {console.debug(args)},
+            warn: (...args) => {console.warn(args)},
+            error: (...args) => {console.error(args)},
+        }
+    })
 	.use(Tus, { endpoint: "/tusd_proxy",chunkSize:67108864,parallelUploads : parallel }) //60mb chunks
     .on("upload-success",function(file,response){
         let uploadid;
@@ -629,7 +639,12 @@ function init(){
         m_selectedFileGrid.addRow(newId,[]);
         m_selectedFileGrid.setRowData(newId,newrowdata);
         console.log("uppy finish",normalized_filename)
-    });
+    }).on('complete', (result) => {
+        //all uploads completed
+        console.log('upload successful files:', result.successful);
+        console.log('upload failed files:', result.failed);
+        uppy.clear();
+    });;
     
     // var vault = new dhx.Vault('vault', {
     //     uploader:{ 
