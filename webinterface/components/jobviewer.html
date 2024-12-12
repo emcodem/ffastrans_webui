@@ -1162,6 +1162,8 @@ async function buildActiveGrid() {
                         let expander = '<div id="'+jobid+'_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right"'+ 
                                             'role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>'
                         return expander + val;
+                    }else{
+                        return "<div style='width:20px'></div>" + val
                     }
                     return val;
                 },
