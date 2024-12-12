@@ -591,10 +591,11 @@ function init(){
 	.use(Dashboard, { inline: true, target: document.getElementById("vault"),theme:uppytheme })
 	.use(Tus, { endpoint: '/uppy',chunkSize:67108864,parallelUploads :1 })
     .on("upload-success",function(file,response){
+        let normalized_filename = file.name.replace(/[ö\/\|:\?"\*<>\\]/g, '_'); //backend uses the same regex to normalize filenames e.g. mac can have :
         var newId = (new Date()).valueOf() + Math.random();
         var newrowdata = {};
-        newrowdata["Filename"] = file.name;
-        newrowdata["Path"] = file.name;
+        newrowdata["Filename"] = normalized_filename;
+        newrowdata["Path"] = normalized_filename;
         newrowdata["is_folder"] = false;
         newrowdata["Modified"] =  new Date(file.data.lastModified).toISOString();
         newrowdata["Created"] = new Date(file.data.lastModified).toISOString()
@@ -603,7 +604,7 @@ function init(){
         newrowdata["source_of_adding"] = "Upload";
         m_selectedFileGrid.addRow(newId,[]);
         m_selectedFileGrid.setRowData(newId,newrowdata);
-        console.log("uppy finish",file.name)
+        console.log("uppy finish",normalized_filename)
     });
     
     // var vault = new dhx.Vault('vault', {

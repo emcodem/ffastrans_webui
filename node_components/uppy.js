@@ -1,16 +1,24 @@
 /*routes takes care about authentification for all urls*/
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
+const axios = require("axios");
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
-const {Server,EVENTS} = require('@tus/server')
-const {FileStore} = require('@tus/file-store')
+const {Server,EVENTS} = require('@tus/server');
+const {FileStore} = require('@tus/file-store');
+
+
+let binaryPath  = os.tmpdir();   //where mongod binary will be extracted to. Can be changed before calling start method
+let port        = 28017;
 
 module.exports = function(app, passport) {
     initializeUppy(app);
 }
 
 function initializeUppy(app){
-    
+    //downloadTusD();
     const tusServer = new Server({
         path: '/uppy',
         datastore: new FileStore({directory: global.config.STATIC_UPLOADPATH}),
@@ -47,7 +55,8 @@ function initializeUppy(app){
         let fullpath = upload.storage.path.replace("\\/","\\");
         let upload_dirname = path.dirname(fullpath);
         let originalname = upload.metadata.filename;
-        let target_full = path.join(upload_dirname,originalname);
+        let normalized_filename = originalname.replace(/[ö\/\|:\?"\*<>\\]/g, '_');
+        let target_full = path.join(upload_dirname,normalized_filename);
         if (await (target_full)){
             try{
                 console.warn("Upload file already exists, trying to overwrite: ",target_full);
@@ -62,6 +71,30 @@ function initializeUppy(app){
     })
 
 };
+
+async function downloadTusD(){
+    let link_win = "https://github.com/tus/tusd/releases/download/v2.6.0/tusd_windows_amd64.zip";
+    
+    const fileResponse = await axios({
+        url: link_win,
+        method: "GET",
+        responseType: "stream",
+    });
+    console.log("writing tuds to ", path.join(binaryPath,"tusd.zip"));
+    await fsPromises.writeFile(path.join(binaryPath,"tusd.zip"), fileResponse.data);
+    
+     
+     let unzipcmd = 'powershell -Command "Expand-Archive -Force "' + path.join(binaryPath,"tusd.zip").replaceAll("\\","\\\\") + '" "' + path.join(binaryPath,"tusd").replaceAll("\\","\\\\") + '""';
+     try{
+        const { stdout, stderr } = await exec(unzipcmd);
+        console.log("success unzipping tusd to",path.join(binaryPath,"tusd").replaceAll("\\","\\\\"));
+     }catch(ex){
+        console.error("Error unzipping",ex)
+     }
+     
+
+}
+
 
 function sleep(ms) {
     return new Promise((resolve) => {
