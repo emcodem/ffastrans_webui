@@ -330,7 +330,15 @@
     
     /* render menu buttons based on permissions*/
     function addMenuButtons(){
-        
+
+        function _appendtext (headerText, to_append){//helper
+            let headers = document.querySelectorAll(".dhx_layout-cell-header__title")
+            let header = [...headers].filter(e => e.innerText === headerText);
+            header[0].insertAdjacentHTML( 'afterEnd', to_append );
+           
+            //appends text to mainLayout.cells("b") and mainLayout.cells("c")
+            //mainLayout.getCell(cellid).config.header = mainLayout.getCell(cellid).config.header + to_append;
+        }
         //menu buttons html
         //do not forget to add the button name to togglejobcontrol if you add more btns 
         var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i>Job Details</button> ';
@@ -338,7 +346,7 @@
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i>Pause</button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i>Resume</button>   ';
         // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
-        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="history_grid_actions(this.name)" style="float: right;margin-top:4px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
+        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="history_grid_actions(this.name)" style="float: right;position:absolute;right:40"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i>Options</button> ';
         
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
         
@@ -347,6 +355,7 @@
         var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i>Delete Selected</button> ';
         var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
         
+
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){
@@ -358,26 +367,27 @@
             for (let _id=0;_id<arr_all_in_a.length;_id++){
                 var input_name = arr_all_in_a[_id].match(/name="(.*?)"/)[1];
                 if (regex.test(input_name)){
-                    _appendtext('b',arr_all_in_a[_id])
+                    _appendtext('Running',arr_all_in_a[_id])
                 }
             }
             //no filter, add filtered btns to History jobgrid
             for (let _id=0;_id<arr_all_in_b.length;_id++){
                 var input_name = arr_all_in_b[_id].match(/name="(.*?)"/)[1];
                 if (regex.test(input_name)){
-                    _appendtext('c',arr_all_in_b[_id])
+                    _appendtext('History',arr_all_in_b[_id])
                 }
             }
         }else{
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
-            _appendtext('b',arr_all_in_a.join("") );
-            _appendtext('c', b_details + b_resubmit + b_delete_selected);
+            _appendtext('Running',arr_all_in_a.join("") );
+            _appendtext('History', b_details + b_resubmit + b_delete_selected);
         }
-        function _appendtext (cellid, to_append){//helper
-            //appends text to mainLayout.cells("b") and mainLayout.cells("c")
-            mainLayout.cells(cellid).setText(mainLayout.cells(cellid).getText() + to_append);
-        }
+
+        let spacer = "<div style='width:50px'></div>";
+        _appendtext('Running',spacer);
+        _appendtext('History',spacer);
+
     }
 
     function _getObjectByValue(object, value) {//helper
@@ -406,13 +416,13 @@
     }
 
     /* build basic page layout and init periodic job loading*/
-    function init() {
+    async function init() {
         
         //search params from URL go to their corresponding search inputs
         var query = window.location.search.substring(1);
         query = parse_query_string(query);
         m_query = query;
-        console.log("Querystring",query)
+        console.log("Querystring",query);
         //insert filter from url into search text fields
         for (var filtername in query) {
             if (query.hasOwnProperty(filtername) && filtername != "") {
@@ -426,99 +436,197 @@
             dhtmlx.message("ERROR, no html5 store support, cannot save view state")
         }
 
-        mainLayout = new dhtmlXLayoutObject({
-            parent: document.body,
-            pattern: "3L",
-            cells: [
-					{id: "a", text: "Workflow Filter", collapsed_text: "<span id='workflow_filter_header_collaped' style='display:flex;cursor:pointer'><b>Workflows</b></span>"},
-					{id: "b", text: ""},
-					{id: "c", text: ""}
-				]
-        });
+        layoutConf = {
+            type: "wide",
+            width:"100%",
+            cols: [
+                {
+                    id: "a",
+                    html: "1",
+                    width:350,
+                    resizable:true
+                },
+                {
+                    
+                    rows: [
+                        {
+                            id: "b",
+                            html: "2",
+                            //header:"Running",
+                            height:"50%",
+                            resizable:true
+                        },
+                        {
+                            id: "c",
+                            html: "3",
+                            height:"50%",
+                            //header:"History",
+                            resizable:true
+                        },
+                    ]
+                },
+            ]
+        };
 
-        mainLayout.cells("a").showInnerScroll()
-        mainLayout.cells("a").setMinWidth(150);
-        mainLayout.cells("a").setWidth(350);
-        mainLayout.cells("a").collapse(); 
-		
+        if (!query["hideheaders"]){
+            layoutConf.cols[0].header       = "Workflow";
+            layoutConf.cols[0].collapsable  = true;
+            layoutConf.cols[1].rows[0].header = "Running";
+            layoutConf.cols[1].rows[1].header = "History";
+
+        }
+
+        mainLayout = new dhx8.dhx.Layout(document.body, layoutConf);
+
 		if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
 			buildWorfklowTree(); //load workflows
-			mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
+            
+			//mainLayout.getCell("a").header = ('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
 		
 		}else{
+            mainLayout.getCell("a").config.header  = "";
+            mainLayout.getCell("a").config.width   = 0;
 			console.log("alternate server is true!")
-			mainLayout.cells("a").setCollapsedText("");
-			mainLayout.cells("a").hideArrow();
-            mainLayout.cells("a").collapse();
+			// mainLayout.getCell("a").setCollapsedText("");
+			// mainLayout.getCell("a").hideArrow();
+            mainLayout.getCell("a").collapse();
 		}
-        mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#888888" >Running</span>');
-        mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
+
+        mainLayout.events.on("afterCollapse", function(id){
+            // your logic here
+
+        });
+
+        let historyDivContainer = `
+            <div id="history_div_container" > 
+                <div id="history_div" class="history_div" style="height: calc(100% - 38px)"></div> 
+                <div id="pagination" >
+                    <div id="data-container"></div>
+                    <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
+                </div>
+            </div>
+        `;
+        mainLayout.getCell("c").attachHTML(historyDivContainer);
+
+        // let activeDivContainer = `
+        //     <div id="active_div" class="gridbox_dhx_skyblue gridbox">
+        //     </div>
+        // `;
+        // mainLayout.getCell("b").attachHTML(activeDivContainer);
+        await dhx8.dhx.awaitRedraw();
+        if (query["hideactive"]){
+            mainLayout.getCell("b").collapse();
+        }
+        if (query["hidehistory"]){
+            mainLayout.getCell("c").collapse(); 
+        }
+        
+        mainLayout.events.on("afterResizeEnd", function(id){
+            //savelayoutsizes
+        });
+
+        addMenuButtons();
+        //restoreLayoutSizes(mainLayout, "mainLayout");
+        await buildHistoryGrid();
+
+        let agrid = await buildActiveGrid();
+        mainLayout.getCell("b").attach(agrid);
+        m_activeGrid.loadGridData();
+        return;
+        // mainLayout = new dhtmlXLayoutObject({
+        //     parent: document.body,
+        //     pattern: "3L",
+        //     cells: [
+		// 			{id: "a", text: "Workflow Filter", collapsed_text: "<span id='workflow_filter_header_collaped' style='display:flex;cursor:pointer'><b>Workflows</b></span>"},
+		// 			{id: "b", text: ""},
+		// 			{id: "c", text: ""}
+		// 		]
+        // });
+
+
+        // mainLayout.cells("a").showInnerScroll()
+        // mainLayout.cells("a").setMinWidth(150);
+        // mainLayout.cells("a").setWidth(350);
+        // mainLayout.cells("a").collapse(); 
+		
+		// if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
+		// 	buildWorfklowTree(); //load workflows
+		// 	mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
+		
+		// }else{
+		// 	console.log("alternate server is true!")
+		// 	mainLayout.cells("a").setCollapsedText("");
+		// 	mainLayout.cells("a").hideArrow();
+        //     mainLayout.cells("a").collapse();
+		// }
+
+        // mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#888888" >Running</span>');
+        // mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
 
         
         //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
-        $('#workflow_filter_header_collaped').click(()=>{
-            mainLayout.cells("a").expand()
-            restoreLayoutSizes(mainLayout, "mainLayout");
-        });
-        mainLayout.attachEvent("onCollapse", function(name){
-                $('#workflow_filter_header_collaped').click(()=>{
-                    mainLayout.cells("a").expand()
-                    restoreLayoutSizes(mainLayout, "mainLayout");
-                });
-                localStorage.setItem("mainLayout_c_collapsed", "true");
-                console.log("saving collapsed state")
-        });
-        mainLayout.attachEvent("onExpand", function(name){
-                localStorage.setItem("mainLayout_c_collapsed", "false");
-        });
+        // $('#workflow_filter_header_collaped').click(()=>{
+        //     mainLayout.cells("a").expand()
+        //     restoreLayoutSizes(mainLayout, "mainLayout");
+        // });
+        // mainLayout.attachEvent("onCollapse", function(name){
+        //         $('#workflow_filter_header_collaped').click(()=>{
+        //             mainLayout.cells("a").expand()
+        //             restoreLayoutSizes(mainLayout, "mainLayout");
+        //         });
+        //         localStorage.setItem("mainLayout_c_collapsed", "true");
+        //         console.log("saving collapsed state")
+        // });
+        // mainLayout.attachEvent("onExpand", function(name){
+        //         localStorage.setItem("mainLayout_c_collapsed", "false");
+        // });
         
-        mainLayout.cells("c").setWidth($(document).width() / 3);
-        //mainLayout.cells("c").setText("Finished");
-        mainLayout.cells("b").setHeight($(document).height() / 3.5);
-        restoreLayoutSizes(mainLayout, "mainLayout");
+        // mainLayout.cells("c").setWidth($(document).width() / 3);
+        // //mainLayout.cells("c").setText("Finished");
+        // mainLayout.cells("b").setHeight($(document).height() / 3.5);
+        //restoreLayoutSizes(mainLayout, "mainLayout");
 
         //attach grids
-        mainLayout.cells("c").attachObject("history_div_container");
-        mainLayout.cells("c").showInnerScroll();
-        mainLayout.cells("b").attachObject("active_div");
-        mainLayout.cells("b").showInnerScroll();
+        // mainLayout.cells("c").attachObject("history_div_container");
+        // mainLayout.cells("c").showInnerScroll();
+        // mainLayout.cells("b").attachObject("active_div");
+        // mainLayout.cells("b").showInnerScroll();
         
         
         //url parameter hideheaders
-        if (query["hideheaders"]){
-            mainLayout.cells("b"). hideHeader();
-            mainLayout.cells("c"). hideHeader();
-        }
+        // if (query["hideheaders"]){
+        //     mainLayout.cells("b"). hideHeader();
+        //     mainLayout.cells("c"). hideHeader();
+        // }
 
         //ur param hideactive
-        if (query["hideactive"]){
-            mainLayout.cells("b").collapse()
-            mainLayout.cells("b").hideArrow();
-            $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";          
-        }
-        if (query["hidehistory"]){
-            mainLayout.cells("c").collapse()
-            mainLayout.cells("c").hideArrow();
-            $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";           
-        }
+        // if (query["hideactive"]){
+        //     mainLayout.cells("b").collapse()
+        //     mainLayout.cells("b").hideArrow();
+        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";          
+        // }
+        // if (query["hidehistory"]){
+        //     mainLayout.cells("c").collapse()
+        //     mainLayout.cells("c").hideArrow();
+        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";           
+        // }
         //menu text and buttons
-        addMenuButtons();
         
-        mainLayout.attachEvent("onPanelResizeFinish", function() {
-            saveLayoutSizes(mainLayout, "mainLayout");
-        });
+        
+        // mainLayout.attachEvent("onPanelResizeFinish", function() {
+        //     saveLayoutSizes(mainLayout, "mainLayout");
+        // });
 
-        m_lastsortelementid = {}
-        m_lastsortdir = {}
-        m_lastsortelementid["treetable_active"] = "active-state";
-        m_lastsortdir["treetable_active"] = "asc";
-        m_lastsortelementid["treetable_history"] = "history-job_start";
-        m_lastsortdir["treetable_history"] = "des";
-        console.log("Applying default sorting for active and history grid")
+        // m_lastsortelementid = {}
+        // m_lastsortdir = {}
+        // m_lastsortelementid["treetable_active"] = "active-state";
+        // m_lastsortdir["treetable_active"] = "asc";
+        // m_lastsortelementid["treetable_history"] = "history-job_start";
+        // m_lastsortdir["treetable_history"] = "des";
+        // console.log("Applying default sorting for active and history grid")
 		
         //Build the grids
-        buildHistoryGrid();
-        buildActiveGrid();
+
 
         //Socket events
         socket.on('newhistoryjob', async function() {
@@ -562,23 +670,39 @@ function debounce(func,timeout){
     };
 
 function buildWorfklowTree(){
-
+    mainLayout.getCell("a").progressShow();
     $.ajax({
         url:  "/getworkflowlist",
         type: "GET",
         crossDomain: true,
         dataType: "json",
-        success: function (response) {
+        success: async function (response) {
             console.log("workflows",response)
             if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{
                 m_workflowArray = response['workflows'];
+                mainLayout.getCell("a").progressHide();
                 
-                mainLayout.cells("a").progressOff();
-                mainLayout.cells("a").detachObject();
-                mainLayout.cells("a").attachObject("workflow_filter_menu");
-                
+                //mainLayout.getCell("a").detachObject();
+                let treehtml = `
+                        <div id="workflow_filter_menu" class="workflow_filter_background">
+                            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
+                                <div style="float:left;display:block;margin-top:5px;margin-left:5px">
+                                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="width:25px;height:25px;font-size:10px;margin-top:3px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" > 
+                                        <i class="fas fa-ban" ></i>
+                                    </button>
+                                    </div>
+                                <div style="float:left;margin-top:10px;margin-left:10px;display:flex;max-width:180px;white-space:nowrap;overflow:hidden">
+                                    <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input> 
+                                
+                                </div>
+                        </div> 
+                            <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
+                        </div>
+                `
+                mainLayout.getCell("a").attachHTML(treehtml);
+                await dhx8.dhx.awaitRedraw();
                 //search button
                 $("input[name=wf_filter]").keyup(function(e){
                     var n,
@@ -607,7 +731,7 @@ function buildWorfklowTree(){
             }
         },
         error: function (xhr, status) {
-            mainLayout.cells("a").progressOff();
+            mainLayout.getCell("a").progressHide();
             dhtmlx.message("ERROR getting WORKFLOWS, please check FFAStrans Path in Admin settings on the left. or you have an invalid expression in filter?");
         }
     });
@@ -858,7 +982,7 @@ async function buildActiveGrid() {
     console.log("active gridcols with userdata",gridcolumns)
 
     /* build the grid */
-    const grid = new dhx8.dhx.Grid("active_div", {
+    const grid = new dhx8.dhx.Grid(null, {
         columns: gridcolumns,
         keyNavigation: true,
         autoWidth: true,
@@ -972,8 +1096,8 @@ async function buildActiveGrid() {
     }
 
     attachGridContextMenu()
-    loadGridData();
-
+    // loadGridData();
+    return grid;
 
 }//buildActiveGrid
 
@@ -1674,35 +1798,14 @@ async function buildActiveGrid() {
     <div style="display:none">
         <!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
-        <div id="active_div" class="gridbox_dhx_skyblue gridbox">
-       
-        </div>
+
 
         <!-- height calc solution was the only way i found to have pagination and history div in same grid layout cell, todo: move on to dhx8 layout and put the 2 in separate layout cells -->
-         <div id="history_div_container" > 
-            <div id="history_div" class="history_div" style="height: calc(100% - 38px)"></div> 
-            <div id="pagination" >
-                 <div id="data-container"></div>
-                 <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
-             </div>
-        </div>
+
            
 
          <!-- WORKFLOW FILTER TEMPLATE -->
-        <div id="workflow_filter_menu" class="workflow_filter_background">
-            <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
-                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
-                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="workflow_filter_menu_item" style="width:25px;height:25px;font-size:10px;margin-top:3px" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" > 
-                        <i class="fas fa-ban" ></i>
-                    </button>
-                    </div>
-                <div style="float:left;margin-top:10px;margin-left:10px;display:flex;max-width:180px;white-space:nowrap;overflow:hidden">
-                    <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input> 
-                
-                </div>
-           </div> 
-            <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
-        </div>
+
         
         
     </div><!-- global hiding div -->
