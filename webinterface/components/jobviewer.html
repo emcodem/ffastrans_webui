@@ -191,11 +191,6 @@
 		margin-top:3px;
 	}
 	
-    .history_div{
-        /* display:grid; */
-        /* height:100%; */
-        /* grid:'table_container' minmax(0,1fr); */
-    }
 
     ul.fancytree-container {
         font-size:12px !important;
@@ -243,6 +238,24 @@
     .dhx_grid-cell__content{
         user-select: text;
     }
+    
+    .dhx_grid-row{
+        
+        transition: transform ease 0.05s, box-shadow ease 0.05s;
+
+    }
+
+    .dhx_grid-row:hover {
+        /* background-color: var(--dhx-color-primary-light-hover) !important;
+        box-shadow: 2px 2px 0px 0px #4777e0 !important; */
+        position:relative;
+        overflow: visible;
+        background-color: transparent;
+        box-shadow: 0 0 4px 0.5px rgba(14, 61, 162, 0.708); /* Darker shadow for visibility */
+        
+    }
+
+
 </style>
 
 
@@ -259,6 +272,7 @@
     /* GLOBALS */
     var mainLayout, runningJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
     let m_historyGrid;
+    let m_activeGrid;
     var m_rowColorError = "#f28d80"
     var m_rowColorCancelled = "#ffcc80"
 	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
@@ -268,6 +282,18 @@
     dhtmlx.message= function(what){
         dhx8.dhx.message({ expire: 3000, text: what});
     }
+
+    /* global click handler */
+    document.addEventListener("click", function(evnt){
+        if (Array.from(evnt.target.classList).indexOf("dhx_grid-cell__content" ) != -1)
+            return true;
+        
+        if(m_historyGrid && m_activeGrid){
+            //disable selection in the grids
+            m_historyGrid.selection.removeCell();
+            m_activeGrid.selection.removeCell();
+        }
+    });
 
     /*load config from server*/
     function loadserverconfig() {
