@@ -3616,6 +3616,9 @@ div.gridbox table.hdr td.columnTargetL div.hdrcell {
 .dhx_header_cmenu_item {
   white-space: nowrap;
 }
+.dhx_header-wrapper{
+  z-index:101
+}
 div.gridboxgridbox_dhx_skyblue div.ftr td {
   text-align: right;
   color: #000000;
