@@ -8639,9 +8639,14 @@ ul.fancytree-container{/* workflow selection */
   background: #e5e5e5;
 }
 
+/* selected grid rows text appears not dim this way */
 .dhx_grid-cell__content{
   z-index:100;
   color: rgb(15, 15, 15);
+}
+
+.dhx_header-wrapper {
+  z-index:101;
 }
 
 /* table header in log viewer was transparent */

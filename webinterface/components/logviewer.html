@@ -228,7 +228,8 @@
     }
 
     .blinking-selected {
-        border-bottom: calc(var(--canvas-font-size-processor)/2) solid #0000ff78
+        /* border-bottom: calc(var(--canvas-font-size-processor)/2) solid #0000ff78 */
+        box-shadow:  0 0 100px 50px #fff900ad;
     }
     
     /* todo: we could use a variable for the sizes in order to support changing the base resolution of the graph (the real processor pixel width) 
@@ -1496,7 +1497,7 @@ function toggleNodeSelected(nodeid){
     //there can be only one node selected at a time. 
     $(".blinking-selected").removeClass("blinking-selected");
     if (nodeid)
-        $("#" + nodeid).parent().addClass("blinking-selected");
+        $("#" + nodeid).parent().parent().addClass("blinking-selected");
 }
 
 function initNodeGrid() {

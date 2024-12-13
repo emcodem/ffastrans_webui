@@ -152,7 +152,7 @@
     }
 
     .uppy-Dashboard-inner{
-        height:100% !important;
+        height:99% !important;
         width:100% !important;
     }
     .uppy-Dashboard{
@@ -592,32 +592,59 @@ function init(){
 
 	m_mainTabBar.tabs("upload").attachHTMLString("<div id='vault' style='height:100%'/>");
 
+    //set up uploader (uppy)
     let uppytheme = "light";
     if (localStorage.global_skin_dark == "1"){
         uppytheme = "dark";
     }
-    new Uppy()
-	.use(Dashboard, { inline: true, target: document.getElementById("vault"),theme:uppytheme })
-	.use(Tus, { endpoint: '/uppy',chunkSize:67108864,parallelUploads :1 })
+    var url = window.location.href;
+    var browserurl = url.split("/");
+    
+    let parallel = 5;
+    if (m_serverconfig.USE_TUSD == "disabled"){
+        parallel = 1;
+    }
+
+    let uppy = new Uppy();
+	uppy.use(Dashboard, { 
+        inline: true, 
+        target: document.getElementById("vault"),
+        theme:uppytheme,
+        debug:true,
+        logger: {
+            debug: (...args) => {console.debug(args)},
+            warn: (...args) => {console.warn(args)},
+            error: (...args) => {console.error(args)},
+        }
+    })
+	.use(Tus, { endpoint: "/tusd_proxy",chunkSize:67108864,parallelUploads : parallel }) //60mb chunks
     .on("upload-success",function(file,response){
-        console.log("upload succes,",file,response);
-        let uploadid = new URL(file.tus.uploadUrl).pathname.replace("/uppy","");
-        uploadid = uploadid.replace("/","");
-        let normalized_filename = file.name.replace(/[ö\/\|:\?"\*<>\\]/g, '_'); //backend uses the same regex to normalize filenames e.g. mac can have :
+        let uploadid;
+        let normalized_filename = file.data ? file.data.name : file.name;   //left tusd server right node-tus-server
+        normalized_filename = file.data.name.replace(/[ö\/\|:\?"\*<>\\]/g, '_'); 
+        uploadid = file.data ? response.uploadURL : response.uploadUrl;     //left tusd server right node-tus-server
+        uploadid = new URL(response.uploadURL).pathname.replace("/uppy","").replace("/tusd_proxy","").replace("/","");
+        
+        //add grid rows
         var newId = (new Date()).valueOf() + Math.random();
         var newrowdata = {};
-        newrowdata["Filename"] = normalized_filename;
-        newrowdata["Path"] = uploadid+"_\\"+normalized_filename;
+        newrowdata["Filename"]  = normalized_filename;
+        newrowdata["Path"]      = uploadid+"_\\"+normalized_filename;
         newrowdata["is_folder"] = false;
-        newrowdata["Modified"] =  new Date(file.data.lastModified).toISOString();
-        newrowdata["Created"] = new Date(file.data.lastModified).toISOString()
+        newrowdata["Modified"]  =  new Date(file.data.lastModified).toISOString();
+        newrowdata["Created"]   = new Date(file.data.lastModified).toISOString()
         newrowdata["original_size"] = file.data.size;
-        newrowdata["Size"] = file.data.size;
+        newrowdata["Size"]      = file.data.size;
         newrowdata["source_of_adding"] = "Upload";
         m_selectedFileGrid.addRow(newId,[]);
         m_selectedFileGrid.setRowData(newId,newrowdata);
         console.log("uppy finish",normalized_filename)
-    });
+    }).on('complete', (result) => {
+        //all uploads completed
+        console.log('upload successful files:', result.successful);
+        console.log('upload failed files:', result.failed);
+        uppy.clear();
+    });;
     
     // var vault = new dhx.Vault('vault', {
     //     uploader:{ 

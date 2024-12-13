@@ -8914,7 +8914,12 @@ div.gridbox_dhx_skyblue.gridbox {
   border:1px solid 1px solid #000000;
 }
 
+/* selected grid rows text appears not dim this way */
 .dhx_grid-cell__content{
   z-index:100;
   color: rgb(240, 240, 240)
+}
+
+.dhx_header-wrapper {
+  z-index:101;
 }
