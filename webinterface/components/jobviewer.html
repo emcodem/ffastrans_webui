@@ -1276,6 +1276,19 @@ async function buildActiveGrid() {
                             function expandgridrow(rid){
                                 //add the child rows into grid after 
                                 const index = grid.data.getIndex(row.id);
+                                const naturalCollator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+                                //row.children.sort(grid.)
+                                try{
+                                    if (grid.sortcol && grid.sortcol != ""){
+                                        if (grid.sortdir == "asc"){
+                                            row.children.sort((a, b) => naturalCollator.compare(a[grid.sortcol], b[grid.sortcol]));
+                                        }else{
+                                            row.children.sort((a, b) => naturalCollator.compare(b[grid.sortcol], a[grid.sortcol]));
+                                        }
+                                        
+                                    }
+                                }catch(ex){}
+                                    
                                 grid.data.add(row.children.map(c=>{//each branch row
                                         c.parentid = row.id,
                                         c.state="<p style='text-indent:30px'>" + c.state;
@@ -1292,8 +1305,8 @@ async function buildActiveGrid() {
         m_historyGrid = grid;
         //custom fields keep track of current state
         grid.filterobj      = {};
-        grid.sortcol        = "";
-        grid.sortdir        = "";
+        grid.sortcol        = "job_end";
+        grid.sortdir        = "desc";
         grid.mystuff        = {page:1}
         grid.loadGridData   = loadGridData;
 
@@ -1460,82 +1473,7 @@ async function buildActiveGrid() {
             return false;
         });
     }
-
-    function translateJobs(joblist){
-        /* modifies list of database jobs into tree compatible */
-        for (var i=0;i<joblist.length;i++){
-            try{
-                var c = joblist[i];//mainjob
-                if (c._id){
-                    joblist[i].key = c._id;
-                }
-                c.title = c.state;
-                if (c.children){
-                    for (var c_idx =0;c_idx<c.children.length;c_idx++){
-                        c.children[c_idx]["title"] = c.children[c_idx]["state"];
-                        //c.result += c.children[c_idx].outcome + " ";
-                    }
-                }else{
-                    c.children = [];
-                }
-                if (c.children.length == 1){
-                    //if only 1 child, show as single job
-                    joblist[i] = JSON.parse(JSON.stringify(c.children[0]));
-                    joblist[i].key = c._id;
-                }
-
-            }catch(ex){
-                console.error("Error postprocessing line ",c,ex)
-            }
-        }
-        return joblist;
-    }
-
-	function search_history_check_new_row(new_row){
-           
-		/* called if search is active and new history job arrives, we need to apply the searchfields manually*/
-            var show_row = true;
-			for (let i = 0; i < $("input[name=search]").length; i++) {
-                var input = $("input[name=search]")[i];
-                searchfor = $.trim(input.value);
-                var keyname = input.placeholder.toLowerCase();
-                if(keyname.match(/start|end/)){
-                    keyname = "job_" + keyname;
-                }
-                if (searchfor) {
-					console.log("Checking if new row field ", keyname, "value:",new_row[keyname],"matches",searchfor)
-                    var regex = new RegExp(searchfor, 'gi');
-
-                    if (new_row[keyname].match(regex)){
-                        console.log("match",regex)
-						show_row = show_row == false ? show_row : true;
-					}else{
-                        console.log("no match",regex)
-                        show_row = show_row == false ? show_row : false;
-                    }
-                }else{
-                    show_row = show_row == false ? show_row : true;
-                }
-            }
-            
-            return show_row;
-
-	}
-	
-	function history_search_is_active(){
-		/* is a filter active? */
-			var searchCount = 0;
-			for (let i = 0; i < $("input[name=search]").length; i++) {
-                var input = $("input[name=search]")[i];
-                match = $.trim(input.value);
-                if (match) {
-                    searchCount++;
-                }
-            }
-            console.log("History Search num of filters:",searchCount)
-			return searchCount;
-	}
-	
+		
     function saveLayoutSizes(dhxLayout, name) {
         //store layout cells height and with into html5 storage (in percentage of document height)
         var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
@@ -1580,7 +1518,6 @@ async function buildActiveGrid() {
         }
         
     }
-
 
     function resubmit_job(job_id) {
         //get all workflows from server and start main with the workflow of interest
@@ -1661,31 +1598,6 @@ async function buildActiveGrid() {
 
     }
 
-
-    function applyWorkflowFilter(o_job) {
-        /* DEPRECATED */
-        //returns true or false based on userpermission job filter
-        //TESTING WORKFLOW FILTER DISABLED, INSTEAD UPDATE HISTORY GRID WHEN NEW HISTORY JOB ARRIVES
-        return true;
-        //todo: add wf group filter
-        for (let i = 0; i < m_userpermissions.length; i++) { //iterate all permissions
-            if (m_userpermissions[i]["key"] == "FILTER_WORKFLOW_NAME") {
-
-                var regex = new RegExp(m_userpermissions[i]["value"]["filter"], 'gi');
-                if (o_job["workflow"].match(regex)) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        }
-        return true; //if there is no filter, render all jobs
-    }
-
-    function addActiveJobsToGrid(targetGridObj,jobArray, qstate){
-        //todo: do the dhtmlx magic
-    }
-
     /* HELPERS */
 
     function pad(n, z) { //add leading zero if there is none
@@ -1694,8 +1606,6 @@ async function buildActiveGrid() {
         return n.length >= 2 ? n : new Array(2 - n.length + 1).join(z) + n;
     }
 
-
-    
     function build_new_api_url(what) {
         if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
             return "/new_proxy" + what;
@@ -1705,7 +1615,6 @@ async function buildActiveGrid() {
             return _url;
         }
     }
-        
         
     function parse_query_string(query) {
       var vars = query.split("&");
@@ -1728,8 +1637,7 @@ async function buildActiveGrid() {
       }
       return query_string;
     }
-    
-                   
+                
     function decodeEntities(encodedString) {
         var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
         var translate = {
