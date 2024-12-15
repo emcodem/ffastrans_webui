@@ -36,6 +36,7 @@ function _defaultClick (data){
            if (! data.node.folder){
                 //treenode.node.toggleSelected();//in single selection mode, click must emit select
                 //a workflow was selected!
+                
                 if (localStorage.getItem("lastselectedworkflow")){
                     var tree = $("#"+config["dom_id"]).fancytree("getTree");
                     var n = localStorage.getItem("lastselectedworkflow");
@@ -61,24 +62,40 @@ function _defaultClick (data){
     //collect data for fancytree obj
     for (i=0;i<wfArray.length;i++){
         var folder = wfArray[i]["wf_folder"];
+        // let icon = "ffas_workflow_status_enabled";
+        // if (wfArray[i]._status)
+        //     icon = "ffas_workflow_status_" + wfArray[i]._status;
+       
         if (folder == ""){
             //workflow in root of tree
             treeObj[wfArray[i]["wf_id"]] = {};
             treeObj[wfArray[i]["wf_id"]].title = wfArray[i]["wf_name"];
             treeObj[wfArray[i]["wf_id"]].key = wfArray[i]["wf_id"]; 
             treeObj[wfArray[i]["wf_id"]]["wf_object"] = wfArray[i];
+            // treeObj[wfArray[i]["wf_id"]].icon = icon
         }else{
            
             if (treeObj[folder]){   //a workflow in a folder that already exists
-                treeObj[folder].children.push({title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}});
+                treeObj[folder].children.push(
+                    {
+                    // icon: icon,
+                    title:wfArray[i]["wf_name"],
+                    "key":wfArray[i]["wf_id"],
+                    "data":{wf_object:wfArray[i]}
+                });
             }else{  //a workflow in a new folder 
-                treeObj[folder] = {};
+                treeObj[folder] = {};//iconClass:"dxi dxi-chevron-right"
                 treeObj[folder].title = folder;
                 if (!folder)
                     var stop = 1
                 treeObj[folder].folder = true;
                 treeObj[folder].unselectable = true;
-                treeObj[folder].children = [{title:wfArray[i]["wf_name"],"key":wfArray[i]["wf_id"],"data":{wf_object:wfArray[i]}}];//
+                treeObj[folder].children = [{
+                    title:wfArray[i]["wf_name"],
+                    "key":wfArray[i]["wf_id"],
+                    "data":{wf_object:wfArray[i]},
+                    // icon: icon
+                }];//
             }
         }
        

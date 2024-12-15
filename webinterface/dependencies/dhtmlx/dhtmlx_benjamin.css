@@ -8381,14 +8381,6 @@ div.dhtmlxMenu_dhx_skyblue_TopLevel_Item_Selected {
 	color:white !important;
 }
 
-/*leftmost nav menueue stays light because of images have same color*/
-/* .dhx_layout-cell.dhxlayout_base_dhx_skyblue.dhxlayout_cont  { */
-	/* background-color: #ebebeb !important; */
-/* } */
-.btn.jobviewer_menu{
-    width:120px;
-}
-
 .counter_jobs {
 	background-color: black !important;/* todo:get rid of important*/
 }
@@ -8467,8 +8459,21 @@ body  {
   
 .workflow_filter_menu_item{
 	outline: none !important;
-	border-color:white;
+  color: rgb(240, 240, 240);
+  border: var(--dhx-border);
+  background-color:unset;
 }
+
+.workflow_filter_menu_item i{ 
+  color: rgb(240, 240, 240);
+}
+/* job viewer workflow sel delete button icon */
+
+button .workflow_filter_menu_item{
+	border: var(--dhx-border);
+  
+}
+
 /* fancytree */
 
 ul.fancytree-container {
@@ -8477,8 +8482,9 @@ ul.fancytree-container {
 }
 
 
-span.fancytree-active span.fancytree-title, span.fancytree-selected span.fancytree-title{/* selected tree item (inactive)*/
-	background-color:#848484;
+/* selected tree item (inactive)*/
+span.fancytree-active span.fancytree-title, span.fancytree-selected span.fancytree-title{
+	background-color:unset;
 }
 
 
@@ -8535,7 +8541,27 @@ ul.fancytree-container{
 
 /*grid rows*/
 .css_jobviewer_history_row_status_Error{
-	background-color:hsla(360,100%,60%,.3) !important; /*if not important, every odd rows not colored*/
+  position:relative;
+}
+.css_jobviewer_history_row_status_Error::before{
+  content: " ";
+  position: absolute;
+  display:block;
+  width: 100%;
+  height: 100%;
+	background-color:#FF000040;
+}
+
+.css_jobviewer_history_row_status_Cancelled{
+  position:relative;
+}
+.css_jobviewer_history_row_status_Cancelled::before{
+  content: " ";
+  position: absolute;
+  display:block;
+  width: 100%;
+  height: 100%;
+	background-color:#ca8f4db0;
 }
 
 /* old dhtmlx non used grid cell (preview in file browser) */
@@ -8662,7 +8688,6 @@ body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div  > div.dhx_layout-
 
 .btn.jobviewer_menu {
 	color:white;
-	background-color:red;
 	border:1px solid #000;
 	background: #dddddd00;
 }
@@ -8726,12 +8751,10 @@ input{
 
 /* job viewer button icons */
 .fas {
-	color:#D3D3D3 !important;
+	/* color: #D3D3D3 !important; */
+  color: var(--dhx-color)
 }
-/* job viewer workflow sel delete button icon */
-.fa-ban::before{
-	color:#222 !important;
-}
+
 /* job submitter workflow save btn */
 .fa-save::before{
 	color:#FFF !important;

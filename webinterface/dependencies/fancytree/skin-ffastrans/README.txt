@@ -1,0 +1,1 @@
+we inserted the font from dhtmlx into the css in order to show the icons using :before content 

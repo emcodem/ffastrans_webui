@@ -1554,19 +1554,7 @@ div.dhx_popup_skin_detect {
   height: 10px;
   overflow: hidden;
 }
-.dhtmlxMenu_dhx_skyblue_Middle {
-  position: relative;
-  height: 30px;
-  border: none;
-  overflow: hidden;
-  background-color: #ebebeb;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -o-user-select: none;
-  user-select: none;
-}
+
 .dhtmlxMenu_dhx_skyblue_Middle div.top_sep {
   float: left;
   position: relative;
@@ -8456,11 +8444,28 @@ div.dhx_modal_cover {
 }
 
 /* Grid related stuff */
-.css_jobviewer_history_row_status_Error {
-   background-color:#eb5d5d !important;
+.css_jobviewer_history_row_status_Error{
+  position:relative;
 }
-.css_jobviewer_history_row_status_Cancelled {
-   background-color:#fff1b4 !important;
+.css_jobviewer_history_row_status_Error::before{
+  content: " ";
+  position: absolute;
+  display:block;
+  width: 100%;
+  height: 100%;
+	background-color:#FF000070;
+}
+
+.css_jobviewer_history_row_status_Cancelled{
+  position:relative;
+}
+.css_jobviewer_history_row_status_Cancelled::before{
+  content: " ";
+  position: absolute;
+  display:block;
+  width: 100%;
+  height: 100%;
+	background-color:#fff1b480;
 }
 
 div.gridbox_dhx_skyblue.gridbox table.obj tr.rowselected {
@@ -8517,10 +8522,6 @@ div.gridbox_dhx_skyblue.gridbox table.obj tr td.cellselected {
     /* font awesome menu and folder icons*/
     color:#999 !important;
     
-}
-
-.btn.jobviewer_menu{
-    width:120px;
 }
 
 ul.fancytree-container {
@@ -8621,9 +8622,31 @@ ul.fancytree-container{/* workflow selection */
 
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
 	background-color:rgb(221, 221, 221);
-	border:1px solid #CCC !important;
+	border:1px solid #b6b0b0 !important;
 	color:hsla(0, 0%, 100%, .9);
 }
+
+/* job viewer workflow selection search beackground */
+.dhtmlxMenu_dhx_skyblue_Middle {
+  position: relative;
+  height: 30px;
+  border: none;
+  overflow: hidden;
+  background-color:  var(--dhx-s-grid-header-background);;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  border: var(--dhx-border);
+  /* background-color: #e0e0e0; */
+ 
+}
+.dir_left .dhtmlxMenu_dhx_skyblue_Middle{
+  background-color: #e0e0e0;
+}
+
 
 /* this can be used by users to insert images and other stuff different in dark mode and light */
 .light-mode-visible{

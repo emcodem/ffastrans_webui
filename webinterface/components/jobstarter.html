@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css"/>
 <link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 <script src="../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
-<link rel="stylesheet" href="../dependencies/fancytree/skin-lion/ui.fancytree.min.css"/>
+<link rel="stylesheet" href="../dependencies/fancytree/skin-ffastrans/ui.fancytree.css"/>
 
 
 <link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> <!-- special loading order because vault css overrides text colors of other items -->
@@ -600,7 +600,7 @@ function init(){
     var url = window.location.href;
     var browserurl = url.split("/");
     
-    let parallel = 1;
+    let parallel = 2;
     if (m_serverconfig.USE_TUSD == "disabled"){
         parallel = 1;
     }

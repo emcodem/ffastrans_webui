@@ -136,7 +136,7 @@ async function init(){
                             type: "checkbox",
                             label: "Row Colors:",
                             labelPosition: "left",labelWidth: "140",
-                            checked:localStorage.getItem("jobviewer_showrowcolors_history")=="1",
+                            checked:localStorage.getItem("jobviewer_showrowcolors_history")!="false",
 						},
                         {
 							name:"global_skin_dark", 
@@ -150,9 +150,9 @@ async function init(){
                                 {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_save",name: "btn_save", width:100,value:"Save"},
                                 {type: "spacer",name: "spacer",width:100},
                                 {type:"button", css:"dhxform_obj_dhx_skyblue", id:"btn_reset_state",name: "btn_reset", width:100,value:"Reset Page"},
-                        ],
-                        width:"100%",
-                        align:"evenly"
+                            ],
+                            width:"100%",
+                            align:"evenly"
                         },
 					
 				],
