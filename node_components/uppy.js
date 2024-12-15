@@ -27,7 +27,7 @@ function initializeUppy(app){
         initializeTUSdProxy(app);
         return;
     }
-    
+    //if we shall not start external process, initialize node-tus-server
     const tusServer = new Server({
         path: '/tusd_proxy',
         datastore: new FileStore({directory: global.config.STATIC_UPLOADPATH}),
@@ -96,7 +96,7 @@ async function initializeTUSdProxy(app){
         */
         try{
             if (req.body && req.body.Type == "post-finish"){
-                console.log("post-finish",req.body.Event?.Upload?.Storage?.Path);
+                console.log("post-finish",req.body.Event);
                 let uploadPath = req.body.Event?.Upload?.Storage?.Path;
                 let filename = req.body.Event?.Upload?.MetaData?.filename;
                 if (filename){

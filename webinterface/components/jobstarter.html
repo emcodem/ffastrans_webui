@@ -600,13 +600,15 @@ function init(){
     var url = window.location.href;
     var browserurl = url.split("/");
     
-    let parallel = 2;
+    let parallel = m_serverconfig.TUSD_CONCURRENT_UPLOADS || 1;
     if (m_serverconfig.USE_TUSD == "disabled"){
         parallel = 1;
     }
+    console.log("Paralell uploads: ", parallel);
 
+    let under_construction = {};
     let uppy = new Uppy();
-	uppy.use(Dashboard, { 
+	uppy.use(Dashboard, {
         inline: true, 
         target: document.getElementById("vault"),
         theme:uppytheme,
@@ -615,10 +617,26 @@ function init(){
             debug: (...args) => {console.debug(args)},
             warn: (...args) => {console.warn(args)},
             error: (...args) => {console.error(args)},
-        }
+        },
     })
 	.use(Tus, { endpoint: "/tusd_proxy",chunkSize:67108864,parallelUploads : parallel }) //60mb chunks
+    .on("upload-progress",async function(fileInfo,uploadInfo){
+        //if something throws, uppy returns failure to the user!
+        console.log("upload-progress event",fileInfo,uploadInfo);
+        under_construction[fileInfo.id] = true;
+        if (uploadInfo.bytesUploaded && (uploadInfo.bytesUploaded == uploadInfo.bytesTotal)){
+            while(under_construction[fileInfo.id]){
+                uppy.info("Please wait while the Server is reconstructing the file...");
+                await sleep(3000);
+            }    
+        
+        }
+    })
     .on("upload-success",function(file,response){
+        //if something throws, uppy returns failure to the user!
+        console.log("upload-success event",file);
+        delete under_construction[file.id]; //stops Please wait message
+
         let uploadid;
         let normalized_filename = file.data ? file.data.name : file.name;   //left tusd server right node-tus-server
         normalized_filename = file.data.name.replace(/[ö\/\|:\?"\*<>\\]/g, '_'); 
@@ -629,7 +647,7 @@ function init(){
         var newId = (new Date()).valueOf() + Math.random();
         var newrowdata = {};
         newrowdata["Filename"]  = normalized_filename;
-        newrowdata["Path"]      = uploadid+"_\\"+normalized_filename;
+        newrowdata["Path"]      = uploadid + "_\\" + normalized_filename;
         newrowdata["is_folder"] = false;
         newrowdata["Modified"]  =  new Date(file.data.lastModified).toISOString();
         newrowdata["Created"]   = new Date(file.data.lastModified).toISOString()
@@ -638,13 +656,16 @@ function init(){
         newrowdata["source_of_adding"] = "Upload";
         m_selectedFileGrid.addRow(newId,[]);
         m_selectedFileGrid.setRowData(newId,newrowdata);
-        console.log("uppy finish",normalized_filename)
+        console.log("uppy finish",normalized_filename);
+
+
+
     }).on('complete', (result) => {
         //all uploads completed
         console.log('upload successful files:', result.successful);
         console.log('upload failed files:', result.failed);
         uppy.clear();
-    });;
+    });
     
     // var vault = new dhx.Vault('vault', {
     //     uploader:{ 
@@ -1441,7 +1462,7 @@ function addAjaxTooltip(dhxGrid,rowId){
         allowHTML: true,
         delay: [700],
         followCursor: false,
-        custom_field_is_hidden : false,
+         custom_field_is_hidden : false,
         onMount(instance) {
             //instance.hide();
         },
