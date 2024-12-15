@@ -316,8 +316,16 @@
         dhx8.dhx.message({ expire: 3000, text: what});
     }
 
+    document.addEventListener('keydown', (event) => {
+        //if shiftkey is pressed, clear text selection, prevents unwanted selecting text over multiple gridrows when marking multiple
+      if (event.key === 'Shift')
+        document.getSelection().removeAllRanges();
+      
+    });
+
     /* global click handler */
     document.addEventListener("click", function(evnt){
+        //unselect selected grid rows if not clicked within a grid
         if (Array.from(evnt.target.classList).indexOf("dhx_grid-cell__content" ) != -1)
             return true;
         
@@ -400,6 +408,8 @@
             //appends text to mainLayout.cells("b") and mainLayout.cells("c")
             //mainLayout.getCell(cellid).config.header = mainLayout.getCell(cellid).config.header + to_append;
         }
+
+
         //menu buttons html
         //do not forget to add the button name to togglejobcontrol if you add more btns 
         var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i><span>Job Details</span></button> ';
@@ -445,9 +455,13 @@
             _appendtext('History',"<div class='jobviewer_menu_container'>" +  b_details + b_resubmit + b_delete_selected + "</div>");
         }
 
-        let spacer = "<div style='width:50px'></div>";
+        // let pageText = `<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" ></span>`;
+        // _appendtext("History",pageText);
+
+        let spacer = `<div style='width:75px'></div>`;
         _appendtext('Running',spacer);
-        _appendtext('History',spacer);
+        let spacer_with_pagenum = `<div style='width:90px'>&nbsp;<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" ></span></div>`;
+        _appendtext('History',spacer_with_pagenum);
 
     }
 
@@ -639,7 +653,7 @@
 		// }
 
         // mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#888888" >Running</span>');
-        // mainLayout.cells("c").setText('<span id="span_text_finished" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
+        // mainLayout.cells("c").setText('<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
 
         
         //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
@@ -767,7 +781,7 @@ function buildWorfklowTree(){
                         <div id="workflow_filter_menu" class="workflow_filter_background">
                             <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
                                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
-                                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="button_workflow_filter_menu_item" style="" onclick="wokrflow_tree_control(this)" id="wf_filter_clear" > 
+                                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="button_workflow_filter_menu_item" style="" onclick="clear_workflow_tree_selection(this)" id="wf_filter_clear" > 
                                         <i class="fas fa-ban" style=""></i>
                                     </button>
                                     </div>
@@ -1074,6 +1088,7 @@ async function buildActiveGrid() {
         eventHandlers: {
             oninput:{
                 searchbox: debounce((event,  args) => {
+                    
                     //debounce function prevents this to fire multiple times parallel while user is typing
                     //only if user did not type for 500ms, function will fire
                     grid.filterobj = collectFilters();
@@ -1296,16 +1311,16 @@ async function buildActiveGrid() {
                     dhxgrid.loadGridData();
 
                     if (pagination.pageNumber != 1){
-                        document.getElementById("span_text_finished").innerHTML = 'Finished <span style="color:orange">(Page ' +pagination.pageNumber+ ')</span>'
+                        document.getElementById("page_number_text").innerHTML = '<span style="color:orange">(Page ' +pagination.pageNumber+ ')</span>'
                         //addMenuButtons()
                     }else{
-                        document.getElementById("span_text_finished").innerHTML = 'Finished</span>'
+                        document.getElementById("page_number_text").innerHTML = ''
                         //addMenuButtons()
                     }
                 }
 
-                var html = "<span></span>";
-                $('#data-container').html(html);
+                // var html = "<span></span>";
+                // $('#data-container').html(html);
                 
             }
         })
@@ -1457,7 +1472,9 @@ async function buildActiveGrid() {
                     searchbox: debounce((event,  args) => {
                         //debounce function prevents this to fire multiple times parallel while user is typing
                         //only if user did not type for 500ms, function will fire
-                        grid.filterobj = collectFilters();
+
+                        console.log("searchbox input",event)
+                        grid.filterobj = collectFilters(event);
                         grid.data.removeAll();
                         loadGridData();
                     },750),
@@ -1587,7 +1604,17 @@ async function buildActiveGrid() {
         });
         
         /* Searching */
-        function collectFilters(){ //collects all search values
+        function collectFilters(inputEvent){ //collects all search values
+
+            if (inputEvent.srcElement){
+                //clears tree search if needed
+                let currentSearchedId = inputEvent.srcElement.closest('.dhx_grid-header-cell').dataset.dhxId;
+                if (currentSearchedId == "workflow" && inputEvent.srcElement.value == ""){
+                    //wf search was cleared, reset tree filter if any
+                    clear_workflow_tree_selection();
+                }
+            }
+            //iterate all searchbox
             let filterobj = {};
             filterobj.variablecols = [];
             const searchboxes = document.querySelectorAll('.searchbox');
@@ -1595,7 +1622,8 @@ async function buildActiveGrid() {
                 if (searchbox.value == "")
                     return;
 
-                let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;                
+                let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId; 
+                               
                 if (searchbox.dataset.variablecol){
                     filterobj.variablecols.push({col_header_name:header_id,filter:searchbox.value});
                 }else
@@ -1863,17 +1891,9 @@ async function buildActiveGrid() {
         });
     }
 
-    function wokrflow_tree_control(what){
+    function clear_workflow_tree_selection(what){
         var tree = $("#workflowtree").fancytree('getTree');
-        if (what.id == "wf_filter_clear"){
-            tree.selectAll(false);
-        }
-        if (what.id == "wf_filter_unexpand"){
-            
-        }
-        if (what.id == "wf_filter_clear"){
-            
-        }
+        tree.selectAll(false);
     }
 </script>
 
