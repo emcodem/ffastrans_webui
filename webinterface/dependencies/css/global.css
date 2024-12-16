@@ -1,0 +1,6 @@
+/* this is used globally, it can only contain skin independent rules */
+
+/* resizer dots... for layout horizontal lines with resizer were misplaced when display is flex */
+.dhx_layout-resizer--y .dhx_layout-resizer__icon {
+    display:unset;
+}
