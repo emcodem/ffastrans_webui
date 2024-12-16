@@ -123,6 +123,7 @@ function init(){
                 },
                 {
                     id: "docs",
+                    name: "webui_setup_documentation",
                     resizable:true,
                     html: documentation,
                     padding: 10,
@@ -281,6 +282,7 @@ function init(){
                 labelWidth: label_width,
                 required:false,
                 options: {
+                    name:"DO_NOT_SAVE_1",
                     cols: [
                         {
                             "type": "radioButton",
@@ -319,12 +321,14 @@ function init(){
             { /* Button needs separate label */
                 cols:[
                     {
-                        name: "text",type: "text",
+                        name: "text_database",
+                        type: "text",
                         label: "Job Database",labelPosition: "left",labelWidth: label_width,value: " ",width:label_width,
                         height:"60px",
                     },
                     {
-                        type: "button",name: "btn_database",padding: "0px 0px 0px 20px",
+                        type: "button",
+                        name: "btn_database",padding: "0px 0px 0px 20px",
                         text: "Database Manager",size: "medium",view: "flat",color: "primary",
                         css:"dhxform_obj_dhx_skyblue",
                         height:"60px"
@@ -442,8 +446,15 @@ const cfg = [
     toolbar.data.add(cfg);
     toolbar.events.on("click", async function(id,e){
         if(id == "btnsave"){
+            var form_vals = form.getValue();
+            let to_save = {};
+            //filter junk
+            for (const [key, value] of Object.entries(form_vals)) {
+                if (key != key.toUpperCase()) //only form fields that have an uppercase name are stored, the rest is buttons etc..
+                    continue;
+                to_save[key] = value;
+            }
 
-            var to_save = form.getValue();
             if (to_save["STATIC_USE_WEB_AUTHENTIFICATION"] == "true"){
                 var have_admin  = await checkIfAdminGroupExists();
                 if (!have_admin){
