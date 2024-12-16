@@ -12,7 +12,6 @@
 <link rel="stylesheet" href="../dependencies/fancytree/skin-ffastrans/ui.fancytree.css"/>
 
 
-<link rel="stylesheet" href="../dependencies/dhtmlx/vault/vault.css" type="text/css"/> <!-- special loading order because vault css overrides text colors of other items -->
 <link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 
 <script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script>
@@ -606,8 +605,21 @@ function init(){
     }
     console.log("Paralell uploads: ", parallel);
 
-    let under_construction = {};
+
+    function clearUppyLocalStorage(){
+        /* clearing localstorage prevents retry but also enables retry at the same time */
+        //todo: enable user to do manual reset in order to profit from retry?
+        Object.keys(localStorage)
+                                .filter(x =>
+                                    x.startsWith('tus::'))
+                                .forEach(x => 
+                                    localStorage.removeItem(x))
+    }
+    
+    clearUppyLocalStorage();
+    let under_construction = {};//for user notification while server reconstruct
     let uppy = new Uppy();
+    
 	uppy.use(Dashboard, {
         inline: true, 
         target: document.getElementById("vault"),
@@ -658,13 +670,15 @@ function init(){
         m_selectedFileGrid.setRowData(newId,newrowdata);
         console.log("uppy finish",normalized_filename);
 
-
-
     }).on('complete', (result) => {
         //all uploads completed
         console.log('upload successful files:', result.successful);
         console.log('upload failed files:', result.failed);
+        uppy.info("All Uploads finished.");
         uppy.clear();
+    }).on('error', (result) => {
+        //all uploads completed
+        alert(result)
     });
     
     // var vault = new dhx.Vault('vault', {

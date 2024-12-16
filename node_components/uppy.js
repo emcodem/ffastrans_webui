@@ -22,11 +22,17 @@ module.exports = function(app, passport) {
  * initializes tusd (external process) or node-tus-server upload, depending on server config
  * @returns 
  */
-function initializeUppy(app){
+async function initializeUppy(app){
     if (global.config.USE_TUSD != "disabled"){
-        initializeTUSdProxy(app);
-        return;
+        try{
+            await initializeTUSdProxy(app);
+            return;
+        }catch(ex){
+            console.error("FATAL Error starting tusd, did you update the webinterface/tools?");
+        }
     }
+
+    console.log("Using Alternate upload node-tus-server.");
     //if we shall not start external process, initialize node-tus-server
     const tusServer = new Server({
         path: '/tusd_proxy',
@@ -113,7 +119,25 @@ async function initializeTUSdProxy(app){
                         };
                     }
                     console.log("Moving upload file from: ",uploadPath,"to",target_full);
-                    await fs.promises.rename(uploadPath, target_full)
+                    await fs.promises.rename(uploadPath, target_full);
+
+                    function build_self_url(what,host = "127.0.0.1",port =global.config.STATIC_WEBSERVER_LISTEN_PORT){
+                        let protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
+                        return protocol + host + ":" + port + what;  
+                    }
+
+                    ////attempt to delete segments on tusd
+                    // let uploadurl = req.body.Event.Upload.ID;
+                    
+                    // //Tus-Extension: creation,expiration
+                    // let deleteurl = build_self_url("/tusd_proxy/" + uploadurl);
+                    // let deleteresponse = await axios.delete(deleteurl, {
+                    //         timeout: global.config.STATIC_API_TIMEOUT,
+                    //         agent: false, 
+                    //         headers: {"Tus-Resumable":"1.0.0"},
+                    //         maxSockets: Infinity
+                    //     });
+                    // let stophere =1;
                 }
             }
         }catch(ex){
@@ -241,17 +265,10 @@ async function exists(f) {
         }
     }
 
-    /**
-     * starts tusd, returns listen port 
-    * */
-    async start(){
-        this.port = await portfinder.getPortPromise({port: 9010, stopPort: 9100});
-        console.log("Port for TUSD: ",this.port);
-        var existingBinary = false;
-        //locate executable
-        var tus_in_tools = path.join(global.approot,"tools","tusd","tusd.exe");
-        if (fs.existsSync(tus_in_tools)){
-            existingBinary = tus_in_tools;
+    locateBinary(){
+        let existingBinary;
+        if (fs.existsSync(path.join(global.approot,"tools","tusd","tusd.exe"))){
+            existingBinary = path.join(global.approot,"tools","tusd","tusd.exe");
         }
         if (fs.existsSync(path.join(this.#uploadPath,"../","tusd"))){
             existingBinary = (path.join(this.#uploadPath,"../","tusd"));
@@ -263,7 +280,19 @@ async function exists(f) {
             this.binaryFull = existingBinary;
             console.log("Using existing TUS binary: ",existingBinary);
         }
+        return  this.binaryFull;
+    }
 
+    /**
+     * starts tusd, returns listen port 
+    * */
+    async start(){
+        this.port = await portfinder.getPortPromise({port: 9010, stopPort: 9100});
+        console.log("Port for TUSD: ",this.port);
+        let existingBinary = false;
+        //locate executable
+
+        this.locateBinary();
         if (!this.binaryFull){
             //create database binary
             throw new Error("Did not find TUS executeable Binary.");
@@ -281,7 +310,7 @@ async function exists(f) {
             "-host",
             "127.0.0.1",
             "-disable-download",
-            "-disable-termination",
+
             "-base-path",
             "/tusd_proxy"
         ],{cwd: this.binaryPath});
@@ -299,6 +328,7 @@ async function exists(f) {
 
     internal_process_exit(code){
         console.error("TUSd process exited, code: ",code);
+        //todo: restart?
         this.isRunning = false;
         this.childProcess = null;
         this.lastPid = -1;
