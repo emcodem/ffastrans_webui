@@ -123,6 +123,22 @@
         line-height:unset !important;
     }
 
+    /* folder browser rows */
+    .folder_icon{
+        background-image: url(../dependencies/fancytree/skin-ffastrans/folder_closed.png);
+        width: 18px;
+        display: inline-block;
+        height: 14px;
+        background-size: cover;
+        margin-top:3px; 
+    }
+
+    .folder_text{
+        position:relative;
+        top: -1px;
+        margin-left: 5px;
+    }
+
     .previewcontainer{
         display: var(--preview-display);
         max-width:50px;
@@ -158,6 +174,7 @@
 
         padding:5;
     }
+
 
 </style>
 
@@ -1437,7 +1454,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                     
                     if (dhtmlxGrid.cells(id,2).getValue() =="true"){
                         //folders get a folder icon attached
-                        dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="fancytree-icon"></span></span> ' + (dhtmlxGrid.cells(id,0).getValue()) );
+                        dhtmlxGrid.cells(id,0).setValue( '<span class="fancytree-ico-cf"><span style="margin-top:3px!important" role="presentation" class="folder_icon"></span><span class="folder_text">' + (dhtmlxGrid.cells(id,0).getValue()) + '</span></span>' );
                     }else{
                         dhtmlxGrid.getRowById(id).addEventListener('dblclick', function(){
                             selectFileToProcess();
