@@ -8620,6 +8620,11 @@ ul.fancytree-container{/* workflow selection */
 	border-top: solid 7px #BBB;
 }
 
+/* jobviewer grid headers*/
+.dhx_layout-cell-header {
+  background-color: var(--dhx-color-gray-100);
+}
+
 .dhtmlxMenu_dhx_skyblue_TopLevel_Item_Normal{
 	background-color:rgb(221, 221, 221);
 	border:1px solid #b6b0b0 !important;

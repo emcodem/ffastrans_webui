@@ -420,7 +420,7 @@
         var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="history_grid_actions(this.name)" style="float: right;margin-top:1px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
         
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
-        
+
         var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i><span>Job Details</span></button> ';
         var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i><span>Resubmit</span></button> ';
         var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i><span>Delete Selected</span></button> ';
@@ -435,24 +435,27 @@
             console.log("Displaying filtered list of buttons, regex: ", regex);
             
             //add filtered btns to Running jobgrid
+            _appendtext('History',"<div class='jobviewer_menu_container historygrid'></div>");
+            _appendtext('Running',"<div class='jobviewer_menu_container activegrid'></div>");
+
             for (let _id=0;_id<arr_all_in_a.length;_id++){
                 var input_name = arr_all_in_a[_id].match(/name="(.*?)"/)[1];
                 if (regex.test(input_name)){
-                    _appendtext('Running',"<div class='jobviewer_menu_container'>" + arr_all_in_a[_id] + "</div>")
+                     document.querySelectorAll(".jobviewer_menu_container.activegrid")[0].innerHTML += (arr_all_in_a[_id])
                 }
             }
             //no filter, add filtered btns to History jobgrid
             for (let _id=0;_id<arr_all_in_b.length;_id++){
                 var input_name = arr_all_in_b[_id].match(/name="(.*?)"/)[1];
                 if (regex.test(input_name)){
-                    _appendtext('History',"<div class='jobviewer_menu_container'>" + arr_all_in_b[_id] + "</div>")
+                    document.querySelectorAll(".jobviewer_menu_container.historygrid")[0].innerHTML += (arr_all_in_b[_id])
                 }
             }
         }else{
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
-            _appendtext('Running',"<div class='jobviewer_menu_container'>" + arr_all_in_a.join("") + "</div>");
-            _appendtext('History',"<div class='jobviewer_menu_container'>" +  b_details + b_resubmit + b_delete_selected + "</div>");
+            _appendtext('Running',"<div class='jobviewer_menu_container historygrid'>" + arr_all_in_a.join("") + "</div>");
+            _appendtext('History',"<div class='jobviewer_menu_container activegrid'>" +  b_details + b_resubmit + b_delete_selected + "</div>");
         }
 
         // let pageText = `<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" ></span>`;
