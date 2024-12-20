@@ -259,13 +259,13 @@
     }
 
     /* collapsed workflow layout cell */
-    .dhx_layout-cell--collapsed {
+    .dhx_layout-columns > .dhx_layout-cell--collapsed {
         width: 30px!important;
     }
 
-    .dhx_layout-cell--collapsed{
+    /* .dhx_layout-cell--collapsed{
         margin-right: 6px!important;
-    }
+    } */
 
     /* jobgrid */
     .dhx_layout-cell--collapsed .dxi-chevron-right{
@@ -312,7 +312,7 @@
 
     /* GLOBALS */
     var mainLayout, runningJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
-    let m_jobviewerlayout = localStorage.jobviewer_layout ? JSON.parse(localStorage.jobviewer_layout) :  {};
+    let m_jobviewerLayoutSettings = localStorage.jobviewer_layout ? JSON.parse(localStorage.jobviewer_layout) :  {};
     let m_historyGrid;
     let m_activeGrid;
 	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
@@ -381,8 +381,6 @@
 
     function toggleJobControl(id,selected_is_on){
         //enable/disable menu buttons
-        console.log("ToggleJobControl");
-
         var element_names = [];
         if (id.match("active")){
             element_names = ["a_details","a_abort","a_pause","a_resume"];
@@ -473,7 +471,7 @@
 
         let spacer = `<div style='width:75px'></div>`;
         _appendtext('Running',spacer);
-        let spacer_with_pagenum = `<div style='width:90px'>&nbsp;<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" ></span></div>`;
+        let spacer_with_pagenum = `<div>&nbsp;<span id="page_number_text" class="page_number_text" style="margin-right:15px;font-size:13px;color:#888888; white-space: nowrap;" ></span>&nbsp;</div>`;
         _appendtext('History',spacer_with_pagenum);
 
     }
@@ -524,7 +522,7 @@
             dhtmlx.message("ERROR, no html5 store support, cannot save view state")
         }
 
-        layoutConf = {
+        let layoutConf = {
             type: "wide",
             padding:5,
             cols: [
@@ -535,19 +533,22 @@
                     collapsed: true,
                 },
                 {
+                    id:"grid_container_cell",
                     gravity: 100,
                     rows: [
                         {
                             id: "b",
                             //header:"Running",
-                            height: "50%",
-                            resizable:true
+                            gravity:220,
+                            resizable:true,
+                            collapsable:true
                         },
                         {
                             id: "c",
-                            height: "50%",
-                            //header:"History",
-                            resizable:true
+                            gravity:100,
+                                                        //header:"History",
+                            resizable:true,
+                            collapsable:true
                         },
                     ]
                 },
@@ -562,6 +563,7 @@
 
         }
 
+        //parse the layout config, construct layout object 
         mainLayout = new dhx8.dhx.Layout(document.body, layoutConf);
 
 		if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
@@ -578,61 +580,113 @@
             mainLayout.getCell("a").collapse();
 		}
 
+
+        function saveLayoutConf(){
+
+            let cells = [];
+            mainLayout.forEach(function (cell, index) {
+                cells.push({
+                    id: cell.id,
+                    collapsed: cell.config.collapsed,
+                    height: cell.config.height
+                })
+            });
+            m_jobviewerLayoutSettings.layoutCells = cells;
+            localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerLayoutSettings));
+            console.log("saveLayoutConf",m_jobviewerLayoutSettings);
+            console.log("saveLayoutConf current",mainLayout);  
+        }
+        mainLayout.events.on("afterResizeEnd", function(id){
+            saveLayoutConf();
+        });
+
         mainLayout.events.on("afterCollapse", function(id){
-            // your logic here
-            m_jobviewerlayout.workflowtree_collapsed = true;
-            localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerlayout));
+            saveLayoutConf();
         });
 
-        mainLayout.events.on("afterExpand", function(id){
-            // your logic here
-            console.log("Tree Expand")
-            m_jobviewerlayout.workflowtree_collapsed = false;
-            buildWorfklowTree(); 
-            localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerlayout));
+        mainLayout.events.on("afterExpand", async function(id){
+            saveLayoutConf();
+            //after expand, we need to redraw the cell content, it is destroyed on collapse
+            if (id == "a"){
+                console.log("Workflow Tree Expand")
+                m_jobviewerLayoutSettings.workflowtree_collapsed = false;
+                buildWorfklowTree(); 
+                localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerLayoutSettings));
+            }
+            if (id == "b"){
+                mainLayout.getCell("b").attach(await buildActiveGrid());
+                m_activeGrid.loadGridData();
+                mainLayout.getCell("c").config.height = "60%";
+                await dhx8.dhx.awaitRedraw();
+            }
+            if (id == "c"){
+                mainLayout.getCell("c").attach(await buildHistoryGrid());
+                m_historyGrid.loadGridData();
+            }
         });
-        let historyDivContainer = `
-            <div id="history_div_container" style="height:100%;width:100%"> 
-                <div id="history_div" class="history_div" style="height: calc(100% - 38px)"></div> 
-                <div id="pagination" >
-                    <div id="data-container"></div>
-                    <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
-                </div>
-            </div>
-        `;
-        mainLayout.getCell("c").attachHTML(historyDivContainer);
 
-        // let activeDivContainer = `
-        //     <div id="active_div" class="gridbox_dhx_skyblue gridbox">
-        //     </div>
-        // `;
-        // mainLayout.getCell("b").attachHTML(activeDivContainer);
         await dhx8.dhx.awaitRedraw();
+
+        mainLayout.events.on("afterResizeEnd", function(id){
+            //savelayoutsizes
+        });
+
+        restoreLayoutConf()
+        await dhx8.dhx.awaitRedraw();
+        function restoreLayoutConf(){
+                
+            try{
+                console.log("restoring layout config");
+                //restore layout conf
+                if (m_jobviewerLayoutSettings.layoutCells){
+                    console.log("Restore Layout conf",m_jobviewerLayoutSettings.layoutCells);
+                    m_jobviewerLayoutSettings.layoutCells.forEach(c=>{
+                        let targetCell = mainLayout.getCell(c.id);
+                        targetCell.config.collapsed = c.collapsed;
+                        if (c.height){
+                            targetCell.config.height = c.height;
+                        }
+                    })
+                }
+            }catch(ex){}
+        }
+
+        //Query params override localStorage config
         if (query["hideactive"]){
             mainLayout.getCell("b").collapse();
         }
         if (query["hidehistory"]){
             mainLayout.getCell("c").collapse(); 
         }
+
+        //finally load data into grids
+        buildWorfklowTree(); 
         
-        mainLayout.events.on("afterResizeEnd", function(id){
-            //savelayoutsizes
-        });
-
-        addMenuButtons();
-        //restoreLayoutSizes(mainLayout, "mainLayout");
-        await buildHistoryGrid();
-
         let agrid = await buildActiveGrid();
         mainLayout.getCell("b").attach(agrid);
         m_activeGrid.loadGridData();
 
-        //restore layout
-        if (!m_jobviewerlayout.workflowtree_collapsed){
-            mainLayout.getCell("a").expand();
-        }
+        await dhx8.dhx.awaitRedraw();
 
-        return;
+        mainLayout.getCell("c").attach(await buildHistoryGrid());
+        m_historyGrid.loadGridData();
+
+        
+        addMenuButtons();
+
+        await dhx8.dhx.awaitRedraw();
+
+
+        // restoreLayoutConf();
+        // //restore Layout config
+        // function restoreLayoutConf(){
+        //     //restore layout
+        //     if (!m_jobviewerLayoutSettings.workflowtree_collapsed){
+        //         mainLayout.getCell("a").expand();
+        //     }
+
+        // }
+
         // mainLayout = new dhtmlXLayoutObject({
         //     parent: document.body,
         //     pattern: "3L",
@@ -730,14 +784,15 @@
 
         //Socket events
         socket.on('newhistoryjob', async function() {
+            console.log("got newhistoryjob event from jobfetcher")
             m_historyGrid.loadGridData();
-            
         });
 		
         socket.on('queuedjobs', function(msg) {
  
         });
         socket.on('activejobs', async function(msg) {
+            console.log("got activejobs message from jobfetcher")
             m_activeGrid.loadGridData();
         })
 
@@ -1162,7 +1217,7 @@ async function buildActiveGrid() {
         let url = "/getactivejobs_dhx?"+urlSearchParams.toString();
         var response = await fetch(url);
         if (!response.ok)
-            return dhx8.dhx.message({ expire: 3000, text: "Error loading grid data"});
+            return dhx8.dhx.message({ expire: 3000, text: "Error loading activejobs grid data"});
         const newData = await response.json();
 
         //update existing
@@ -1196,7 +1251,7 @@ async function buildActiveGrid() {
         
     }
 
-    attachGridContextMenu()
+    //attachGridContextMenu()
     // loadGridData();
     return grid;
 
@@ -1433,7 +1488,33 @@ async function buildActiveGrid() {
         }
         return c;
     }
+
+/**
+ * Returns a layout containing grid and pagiantion
+*/
     async function buildHistoryGrid(){
+
+        let paginationHtml = `
+                <div id="pagination" >
+                    <div id="data-container"></div>
+                    <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important"></div>
+                </div>
+        `;
+
+        const historyLayout = new dhx8.dhx.Layout(null, {
+            type: "line",
+            rows: [
+                {
+                    id: "history_grid_cell",
+                },
+                {
+                    id: "layout_pagination_cell",
+                    height:"35px",
+                    html: paginationHtml
+                },
+            ]
+        });
+
 
         let gridcolumns = getHistoryGridColumns();
 
@@ -1656,7 +1737,7 @@ async function buildActiveGrid() {
             let url = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
             var response = await fetch(url);
             if (!response.ok)
-                return dhx8.dhx.message({ expire: 3000, text: "Error loading grid data"});
+                return dhx8.dhx.message({ expire: 3000, text: "Error loading historygrid data"});
             const json = await response.json();
             grid.data.parse(json.data);
             console.log("fetched",json);
@@ -1674,8 +1755,9 @@ async function buildActiveGrid() {
         }
 
         attachGridContextMenu()
-        loadGridData();
-
+        // loadGridData();
+        historyLayout.getCell("history_grid_cell").attach(grid);
+        return historyLayout;
 
     }//buildHistoryGrid
 
