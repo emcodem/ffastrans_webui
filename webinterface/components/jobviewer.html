@@ -182,7 +182,10 @@
     }
     
     .dhx_grid-row{
-        transition: transform ease 0.05s, box-shadow ease 0.05s;
+        /* transition: transform ease 0.05s, box-shadow ease 0.05s; */
+        box-shadow: unset;
+        transition-timing-function: ease-in;
+        transition: box-shadow 1s;
     }
 
     .dhx_grid-row:hover {
@@ -192,7 +195,9 @@
         overflow: visible;
         background-color: transparent;
         /* box-shadow: 0 0 4px 0.5px rgba(14, 61, 162, 0.708);  */
-        box-shadow: 0 0 4px 0.5px rgb(231, 231, 231)
+        box-shadow: 0 0 4px 0.5px rgb(231, 231, 231);
+        transition-timing-function: ease-in;
+        transition: box-shadow .7s;
     }
 
     .row_status_sucess{
