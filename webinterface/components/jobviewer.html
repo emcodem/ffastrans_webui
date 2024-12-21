@@ -422,18 +422,18 @@
 
         //menu buttons html
         //do not forget to add the button name to togglejobcontrol if you add more btns 
-        var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i><span>Job Details</span></button> ';
-        var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i><span>Abort</span></button> ';
-        var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i><span>Pause</span></button> ';
-        var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i><span>Resume</span></button>   ';
+        var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i><span>Job Details</span></button> ';
+        var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i><span>Abort</span></button> ';
+        var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i><span>Pause</span></button> ';
+        var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i><span>Resume</span></button>   ';
         // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
-        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="history_grid_actions(this.name)" style="float: right;margin-top:1px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
+        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="event.stopPropagation();history_grid_actions(this.name)" style="float: right;margin-top:1px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
         
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
 
-        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i><span>Job Details</span></button> ';
-        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i><span>Resubmit</span></button> ';
-        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i><span>Delete Selected</span></button> ';
+        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i><span>Job Details</span></button> ';
+        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i><span>Resubmit</span></button> ';
+        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i><span>Delete Selected</span></button> ';
         var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
         
 
