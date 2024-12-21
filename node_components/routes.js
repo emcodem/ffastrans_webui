@@ -9,11 +9,11 @@ module.exports = function(app, passport) {
     // show the login form
 
     //allow unauthorized access to login and dependencies
-    app.get('/webinterface/components/login.html', function(req, res) {
-        console.log("Login page called")
-         //res.redirect('/webinterface/components/login.html');
-         res.sendFile(global.approot + '/webinterface/components/login.html'); //need to use sendfile to keep referer at client OK
-    });
+    // app.get('/webinterface/components/login.html', function(req, res) {
+    //     console.log("Login page called")
+    //      //res.redirect('/webinterface/components/login.html');
+    //      res.sendFile(global.approot + '/webinterface/components/login.html'); //need to use sendfile to keep referer at client OK
+    // });
     //allow unauthorized access 
     app.get('/webinterface/dependencies/*', async function(req, res) {
          res.sendFile(global.approot + req.originalUrl);
@@ -54,7 +54,6 @@ module.exports = function(app, passport) {
     
     //redirect request from /
     app.get('/', async function(req, res, next) {
-        console.log("Request to root, deleteme")
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
             res.redirect('/webinterface');          
         }else{
