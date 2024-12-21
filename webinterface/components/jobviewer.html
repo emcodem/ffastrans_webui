@@ -99,6 +99,12 @@
         z-index: 1;
     }
 
+    .celltext_rtl {
+		direction:rtl;
+		overflow:hidden;
+        text-overflow: ellipsis;
+    }
+
     /*three dots on text overflow*/
     /* .celltext {
         white-space: nowrap;
@@ -108,16 +114,7 @@
         margin-left: 6px;
 		margin-right: 6px;
     }
-	.celltext_rtl {
-		direction:rtl;
-		text-align:left;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        user-select: text;
-        margin-left: 6px;
-		margin-right: 6px;
-    }
+
 
     .celltext_clicked {
         text-overflow: clip;
@@ -530,7 +527,10 @@
                     id: "a",
                     resizable:true,
                     gravity: 1,
-                    collapsed: true,
+                    collapsed: false,
+                    collapsable:true,
+                    header: "Workflow",
+
                 },
                 {
                     id:"grid_container_cell",
@@ -538,30 +538,22 @@
                     rows: [
                         {
                             id: "b",
-                            //header:"Running",
                             gravity:220,
                             resizable:true,
-                            collapsable:true
+                            collapsable:true,
+                            header:"Running"
                         },
                         {
                             id: "c",
                             gravity:100,
-                                                        //header:"History",
                             resizable:true,
-                            collapsable:true
+                            collapsable:true,
+                            header:"History"
                         },
                     ]
                 },
             ]
         };
-
-        if (!query["hideheaders"]){
-            layoutConf.cols[0].header       = "Workflow";
-            layoutConf.cols[0].collapsable  = true;
-            layoutConf.cols[1].rows[0].header = "Running";
-            layoutConf.cols[1].rows[1].header = "History";
-
-        }
 
         //parse the layout config, construct layout object 
         mainLayout = new dhx8.dhx.Layout(document.body, layoutConf);
@@ -574,9 +566,7 @@
 		}else{
             mainLayout.getCell("a").config.header  = "";
             mainLayout.getCell("a").config.width   = 0;
-			console.log("alternate server is true!")
-			// mainLayout.getCell("a").setCollapsedText("");
-			// mainLayout.getCell("a").hideArrow();
+			console.log("alternate server is true!");
             mainLayout.getCell("a").collapse();
 		}
 
@@ -596,6 +586,7 @@
             console.log("saveLayoutConf",m_jobviewerLayoutSettings);
             console.log("saveLayoutConf current",mainLayout);  
         }
+
         mainLayout.events.on("afterResizeEnd", function(id){
             saveLayoutConf();
         });
@@ -625,16 +616,12 @@
             }
         });
 
-        await dhx8.dhx.awaitRedraw();
-
         mainLayout.events.on("afterResizeEnd", function(id){
             //savelayoutsizes
         });
 
-        restoreLayoutConf()
-        await dhx8.dhx.awaitRedraw();
         function restoreLayoutConf(){
-                
+            
             try{
                 console.log("restoring layout config");
                 //restore layout conf
@@ -651,31 +638,40 @@
             }catch(ex){}
         }
 
+        restoreLayoutConf()
+        await dhx8.dhx.awaitRedraw();
+
         //Query params override localStorage config
-        if (query["hideactive"]){
-            mainLayout.getCell("b").collapse();
+        if (query["hiderunning"]){
+            mainLayout.getCell("b").config.hidden=true;
+            mainLayout.getCell("c").config.height = "100%";
         }
         if (query["hidehistory"]){
-            mainLayout.getCell("c").collapse(); 
+            mainLayout.getCell("c").config.hidden=true;
+            mainLayout.getCell("b").config.height = "100%";
         }
-
+        if (query["hideworkflow"]){
+            mainLayout.getCell("a").config.hidden=true;
+        }
+        if (query["hideheaders"]){
+            delete mainLayout.config.cols[0].header;
+            delete mainLayout.config.cols[1].rows[0].header;
+            delete mainLayout.config.cols[1].rows[1].header;
+            mainLayout.paint();
+            await dhx8.dhx.awaitRedraw()
+        }else{
+            addMenuButtons();
+        }
         //finally load data into grids
         buildWorfklowTree(); 
         
-        let agrid = await buildActiveGrid();
-        mainLayout.getCell("b").attach(agrid);
+        mainLayout.getCell("b").attach(await buildActiveGrid());
         m_activeGrid.loadGridData();
-
-        await dhx8.dhx.awaitRedraw();
 
         mainLayout.getCell("c").attach(await buildHistoryGrid());
         m_historyGrid.loadGridData();
 
-        
-        addMenuButtons();
-
         await dhx8.dhx.awaitRedraw();
-
 
         // restoreLayoutConf();
         // //restore Layout config
@@ -814,15 +810,7 @@
         
 		
     }
-
-function debounce(func,timeout){
-        //used to prevent firing window onresize "while the window is resized", e.g. wait 100ms for no size change and only then execute the function
-        var timer;
-        return function(event){
-            if(timer) clearTimeout(timer);
-            timer = setTimeout(func,timeout,event);
-        };
-    };
+  
 
 function buildWorfklowTree(){
     mainLayout.getCell("a").progressShow();
@@ -1090,7 +1078,11 @@ function getActiveGridColumns(){
     
                 },
                 {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
-                {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
+                {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true,
+                    template: function(val,row,column){
+                        return '<span class="celltext_rtl">' + row.source + '</span>'
+                    }
+                 },
 				{id: "proc",     	header: ["<span>Step</span>"+ searchboxhtml],       sortable: true,htmlEnable: true, maxWidth: 600,
 					template: function(val,row,column){
 						return "Prio " + (row.priority || "") + " | " + row.proc + " | " + row.host
@@ -1153,7 +1145,7 @@ async function buildActiveGrid() {
                 searchbox: debounce((event,  args) => {
                     
                     //debounce function prevents this to fire multiple times parallel while user is typing
-                    //only if user did not type for 500ms, function will fire
+                    //only if user did not type for 750ms, function will fire
                     grid.filterobj = collectFilters();
                     grid.data.removeAll();
                     loadGridData();
@@ -1206,7 +1198,15 @@ async function buildActiveGrid() {
     }
 
     /* Data loading */
+    grid.throttleflag = null;
     async function loadGridData(){
+        console.log("debouncing activegriddata");
+        throttle(loadGridData_internal,3000,grid.throttleflag)();
+        
+    }
+
+    async function loadGridData_internal(){
+        console.log("loadactivejobs internal")
         let urlSearchParams =  new URLSearchParams({});
         
         // urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
@@ -1248,9 +1248,8 @@ async function buildActiveGrid() {
         if (selectedCells.length == 0)
             toggleJobControl("active",false);
 
-        
-    }
 
+    }
     //attachGridContextMenu()
     // loadGridData();
     return grid;
@@ -1462,7 +1461,9 @@ async function buildActiveGrid() {
             {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "duration",    header: ["<span>Duration</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span>End</span>"+ searchboxhtml],        sortable: true,htmlEnable: true,  maxWidth: 152},
-            {id: "source",      header: ["<span>Source</span>"+ searchboxhtml],       sortable: true,htmlEnable: true },
+            {id: "source",      header: ["<span>Source</span>"+ searchboxhtml],     sortable: true,htmlEnable: true,template: function(val,row,column){
+                        return '<span class="celltext_rtl">' + row.source + '</span>'
+                    } },
             {id: "outcome",     header: ["<span>Outcome</span>"+ searchboxhtml],    sortable: true,htmlEnable: true, 
                 template: function(val,row,col){
                     if (val.length > 5000)
@@ -1726,7 +1727,14 @@ async function buildActiveGrid() {
         }
 
         /* Data loading */
+        grid.throttleflag = null;
         async function loadGridData(){
+            console.log("Throtteling historygriddata")
+            throttle(loadGridData_internal , 1000, grid.throttleflag)();
+        }   
+
+        async function loadGridData_internal(){
+            console.log("executing loadGridData_internal history")
             let urlSearchParams =  new URLSearchParams({});
             urlSearchParams.append("count", m_max_history_gridrows);
             urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
@@ -1988,6 +1996,30 @@ async function buildActiveGrid() {
         var tree = $("#workflowtree").fancytree('getTree');
         tree.selectAll(false);
     }
+        
+    function debounce(func,timeout){
+            //used to prevent kicking off search too often while user types, e.g. wait 100ms for no change and only then execute the function
+            var timer;
+            return function(event){
+                if(timer) clearTimeout(timer);
+                timer = setTimeout(func,timeout,event);
+            };
+    };
+
+    /**
+     * Ensures that the "mainFunction" is at maximum executed in delay frequency (e.g if 50 jobs finish in the same second, we would load 50 times activejob)
+    */
+    function throttle(mainFunction, delay,timerFlag) {
+        return (...args) => {
+            if (timerFlag === null) { // If there is no timer currently running
+            mainFunction(...args); // Execute the main function 
+            timerFlag = setTimeout(() => { // Set a timer to clear the timerFlag after the specified delay
+                timerFlag = null; // Clear the timerFlag to allow the main function to be executed again
+            }, delay);
+            }
+        };
+    }
+    
 </script>
 
 <body onload="loadserverconfig()">
