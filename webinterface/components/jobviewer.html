@@ -103,6 +103,7 @@
 		direction:rtl;
 		overflow:hidden;
         text-overflow: ellipsis;
+        user-select: text;
     }
 
     /*three dots on text overflow*/
@@ -337,9 +338,10 @@
 
     /* global click handler */
     document.addEventListener("click", function(evnt){
-        //unselect selected grid rows if not clicked within a grid
-        if (Array.from(evnt.target.classList).indexOf("dhx_grid-cell__content" ) != -1)
+        //unselect selected grid rows if not clicked within a grid (or on some text in grid)
+        if (Array.from(evnt.target.classList).join("").match(/dhx_grid-cell__content|celltext_rtl/ ))
             return true;
+        console.log("Clearing grid selection because of click outside")
         
         if(m_historyGrid && m_activeGrid){
             //disable selection in the grids
