@@ -3,7 +3,6 @@
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 
 <script src="../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
@@ -333,7 +332,6 @@
         if (event.key === 'Shift'){
             document.getSelection().removeAllRanges();
         }
-      
     });
 
     /* global click handler */
@@ -341,7 +339,7 @@
         //unselect selected grid rows if not clicked within a grid (or on some text in grid)
         if (Array.from(evnt.target.classList).join("").match(/dhx_grid-cell__content|celltext_rtl/ ))
             return true;
-        console.log("Clearing grid selection because of click outside")
+        console.log("Clearing grid selection because of click")
         
         if(m_historyGrid && m_activeGrid){
             //disable selection in the grids
@@ -1205,10 +1203,9 @@ async function buildActiveGrid() {
     }
 
     /* Data loading */
-    grid.throttleflag = null;
+    grid.throttleflag = {throttle:null};
     async function loadGridData(){
-        console.log("debouncing activegriddata");
-        throttle(loadGridData_internal,3000,grid.throttleflag)();
+        throttle(loadGridData_internal,3000,grid.throttleflag,"active")();
         
     }
 
@@ -1734,10 +1731,9 @@ async function buildActiveGrid() {
         }
 
         /* Data loading */
-        grid.throttleflag = null;
+        grid.throttleflag = {throttle:null};
         async function loadGridData(){
-            console.log("Throtteling historygriddata")
-            throttle(loadGridData_internal , 1000, grid.throttleflag)();
+            throttle(loadGridData_internal , 3000, grid.throttleflag,"history")();
         }   
 
         async function loadGridData_internal(){
@@ -2016,12 +2012,12 @@ async function buildActiveGrid() {
     /**
      * Ensures that the "mainFunction" is at maximum executed in delay frequency (e.g if 50 jobs finish in the same second, we would load 50 times activejob)
     */
-    function throttle(mainFunction, delay,timerFlag) {
+    function throttle(mainFunction, delay,throttleFlag,label) {
         return (...args) => {
-            if (timerFlag === null) { // If there is no timer currently running
+            if (throttleFlag.throttle === null) { // If there is no timer currently running
             mainFunction(...args); // Execute the main function 
-            timerFlag = setTimeout(() => { // Set a timer to clear the timerFlag after the specified delay
-                timerFlag = null; // Clear the timerFlag to allow the main function to be executed again
+            throttleFlag.throttle = setTimeout(() => { // Set a timer to clear the timerFlag after the specified delay
+                throttleFlag.throttle = null; // Clear the timerFlag to allow the main function to be executed again
             }, delay);
             }
         };
