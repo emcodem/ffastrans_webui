@@ -121,11 +121,6 @@ async function initializeTUSdProxy(app){
                     console.log("Moving upload file from: ",uploadPath,"to",target_full);
                     await fs.promises.rename(uploadPath, target_full);
 
-                    function build_self_url(what,host = "127.0.0.1",port =global.config.STATIC_WEBSERVER_LISTEN_PORT){
-                        let protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
-                        return protocol + host + ":" + port + what;  
-                    }
-
                     ////attempt to delete segments on tusd
                     // let uploadurl = req.body.Event.Upload.ID;
                     

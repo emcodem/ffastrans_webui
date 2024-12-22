@@ -16,6 +16,7 @@ module.exports = function(app, passport) {
     //      res.sendFile(global.approot + '/webinterface/components/login.html'); //need to use sendfile to keep referer at client OK
     // });
     //allow unauthorized access 
+
     app.get('/webinterface/dependencies/*', async function(req, res) {
          res.sendFile(global.approot + req.originalUrl);
     });
@@ -127,6 +128,9 @@ module.exports = function(app, passport) {
 function isLoggedIn(req, res, next) {
     // if user is authenticated in the session, carry on 
     if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" =="false")){
+        return next();
+    }
+    if (req.originalUrl.match("tusd_callback")){
         return next();
     }
     // if they aren't redirect them to the home page
