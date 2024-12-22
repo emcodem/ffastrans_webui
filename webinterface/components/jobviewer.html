@@ -321,7 +321,12 @@
     var m_query = {}; //url parameters
 
     /* global function override */
+    //backward compatible dhtmlx message
+    dhtmlx = {};
     dhtmlx.message= function(what){
+        dhx8.dhx.message({ expire: 3000, text: what});
+    }
+    dhtmlx.alert= function(what){
         dhx8.dhx.message({ expire: 3000, text: what});
     }
 
@@ -611,13 +616,13 @@
             }
             if (id == "b"){
                 mainLayout.getCell("b").attach(await buildActiveGrid());
-                m_activeGrid.loadGridData();
+                m_activeGrid.loadGridData_internal();
                 mainLayout.getCell("c").config.height = "60%";
                 await dhx8.dhx.awaitRedraw();
             }
             if (id == "c"){
                 mainLayout.getCell("c").attach(await buildHistoryGrid());
-                m_historyGrid.loadGridData();
+                m_historyGrid.loadGridData_internal();
             }
         });
 
@@ -803,9 +808,7 @@
         socket.on('msg', function(msg) {
             dhtmlx.message(msg);
         });
-        socket.on('alert', function(msg) {
-            dhtmlx.alert(msg);
-        });
+
         
         
         /* check if new activejobs forever */
@@ -1163,8 +1166,8 @@ async function buildActiveGrid() {
     m_activeGrid = grid;
     //custom fields keep track of current state
     grid.filterobj      = {};
-    grid.sortcol        = "";
-    grid.sortdir        = "";
+    grid.sortcol        = "state";
+    grid.sortdir        = "asc";
     grid.mystuff        = {page:1}
     grid.loadGridData   = loadGridData;
 
@@ -1174,14 +1177,19 @@ async function buildActiveGrid() {
     });
 
     /* Sorting */
-    // grid.events.on("beforeSort", (column, dir) => {
-    //     /* remove all rows and reload sorted data from server */
-    //     // grid.sortcol =  column.id;
-    //     // grid.sortdir =  dir;
-    //     // grid.data.removeAll();
-    //     // loadGridData();
-    //     return true;
-    // });
+    grid.events.on("beforeSort", async (column, dir) => {
+        /* remove all rows and reload sorted data from server */
+        grid.sortcol =  column.id;
+        grid.sortdir =  dir;
+        grid.data.removeAll();
+        await dhx8.dhx.awaitRedraw();
+        // grid.data.removeAll();
+        // loadGridData();
+        return false;
+    });
+    grid.events.on("afterSort", (column, dir) => {
+        loadGridData_internal();
+    })
 
     /* Searching */
     function collectFilters(){ //collects all search values
@@ -1214,43 +1222,96 @@ async function buildActiveGrid() {
         let urlSearchParams =  new URLSearchParams({});
         
         // urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
-        // urlSearchParams.append("sortcol", grid.sortcol);
-        // urlSearchParams.append("direction", grid.sortdir);
+        urlSearchParams.append("sortcol", grid.sortcol);
+        urlSearchParams.append("direction", grid.sortdir);
         // urlSearchParams.append("start", grid.mystuff.page == 1 ? 0 : m_max_history_gridrows * (grid.mystuff.page-1));
 
         let url = "/getactivejobs_dhx?"+urlSearchParams.toString();
         var response = await fetch(url);
         if (!response.ok)
             return dhx8.dhx.message({ expire: 3000, text: "Error loading activejobs grid data"});
+
         const newData = await response.json();
 
-        //update existing
-        newData.map(r=>{
+        newData.map(r=>{//unique grid row id
             r.id = r.job_id + r.split_id;
             return r;
         })
 
-        //
+        //restore selection if any
+        let selectedCells = grid.selection.getCells();
+        selectedCells = JSON.parse(JSON.stringify(selectedCells))
+        console.log("selected Cells",selectedCells)
 
-        let existing    = grid.data.serialize();
-        let existingIds = existing.map(r=>{return r.id});
-        let newIds      = newData.map(r=>{return r.id});
-        let newRows     = newData.filter(   r=>{return existingIds.indexOf(r.id) == -1});
-        let existingRows = newData.filter(  r=>{return existingIds.indexOf(r.id) != -1});
-        let missing     = existing.filter(  r=>{return newIds.indexOf(r.id) == -1})
-        let missingIds  = missing.map(r=>{return r.id});
 
-        grid.data.add(newRows);
-        missingIds.forEach(rid=>{grid.selection.removeCell(rid);}); //unselect
-        grid.data.remove(missingIds);
-        existingRows.map(r=>{
-            grid.data.update(r.id, newData.filter(nrow=>{return nrow.id == r.id})[0]);
-        });
-        //grid.data.parse(json);
-
-        const selectedCells = grid.selection.getCells();
+        //redraw grid
+        grid.data.removeAll();
+        grid.data.add(newData);
+        selectedCells.map(c=>{
+            console.log("re-selecing",c.row)
+            grid.selection.setCell(c.row.id, 0);
+        })
+        //if no cells were selected, disable buttons
+        selectedCells = grid.selection.getCells();
         if (selectedCells.length == 0)
             toggleJobControl("active",false);
+        return;
+
+        // let existing    = grid.data.serialize();
+        // let existingIds = existing.map(r=>{return r.id});
+        // let newIds      = newData.map(r=>{return r.id});
+        // let newRows     = newData.filter(   r=>{return existingIds.indexOf(r.id) == -1});
+        // let existingRows = newData.filter(  r=>{return existingIds.indexOf(r.id) != -1});
+        // let missing     = existing.filter(  r=>{return newIds.indexOf(r.id) == -1})
+        // let missingIds  = missing.map(r=>{return r.id});
+
+        // //insert new
+        // grid.data.add(newRows);
+        // missingIds.forEach(rid=>{grid.selection.removeCell(rid);}); //unselect
+        // //remove missing
+        // grid.data.remove(missingIds);
+        // //update existing
+        // console.log("rows to update:",existingRows)
+        // existingRows.map(r=>{
+        //     console.log("updating",r,newData.filter(nrow=>{return nrow.id == r.id}));
+        //     grid.data.update(r.id, newData.filter(nrow=>{return nrow.id == r.id})[0]);
+        // });
+
+        // //sort
+        // applySort();
+        // function applySort(){
+        //     if (grid.sortcol == "state"){
+        //         //sort by first by date and state second
+        //         let $do_if_gt = grid.sortdir == "asc" ? 1 : -1;
+        //         console.log("do_if_gt",$do_if_gt)
+        //         console.log("before sort",grid.data.serialize())
+        //         console.log("sorting state before",grid.getSortingState())
+        //         grid.data.sort({
+        //                 rule: (a, b) => {
+        //                     let a_state_date = a.state + a.job_start;
+        //                     let b_state_date = b.state + b.job_start;
+        //                     //first ternary moves a down, second moves it up or keeps current position if dup
+        //                     return a_state_date > b_state_date ? $do_if_gt : (a_state_date < b_state_date ? ($do_if_gt*-1) : 0);
+        //                 }
+        //             }
+        //         )
+
+                
+        //         console.log("after sort",grid.data.serialize())
+        //         console.log("sorting state after",grid.getSortingState())
+                
+        //     }else{
+        //         //let the grid sort without help
+        //         grid.data.sort({
+        //             by: grid.sortcol,
+        //             dir: grid.sortdir
+        //         })
+        //     }
+
+
+        // }
+        //check if we have selected rows
+
 
 
     }
@@ -1520,7 +1581,6 @@ async function buildActiveGrid() {
             ]
         });
 
-
         let gridcolumns = getHistoryGridColumns();
 
         //apply user state
@@ -1564,7 +1624,6 @@ async function buildActiveGrid() {
 
                 },
             eventHandlers: {
-                
                 oninput:{
                     searchbox: debounce((event,  args) => {
                         //debounce function prevents this to fire multiple times parallel while user is typing
@@ -1577,50 +1636,8 @@ async function buildActiveGrid() {
                     },750),
                 },
                 onclick: {
-                    /* expand row with children */ 
-                    expander: (event,  {row} ) => {//expander is in classlist of state htmle template
-                        console.log(row)
-                        if (row.expanded) {
-                            grid.data.update(row.id, { expanded: false });
-                            document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-down', 'dxi-chevron-right');
-                            let to_remove = [];
-                            grid.data.forEach(function(item, index, array) {
-                                if (item.parentid == row.id)
-                                    to_remove.push(item.id);
-                            });
-                            
-                            grid.data.remove(to_remove);
-
-                        } else {
-                            grid.data.update(row.id, { expanded: true });
-                            document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-right', 'dxi-chevron-down');
-                            expandgridrow();
-                            function expandgridrow(rid){
-                                //add the child rows into grid after 
-                                const index = grid.data.getIndex(row.id);
-                                const naturalCollator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
-                                //row.children.sort(grid.)
-                                try{
-                                    if (grid.sortcol && grid.sortcol != ""){
-                                        if (grid.sortdir == "asc"){
-                                            row.children.sort((a, b) => naturalCollator.compare(a[grid.sortcol], b[grid.sortcol]));
-                                        }else{
-                                            row.children.sort((a, b) => naturalCollator.compare(b[grid.sortcol], a[grid.sortcol]));
-                                        }
-                                        
-                                    }
-                                }catch(ex){}
-                                    
-                                grid.data.add(row.children.map(c=>{//each branch row
-                                        c.parentid = row.id,
-                                        c.state="<p style='text-indent:30px'>" + c.state;
-                                        c.source="<p style='text-indent:30px'>" + c.source;
-                                        c.outcome="<p style='text-indent:30px'>" + c.outcome;
-                                        return c
-                                    }),index+1);
-                            }
-                        }
-                    }
+                    /* onclick, dhtmlx will parse the classlist of the clicked stuff and for each class, execute the methods registered here */ 
+                    expander: (event,  {row} ) => expandHistoryGridRow(row)//expander is in classlist of state htmle template
                 }
             },
         });
@@ -1632,6 +1649,50 @@ async function buildActiveGrid() {
         grid.mystuff        = {page:1}
         grid.loadGridData   = loadGridData;
 
+
+        function expandHistoryGridRow(row){
+            if (row.expanded) {
+                grid.data.update(row.id, { expanded: false });
+                document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-down', 'dxi-chevron-right');
+                let to_remove = [];
+                grid.data.forEach(function(item, index, array) {
+                    if (item.parentid == row.id)
+                        to_remove.push(item.id);
+                });
+                
+                grid.data.remove(to_remove);
+
+            } else {
+                grid.data.update(row.id, { expanded: true });
+                document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-right', 'dxi-chevron-down');
+                expandgridrow();
+                function expandgridrow(rid){
+                    //add the child rows into grid after 
+                    const index = grid.data.getIndex(row.id);
+                    const naturalCollator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+                    //row.children.sort(grid.)
+                    try{
+                        if (grid.sortcol && grid.sortcol != ""){
+                            if (grid.sortdir == "asc"){
+                                row.children.sort((a, b) => naturalCollator.compare(a[grid.sortcol], b[grid.sortcol]));
+                            }else{
+                                row.children.sort((a, b) => naturalCollator.compare(b[grid.sortcol], a[grid.sortcol]));
+                            }
+                            
+                        }
+                    }catch(ex){}
+                        
+                    grid.data.add(row.children.map(c=>{//each branch row
+                            c.id = c._id;
+                            c.parentid = row.id,
+                            c.state="<p style='text-indent:30px'>" + c.state;
+                            c.source="<p style='text-indent:30px'>" + c.source;
+                            c.outcome="<p style='text-indent:30px'>" + c.outcome;
+                            return c
+                        }),index+1);
+                }
+            }
+        }
         //restore grid widths if any
         // if (localStorage.jobviewer_historygrid_widths){
         //     try{
@@ -1696,7 +1757,7 @@ async function buildActiveGrid() {
             grid.sortcol =  column.id;
             grid.sortdir =  dir;
             grid.data.removeAll();
-            loadGridData();
+            loadGridData_internal();
             return true;
         });
         
@@ -1737,7 +1798,6 @@ async function buildActiveGrid() {
         }   
 
         async function loadGridData_internal(){
-            console.log("executing loadGridData_internal history")
             let urlSearchParams =  new URLSearchParams({});
             urlSearchParams.append("count", m_max_history_gridrows);
             urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
@@ -1750,9 +1810,51 @@ async function buildActiveGrid() {
             if (!response.ok)
                 return dhx8.dhx.message({ expire: 3000, text: "Error loading historygrid data"});
             const json = await response.json();
+            json.data.map(r=>{
+                r.id = r._id;
+            })
+            
+            //remember selection
+            let selectedCells = grid.selection.getCells();
+            selectedCells = JSON.parse(JSON.stringify(selectedCells));
+            //remember expanded rows
+            let expandedRows = [];
+            grid.data.serialize().map(r=>{
+                if (r.expanded)
+                    expandedRows.push(r.id);
+            })
+            
+            //load the new grid data
             grid.data.parse(json.data);
-            console.log("fetched",json);
+            await dhx8.dhx.awaitRedraw();
+            
+            //scroll to first selected
+            if (selectedCells.length != 0){
+                grid.scrollTo(selectedCells[0].row.id,"state");
+            }
 
+            //restore expansion
+            expandedRows.map(rid=>{
+                const exrow = grid.data.getItem(rid);
+                if (exrow){
+                    console.log("expanded row exists:",rid,grid.data.exists(rid))
+                    expandHistoryGridRow(exrow);
+                }    
+            })
+            await dhx8.dhx.awaitRedraw();
+            //restore selection
+            selectedCells.map(c=>{
+                console.log("re-selecing",c.row)
+                grid.selection.setCell(c.row.id, 0);
+            });
+            await dhx8.dhx.awaitRedraw();
+
+            //if no cells selected, disable buttons
+            selectedCells = grid.selection.getCells();
+            if (selectedCells.length == 0)
+                toggleJobControl("history",false);
+
+            //build pagination, todo, should we do this non blocking?
             urlSearchParams.append("getcount", 1);
             let counturl = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
             var countresponse = await fetch(counturl);

@@ -4,7 +4,6 @@ module.exports = function(app, express){
 
 //returns filtered list of activejobs based on user permissions
 
-  var configServer = require(global.approot  + '/node_components/server_config');
 	app.get('/getactivejobs_dhx', async (req, res) => {
       //BEWARE, there can potentially be many requests per second to this
       try{
@@ -13,6 +12,9 @@ module.exports = function(app, express){
               res.json(returnobj);
               return;
             }
+
+            let sortcol = req.query.sortcol;
+            let sortdir = req.query.direction;
             var lastactive = JSON.parse(global.lastactive);
             var lastqueued = JSON.parse(global.lastqueued);
 
@@ -47,7 +49,24 @@ module.exports = function(app, express){
                 allowed.push(allactive[i]);
             }
             
-
+            if (sortcol){
+              allowed = allowed.sort((a, b) => {
+                let valueA = a[sortcol];
+                let valueB = b[sortcol];
+  
+                if (!sortcol || sortcol == "state"){
+  
+                }
+    
+                if (sortdir === "asc") {
+                    return valueA > valueB ? 1 : -1;
+                } else {
+                    return valueA > valueB ? -1 : 1;
+                }
+              });
+  
+            }
+            
             res.json(allowed);//Send error response here
             
       }catch (ex){
