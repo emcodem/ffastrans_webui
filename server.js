@@ -274,8 +274,15 @@ async function init(conf){
     
     //mustache setup and login page
     app.set('views', `${__dirname}/webinterface/components`);
+    //enables mustache engine when client requests file extension mustache
     app.set('view engine', 'mustache');
     app.engine('mustache', mustacheExpress());
+    
+    //enables mustache engine when client requests file extension html, used in routes.js
+    app.set('view engine', 'html');
+    app.engine('html', mustacheExpress());
+
+    // app.engine('html', mustacheExpress());
     app.use ('/webinterface/components/login.html', function(req,res){
         //changed from static login.html to mustache dynamically rendered
         var azure_link = "";

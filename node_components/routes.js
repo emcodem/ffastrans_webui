@@ -1,6 +1,7 @@
 /*routes takes care about authentification for all urls*/
 const path = require("path");
 const express = require('express');
+const fs = require("fs");
 module.exports = function(app, passport) {
 
     // =====================================
@@ -74,7 +75,63 @@ module.exports = function(app, passport) {
 
     //needed to serve html/js/images 
     app.use("/alternate-server", express.static('./alternate-server'));
-    app.use("/webinterface",express.static('./webinterface'));
+    //app.use("/webinterface",express.static('./webinterface'));
+    
+    //can we hook mustache everywhere?
+    app.get ('/webinterface', function(req,res){
+        res.sendFile(path.join(global.approot,"/webinterface/index.html")); 
+    });
+    app.get ('/webinterface/images/*', function(req,res){
+        let realpath = path.join(global.approot,req.url);
+        res.sendFile(realpath); 
+    });
+    app.get ('/webinterface/version.txt', function(req,res){
+        res.sendFile(path.join(global.approot,"/webinterface/version.txt")); 
+    })
+    app.get ('/webinterface/components/*', function(req,res){
+        /* check if html, if yes, use mustache rendering */
+        let realpath = path.join(global.approot,req.url);
+        
+        if (fs.existsSync(realpath)){
+            //we use mustache for rendering html files, so we can insert global stuff
+            if (realpath.match(/html$/i)){
+                res.render(realpath,
+                    {
+                      instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
+                      
+                    }
+                  )
+            }else{
+                //non html files
+                res.sendFile(realpath);
+            }
+
+            return;
+        }
+    })
+    //todo:move typescript_client to components?
+    app.use("/webinterface/typescript_client/clientdist/dist/",express.static('./webinterface/typescript_client/clientdist/dist/'));
+
+    // app.use ('/webinterface/components/login.html', function(req,res){
+    //     //changed from static login.html to mustache dynamically rendered
+    //     var azure_link = "";
+    //     if (global.confidential_config && global.confidential_config.azure_config){
+    //         azure_link = global.confidential_config.azure_config.azure_login_link;
+    //     }
+
+    //     if (fs.existsSync(path.join(global.approot,"alternate-server/login.html"))){
+    //         res.sendFile(path.join(global.approot,"alternate-server/login.html"));
+    //         return;
+    //     }
+        
+    //     res.render("login.mustache",
+    //       {
+    //         instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
+    //         azureLink:azure_link
+    //       }
+    //     )
+    // });
+
 
     //logout
     app.get('/logout', async function(req, res) {
