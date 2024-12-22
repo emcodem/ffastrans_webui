@@ -88,7 +88,8 @@ module.exports = function(app, passport) {
     app.get ('/webinterface/version.txt', function(req,res){
         res.sendFile(path.join(global.approot,"/webinterface/version.txt")); 
     })
-    app.get ('/webinterface/components/*', function(req,res){
+
+    function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
         let realpath = path.join(global.approot,req.url);
         
@@ -97,7 +98,7 @@ module.exports = function(app, passport) {
             if (realpath.match(/html$/i)){
                 res.render(realpath,
                     {
-                      instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
+                        googleTagManager: global.config.STATIC_GOOGLE_ANALYTICS_ENABLE == "enabled" ? 'https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR' : "",
                       
                     }
                   )
@@ -108,30 +109,11 @@ module.exports = function(app, passport) {
 
             return;
         }
-    })
+    }
+    app.get ('/webinterface/components/*', renderHTMLByMustache);
+    app.get ('/webinterface/index.html', renderHTMLByMustache);
     //todo:move typescript_client to components?
     app.use("/webinterface/typescript_client/clientdist/dist/",express.static('./webinterface/typescript_client/clientdist/dist/'));
-
-    // app.use ('/webinterface/components/login.html', function(req,res){
-    //     //changed from static login.html to mustache dynamically rendered
-    //     var azure_link = "";
-    //     if (global.confidential_config && global.confidential_config.azure_config){
-    //         azure_link = global.confidential_config.azure_config.azure_login_link;
-    //     }
-
-    //     if (fs.existsSync(path.join(global.approot,"alternate-server/login.html"))){
-    //         res.sendFile(path.join(global.approot,"alternate-server/login.html"));
-    //         return;
-    //     }
-        
-    //     res.render("login.mustache",
-    //       {
-    //         instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
-    //         azureLink:azure_link
-    //       }
-    //     )
-    // });
-
 
     //logout
     app.get('/logout', async function(req, res) {
