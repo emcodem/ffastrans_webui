@@ -91,11 +91,12 @@ module.exports = function(app, passport) {
 
     function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
-        let realpath = path.join(global.approot,req.url);
+        let realpath = path.join(global.approot,req.path);
         
         if (fs.existsSync(realpath)){
             //we use mustache for rendering html files, so we can insert global stuff
             if (realpath.match(/html$/i)){
+                console.log("mustache rendering",realpath)
                 res.render(realpath,
                     {
                         googleTagManager: global.config.STATIC_GOOGLE_ANALYTICS_ENABLE == "enabled" ? 'https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR' : "",

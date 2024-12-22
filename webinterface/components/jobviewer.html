@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
 <script src="../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
 
+<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <link rel="stylesheet" href="../dependencies/css/global.css" id="theme_loader" type="text/css">
 <script>
@@ -167,6 +168,15 @@
             opacity: 1;/* Keep the textbox visible if it has content */
     }
 
+    .searchboxcontainer{
+        opacity: 0;
+        width:100%;
+        height:100%;
+    }
+    .searchboxcontainer:hover {
+            opacity: 1;
+            pointer-events: auto;
+    }
     /* grid and rows */ 
     .ffastrans_grid_style{
         --dhx-font-family:"Tahoma";
@@ -1323,7 +1333,21 @@ async function buildActiveGrid() {
 
 
     function openLogViewer(jobid){
-        var url = "logviewer.html?job_id=" + jobid;
+        var url = "/webinterface/components/logviewer.html?job_id=" + jobid;
+        // const dhxWindow = new dhx8.dhx.Window({
+        //     width: window.innerWidth-20,
+        //     height: window.innerHeight-20,
+        //     title: "Job Details",
+        //     modal: false,
+        //     closable: true,
+        //     movable: true,
+        //     resizable:true
+        // });
+
+        // dhxWindow.attachHTML('<iframe height="100%" width="100%" style="border:none" src="'+url+'"></iframe>');
+        // dhxWindow.show()
+        
+
         var dhxwins = new dhtmlXWindows();
         var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
         win.setText("Job Details");
@@ -1492,8 +1516,8 @@ async function buildActiveGrid() {
     window.getHistoryGridColumns = getHistoryGridColumns;
     function getHistoryGridColumns(){
         
-        let searchboxhtml = `<input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input>`;
-
+        let searchboxhtml = `<div class="searchboxcontainer"><input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input></div>`;
+        let searchbox_with_calendar = `<div class="searchboxcontainer"><input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input><span class="mdi mdi-clock-time-five-outline"></span></div>`
         let c = [
             {
                 id: "state",
@@ -1523,7 +1547,7 @@ async function buildActiveGrid() {
                 }
 
             },
-            {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "job_start",   header: ["<span>Start</span>"+ searchbox_with_calendar],      sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "duration",    header: ["<span>Duration</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span>End</span>"+ searchboxhtml],        sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "source",      header: ["<span>Source</span>"+ searchboxhtml],     sortable: true,htmlEnable: true,template: function(val,row,column){
