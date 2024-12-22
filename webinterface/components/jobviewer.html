@@ -168,15 +168,6 @@
             opacity: 1;/* Keep the textbox visible if it has content */
     }
 
-    .searchboxcontainer{
-        opacity: 0;
-        width:100%;
-        height:100%;
-    }
-    .searchboxcontainer:hover {
-            opacity: 1;
-            pointer-events: auto;
-    }
     /* grid and rows */ 
     .ffastrans_grid_style{
         --dhx-font-family:"Tahoma";
@@ -632,7 +623,7 @@
             }
             if (id == "c"){
                 mainLayout.getCell("c").attach(await buildHistoryGrid());
-                m_historyGrid.loadGridData_internal();
+                m_historyGrid.loadGridData();
             }
         });
 
@@ -1516,8 +1507,7 @@ async function buildActiveGrid() {
     window.getHistoryGridColumns = getHistoryGridColumns;
     function getHistoryGridColumns(){
         
-        let searchboxhtml = `<div class="searchboxcontainer"><input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input></div>`;
-        let searchbox_with_calendar = `<div class="searchboxcontainer"><input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input><span class="mdi mdi-clock-time-five-outline"></span></div>`
+        let searchboxhtml = `<input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input>`;
         let c = [
             {
                 id: "state",
@@ -1547,7 +1537,7 @@ async function buildActiveGrid() {
                 }
 
             },
-            {id: "job_start",   header: ["<span>Start</span>"+ searchbox_with_calendar],      sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "job_start",   header: ["<span>Start</span>" + searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "duration",    header: ["<span>Duration</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span>End</span>"+ searchboxhtml],        sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "source",      header: ["<span>Source</span>"+ searchboxhtml],     sortable: true,htmlEnable: true,template: function(val,row,column){
