@@ -1614,13 +1614,12 @@ async function buildActiveGrid() {
             // </div>`;
             return searchbox_container.outerHTML;
         }
-        let searchboxhtml = getSearchBoxHtml();
 
         let c = [
             {
                 id: "state",
                 maxWidth: 100,
-                header: ["<span>State</span>" + getSearchBoxHtml()],
+                header: ["<span class='grid_header_text'>State</span>" + getSearchBoxHtml()],
                 sortable: true,
                 template:function(val,row,column){
                     if (row.children && row.children.length > 1){
@@ -1645,12 +1644,12 @@ async function buildActiveGrid() {
 
             },
             {id: "job_start",   header: ["<span class='grid_header_text'>Start</span>" + getSearchBoxHtml({datepicker:true})],      sortable: true,htmlEnable: true,  maxWidth: 152},
-            {id: "duration",    header: ["<span>Duration</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,  maxWidth: 80},
-            {id: "job_end",     header: ["<span>End</span>"+ getSearchBoxHtml({datepicker:true})],        sortable: true,htmlEnable: true,  maxWidth: 152},
-            {id: "source",      header: ["<span>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,template: function(val,row,column){
+            {id: "duration",    header: ["<span class='grid_header_text'>Duration</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,  maxWidth: 80},
+            {id: "job_end",     header: ["<span class='grid_header_text'>End</span>"+ getSearchBoxHtml({datepicker:true})],        sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "source",      header: ["<span class='grid_header_text'>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,template: function(val,row,column){
                         return '<span class="celltext_rtl">' + row.source + '</span>'
                     } },
-            {id: "outcome",     header: ["<span>Outcome</span>"+ getSearchBoxHtml()],    sortable: true,htmlEnable: true,
+            {id: "outcome",     header: ["<span class='grid_header_text'>Outcome</span>"+ getSearchBoxHtml()],    sortable: true,htmlEnable: true,
                 template: function(val,row,col){
                     if (val.length > 5000)
                         val = val.substring(0, 5000);
@@ -1667,7 +1666,7 @@ async function buildActiveGrid() {
             for (let i=0;i<variablecolumns.length;i++){
                 c.push({
                     id: variablecolumns[i].col_header_name,
-                    header: ["<span>"+variablecolumns[i].col_header_name+"</span>"+ searchboxhtml],
+                    header: ["<span class='grid_header_text'>"+variablecolumns[i].col_header_name+"</span>"+ searchboxhtml],
                     sortable: false,
                     htmlEnable: true
                 });
@@ -1808,16 +1807,15 @@ async function buildActiveGrid() {
                         timePicker: true,
                         dateFormat: "%Y-%m-%d %H:%i:%s"
                     },
-                    {
-                        type: "button",
-                        text: "Apply",
-                        id: "save",
-                    },
-                    {
-                        type: "button",
-                        text: "Cancel",
-                        id: "cancel",
-                    }
+                    {cols: [
+                                {type: "button",text: "Apply",id: "save",width:100},
+                                {type: "spacer",name: "spacer",width:100},
+                                {type: "button",text: "Cancel",id: "cancel",width:100}
+                            ],
+                            width:"100%",
+                            align:"evenly"
+                        },
+
 
                 ]
             });

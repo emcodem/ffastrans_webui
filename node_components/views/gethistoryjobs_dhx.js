@@ -57,23 +57,20 @@ module.exports = function(app, express){
 						newfilter.workflow = value;
 						continue;
 					}else if(key.match(/job_start|job_end/)){
-						if (filterobj.job_start){
-							//job start can have from<:>to notation
-							if (filterobj[key].match("<:>")){
-								let [from, to] = filterobj[key].split("<:>");
-								newfilter[key] = { };
-								if (from && from != "")
-									newfilter[key]["$gt"] = from
-								if (to && to != "")
-									newfilter[key]["$lt"] = to
-								
-								continue;
-							}else{
-								//no date filter? use regex.
-								newfilter[key] = {$regex: new RegExp(escapeRegExp(value),"i")};
-								continue;
-							}
-							stop = 1;
+						//job start can have from<:>to notation
+						if (filterobj[key].match("<:>")){
+							let [from, to] = filterobj[key].split("<:>");
+							newfilter[key] = { };
+							if (from && from != "")
+								newfilter[key]["$gt"] = from
+							if (to && to != "")
+								newfilter[key]["$lt"] = to
+							
+							continue;
+						}else{
+							//no date filter? use regex.
+							newfilter[key] = {$regex: new RegExp(escapeRegExp(value),"i")};
+							continue;
 						}
 					}
 					else if (key == "variablecols"){

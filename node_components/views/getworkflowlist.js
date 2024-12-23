@@ -45,8 +45,9 @@ module.exports = async function (app, passport) {
                 username = req.user["local"]["username"];
 
             //get filtered list of workflow names
+            console.time("getworkflowjobcount getpermissionlist");
             var all_permissions = await userpermissions.getpermissionlistAsync(username);
-            
+            console.timeEnd("getworkflowjobcount getpermissionlist");
             //var all_workflows = await global.jobfetcher.getWorkflowList(true);//massive performance issue, blocks main loop when the system has many workflows
             
             //saves lots of performance when reading distinct workflows from db. construct face wf api response for getPermittedWorkflowList
@@ -54,10 +55,10 @@ module.exports = async function (app, passport) {
             var all_workflows = all_workflows_in_db.map(wf_name => { return {"wf_name":wf_name}})
             all_workflows = {data:{workflows:all_workflows}}
             //todo: add the worfklows from running jobs, maybe we dont have them in the db already
-
+            console.time("getworkflowjobcount getPermittedWorkflowList");
             var allowed_workflows = getPermittedWorkflowList(all_permissions, all_workflows);
             var allowed_wfnames = allowed_workflows.map(wf => wf.wf_name); //objects to name array
-            
+            console.time("getworkflowjobcount getPermittedWorkflowList");
             //ask database for success,error,cancelled 
             async function countDocs(_state, since_days, wf_names) {
                 var targetDate = moment(new Date()).subtract(since_days, 'day').format("YYYY-MM-DD 00:00:00"); // date object
@@ -68,13 +69,16 @@ module.exports = async function (app, passport) {
 
             var countObj = { sys: { "Success": 0, "Error": 0, "Cancelled": 0, "Incoming": 0, "Queued": 0, "Running": 0 } };
 
+
             if (!m_busy && (!m_history_cache.data || (((new Date) - m_history_cache.last_update) > 5000))) {
                 //cache expired or first run - grab data from database.
                 //counting in db can take ages and this api can be polled parallel many times, thats why we cache
                 m_busy = true;
+                console.time("getworkflowjobcount countdocs");
                 for (var _state of ["Success", "Error", "Cancelled"]) {
                     countObj.sys[_state] = await countDocs(_state, global.config.STATIC_HEADER_JOB_COUNT_DAYS, allowed_wfnames);
                 }
+                console.timeEnd("getworkflowjobcount countdocs");
                 m_busy = false;
                 m_history_cache.data = countObj;
                 m_history_cache.last_update = new Date();
@@ -92,7 +96,9 @@ module.exports = async function (app, passport) {
                 //ask tickets api for incoming, queued, running
 
                     if (!m_ticket_cache || !m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
+                        console.time("getworkflowjobcount ticket cache refresh");
                         m_ticket_cache.tickets = await global.jobfetcher.tickets();
+                        console.timeEnd("getworkflowjobcount ticket cache refresh");
                         console.log("Refreshed tickets cache",m_ticket_cache);
                     }
                     //apply user permissions to incoming and queued
@@ -118,6 +124,7 @@ module.exports = async function (app, passport) {
 
             try {
                 //REVIEW
+                console.time("getworkflowjobcount review");
                 countObj.sys.Review = 0;
                 console.log("Review count before applying userpermission: "  + m_ticket_cache.tickets.review.length);
                 var review_wfnames = m_ticket_cache.tickets.review.map(_tick => _tick.wf_name);
@@ -129,6 +136,7 @@ module.exports = async function (app, passport) {
                 countObj.sys.Review = review_filtered.length;
                 console.log("Review count after applying userpermission: " + review_filtered.length);
                 //var review_wfnames    = m_ticket_cache.tickets.review.map(_tick => _tick.wf_name);
+                console.timeEnd("getworkflowjobcount review");
 
             } catch (ex) {
                 var stopdebug =1;
