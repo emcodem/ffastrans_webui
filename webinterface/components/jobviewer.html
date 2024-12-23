@@ -98,8 +98,10 @@
     }
 
     .celltext_rtl {
-		direction:rtl;
-		overflow:hidden;
+        justify-content: flex-end;
+        display: flex;
+        
+		overflow:hidden; 
         text-overflow: ellipsis;
         user-select: text;
     }
@@ -1665,7 +1667,8 @@ async function buildActiveGrid() {
             {id: "duration",    header: ["<span class='grid_header_text'>Duration</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span class='grid_header_text'>End</span>"+ getSearchBoxHtml({datepicker:true})],        sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "source",      header: ["<span class='grid_header_text'>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,template: function(val,row,column){
-                        return '<span class="celltext_rtl">' + row.source + '</span>'
+                console.log("sourcesource",row.source)        
+                return '<span class="celltext_rtl">' + row.source + '</span>'
                     } },
             {id: "outcome",     header: ["<span class='grid_header_text'>Outcome</span>"+ getSearchBoxHtml()],    sortable: true,htmlEnable: true,
                 template: function(val,row,col){
