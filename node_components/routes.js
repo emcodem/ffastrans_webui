@@ -20,6 +20,16 @@ module.exports = function(app, passport) {
     app.get('/webinterface/dependencies/*', async function(req, res) {
          res.sendFile(global.approot + req.originalUrl);
     });
+
+    //override.css is used on every page but usually does not exist, this prevents 404 errors
+    app.get ('/alternate-server/css/override.css', async function(req,res){
+        if (await fs.promises.exists(path.join(global.approot,"/alternate-server/css/override.css"))){
+            res.sendFile(path.join(global.approot,"/alternate-server/css/override.css")); 
+        }else{
+            res.set('Content-Type', 'text/css'); // Set the content type to CSS
+            res.send(''); // Send an empty string
+        }
+    })
     app.get('/alternate-server/css/*', async function(req, res) {
         res.sendFile(global.approot + req.originalUrl);
    });
@@ -74,9 +84,9 @@ module.exports = function(app, passport) {
         }
     });
 
-    //needed to serve html/js/images 
+
+    //anything in alternate-server is served
     app.use("/alternate-server", express.static('./alternate-server'));
-    //app.use("/webinterface",express.static('./webinterface'));
     
     //can we hook mustache everywhere?
     app.get ('/webinterface', function(req,res){
@@ -96,6 +106,9 @@ module.exports = function(app, passport) {
     app.get ('/webinterface/version.txt', function(req,res){
         res.sendFile(path.join(global.approot,"/webinterface/version.txt")); 
     })
+
+
+    
 
     function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
@@ -148,4 +161,13 @@ function isLoggedIn(req, res, next) {
     //this crazy stuff is needed to keep the "referer" correctly set on client side
     res.send('<html>    <head>       <title>Redirecting...</title>    </head>    <body>     <form method="GET" action="/webinterface/components/login.html">     </form>      <script>        window.onload = function(){{           document.forms[0].submit()        }}     </script>   </body> </html>');
     //res.redirect('/webinterface/components/login.html'); 
+}
+
+fs.promises.exists = async function(f) {
+  try {
+    await fs.promises.stat(f);
+    return true;
+  } catch {
+    return false;
+  }
 }
