@@ -80,7 +80,14 @@ module.exports = function(app, passport) {
     
     //can we hook mustache everywhere?
     app.get ('/webinterface', function(req,res){
-        res.sendFile(path.join(global.approot,"/webinterface/index.html")); 
+        //calls to /webinterface, we serve index.html with mustache
+        let realpath = path.join(global.approot,"/webinterface/index.html");
+        res.render(realpath,
+            {
+                googleTagManager: global.config.STATIC_GOOGLE_ANALYTICS_ENABLE == "enabled" ? 'https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR' : "",
+              
+            }
+          );
     });
     app.get ('/webinterface/images/*', function(req,res){
         let realpath = path.join(global.approot,req.url);

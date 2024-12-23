@@ -10,3 +10,45 @@
     width:8px;
     margin-left: -3px;
 }
+
+
+/* Custom dhtmlx8 window */
+
+/* widnow border */
+.custom_window_small_borders{
+    border: 1px solid var(--dhx-border-color);
+}
+/* window background color */
+.custom_window_small_borders [data-cell-id="header"],.custom_window_small_borders [data-cell-id="content"],.custom_window_small_borders .dhx_widget .dhx_toolbar  {
+    background-color: var(--dhx-background-secondary);
+} 
+    /* outer window padding */
+.custom_window_small_borders [data-cell-id="content"]{
+    padding: 5px
+}
+
+/* close btn no circle */
+.custom_window_small_borders .dhx_button--circle.dhx_button--size_medium{
+    border-radius:unset;
+}
+/* Window Button sizes */
+.custom_window_small_borders nav > ul > li > button{
+    height:25px;
+    width: 25px;
+}
+/* inner header */
+.custom_window_small_borders .dhx_navbar .dhx_navbar--horizontal{
+    padding:0;
+}
+/* outer header resizing */
+.custom_window_small_borders nav  {
+    height:100% !important;
+    min-height:25px !important;
+}
+.custom_window_small_borders ul.dhx_navbar  {
+    padding:15 !important;
+}
+.custom_window_small_borders [data-cell-id="header"] {
+    height: 30px !important;
+}
+

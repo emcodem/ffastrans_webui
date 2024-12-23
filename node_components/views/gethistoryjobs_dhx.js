@@ -36,6 +36,7 @@ module.exports = function(app, express){
 			count = count + 0;
 			let filterobj = req.query.filterobj||"{}";
 			filterobj = JSON.parse(filterobj);
+
 			//since change to mongodb, we search only children
 			if (filterobj.outcome){
 				filterobj["children.outcome"] = filterobj.outcome;
@@ -55,6 +56,25 @@ module.exports = function(app, express){
 					if (key == "workflow"){
 						newfilter.workflow = value;
 						continue;
+					}else if(key.match(/job_start|job_end/)){
+						if (filterobj.job_start){
+							//job start can have from<:>to notation
+							if (filterobj[key].match("<:>")){
+								let [from, to] = filterobj[key].split("<:>");
+								newfilter[key] = { };
+								if (from && from != "")
+									newfilter[key]["$gt"] = from
+								if (to && to != "")
+									newfilter[key]["$lt"] = to
+								
+								continue;
+							}else{
+								//no date filter? use regex.
+								newfilter[key] = {$regex: new RegExp(escapeRegExp(value),"i")};
+								continue;
+							}
+							stop = 1;
+						}
 					}
 					else if (key == "variablecols"){
 						/**

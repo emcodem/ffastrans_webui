@@ -1,7 +1,5 @@
 <html>
 <head>
-<link rel="stylesheet" href="/alternate-server/css/override.css"/>
-
 <script src="/socket.io/socket.io.js"></script>
 
 <script src="../dependencies/jquery/jquery.js"></script>
@@ -18,20 +16,20 @@
 
 <!-- pagination -->
 <script src="../dependencies/pagination/pagination.min.js"></script>
-<link rel="stylesheet" href="../dependencies/pagination/pagination.css" type="text/css"> 
+<link rel="stylesheet" href="../dependencies/pagination/pagination.css" type="text/css">
 
 <script src="common/buildWorkflowTree.js"></script> <!-- function parseWorkflows -->
-<!-- 
-<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
+<!--
+<link rel="stylesheet" href="../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/>
 <script src="../dependencies/dhtmlx/8.0.0/suite.umd.js"></script> -->
 
+<link rel="stylesheet" href="../dependencies/dhtmlx/9.0.1/suite.min.css" type="text/css"/>
+<script src="../dependencies/dhtmlx/9.0.1/suite.umd.js"></script>
 
-<link rel="stylesheet" href="../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
-<script src="../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
-
-<script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <link rel="stylesheet" href="../dependencies/css/global.css" id="theme_loader" type="text/css">
+
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <script>
     //theme changeer
     if (localStorage.global_skin_dark == "1"){
@@ -57,7 +55,7 @@
         color: #333;
         font: 12px Tahoma;
         line-height: 18px;
-        
+
     }
 
     .fas {
@@ -69,10 +67,10 @@
         margin: 0;
         /* margin-left:5px;
         margin-right:5px; */
-        
+
         line-height: 140%;
         font-size: 10;
-        
+
         background-color: #4caf5080;
         padding: 0;
         text-align: center;
@@ -123,7 +121,7 @@
         word-break: break-all;
         user-select: text;
     } */
-   
+
     /*context menu stuff*/
     /* td:hover {
         opacity:0.5;
@@ -131,44 +129,78 @@
     .context-menu-active {
         opacity:0.5;
     } */
-	
+
 	/*keeps sort icon on top*/
 	i[id^='history-']{
-		
+
 		margin-top:3px;
 	}
 	/*keeps sort icon on top*/
 	i[id^='active-']{
-		
+
 		margin-top:3px;
 	}
-	
+
 
     ul.fancytree-container {
         font-size:12px !important;
     }
-    
+
 
     /* NEW STUFF */
     /* searchbox  */
     .searchbox {
-            opacity: 0;
-            position:absolute;
+            width: calc(100% - 25px);
             right: 25;
             left: 10;
             /* pointer-events: none; */
             transition: opacity 0.3s ease;
     }
     .searchbox:hover,.searchbox:focus {
-            opacity: 1;
             pointer-events: auto;
     }
-    
+
+/*     
     .searchbox:not(:placeholder-shown) {
-            opacity: 1;/* Keep the textbox visible if it has content */
+            opacity: 1 !important;
+    } */
+
+
+    .searchbox_container .mdi{
+        font-size:15px;
+        margin-top:3px;
+        cursor:pointer;
+    }
+    .searchbox_container:hover{
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .searchbox_container{
+        opacity: 0;
+        position: absolute;
+        width: calc(100% - 20px);
+        margin-top: 8;
+        height: 100%;
+    }
+    .searchbox_container.active{
+        /* keeps searchbox visible if not empty. Setting background ensures that the header text is not visible */
+        background-color:var(--dhx-s-grid-header-background);
+        opacity: 1;
     }
 
-    /* grid and rows */ 
+    .searchbox_calendar{
+        font-size:12px;
+        margin-right: 5px;
+    }
+
+    .dhx_grid-header-cell:hover .grid_header_text{
+        /* hide header text on hover. todo: this is not helpful because we also want to hide the text when searchbox_container has .active class 
+           as a workaround, we currently set background-color of searchbox_container.active, not very shiny...
+        */
+        opacity: 0;
+    }
+
+    /* grid and rows */
     .ffastrans_grid_style{
         --dhx-font-family:"Tahoma";
         --dhx-font-size-normal:12px
@@ -177,11 +209,11 @@
     .dhx_grid-selected-row{
         background:  rgba(0, 128, 255, 0.250)
     }
-    
+
     .dhx_grid-cell__content{
         user-select: text;
     }
-    
+
     .dhx_grid-row{
         /* transition: transform ease 0.05s, box-shadow ease 0.05s; */
         box-shadow: unset;
@@ -229,7 +261,7 @@
 
     button.jobviewer_menu {
         cursor: pointer;
-        
+
         margin-right: 10px;
         white-space: nowrap;
     }
@@ -251,14 +283,14 @@
         margin-top:4px;
         background-color: unset;
         border:var(--dhx-border);
-        
+
     }
     /* reset workflow search btn */
     .button_workflow_filter_menu_item i{
-        
+
         margin-left:-1px;
         font-size:10px;
-        
+
     }
 
     /* collapsed workflow layout cell */
@@ -279,15 +311,14 @@
     .dhx_layout-wide.dhx_layout-rows>.dhx_layout-cell{
         margin-bottom:6px;
     }
-    
+
     .dhx_layout-cell-header__title{
         overflow:visible;
         user-select: none;
     }
 
-
     /* button.jobviewer_menu:hover{
-        transform: scale(1.1) 
+        transform: scale(1.1)
     } */
 
     /* @media all and (max-width: 950px){
@@ -295,7 +326,7 @@
             display: none !important;
         }
     } */
-    /* @container css_container_jobviewer_menu_container (max-width: 700px) {    
+    /* @container css_container_jobviewer_menu_container (max-width: 700px) {
         .btn.jobviewer_menu span{
             font-size: 0px;
             color:green;
@@ -346,7 +377,7 @@
         if (Array.from(evnt.target.classList).join("").match(/dhx_grid-cell__content|celltext_rtl/ ))
             return true;
         console.log("Clearing grid selection because of click")
-        
+
         if(m_historyGrid && m_activeGrid){
             //disable selection in the grids
             m_historyGrid.selection.removeCell();
@@ -400,7 +431,7 @@
         element_names.forEach(function(name){
             try{
                 document.getElementsByName(name)[0].disabled = !selected_is_on;
-                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];  
+                var icon = document.getElementsByName(name)[0].getElementsByTagName("i")[0];
                 if (selected_is_on){
                     icon.classList.remove("disabled")
                 }else{
@@ -410,9 +441,9 @@
                 //who
             }
         })
-        
+
     }
-    
+
     /* render menu buttons based on permissions*/
     function addMenuButtons(){
 
@@ -420,36 +451,36 @@
             let headers = document.querySelectorAll(".dhx_layout-cell-header__title")
             let header = [...headers].filter(e => e.innerText === headerText);
             header[0].insertAdjacentHTML( 'afterEnd', to_append );
-           
+
             //appends text to mainLayout.cells("b") and mainLayout.cells("c")
             //mainLayout.getCell(cellid).config.header = mainLayout.getCell(cellid).config.header + to_append;
         }
 
 
         //menu buttons html
-        //do not forget to add the button name to togglejobcontrol if you add more btns 
+        //do not forget to add the button name to togglejobcontrol if you add more btns
         var a_details = '<button class="btn jobviewer_menu" name="a_details" disabled="true" onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled" ></i><span>Job Details</span></button> ';
         var a_abort =   '<button class="btn jobviewer_menu" name="a_abort" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px;" class= "fas fa-stop fa-sm disabled" ></i><span>Abort</span></button> ';
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i><span>Pause</span></button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i><span>Resume</span></button>   ';
         // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
         var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="event.stopPropagation();history_grid_actions(this.name)" style="float: right;margin-top:1px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
-        
+
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
 
         var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i><span>Job Details</span></button> ';
         var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i><span>Resubmit</span></button> ';
         var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i><span>Delete Selected</span></button> ';
         var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
-        
+
 
         //check user permissions
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){
-            
+
             var regex = new RegExp( _filter[0]["value"]["filter"], 'i' );
             console.log("Displaying filtered list of buttons, regex: ", regex);
-            
+
             //add filtered btns to Running jobgrid
             _appendtext('History',"<div class='jobviewer_menu_container historygrid'></div>");
             _appendtext('Running',"<div class='jobviewer_menu_container activegrid'></div>");
@@ -494,7 +525,7 @@
         }
         return to_return;
     }
-    
+
     function applyFilter(filtername,filtervalue){
         /* inserts filter into grid header and hits enter */
         const searchboxes = document.querySelectorAll('.searchbox');
@@ -502,16 +533,16 @@
             let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;
             if (header_id.toUpperCase().match(filtername.toUpperCase())){
                 searchbox.value = filtervalue;
-                
+
                 $(searchbox).trigger("input");
             }
         })
-       
+
     }
 
     /* build basic page layout and init periodic job loading*/
     async function init() {
-        
+
         //search params from URL go to their corresponding search inputs
         var query = window.location.search.substring(1);
         query = parse_query_string(query);
@@ -566,14 +597,14 @@
             ]
         };
 
-        //parse the layout config, construct layout object 
+        //parse the layout config, construct layout object
         mainLayout = new dhx8.dhx.Layout(document.body, layoutConf);
 
 		if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
 			//buildWorfklowTree(); //load workflows
-            
+
 			//mainLayout.getCell("a").header = ('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
-		
+
 		}else{
             mainLayout.getCell("a").config.header  = "";
             mainLayout.getCell("a").config.width   = 0;
@@ -595,7 +626,7 @@
             m_jobviewerLayoutSettings.layoutCells = cells;
             localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerLayoutSettings));
             console.log("saveLayoutConf",m_jobviewerLayoutSettings);
-            console.log("saveLayoutConf current",mainLayout);  
+            console.log("saveLayoutConf current",mainLayout);
         }
 
         mainLayout.events.on("afterResizeEnd", function(id){
@@ -612,7 +643,7 @@
             if (id == "a"){
                 console.log("Workflow Tree Expand")
                 m_jobviewerLayoutSettings.workflowtree_collapsed = false;
-                buildWorfklowTree(); 
+                buildWorfklowTree();
                 localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerLayoutSettings));
             }
             if (id == "b"){
@@ -632,7 +663,7 @@
         });
 
         function restoreLayoutConf(){
-            
+
             try{
                 console.log("restoring layout config");
                 //restore layout conf
@@ -674,8 +705,8 @@
             addMenuButtons();
         }
         //finally load data into grids
-        buildWorfklowTree(); 
-        
+        buildWorfklowTree();
+
         mainLayout.getCell("b").attach(await buildActiveGrid());
         m_activeGrid.loadGridData();
 
@@ -708,12 +739,12 @@
         // mainLayout.cells("a").showInnerScroll()
         // mainLayout.cells("a").setMinWidth(150);
         // mainLayout.cells("a").setWidth(350);
-        // mainLayout.cells("a").collapse(); 
-		
+        // mainLayout.cells("a").collapse();
+
 		// if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
 		// 	buildWorfklowTree(); //load workflows
 		// 	mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
-		
+
 		// }else{
 		// 	console.log("alternate server is true!")
 		// 	mainLayout.cells("a").setCollapsedText("");
@@ -724,7 +755,7 @@
         // mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#888888" >Running</span>');
         // mainLayout.cells("c").setText('<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
 
-        
+
         //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
         // $('#workflow_filter_header_collaped').click(()=>{
         //     mainLayout.cells("a").expand()
@@ -741,7 +772,7 @@
         // mainLayout.attachEvent("onExpand", function(name){
         //         localStorage.setItem("mainLayout_c_collapsed", "false");
         // });
-        
+
         // mainLayout.cells("c").setWidth($(document).width() / 3);
         // //mainLayout.cells("c").setText("Finished");
         // mainLayout.cells("b").setHeight($(document).height() / 3.5);
@@ -752,8 +783,8 @@
         // mainLayout.cells("c").showInnerScroll();
         // mainLayout.cells("b").attachObject("active_div");
         // mainLayout.cells("b").showInnerScroll();
-        
-        
+
+
         //url parameter hideheaders
         // if (query["hideheaders"]){
         //     mainLayout.cells("b"). hideHeader();
@@ -764,16 +795,16 @@
         // if (query["hideactive"]){
         //     mainLayout.cells("b").collapse()
         //     mainLayout.cells("b").hideArrow();
-        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";          
+        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";
         // }
         // if (query["hidehistory"]){
         //     mainLayout.cells("c").collapse()
         //     mainLayout.cells("c").hideArrow();
-        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";           
+        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";
         // }
         //menu text and buttons
-        
-        
+
+
         // mainLayout.attachEvent("onPanelResizeFinish", function() {
         //     saveLayoutSizes(mainLayout, "mainLayout");
         // });
@@ -785,7 +816,7 @@
         // m_lastsortelementid["treetable_history"] = "history-job_start";
         // m_lastsortdir["treetable_history"] = "des";
         // console.log("Applying default sorting for active and history grid")
-		
+
         //Build the grids
 
 
@@ -794,9 +825,9 @@
             console.log("got newhistoryjob event from jobfetcher")
             m_historyGrid.loadGridData();
         });
-		
+
         socket.on('queuedjobs', function(msg) {
- 
+
         });
         socket.on('activejobs', async function(msg) {
             console.log("got activejobs message from jobfetcher")
@@ -810,16 +841,16 @@
             dhtmlx.message(msg);
         });
 
-        
-        
+
+
         /* check if new activejobs forever */
         window.setInterval(function() {
             m_activeGrid.loadGridData();
         }, parseInt(3000));
-        
-		
+
+
     }
-  
+
 
 function buildWorfklowTree(){
     mainLayout.getCell("a").progressShow();
@@ -835,21 +866,21 @@ function buildWorfklowTree(){
             }else{
                 m_workflowArray = response['workflows'];
                 mainLayout.getCell("a").progressHide();
-                
+
                 //mainLayout.getCell("a").detachObject();
                 let treehtml = `
                         <div id="workflow_filter_menu" class="workflow_filter_background">
                             <div class='dhtmlxMenu_dhx_skyblue_Middle workflow_filter_menu_item' style='display:flex;width:100% ;height:40px;'>
                                 <div style="float:left;display:block;margin-top:5px;margin-left:5px">
-                                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="button_workflow_filter_menu_item" style="" onclick="clear_workflow_tree_selection(this)" id="wf_filter_clear" > 
+                                    <button title="Delete Selection (Show all Workflows)" name="delete_selected" class="button_workflow_filter_menu_item" style="" onclick="clear_workflow_tree_selection(this)" id="wf_filter_clear" >
                                         <i class="fas fa-ban" style=""></i>
                                     </button>
                                     </div>
                                 <div style="float:left;margin-top:10px;margin-left:5px;display:flex;max-width:180px;white-space:nowrap;overflow:hidden">
-                                    <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input> 
-                                
+                                    <input name='wf_filter' class="workflow_filter_menu_item" style='float:left;max-width:150px;height:20px;' id='wf_filter' autocomplete='off'></input>
+
                                 </div>
-                        </div> 
+                        </div>
                             <div id='workflowtree' style='margin-left:10px;margin-top:10px;margin-bottom:40px'/>
                         </div>
                 `
@@ -868,9 +899,9 @@ function buildWorfklowTree(){
                         }
                     // Pass a string to perform case insensitive matching
                     n = filterFunc.call(tree, match, opts);
-                    
+
                 }).focus();
-                
+
                 //finally build workflow tree
                 parseWorkflows(m_workflowArray,{"selectMode":2,"dom_id":"workflowtree","extensions":["filter","multi","persist"]},on_treeWorkflowSelected,function(){/*no click evt*/});
                 var sel = $("#workflowtree").fancytree('getTree').getSelectedNodes();
@@ -879,7 +910,7 @@ function buildWorfklowTree(){
                     //on initial page load, don't apply the filter if empty
                     applyWorkflowSearch(sel);
                 }
-                
+
             }
         },
         error: function (xhr, status) {
@@ -903,17 +934,17 @@ function applyWorkflowSearch(selectednodes){
     console.log("Applying filter search from applyWorkflowSearch",searchpatterns)
     applyFilter("workflow",searchpatterns.join("|"));
 }
-    
+
 
 function on_treeWorkflowSelected(event, data){
     //user selected a workflow, modify workflowfilter
-    
+
     var s = data.tree.getSelectedNodes();
     console.log("on_treeWorkflowSelected");
     applyWorkflowSearch(s);
 }
 
-    
+
 // function setInitialColumnWidths(){
 
 //     /*only set column widths if there ar no stored ones*/
@@ -928,7 +959,7 @@ function on_treeWorkflowSelected(event, data){
 //     var idx = 0;
 //     $('#colgroup_active').children('col').each(function () {
 //         try{
-        
+
 //             if (!running_percent[idx] && do_restore){
 //                 $($('#colgroup_active').children('col')[idx]).css("width","4%"); //minimum width
 //             }
@@ -940,13 +971,13 @@ function on_treeWorkflowSelected(event, data){
 //                 //hide if admin config is 0%
 //                 $($('#tr_treetable_active').children('th')[idx]).css("display","none")
 //             }
-                    
+
 //         }catch(ex){
 //             console.log(ex)
 //         }
 //         idx++;
 //     });
-    
+
 //     var history_percent = m_serverconfig["STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT"].split(",");
 //     idx = 0;
 //     $('#colgroup_history').children('col').each(function () {
@@ -960,7 +991,7 @@ function on_treeWorkflowSelected(event, data){
 //             if (history_percent[idx] == "0%"){
 //                 $($('#tr_treetable_history').children('th')[idx]).css("display","none");
 //             }
-//         }catch(ex){		
+//         }catch(ex){
 //         }
 //         idx++;
 //     });
@@ -1006,7 +1037,7 @@ function history_grid_actions(id,node) {
         })
     }
     if (id.match("details")) {
-        var jobid = (selected[0].row.job_id); 
+        var jobid = (selected[0].row.job_id);
         openLogViewer(jobid);
     }
     if (id.match("delete")) {
@@ -1019,11 +1050,11 @@ function history_grid_actions(id,node) {
         });
         m_historyGrid.data.remove(a_gridids);
         socket.emit("deletejob", JSON.stringify(array_to_delete)); //note, custom structure for socket.emit messages
-        
+
     }
 }
 
-    
+
 window.active_grid_actions= active_grid_actions;
 function active_grid_actions(id,node) {
     //if we have node argument, we are called from context menu
@@ -1044,7 +1075,7 @@ function active_grid_actions(id,node) {
     //     })
     // }
     if (id == "a_details") {
-        var jobid = (selected[0].row.job_id); 
+        var jobid = (selected[0].row.job_id);
         openLogViewer(jobid);
     }
     if (id == "a_abort") {
@@ -1066,17 +1097,17 @@ function getActiveGridColumns(){
     let searchboxhtml = ``;
     return [
                 {
-                    id: "state",maxWidth: 100,header: ["<span>State</span>" + searchboxhtml],sortable: true, 
+                    id: "state",maxWidth: 100,header: ["<span>State</span>" + searchboxhtml],sortable: true,
                     template:function(val,row,column){
                         if (row.children && row.children.length > 1){
-                            let expander = `<div id="${row.job_id}_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right" 
+                            let expander = `<div id="${row.job_id}_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right"
                                              role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>`
                             return expander + val;
                         }
                         return val;
                     },
                     htmlEnable:true
-                },	    
+                },
                 {
                     id: "workflow",
                     width:300,
@@ -1084,7 +1115,7 @@ function getActiveGridColumns(){
                     template:function(val,row,column){
                         return val
                     }
-    
+
                 },
                 {id: "job_start",   header: ["<span>Start</span>"+ searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
                 {id: "source",      header: ["<span>File</span>"+ searchboxhtml],       sortable: true,htmlEnable: true,
@@ -1096,18 +1127,18 @@ function getActiveGridColumns(){
 					template: function(val,row,column){
 						return "Prio " + (row.priority || "") + " | " + row.proc + " | " + row.host
 				} },
-				//Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host 
+				//Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host
                 {id: "status",      header: ["<span>Status</span>" + searchboxhtml],   sortable: true,htmlEnable: true },
 				{id: "progress",    header: ["<span>Progress</span>" + searchboxhtml],  sortable: true,htmlEnable: true, width: 200,template: function(val,row,column){
                     return '<div class="progressbar" style=" width:' + row.progress + '%">' + row.progress + '% ' + row.steps.replace(/ /g, "") + '</div>'
                 }},
-				
+
         ];
 }
 
 async function buildActiveGrid() {
     console.log("building activegrid")
-    
+
     //grid columns are defined on server side
     // let colres = await fetch("/get_jobviewercolumns");
     // if (!colres.ok)
@@ -1152,7 +1183,7 @@ async function buildActiveGrid() {
         eventHandlers: {
             oninput:{
                 searchbox: debounce((event,  args) => {
-                    
+
                     //debounce function prevents this to fire multiple times parallel while user is typing
                     //only if user did not type for 750ms, function will fire
                     grid.filterobj = collectFilters();
@@ -1160,7 +1191,7 @@ async function buildActiveGrid() {
                     loadGridData();
                 },750),
             }
-            
+
         },
     });
 
@@ -1198,15 +1229,18 @@ async function buildActiveGrid() {
         filterobj.variablecols = [];
         const searchboxes = document.querySelectorAll('.searchbox');
         searchboxes.forEach((searchbox) => {
-            if (searchbox.value == "")
+            let cont = searchbox.closest('.searchbox_container');
+            if (searchbox.value == ""){
+                cont.classList.remove("active");
                 return;
-
-            let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;                
+            }
+            cont.classList.add("active");
+            let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;
             if (searchbox.dataset.variablecol){
                 filterobj.variablecols.push({col_header_name:header_id,filter:searchbox.value});
             }else
                 filterobj[header_id] = searchbox.value;
-            
+
         })
         return filterobj;
     }
@@ -1215,13 +1249,13 @@ async function buildActiveGrid() {
     grid.throttleflag = {throttle:null};
     async function loadGridData(){
         throttle(loadGridData_internal,3000,grid.throttleflag,"active")();
-        
+
     }
 
     async function loadGridData_internal(){
         console.log("loadactivejobs internal")
         let urlSearchParams =  new URLSearchParams({});
-        
+
         // urlSearchParams.append("filterobj", JSON.stringify(grid.filterobj));
         urlSearchParams.append("sortcol", grid.sortcol);
         urlSearchParams.append("direction", grid.sortdir);
@@ -1297,10 +1331,10 @@ async function buildActiveGrid() {
         //             }
         //         )
 
-                
+
         //         console.log("after sort",grid.data.serialize())
         //         console.log("sorting state after",grid.getSortingState())
-                
+
         //     }else{
         //         //let the grid sort without help
         //         grid.data.sort({
@@ -1323,46 +1357,90 @@ async function buildActiveGrid() {
 }//buildActiveGrid
 
 
-    function openLogViewer(jobid){
+    async function openLogViewer(jobid){
         var url = "/webinterface/components/logviewer.html?job_id=" + jobid;
-        // const dhxWindow = new dhx8.dhx.Window({
-        //     width: window.innerWidth-20,
-        //     height: window.innerHeight-20,
-        //     title: "Job Details",
-        //     modal: false,
-        //     closable: true,
-        //     movable: true,
-        //     resizable:true
-        // });
+        const dhxWindow = new dhx8.dhx.Window({
+            node: document.body,
+            viewportOverflow:true,
+            width: window.innerWidth-20,
+            height: window.innerHeight-20,
+            title: "Job Details",
+            modal: false,
+            closable: true,
+            movable: true,
+            resizable:true,
+            css:"custom_window_small_borders"
+        });
+        dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
 
-        // dhxWindow.attachHTML('<iframe height="100%" width="100%" style="border:none" src="'+url+'"></iframe>');
-        // dhxWindow.show()
-        
+        var isFullScreen = false;
+        dhxWindow.header.events.on("click", function (id) {
+            if (id === "fullscreen") {
+                if (isFullScreen) {
+                    isFullScreen = false;
+                    dhxWindow.unsetFullScreen();
+                } else {
+                    isFullScreen = true;
+                    dhxWindow.setFullScreen();
+                }
+            }
+        });
 
-        var dhxwins = new dhtmlXWindows();
-        var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
-        win.setText("Job Details");
-        win.attachURL(url);
-        window.onresize = function(){
-            win.setDimension(window.innerWidth-20,window.innerHeight-20);
+        let ifrid = Math.random();
+        dhxWindow.attachHTML('<iframe height="100%" id="'+ifrid+'"width="100%" style="border:none" src="'+url+'"></iframe>');
+        dhxWindow.show();
+        await dhx8.dhx.awaitRedraw();
+        document.getElementById(ifrid.toString()).onload = function() {
+            this.contentWindow.focus();
+            var elem = this.contentWindow.m_closefunc = function(){
+                    dhxWindow.destructor()
+                }
+        };
+
+
+        function resizeWindow(deltaW,deltaH) {
+            dhxWindow.setSize(dhxWindow.config.width+deltaW, dhxWindow.config.height+deltaH); // Resize the dhtmlxWindow
         }
 
-        //support closing with escape key from within iframe
-        dhxwins.attachEvent("onContentLoaded", function(win){
-                //support esc key for close window
-                console.log("CONTENTLOADED")
-				var ifr = win.getFrame();
-                ifr.contentWindow.focus();
-                console.log("iframe",ifr.contentWindow)
-                var elem = ifr.contentWindow.m_closefunc = function(){
-                    win.close()
-                }
+        let lastWidth = window.innerWidth;
+        let lastHeight = window.innerHeight;
+        window.addEventListener("resize", function(){
+            // Get the new dimensions
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+
+            // Calculate the difference (resize delta)
+            const widthDelta = newWidth - lastWidth;
+            const heightDelta = newHeight - lastHeight;
+            resizeWindow(widthDelta,heightDelta);
+            // Update the last known dimensions
+            lastWidth = newWidth;
+            lastHeight = newHeight;
         });
+        // var dhxwins = new dhtmlXWindows();
+        // var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
+        // win.setText("Job Details");
+        // win.attachURL(url);
+        // window.onresize = function(){
+        //     win.setDimension(window.innerWidth-20,window.innerHeight-20);
+        // }
+
+        // //support closing with escape key from within iframe
+        // dhxwins.attachEvent("onContentLoaded", function(win){
+        //         //support esc key for close window
+        //         console.log("CONTENTLOADED")
+		// 		var ifr = win.getFrame();
+        //         ifr.contentWindow.focus();
+        //         console.log("iframe",ifr.contentWindow)
+        //         var elem = ifr.contentWindow.m_closefunc = function(){
+        //             win.close()
+        //         }
+        // });
     }
 
     function getContextMenuHistoryGrid(allpossible){
         //opens context menu
-                
+
         var contextmenu = {};
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){
@@ -1377,7 +1455,7 @@ async function buildActiveGrid() {
                         $.extend(contextmenu, newitem);
                         console.log(contextmenu);
                     }
-               } 
+               }
             }
             return contextmenu;
         }else{
@@ -1388,34 +1466,34 @@ async function buildActiveGrid() {
         }
     }
 
-    function getContextMenuHistoryGrid_ex(allpossible){
-        //opens context menu
-                
-        var contextmenu = {};
-        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
-        if (_filter.length > 0){
-            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
-            console.log("Displaying filtered list of buttons, regex: ", regex);
-            for (var _idx in allpossible){
-               if (allpossible[_idx]){
-                    if (allpossible[_idx].name.match(regex)){
-                        console.log(allpossible[_idx]);
-                        var newitem = {};
-                        newitem[_idx] = allpossible[_idx];
-                        $.extend(contextmenu, newitem);
-                        console.log(contextmenu);
-                    }
-               } 
-            }
-            return contextmenu;
-        }else{
-            //just render all btns
-            console.log("Displaying unfiltered list of menu buttons" );
-            contextmenu = allpossible;
-            return contextmenu;
-        }
-    }
-    
+    // function getContextMenuHistoryGrid_ex(allpossible){
+    //     //opens context menu
+
+    //     var contextmenu = {};
+    //     var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+    //     if (_filter.length > 0){
+    //         var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+    //         console.log("Displaying filtered list of buttons, regex: ", regex);
+    //         for (var _idx in allpossible){
+    //            if (allpossible[_idx]){
+    //                 if (allpossible[_idx].name.match(regex)){
+    //                     console.log(allpossible[_idx]);
+    //                     var newitem = {};
+    //                     newitem[_idx] = allpossible[_idx];
+    //                     $.extend(contextmenu, newitem);
+    //                     console.log(contextmenu);
+    //                 }
+    //            }
+    //         }
+    //         return contextmenu;
+    //     }else{
+    //         //just render all btns
+    //         console.log("Displaying unfiltered list of menu buttons" );
+    //         contextmenu = allpossible;
+    //         return contextmenu;
+    //     }
+    // }
+
     function buildPagination(config,dhxgrid)
     {
         var total = config.total;
@@ -1443,7 +1521,7 @@ async function buildActiveGrid() {
                     //a new  page was selected, reload tree
                     // var start = (pagination.pageNumber-1) * m_max_history_gridrows;
                     // var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(tree.mystuff.filterobj));
-                     
+
                     // tree.mystuff.page = pagination.pageNumber;
                     // tree.reload({
                     //     url: sourceUrl,
@@ -1463,32 +1541,32 @@ async function buildActiveGrid() {
 
                 // var html = "<span></span>";
                 // $('#data-container').html(html);
-                
+
             }
         })
     }
 
-    
+
     // function addVariableColumns(){
 
     //     // let htmltemplate = `
-    //     //     <th id="history-variable" name="variable" data-sort_dir="">       
+    //     //     <th id="history-variable" name="variable" data-sort_dir="">
     //     //         <div style="display:flex;margin-left:10px">
     //     //             <div id="history-variable-sorticon-dis">
     //     //                     <div class="up-arrow up-arrow-dis"></div>
     //     //                     <div class="down-arrow down-arrow-dis"></div>
     //     //             </div>
-    //     //             <i id="history-variable-sorticon" name="treetable_history-sorticon"></i>        
-    //     //             <input placeholder="Variable" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />		           
+    //     //             <i id="history-variable-sorticon" name="treetable_history-sorticon"></i>
+    //     //             <input placeholder="Variable" style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />
     //     //             <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>
     //     //         </div>
     //     //     </th>`;
 
     //     let htmltemplate = `
-    //         <th name="col_header_name" data-sort_dir="">       
-    //             <div style="display:flex;margin-left:10px">       
+    //         <th name="col_header_name" data-sort_dir="">
+    //             <div style="display:flex;margin-left:10px">
     //                 <input placeholder="col_header_name" data-isvariablecol=true style="width:90%;height:18px;margin-left:5px;margin-right:3px" type="search" name="search" incremental autocomplete="off" />
-    //                 <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>	           
+    //                 <img title="delete filters" style="display:none;width:15px;height:15px;margin-right:3px;margin-left:3px;cursor:pointer" src= "../images/remove-filter-icon-16.jpg"></img>
     //             </div>
     //         </th>`;
 
@@ -1504,20 +1582,50 @@ async function buildActiveGrid() {
 
     // }
 
-    window.getHistoryGridColumns = getHistoryGridColumns;
+    window.getHistoryGridColumns = getHistoryGridColumns; //for options.html
     function getHistoryGridColumns(){
-        
-        let searchboxhtml = `<input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input>`;
+
+         /**
+          * generate searchboxhtml for use in grid header with or without calendar
+         */
+        function getSearchBoxHtml(config = {}){
+            const searchbox_container = document.createElement("div");
+            searchbox_container.classList.add("searchbox_container");
+
+            if (config.datepicker){
+                const clockIcon = document.createElement("span");
+                clockIcon.classList.add("mdi", "mdi-clock-time-five-outline", "searchbox_calendar");
+                searchbox_container.appendChild(clockIcon);
+            }
+
+            const searchbox = document.createElement("input");
+            searchbox.classList.add("searchbox");
+            searchbox.type = "search";
+            searchbox.placeholder = "";
+            searchbox.setAttribute("onclick", "event.stopPropagation()"); // Add the onclick attribute
+            if (config.variablecol)
+                searchbox.setAttribute("data-variablecol", true);
+            
+            searchbox_container.appendChild(searchbox);
+
+            // let searchboxhtml = `<div class="searchbox_container">
+            // <span class="mdi mdi-clock-time-five-outline seachbox_calendar" ></span>
+            // <input class="searchbox" type="search" placeholder="" onclick="event.stopPropagation()"></input>
+            // </div>`;
+            return searchbox_container.outerHTML;
+        }
+        let searchboxhtml = getSearchBoxHtml();
+
         let c = [
             {
                 id: "state",
                 maxWidth: 100,
-                header: ["<span>State</span>" + searchboxhtml],
-                sortable: true, 
+                header: ["<span>State</span>" + getSearchBoxHtml()],
+                sortable: true,
                 template:function(val,row,column){
                     if (row.children && row.children.length > 1){
                         let jobid = row.job_id
-                        let expander = '<div id="'+jobid+'_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right"'+ 
+                        let expander = '<div id="'+jobid+'_expander" class="expander dhx_grid-expand-cell-icon dxi dxi-chevron-right"'+
                                             'role="button" aria-label="Collapse group" style="padding: 0px 0px 0px 0px;"></div>'
                         return expander + val;
                     }else{
@@ -1526,24 +1634,23 @@ async function buildActiveGrid() {
                     return val;
                 },
                 htmlEnable:true
-            },	    
+            },
             {
                 id: "workflow",
                 width:300,
-                adjust:"data",
-                header: ["<span>Workflow</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,
+                header: ["<span class='grid_header_text'>Workflow</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,
                 template:function(val,row,column){
                     return val
                 }
 
             },
-            {id: "job_start",   header: ["<span>Start</span>" + searchboxhtml],      sortable: true,htmlEnable: true,  maxWidth: 152},
-            {id: "duration",    header: ["<span>Duration</span>"+ searchboxhtml],   sortable: true,htmlEnable: true,  maxWidth: 80},
-            {id: "job_end",     header: ["<span>End</span>"+ searchboxhtml],        sortable: true,htmlEnable: true,  maxWidth: 152},
-            {id: "source",      header: ["<span>Source</span>"+ searchboxhtml],     sortable: true,htmlEnable: true,template: function(val,row,column){
+            {id: "job_start",   header: ["<span class='grid_header_text'>Start</span>" + getSearchBoxHtml({datepicker:true})],      sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "duration",    header: ["<span>Duration</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,  maxWidth: 80},
+            {id: "job_end",     header: ["<span>End</span>"+ getSearchBoxHtml({datepicker:true})],        sortable: true,htmlEnable: true,  maxWidth: 152},
+            {id: "source",      header: ["<span>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,template: function(val,row,column){
                         return '<span class="celltext_rtl">' + row.source + '</span>'
                     } },
-            {id: "outcome",     header: ["<span>Outcome</span>"+ searchboxhtml],    sortable: true,htmlEnable: true, 
+            {id: "outcome",     header: ["<span>Outcome</span>"+ getSearchBoxHtml()],    sortable: true,htmlEnable: true,
                 template: function(val,row,col){
                     if (val.length > 5000)
                         val = val.substring(0, 5000);
@@ -1554,13 +1661,13 @@ async function buildActiveGrid() {
 
         //add variablecols
         if (m_serverconfig.job_viewer && m_serverconfig.job_viewer.variable_columns){
-            let varcolsearchboxhtml = `<input class="searchbox" type="search" placeholder="" data-variablecol=true onclick="event.stopPropagation()"></input>`;
-
+            //let varcolsearchboxhtml = `<input class="searchbox" type="search" placeholder="" data-variablecol=true onclick="event.stopPropagation()"></input>`;
+            let searchboxhtml = getSearchBoxHtml({variablecol:true});
             let variablecolumns = m_serverconfig.job_viewer.variable_columns;
             for (let i=0;i<variablecolumns.length;i++){
                 c.push({
                     id: variablecolumns[i].col_header_name,
-                    header: ["<span>"+variablecolumns[i].col_header_name+"</span>"+ varcolsearchboxhtml],
+                    header: ["<span>"+variablecolumns[i].col_header_name+"</span>"+ searchboxhtml],
                     sortable: false,
                     htmlEnable: true
                 });
@@ -1630,7 +1737,7 @@ async function buildActiveGrid() {
             headerRowHeight: 30,
             selection: "row",
             css: "alternate_row ffastrans_grid_style",
-            rowCss: function (row) { 
+            rowCss: function (row) {
                     if (localStorage.getItem("jobviewer_showrowcolors_history") != "false"){
                         return "css_jobviewer_history_row_status_" + row.state;
                     }
@@ -1648,13 +1755,90 @@ async function buildActiveGrid() {
                         grid.data.removeAll();
                         loadGridData();
                     },750),
+
                 },
                 onclick: {
-                    /* onclick, dhtmlx will parse the classlist of the clicked stuff and for each class, execute the methods registered here */ 
-                    expander: (event,  {row} ) => expandHistoryGridRow(row)//expander is in classlist of state htmle template
+                    /* onclick, dhtmlx will parse the classlist of the clicked stuff and for each class, execute the methods registered here */
+                    expander: (event,  {row} ) => expandHistoryGridRow(row),//expander is in classlist of state htmle template
+                    searchbox_calendar: (event,args) =>{
+                        event.stopPropagation();
+                        let headerColName = args.col.id;
+                        let searchBox = event.srcElement.parentElement.querySelector(".searchbox");
+                        searchboxCalendar(headerColName,searchBox);
+                    }
                 }
             },
         });
+
+        async function searchboxCalendar(headerColName,searchBox){
+
+            const dhxWindow = new dhx8.dhx.Window({
+                width: 400,
+                height: 400,
+                title: "Date Filter " + headerColName,
+                modal: false,
+                closable: true,
+                movable: true,
+                resizable:true
+            });
+
+            const form = new dhx8.dhx.Form(null, {
+                css: "dhx_widget--bordered",
+                padding: 40,
+                width: 600,
+                rows: [
+                    {
+                        name: "from",
+                        type: "datepicker",
+                        label: "From:",
+                        labelPosition: "left",
+                        labelWidth: 50,
+                        width: 250,
+                        timePicker: true,
+                        dateFormat: "%Y-%m-%d %H:%i:%s",
+                        range: true
+                    },
+                    {
+                        name: "to",
+                        type: "datepicker",
+                        label: "To:",
+                        labelPosition: "left",
+                        labelWidth: 50,
+                        width: 250,
+                        timePicker: true,
+                        dateFormat: "%Y-%m-%d %H:%i:%s"
+                    },
+                    {
+                        type: "button",
+                        text: "Apply",
+                        id: "save",
+                    },
+                    {
+                        type: "button",
+                        text: "Cancel",
+                        id: "cancel",
+                    }
+
+                ]
+            });
+            await dhx8.dhx.awaitRedraw();
+            
+            form.getItem("save").events.on("click", function(events) {
+                let from    = form.getItem("from").getValue();
+                let to      = form.getItem("to").getValue();
+                searchBox.value = from + "<:>" + to;
+                const event = new Event('input', { bubbles: true, cancelable: true });
+                searchBox.dispatchEvent(event);
+                dhxWindow.destructor();
+            });
+            form.getItem("cancel").events.on("click", function(events) {
+                dhxWindow.destructor();
+            });
+
+            dhxWindow.attach(form);
+            dhxWindow.show();
+        }
+
         m_historyGrid = grid;
         //custom fields keep track of current state
         grid.filterobj      = {};
@@ -1673,7 +1857,7 @@ async function buildActiveGrid() {
                     if (item.parentid == row.id)
                         to_remove.push(item.id);
                 });
-                
+
                 grid.data.remove(to_remove);
 
             } else {
@@ -1681,7 +1865,7 @@ async function buildActiveGrid() {
                 document.getElementById(row.job_id + "_expander").classList.replace('dxi-chevron-right', 'dxi-chevron-down');
                 expandgridrow();
                 function expandgridrow(rid){
-                    //add the child rows into grid after 
+                    //add the child rows into grid after
                     const index = grid.data.getIndex(row.id);
                     const naturalCollator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
                     //row.children.sort(grid.)
@@ -1692,10 +1876,10 @@ async function buildActiveGrid() {
                             }else{
                                 row.children.sort((a, b) => naturalCollator.compare(b[grid.sortcol], a[grid.sortcol]));
                             }
-                            
+
                         }
                     }catch(ex){}
-                        
+
                     grid.data.add(row.children.map(c=>{//each branch row
                             c.id = c._id;
                             c.parentid = row.id,
@@ -1731,12 +1915,12 @@ async function buildActiveGrid() {
         //                 //     return;
         //                 // }
         //                 targetc[0].width = (wSum/100 * conf.percent[idx]);
-                        
+
         //                 console.log("Restore ",c.id,(wSum/100 * conf.percent[idx]))
-                        
+
         //                 idx++;
 
-                            
+
         //             });
         //             grid.setColumns( newGridCols);
         //         }
@@ -1774,7 +1958,7 @@ async function buildActiveGrid() {
             loadGridData_internal();
             return true;
         });
-        
+
         /* Searching */
         function collectFilters(inputEvent){ //collects all search values
 
@@ -1791,16 +1975,21 @@ async function buildActiveGrid() {
             filterobj.variablecols = [];
             const searchboxes = document.querySelectorAll('.searchbox');
             searchboxes.forEach((searchbox) => {
-                if (searchbox.value == "")
+                let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;
+                let cont = searchbox.closest('.searchbox_container');
+                if (searchbox.value == ""){
+                    cont.classList.remove("active");
                     return;
+                }
 
-                let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId; 
-                               
+                cont.classList.add("active");
+
+
                 if (searchbox.dataset.variablecol){
                     filterobj.variablecols.push({col_header_name:header_id,filter:searchbox.value});
                 }else
                     filterobj[header_id] = searchbox.value;
-                
+
             })
             return filterobj;
         }
@@ -1809,7 +1998,7 @@ async function buildActiveGrid() {
         grid.throttleflag = {throttle:null};
         async function loadGridData(){
             throttle(loadGridData_internal , 3000, grid.throttleflag,"history")();
-        }   
+        }
 
         async function loadGridData_internal(){
             let urlSearchParams =  new URLSearchParams({});
@@ -1827,7 +2016,7 @@ async function buildActiveGrid() {
             json.data.map(r=>{
                 r.id = r._id;
             })
-            
+
             //remember selection
             let selectedCells = grid.selection.getCells();
             selectedCells = JSON.parse(JSON.stringify(selectedCells));
@@ -1837,11 +2026,11 @@ async function buildActiveGrid() {
                 if (r.expanded)
                     expandedRows.push(r.id);
             })
-            
+
             //load the new grid data
             grid.data.parse(json.data);
             await dhx8.dhx.awaitRedraw();
-            
+
             //scroll to first selected
             if (selectedCells.length != 0){
                 grid.scrollTo(selectedCells[0].row.id,"state");
@@ -1853,7 +2042,7 @@ async function buildActiveGrid() {
                 if (exrow){
                     console.log("expanded row exists:",rid,grid.data.exists(rid))
                     expandHistoryGridRow(exrow);
-                }    
+                }
             })
             await dhx8.dhx.awaitRedraw();
             //restore selection
@@ -1874,7 +2063,7 @@ async function buildActiveGrid() {
             var countresponse = await fetch(counturl);
             if (!countresponse.ok)
                 return dhx8.dhx.message({ expire: 3000, text: "Error counting grid data"});
-            
+
             const countjson = await countresponse.json();
             console.log("countresponse",countjson)
             buildPagination({total:countjson.total_count},grid);
@@ -1889,7 +2078,7 @@ async function buildActiveGrid() {
     }//buildHistoryGrid
 
     function attachGridContextMenu(){
-        
+
         const contextMenu = new dhx8.dhx.ContextMenu(null, { css: 'grid-context-menu' });
         let menuitems = [
             {
@@ -1929,7 +2118,7 @@ async function buildActiveGrid() {
             return false;
         });
     }
-		
+
     function saveLayoutSizes(dhxLayout, name) {
         //store layout cells height and with into html5 storage (in percentage of document height)
         var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
@@ -1964,7 +2153,7 @@ async function buildActiveGrid() {
             dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
             dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
             dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
-            
+
             if (dhxLayout.cells("a").isCollapsed() == false){
                 console.log("CW",cw)
                 dhxLayout.cells("a").setWidth(cw * document.body.scrollWidth);
@@ -1972,7 +2161,7 @@ async function buildActiveGrid() {
             }
 
         }
-        
+
     }
 
     function resubmit_job(job_id) {
@@ -1995,7 +2184,7 @@ async function buildActiveGrid() {
                     postBody.inputfile = response["sources"]["localized_file"];
                     postBody.variables = response["variables"];
                     postBody.system = "FFAStrans Web Interface";
-                    
+
 					console.log("submitting wf: ",postBody)
                     $.ajax({
                         url: build_new_api_url("/jobs"),//buildUrl(m_serverconfig['STATIC_START_JOB_URL']),
@@ -2071,7 +2260,7 @@ async function buildActiveGrid() {
             return _url;
         }
     }
-        
+
     function parse_query_string(query) {
       var vars = query.split("&");
       var query_string = {};
@@ -2093,7 +2282,7 @@ async function buildActiveGrid() {
       }
       return query_string;
     }
-                
+
     function decodeEntities(encodedString) {
         var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
         var translate = {
@@ -2112,10 +2301,12 @@ async function buildActiveGrid() {
     }
 
     function clear_workflow_tree_selection(what){
-        var tree = $("#workflowtree").fancytree('getTree');
-        tree.selectAll(false);
+        try{
+            var tree = $("#workflowtree").fancytree('getTree');
+            tree.selectAll(false);
+        }catch(ex){}
     }
-        
+
     function debounce(func,timeout){
             //used to prevent kicking off search too often while user types, e.g. wait 100ms for no change and only then execute the function
             var timer;
@@ -2131,14 +2322,14 @@ async function buildActiveGrid() {
     function throttle(mainFunction, delay,throttleFlag,label) {
         return (...args) => {
             if (throttleFlag.throttle === null) { // If there is no timer currently running
-            mainFunction(...args); // Execute the main function 
+            mainFunction(...args); // Execute the main function
             throttleFlag.throttle = setTimeout(() => { // Set a timer to clear the timerFlag after the specified delay
                 throttleFlag.throttle = null; // Clear the timerFlag to allow the main function to be executed again
             }, delay);
             }
         };
     }
-    
+
 </script>
 
 <body onload="loadserverconfig()">
@@ -2150,14 +2341,14 @@ async function buildActiveGrid() {
 
         <!-- height calc solution was the only way i found to have pagination and history div in same grid layout cell, todo: move on to dhx8 layout and put the 2 in separate layout cells -->
 
-           
+
 
          <!-- WORKFLOW FILTER TEMPLATE -->
 
-        
-        
+
+
     </div><!-- global hiding div -->
-    
+
     <!-- html code to be loaded by javascript into dhtmlx cells. This is not directly shown on the page but loaded as a template on demand -->
     <div style="display:none" id="dhtmlx attachObject Templates">
 

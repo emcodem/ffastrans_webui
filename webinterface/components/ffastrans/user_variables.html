@@ -1,9 +1,5 @@
 <html>
 <head>
-
-
-<link rel="stylesheet" href="/alternate-server/css/override.css"/>
-
 <script src="../../dependencies/dhtmlx/8.0.0/suite.js"></script>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/8.0.0/suite.css" type="text/css"/> 
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
@@ -38,8 +34,9 @@
 <script src="../../dependencies/codemirror/addon/lint/lint.js"></script>
 <script src="../../dependencies/codemirror/addon/lint/json-lint.js"></script>
 
+<link rel="stylesheet" href="../../dependencies/css/global.css" type="text/css">
 
-
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
 
 <style>
 * {
@@ -85,22 +82,6 @@
 
 .dhx_button .dhx_toolbar-button__text{
     font-size:12 !important
-}
-
-.seekme nav  {
-        height:100% !important;
-        min-height:20px;
-}
-.seekme ul.dhx_navbar  {
-    padding:3 !important; 
-}
-.seekme [data-cell-id="header"] {
-    height: 40px !important; 
-    
-}
-.seekme span {
-    padding-left:10px !important; 
-    font-size: 12px !important; 
 }
 
 .seekme2 > div{
@@ -750,7 +731,7 @@ function editWebUiTypeVar(){
         resizable:true,
         customFullScreen:false,
         height:350,
-        css: "seekme",
+        css: "custom_window_small_borders",
     });
 
     dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
