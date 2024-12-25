@@ -110,11 +110,11 @@ module.exports = function(app, passport) {
 
     
 
-    function renderHTMLByMustache(req,res){
+    async function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
         let realpath = path.join(global.approot,req.path);
         
-        if (fs.existsSync(realpath)){
+        if (fs.promises.exists(realpath)){
             //we use mustache for rendering html files, so we can insert global stuff
             if (realpath.match(/html$/i)){
                 console.log("mustache rendering",realpath)
