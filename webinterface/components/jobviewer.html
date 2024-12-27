@@ -874,7 +874,7 @@
 function buildWorfklowTree(){
     mainLayout.getCell("a").progressShow();
     $.ajax({
-        url:  "/getworkflowlist",
+        url:  "/getworkflowlist?nodetails=true",
         type: "GET",
         crossDomain: true,
         dataType: "json",

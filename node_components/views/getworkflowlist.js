@@ -45,20 +45,27 @@ module.exports = async function (app, passport) {
                 username = req.user["local"]["username"];
 
             //get filtered list of workflow names
-            console.time("getworkflowjobcount getpermissionlist");
+
             var all_permissions = await userpermissions.getpermissionlistAsync(username);
-            console.timeEnd("getworkflowjobcount getpermissionlist");
+
+            console.time("getworkflowjobcount call workflow api");
+            var response = await axios.get(build_new_api_url("/workflows?nodetails=true"), { timeout: global.config.STATIC_API_TIMEOUT, agent: false, maxSockets: Infinity });
+        
+            console.timeEnd("getworkflowjobcount call workflow api");
             //var all_workflows = await global.jobfetcher.getWorkflowList(true);//massive performance issue, blocks main loop when the system has many workflows
             
-            //saves lots of performance when reading distinct workflows from db. construct face wf api response for getPermittedWorkflowList
-            var all_workflows_in_db = await global.db.jobs.distinct("workflow")
+            //must read distinct workflows from db AND get the current wf list from api, otherwise we miss stuff that exists in db but not locally
+
+            var all_workflows_in_db = await global.db.jobs.distinct("workflow");
+
             var all_workflows = all_workflows_in_db.map(wf_name => { return {"wf_name":wf_name}})
             all_workflows = {data:{workflows:all_workflows}}
             //todo: add the worfklows from running jobs, maybe we dont have them in the db already
+
             console.time("getworkflowjobcount getPermittedWorkflowList");
             var allowed_workflows = getPermittedWorkflowList(all_permissions, all_workflows);
             var allowed_wfnames = allowed_workflows.map(wf => wf.wf_name); //objects to name array
-            console.time("getworkflowjobcount getPermittedWorkflowList");
+            console.timeEnd("getworkflowjobcount getPermittedWorkflowList");
             //ask database for success,error,cancelled 
             async function countDocs(_state, since_days, wf_names) {
                 var targetDate = moment(new Date()).subtract(since_days, 'day').format("YYYY-MM-DD 00:00:00"); // date object
@@ -90,7 +97,6 @@ module.exports = async function (app, passport) {
                     countObj = m_history_cache.data;
                 }
             }
-
 
             try {
                 //ask tickets api for incoming, queued, running
@@ -162,7 +168,7 @@ module.exports = async function (app, passport) {
                 passport.authenticate('local-login');//fills req.user with infos from cookie
                 
                 //var workflowResponse = await axios.get(build_new_api_url("/workflows"), { timeout: 7000, agent: false, maxSockets: Infinity });
-                var workflowResponse = await global.jobfetcher.getWorkflowList();
+                var workflowResponse = await global.jobfetcher.getWorkflowList(req.query.nodetails == "true");
                 //disabled web security, show all worfklows
                 if (global.config.STATIC_USE_WEB_AUTHENTIFICATION + "" == "false") {
                     //console.log(workflowResponse["data"]);

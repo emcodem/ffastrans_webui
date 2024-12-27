@@ -4,6 +4,7 @@ const fsPromises = require('fs').promises;
 const path = require("path");
 const helpers = require("./common/helpers.js");
 
+
 module.exports = {
     get: getWorkflows,
     post: postWorfklows,
@@ -165,15 +166,60 @@ async function updateWorkflow(wf){
 
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
 async function getWorkflows(req, res) {
-    console.time("getWorkflows")
+    let callId = Math.random().toString(36);
+    console.time("getWorkflows full api call, nodetails " + req.query.nodetails + " " + callId);
+
+    if (!global.workflowFileSystemWatcher){
+        //this filesystemwatcher runs forever in the background, syncing the wf directory with memory cache
+        //should we initialize this in the main app.js?
+
+    }
+    if (!global.workflowFileSystemWatcher.lastPollingDuration){
+        console.log("Waiting for workflowFileSystemWatcher first run to complete");
+        return res.status(503).send("Waiting for workflowFileSystemWatcher first run to complete");
+    }
+	try {
+        var o_return = {discovery:req.headers.referer,workflows:[]};
+        o_return.workflows = global.workflowFileSystemWatcher.getCachedContentAsArray();
+         
+        if (!req.query.nodetails){
+            await add_user_vars (o_return);
+            await add_status    (o_return.workflows);
+        }
+        
+        if (req.query.id){
+            o_return.workflows = o_return.workflows.filter(wf=>{
+                return wf.wf_id == req.query.id;
+            })
+        }
+        console.timeEnd("getWorkflows full api call, nodetails "  + req.query.nodetails + " " + callId);
+        res.json(o_return);
+        res.    end();
+	} catch(err) {
+        console.timeEnd("getWorkflows full api call, nodetails "  + req.query.nodetails + " " + callId);
+		console.debug(err);
+        return res.status(500).send(err.stack.toString());
+	}
+
+}
+
+async function getWorkflows_Ex(req, res) {
+    let callId = Math.random().toString(36);
+    console.time("getWorkflows full api call " + callId)
     var o_req = req.body;
 	try {
         var o_return = {discovery:req.headers.referer,workflows:[]};
         //read all workflows 
         var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
-        o_return.workflows = await helpers.json_files_to_array_cached(s_wf_path,true);
-        console.timeEnd("getWorkflows")
+        o_return.workflows = await helpers.json_files_to_array_cached(s_wf_path,s_wf_path);
+        console.timeEnd("getWorkflows full api call " + callId);
         if (!req.query.nodetails){
             await add_user_vars (o_return);
             await add_status    (o_return.workflows);
@@ -186,9 +232,9 @@ async function getWorkflows(req, res) {
         }
         
         res.json(o_return);
-        res.end();
+        res.    end();
 	} catch(err) {
-        console.timeEnd("getWorkflows")
+        console.timeEnd("getWorkflows full api call " + callId);
 		console.debug(err);
         return res.status(500).send(err.stack.toString());
 	}
@@ -217,8 +263,8 @@ async function add_status(a_workflows){
 async function add_user_vars(o_return){
     // enrich all_user_vars by use count 
     // enrich workflow by the user_vars that it uses
-    console.trace()
-    console.time("add_user_vars")
+    let callId = Math.random().toString(36);
+    console.time("add_user_vars "+callId)
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
      
     var all_vars_readout = await helpers.readfile_cached(s_user_vars_file);//fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
@@ -277,7 +323,7 @@ async function add_user_vars(o_return){
         }
     }
     //original obj has been inline modified
-    console.timeEnd("add_user_vars")
+    console.timeEnd("add_user_vars "+callId)
 }
 
 

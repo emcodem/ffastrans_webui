@@ -315,7 +315,6 @@ async function init(conf){
 
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
-
     
     require("./node_components/passport/azurelogin.js");
     
@@ -377,7 +376,7 @@ async function init(conf){
     //PROXY, forward to new api, port 3003 default
     var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
     app.use('/new_proxy', proxy(protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
-        limit: '100mb',
+        limit: '500mb',
         logLevel: "info",
         proxyTimeout: global.config.STATIC_API_TIMEOUT,
         onProxyReq: function (proxyReq, req, res) {
@@ -479,6 +478,10 @@ async function init(conf){
 
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
+
+
+    //all routes registered?
+    console.log("Express routes",app._router.stack);
 
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans')

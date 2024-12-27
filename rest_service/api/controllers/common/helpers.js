@@ -1,4 +1,5 @@
 const fsPromises = require('fs').promises;
+const { PromisePool } = require('@supercharge/promise-pool');
 const path = require("path")
 const os = require('os')
 const { uuid } = require('uuidv4');
@@ -142,23 +143,44 @@ async function get_wf_name(wf_id){
             return wf_obj["wf_name"];
 }
 
-async function json_files_to_array_cached(dir) {
+async function json_files_to_array_cached(dir,cache_name = "general") {
     if (!dir){return}
-
     var returnarray=[];
-    console.time("readdir")
+    let callId = Math.random().toString(36);
+    console.time("json_files_to_array_cached "+ cache_name + " " +callId)
     var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
-    
+        
+    var a_nonerror = [];
+    const pool = await PromisePool
+    .for(allfiles)
+    .withConcurrency(50) //too big concurrency blocks cpu
+    .process(async (cur_file, index, pool) => {
+        var fullpath = path.join(dir,cur_file);
+        try{
+            var newitem = await readfile_cached(fullpath,true,false,10000,cache_name)//removes BOM;
+            // var stats = await fs.promises.stat(cur_file.userdata.fullpath);
+            // var readableFilesizeString = "";
+            // if (!stats.isDirectory())
+            //     readableFilesizeString = getReadableFileSizeString(stats.size)
+            // cur_file.data = [path.basename(cur_file.userdata.fullpath),cur_file.userdata.fullpath, stats.isDirectory(), readableFilesizeString, stats.ctime.toMysqlFormat(),stats.mtime.toMysqlFormat(),stats.size];
+            a_nonerror.push(newitem);
+        }catch(ex){
+            console.error("Error reading file ",JSON.stringify(cur_file),ex);
+        }
+    })
+    return a_nonerror;
+
+
     for (var _idx in allfiles){
         try{
             var fullpath = path.join(dir,allfiles[_idx]);
-            var newitem = await readfile_cached(fullpath,true)//removes BOM;
-            returnarray.push(newitem)
+            var newitem = await readfile_cached(fullpath,true,false,10000,cache_name)//removes BOM;
+            returnarray.push(newitem);
         }catch(ex){
             console.log("Could not parse Json from file:",path.join(dir,allfiles[_idx]),ex)
         }
     }
-    console.timeEnd("readdir")
+    console.timeEnd("json_files_to_array_cached " + cache_name + " " + callId)
     return returnarray;
 }
 
@@ -216,18 +238,27 @@ async function readfile_cached(fullpath, jsonparse = false, lastlines = false, i
     
     for (key in global.filecache[cache_name]){
         //delete from cache older files than 10 seconds
-        var now = new Date( );
+        var now = new Date();
         var birth = new Date(global.filecache[cache_name][key]["birth"]);
         var birth_plus_maxlifetime = new Date(birth.getTime() + invalidate_cache_after);
         if( birth_plus_maxlifetime < now && !prevent_delete){
             delete global.filecache[cache_name][key]
         }
-        
     }
         
     if (Object.keys(global.filecache[cache_name]).length > 5000){
         cache_cleaner(cache_name); //todo: check size instead of blindly deleting 5000
     }
+
+    // //before we take new stats from filesystem, check if we just cached it within 3 secs
+    // if (fullpath in global.filecache[cache_name]){
+    //     var now = new Date();
+    //     var birth = new Date(global.filecache[cache_name][key]["birth"]);
+    //     if(now < new Date(birth.getTime() + 30000)){
+    //         console.log("Serving from cache because < 3000",fullpath);
+    //         return global.filecache[cache_name][fullpath][content_or_json];
+    //     }
+    // }
 
     var stats;
     stats = await fsPromises.stat(fullpath);
@@ -349,8 +380,6 @@ async function exeCmd(cmd, args = { shell: true }) {
        });
     });
   } 
-  
-  
 
 function getUserName() {
     const userInfo = os.userInfo();
