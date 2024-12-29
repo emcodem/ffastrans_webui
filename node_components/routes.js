@@ -89,15 +89,16 @@ module.exports = function(app, passport) {
     app.use("/alternate-server", express.static('./alternate-server'));
     
     //can we hook mustache everywhere?
-    app.get ('/webinterface', function(req,res){
+    app.get ('/webinterface/', function(req,res){
         //calls to /webinterface, we serve index.html with mustache
-        let realpath = path.join(global.approot,"/webinterface/index.html");
-        res.render(realpath,
-            {
-                googleTagManager: global.config.STATIC_GOOGLE_ANALYTICS_ENABLE == "enabled" ? 'https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR' : "",
+        res.redirect('/webinterface/index.html');
+        // let realpath = path.join(global.approot,"/webinterface/index.html");
+        // res.render(realpath,
+        //     {
+        //         googleTagManager: global.config.STATIC_GOOGLE_ANALYTICS_ENABLE == "enabled" ? 'https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR' : "",
               
-            }
-          );
+        //     }
+        //   );
     });
     app.get ('/webinterface/images/*', function(req,res){
         let realpath = path.join(global.approot,req.url);
@@ -114,7 +115,7 @@ module.exports = function(app, passport) {
         /* check if html, if yes, use mustache rendering */
         let realpath = path.join(global.approot,req.path);
         
-        if (fs.promises.exists(realpath)){
+        if (await fs.promises.exists(realpath)){
             //we use mustache for rendering html files, so we can insert global stuff
             if (realpath.match(/html$/i)){
                 console.log("mustache rendering",realpath)
