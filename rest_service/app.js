@@ -24,8 +24,17 @@ const { workerData, parentPort } = require('worker_threads');
 const logfactory = require("../shared_modules/logger.js");
 /* swagger init */
 const { initialize } = require('express-openapi');
+/* internal modules */
+const FilesystemWatcher = require("./api/controllers/common/filesystem_watcher.js");
 
 dns.setDefaultResultOrder("ipv4first"); //node 18 tends to take ipv6 first, this forces it to use ipv4first.
+
+const blocked = require('blocked-at')
+blocked((time, stack) => {
+  if (time > 200)
+    console.log(`Blocked for ${time}ms, operation started here:`, stack)
+})
+
 
 global.approot  = path.dirname(process.execPath); //bad practice, the logger uses global.approot instead of taking a parameter where to write logs
 var path_to_privkey = path.join(global.approot, '/cert/key.pem');
@@ -224,10 +233,12 @@ async function start_server( _listenport,globalconf){
 
     //must use bodyparser in order to retrieve post messages as req.body
     // app.use(bodyParser.json())
-    app.use(bodyParser.json({ limit: '250mb' }));
+    app.use(bodyParser.json({ limit: '500mb' }));
 
     //startup server
     console.log('\x1b[32mNew API starting up...') 
+
+    global.MY_OWN_LISTEN_PORT = _listenport;
 
 	if (globalconf.STATIC_WEBSERVER_ENABLE_HTTPS == "true"){
     console.log("Using https protocol");
@@ -248,57 +259,61 @@ async function start_server( _listenport,globalconf){
 		http.listen(_listenport, () => {
 			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + _listenport);
 		}).on('error', handleListenError);
-    }
-    console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
+  }
+  console.log('Web API Server started, check out http://127.0.0.1:' + _listenport + '/docs');
 
-    var all_swag_operations = {
-        /* most or all of our controllers serve v2 and v3, so we just register all operations at once, even if the yamls might not use all of them */
-        /* add new operationids from swagger.yaml here */
-        about_post :        require(_approot + "/api/controllers/about").post,
-        about :             require(_approot + "/api/controllers/about").get,
-        hello:              require(_approot + "/api/controllers/hello_world").get,
-        get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
-        get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
-        get_branch_log:     require(_approot + "/api/controllers/get_branch_log").get,
-        get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
-        tickets:            require(_approot + "/api/controllers/tickets").get,
-        machines:           require(_approot + "/api/controllers/machines").get,
-        machines_post:      require(_approot + "/api/controllers/machines").post,
-        machines_delete:    require(_approot + "/api/controllers/machines").delete,
-        metrics:            require(_approot + "/api/controllers/metrics").get,
-        review:             require(_approot + "/api/controllers/review").get,
-        review_delete:      require(_approot + "/api/controllers/review").do_delete,
-        jobs_post :         require(_approot + "/api/controllers/jobs").post_jobs,
-        jobs_put :          require(_approot + "/api/controllers/jobs").put,
-        jobs_get:           require(_approot + "/api/controllers/jobs").get,
-        jobvars:            require(_approot + "/api/controllers/jobvars").get,
-        jobs_v2:            require(_approot + "/api/controllers/jobs").get,
-        presets:            require(_approot + "/api/controllers/presets").get,
-        presets_post:       require(_approot + "/api/controllers/presets").post,
-        presets_delete:     require(_approot + "/api/controllers/presets").delete,
-        workflow_put :      require(_approot + "/api/controllers/workflows").put,
-        workflow_post :     require(_approot + "/api/controllers/workflows").post,
-        workflows :         require(_approot + "/api/controllers/workflows").get,
-        workflows_v2 :      require(_approot + "/api/controllers/workflows").get,
-        workflows_status :  require(_approot + "/api/controllers/workflows_status").get,
-        variables :         require(_approot + "/api/controllers/variables").get,
-        variables_post :    require(_approot + "/api/controllers/variables").post,
-        variables_delete :  require(_approot + "/api/controllers/variables").delete
-    }
+  var all_swag_operations = {
+      /* most or all of our controllers serve v2 and v3, so we just register all operations at once, even if the yamls might not use all of them */
+      /* add new operationids from swagger.yaml here */
+      about_post :        require(_approot + "/api/controllers/about").post,
+      about :             require(_approot + "/api/controllers/about").get,
+      hello:              require(_approot + "/api/controllers/hello_world").get,
+      get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
+      get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
+      get_branch_log:     require(_approot + "/api/controllers/get_branch_log").get,
+      get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
+      tickets:            require(_approot + "/api/controllers/tickets").get,
+      machines:           require(_approot + "/api/controllers/machines").get,
+      machines_post:      require(_approot + "/api/controllers/machines").post,
+      machines_delete:    require(_approot + "/api/controllers/machines").delete,
+      metrics:            require(_approot + "/api/controllers/metrics").get,
+      review:             require(_approot + "/api/controllers/review").get,
+      review_delete:      require(_approot + "/api/controllers/review").do_delete,
+      jobs_post :         require(_approot + "/api/controllers/jobs").post_jobs,
+      jobs_put :          require(_approot + "/api/controllers/jobs").put,
+      jobs_get:           require(_approot + "/api/controllers/jobs").get,
+      jobvars:            require(_approot + "/api/controllers/jobvars").get,
+      jobs_v2:            require(_approot + "/api/controllers/jobs").get,
+      presets:            require(_approot + "/api/controllers/presets").get,
+      presets_post:       require(_approot + "/api/controllers/presets").post,
+      presets_delete:     require(_approot + "/api/controllers/presets").delete,
+      workflow_put :      require(_approot + "/api/controllers/workflows").put,
+      workflow_post :     require(_approot + "/api/controllers/workflows").post,
+      workflows :         require(_approot + "/api/controllers/workflows").get,
+      workflows_v2 :      require(_approot + "/api/controllers/workflows").get,
+      workflows_status :  require(_approot + "/api/controllers/workflows_status").get,
+      variables :         require(_approot + "/api/controllers/variables").get,
+      variables_post :    require(_approot + "/api/controllers/variables").post,
+      variables_delete :  require(_approot + "/api/controllers/variables").delete
+  }
 
-    var swag_config = {
-        app,
-        apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
-        operations: all_swag_operations
+  var swag_config = {
+      app,
+      apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
+      operations: all_swag_operations
 	};
 
-    initialize(swag_config);
+  initialize(swag_config);
 
-    //finally, initalize swagger UI by loading the yaml files (which point to the operations)
-	
-    var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
+  //finally, initalize swagger UI by loading the yaml files (which point to the operations)
+
+  var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
 	const swaggerDocument = YAML.load(_yaml_location);
 	app.use('/', swaggerUi.serve);
   app.get('/', swaggerUi.setup(swaggerDocument)); //only serves the swagger docs on /, anything else must be a method or returns 404
 
+
+  //initialize filesystem watchers
+  global.workflowFileSystemWatcher = 
+  new FilesystemWatcher(path.join(global.api_config["s_SYS_CONFIGS_DIR"], "/workflows"));
 }
