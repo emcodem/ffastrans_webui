@@ -412,6 +412,10 @@ function inIframe () {
     }
 }
 
+function hideNavMenue(){
+    document.querySelector('[data-cell-id="left"]').style.width = 0;
+}
+
 function hideHeader(){
     document.querySelector('[data-cell-id="top"]').style.height = 0;
 }
@@ -615,6 +619,12 @@ async function init(permissions){
     // },5000)
 
     setVersion();
+
+    const url = new URL(window.location.href);
+    const params = new URLSearchParams(url.search);
+    if (params.has("hidenav")){
+        hideNavMenue();
+    }
 
 }
 
