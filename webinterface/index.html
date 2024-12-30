@@ -299,7 +299,7 @@ var socket = io();
 var m_mainSidebar,mainLayout,initialMenuItem,m_serverconfig;
 
 var m_permissionUrls = {
-    "GROUPRIGHT_MENU_VIEW_JOB_STATUS" : "components/jobviewer.html",
+    "GROUPRIGHT_MENU_VIEW_JOB_STATUS" : "components/jobviewer.html?" + window.location.search.substring(1),
     "GROUPRIGHT_MENU_VIEW_SUBMIT_JOBS": "components/jobstarter.html",
     "GROUPRIGHT_MENU_VIEW_REVIEW_QUEUE": "components/reviewqueue.html",
     "GROUPRIGHT_MENU_VIEW_ADMIN_USERS": "components/admin/usermanager.html",
