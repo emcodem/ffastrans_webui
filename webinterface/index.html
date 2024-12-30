@@ -611,12 +611,12 @@ async function init(permissions){
     restoreUserState(firstMenuPermissionUrl);
 
     //kick off jobcount interval
-    // updateJobCount();
-    // window.setInterval(function(){
-    //     /* update job counters */
-    //     updateJobCount()
+    updateJobCount();
+    window.setInterval(function(){
+        /* update job counters */
+        updateJobCount()
 
-    // },5000)
+    },5000)
 
     setVersion();
 
