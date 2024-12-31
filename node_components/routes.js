@@ -91,6 +91,7 @@ module.exports = function(app, passport) {
     //can we hook mustache everywhere?
     app.get ('/webinterface/', function(req,res){
         //calls to /webinterface, we serve index.html with mustache
+        console.log("Redirecting to /webinterface/index.html")
         res.redirect('/webinterface/index.html');
         // let realpath = path.join(global.approot,"/webinterface/index.html");
         // res.render(realpath,
@@ -113,9 +114,11 @@ module.exports = function(app, passport) {
 
     async function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
+        console.log("renderHTMLByMustache",req.path)
         let realpath = path.join(global.approot,req.path);
-        
-        if (await fs.promises.exists(realpath)){
+
+        console.log("realpath",realpath)
+        if (fs.existsSync(realpath)){//when we use fs.promises.exists, in compiled mode the file does not exist.
             //we use mustache for rendering html files, so we can insert global stuff
             if (realpath.match(/html$/i)){
                 console.log("mustache rendering",realpath)
@@ -131,6 +134,8 @@ module.exports = function(app, passport) {
             }
 
             return;
+        }else{
+            console.error("Mustache did not find requested file",realpath)
         }
     }
     app.get ('/webinterface/components/*', renderHTMLByMustache);

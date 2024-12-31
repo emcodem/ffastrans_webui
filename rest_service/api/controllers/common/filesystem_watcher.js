@@ -1,4 +1,3 @@
-let chokidar = require("chokidar");
 let fs = require("fs");
 let path = require("path");
 

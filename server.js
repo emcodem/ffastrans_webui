@@ -481,7 +481,7 @@ async function init(conf){
 
 
     //all routes registered?
-    console.log("Express routes",app._router.stack);
+    //console.log("Express routes",app._router.stack);
 
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans')
