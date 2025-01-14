@@ -16,3 +16,4 @@ alternate-server.old/
 !node_modules/agent-base/dist
 logs
 audit
+/dist/
