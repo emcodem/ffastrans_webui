@@ -2,7 +2,6 @@ var userpermissions = require("../userpermissions");
 
 module.exports = function(app, express){
 //serve and store admin config as dhtmlx form json config 
-var configServer = require(global.approot  + '/node_components/server_config');
 
 	app.get('/usergrouprightslist', (req, res) => {
 		try{

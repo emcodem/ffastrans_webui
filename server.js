@@ -20,6 +20,12 @@ const session      = require('express-session');
 const assert = require('assert');
 const fs = require('fs-extra');
 const socket = require('socket.io');
+// const clientFile = require("./node_modules/socket.io/client-dist/socket.io.min?raw");
+// const clientMap = require("./node_modules/socket.io/client-dist/socket.io.min.js.map?raw");
+
+// socket.sendFile = (filename, req, res) => {
+//   res.end(filename.endsWith(".map") ? clientMap : clientFile);
+// };
 
 const socketwildcard = require('socketio-wildcard');
 const configmgr = require( './node_components/server_config');

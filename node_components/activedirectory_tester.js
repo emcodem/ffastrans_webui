@@ -2,11 +2,12 @@ var ActiveDirectory = require('activedirectory2')
 
 module.exports = function(app, passport){
 //create navigation menu based on user permissions
-	var configServer = require(global.approot  + '/node_components/server_config');
+	var configServer = require('./server_config');
 
 	app.post('/activedirectory_tester', function(req, res) { 
 			//test AD config
 			var adopts;
+
 			try{
 				var data = req.body;
 				var dcparts = data["ad_config"]["ad_fqdn"].split(".");

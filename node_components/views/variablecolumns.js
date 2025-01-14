@@ -1,5 +1,5 @@
 const userpermissions = require("../userpermissions");
-const configServer = require(global.approot  + '/node_components/server_config');
+const configServer = require('../server_config');
 
 //as many clients can poll this parallel, we cache some stuff that is heavy
 

@@ -115,14 +115,14 @@ module.exports = function(app, passport) {
     async function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
         console.log("renderHTMLByMustache",req.path)
-        let realpath = path.join(global.approot,req.path);
+       // let realpath = path.join(req.path);
+       let relativePath = req.path.replace(/^\//,"");
 
-        console.log("realpath",realpath)
-        if (fs.existsSync(realpath)){//when we use fs.promises.exists, in compiled mode the file does not exist.
+        if (fs.existsSync(relativePath)){//when we use fs.promises.exists, in compiled mode the file does not exist.
             //we use mustache for rendering html files, so we can insert global stuff
-            if (realpath.match(/html$/i)){
-                console.log("mustache rendering",realpath)
-                res.render(realpath,
+            if (relativePath.match(/html$/i)){
+                console.log("mustache rendering",relativePath)
+                res.render(relativePath,
                     {
                         googleTagManager: global.config.STATIC_GOOGLE_ANALYTICS_ENABLE == "enabled" ? 'https://www.googletagmanager.com/gtag/js?id=G-4FCDW4WBMR' : "",
                       
@@ -130,12 +130,12 @@ module.exports = function(app, passport) {
                   )
             }else{
                 //non html files
-                res.sendFile(realpath);
+                res.sendFile(relativePath);
             }
 
             return;
         }else{
-            console.error("Mustache did not find requested file",realpath)
+            console.error("Mustache did not find requested file",relativePath)
         }
     }
     app.get ('/webinterface/components/*', renderHTMLByMustache);

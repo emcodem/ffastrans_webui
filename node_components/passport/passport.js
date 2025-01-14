@@ -93,7 +93,7 @@ passport.use('local-login', new LocalStrategy({
 async function ActiveDirectoryLogin(req,username,passwd,done){
     
 		console.log("AD login procedure");
-		var configServer = require(global.approot  + '/node_components/server_config');
+		var configServer = require('../server_config');
 
 		var currentConfig = configServer.get(async function(config){
 				console.log("Config from DB:",config)

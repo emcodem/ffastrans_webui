@@ -1,6 +1,6 @@
 var moment = require("moment");
-var configServer = require(global.approot  + '/node_components/server_config');
-let maintenance_funcs = require(global.approot  + "/node_components/cron_tasks/maintenance");
+var configServer = require('../server_config');
+let maintenance_funcs = require('../cron_tasks/maintenance');
 var assert = require('assert');
 
 module.exports = function(app, express){
