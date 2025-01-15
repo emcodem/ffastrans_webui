@@ -263,10 +263,24 @@
         container-type: inline-size;
         white-space: nowrap;
         overflow: hidden;
-        width: 100%;
-        height: 20px;
+        width: calc(100% - 140px);
         font-size: 12px;
         user-select: none;
+        position: absolute;
+        height: 100%;
+        display: flex;
+        
+        left: 100;
+        justify-content: flex-start;
+        align-items: center;
+        flex-shrink: 1; 
+        background-color: var(--dhx-background-primary)  !important;
+    }
+
+    button[name="b_options"]{
+        position: absolute;
+        right: 0; /* Position it on the right side */
+        
     }
 
     .btn.jobviewer_menu{
@@ -293,6 +307,8 @@
         position: relative;
         top: -1;
     }
+
+
     /* workflow selection */
 
     .button_workflow_filter_menu_item {
@@ -336,6 +352,9 @@
         user-select: none;
     }
 
+    div .dhx_layout-cell-header.dhx_layout-cell-header--row.dhx_layout-cell-header--collapseble {
+        position:relative;
+    }
     /* button.jobviewer_menu:hover{
         transform: scale(1.1)
     } */
@@ -356,6 +375,7 @@
             width:20px;
         }
     }    */
+    
 
 </style>
 
@@ -395,6 +415,7 @@
         //unselect selected grid rows if not clicked within a grid (or on some text in grid)
         if (Array.from(evnt.target.classList).join("").match(/dhx_grid-cell__content|celltext_rtl/ ))
             return true;
+            
         console.log("Clearing grid selection because of click")
 
         if(m_historyGrid && m_activeGrid){
@@ -464,7 +485,7 @@
     }
 
     /* render menu buttons based on permissions*/
-    function addMenuButtons(){
+    async function addMenuButtons(){
 
         function _appendtext (headerText, to_append){//helper
             let headers = document.querySelectorAll(".dhx_layout-cell-header__title")
@@ -483,7 +504,7 @@
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i><span>Pause</span></button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i><span>Resume</span></button>   ';
         // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
-        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="event.stopPropagation();history_grid_actions(this.name)" style="float: right;margin-top:1px"><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
+        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="event.stopPropagation();history_grid_actions(this.name)" ><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
 
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
 
@@ -501,8 +522,8 @@
             console.log("Displaying filtered list of buttons, regex: ", regex);
 
             //add filtered btns to Running jobgrid
-            _appendtext('History',"<div class='jobviewer_menu_container historygrid'></div>");
-            _appendtext('Running',"<div class='jobviewer_menu_container activegrid'></div>");
+            _appendtext('History',"<div class='jobviewer_menu_container historygrid'  ></div>");
+            _appendtext('Running',"<div class='jobviewer_menu_container activegrid'  ></div>");
 
             for (let _id=0;_id<arr_all_in_a.length;_id++){
                 var input_name = arr_all_in_a[_id].match(/name="(.*?)"/)[1];
@@ -523,6 +544,12 @@
             _appendtext('Running',"<div class='jobviewer_menu_container historygrid'>" + arr_all_in_a.join("") + "</div>");
             _appendtext('History',"<div class='jobviewer_menu_container activegrid'>" +  b_details + b_resubmit + b_delete_selected + "</div>");
         }
+
+        document.querySelector('.jobviewer_menu_container').addEventListener('click', function(event) {
+                
+                //event.stopPropagation(); //attempt to disable collapse on click everywhere but this way buttons also dont click
+                
+         }, true); 
 
         // let pageText = `<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" ></span>`;
         // _appendtext("History",pageText);
@@ -653,6 +680,7 @@
         });
 
         mainLayout.events.on("afterCollapse", function(id){
+            console.log("Collapsed",id)
             saveLayoutConf();
         });
 
@@ -1221,7 +1249,7 @@ async function buildActiveGrid() {
     grid.sortdir        = "asc";
     grid.mystuff        = {page:1}
     grid.loadGridData   = loadGridData;
-
+    grid.loadGridData_internal   = loadGridData_internal;
     /* Row select */
     grid.selection.events.on("AfterSelect", (row, column) => {
         toggleJobControl("active",true);
@@ -1238,6 +1266,7 @@ async function buildActiveGrid() {
         // loadGridData();
         return false;
     });
+
     grid.events.on("afterSort", (column, dir) => {
         loadGridData_internal();
     })
