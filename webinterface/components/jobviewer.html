@@ -1332,7 +1332,7 @@ async function buildActiveGrid() {
         grid.data.add(newData);
         selectedCells.map(c=>{
             console.log("re-selecing",c.row)
-            grid.selection.setCell(c.row.id, 0);
+            grid.selection.setCell(c.row.id, 0,true,false);
         })
         //if no cells were selected, disable buttons
         selectedCells = grid.selection.getCells();
@@ -2105,7 +2105,7 @@ async function buildActiveGrid() {
             //restore selection
             selectedCells.map(c=>{
                 console.log("re-selecing",c.row)
-                grid.selection.setCell(c.row.id, 0);
+                grid.selection.setCell(c.row.id, 0,true,false);
             });
             await dhx8.dhx.awaitRedraw();
 
