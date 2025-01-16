@@ -35,11 +35,6 @@ module.exports = async function (app, passport) {
         res.json(filtered);
     })
 
-    app.get('/getlogincount', async (req, res) => {
-
-        res.json({"logged_in_users":global.logged_in_users_count || 0});
-    })
-
     app.get('/getworkflowjobcount', async (req, res) => {
         
         m_req_count++;
