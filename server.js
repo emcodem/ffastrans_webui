@@ -564,6 +564,7 @@ function initSocketIo(created_httpserver){
 	global.socketio.use(wildcard);
 	//register supported functions
 	global.socketio.on('connection', function(_socket){
+      global.logged_in_users_count = Math.round(global.socketio.engine.clientsCount/2);
 	  console.log('New socket io client connected, client: ' + _socket.id);
 	  global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
 	  console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
@@ -613,6 +614,7 @@ function initSocketIo(created_httpserver){
 		
 		//client disconnected
 	  _socket.on('disconnect', function(){
+        global.logged_in_users_count = Math.round(global.socketio.engine.clientsCount/2);
 		global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
 		console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
 		console.log('client disconnected');

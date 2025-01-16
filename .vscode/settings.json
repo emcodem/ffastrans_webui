@@ -7,6 +7,10 @@
     },
     "files.exclude": {
         "**/.git": true,         // this is a default value
+        "**/*bundle*": true,
+        "**/*grafana*": true,
+        "**/*mpv*": true,
+        "**/*.log":true
         //"**/node_modules": true, // this excludes all folders 
                                 // named "node_modules" from 
                                 // the explore tree

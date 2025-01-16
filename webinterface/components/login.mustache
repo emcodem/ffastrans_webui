@@ -110,7 +110,7 @@ function init(){
     m_mainForm.addItem("data", {type: "password",name: "password", label:"Password:", value: "",  offsetLeft:10, labelWidth: 70,width:250}); 
     m_mainForm.addItem("data", {type: "button",name: "submit", label:"Login", value: "Login",  offsetLeft:10, width: 150}); 
     m_mainForm.setItemFocus("username");
-    console.log(document.referrer)
+    console.log("Referrer",document.referrer)
     m_mainForm.attachEvent("onButtonClick", function(){
         submitForm()
         // m_mainForm.send("/login?referer=" + encodeURIComponent(document.referrer),"POST",function(response){

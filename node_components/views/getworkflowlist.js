@@ -35,6 +35,11 @@ module.exports = async function (app, passport) {
         res.json(filtered);
     })
 
+    app.get('/getlogincount', async (req, res) => {
+
+        res.json({"logged_in_users":global.logged_in_users_count || 0});
+    })
+
     app.get('/getworkflowjobcount', async (req, res) => {
         
         m_req_count++;
@@ -74,7 +79,7 @@ module.exports = async function (app, passport) {
                 return daCount;
             }
 
-            var countObj = { sys: { "Success": 0, "Error": 0, "Cancelled": 0, "Incoming": 0, "Queued": 0, "Running": 0 } };
+            var countObj = { sys: { "Success": 0, "Error": 0, "Cancelled": 0, "Incoming": 0, "Queued": 0, "Running": 0, "Users" : global.logged_in_users_count} };
 
 
             if (!m_busy && (!m_history_cache.data || (((new Date) - m_history_cache.last_update) > 5000))) {
