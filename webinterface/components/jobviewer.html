@@ -263,27 +263,28 @@
         container-type: inline-size;
         white-space: nowrap;
         overflow: hidden;
-        width: calc(100% - 140px);
         font-size: 12px;
         user-select: none;
         position: absolute;
         height: 100%;
         display: flex;
-        
-        left: 100;
+
+        /* if you change left you need to change width calc and vice versa */
+        width: calc(100% - 190px);
+        left: 150;
+
         justify-content: flex-start;
         align-items: center;
         flex-shrink: 1; 
-        background-color: var(--dhx-background-primary)  !important;
-    }
-
-    button[name="b_options"]{
-        position: absolute;
-        right: 0; /* Position it on the right side */
         
     }
 
-    .btn.jobviewer_menu{
+    .btn.jobviewer_menu.right{
+        position: absolute;
+        right: 0; /* Position it on the right side */
+    }
+
+    .btn.jobviewer_menu {
         height:17px;
         width:120px;
         font-size: inherit;
@@ -379,7 +380,7 @@
 
 </style>
 
-<script>
+<script type="module">
     /* init SOCKET.IO */
     var socket = io();
 
@@ -388,12 +389,13 @@
     let m_jobviewerLayoutSettings = localStorage.jobviewer_layout ? JSON.parse(localStorage.jobviewer_layout) :  {};
     let m_historyGrid;
     let m_activeGrid;
+    let m_workflowArray;
 	var m_max_history_gridrows = localStorage.getItem("jobviewer_rows_per_page") || 100;
     var m_query = {}; //url parameters
 
     /* global function override */
     //backward compatible dhtmlx message
-    dhtmlx = {};
+    const dhtmlx = {};
     dhtmlx.message= function(what){
         dhx8.dhx.message({ expire: 3000, text: what});
     }
@@ -428,6 +430,7 @@
     });
 
     /*load config from server*/
+    window.loadserverconfig = loadserverconfig; //used by html
     function loadserverconfig() {
         $.ajax({
             url: ("/getuserpermissionsasync" + "?" + Math.random()),
@@ -504,14 +507,15 @@
         var a_pause =   '<button class="btn jobviewer_menu" name="a_pause" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-pause fa-sm disabled" ></i><span>Pause</span></button> ';
         var a_resume =  '<button class="btn jobviewer_menu" name="a_resume" disabled="true"  onclick="event.stopPropagation();active_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-play fa-sm disabled" ></i><span>Resume</span></button>   ';
         // var a_prio  =  '<button class="btn jobviewer_menu" name="a_priority" disabled="true"  onclick="click_a_header(this.name)"><i style = "margin-right:3px" class= "fas fa-clock fa-sm disabled" ></i>Priority</button>   ';
-        var a_opts  =    '<button class="btn jobviewer_menu" name="b_options" onclick="event.stopPropagation();history_grid_actions(this.name)" ><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
+        var a_opts  =    '<button class="btn jobviewer_menu right" name="b_options" onclick="event.stopPropagation();history_grid_actions(this.name)" ><i style = "margin-right:3px;" class= "fas fa-cog fa-sm" ></i><span>Options</span></button> ';
 
         var arr_all_in_a = [a_details,a_abort,a_pause,a_resume,a_opts];
 
-        var b_details =     '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i><span>Job Details</span></button> ';
-        var b_resubmit =    '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i><span>Resubmit</span></button> ';
-        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-trash-alt fa-sm disabled" ></i><span>Delete Selected</span></button> ';
-        var arr_all_in_b = [b_details,b_resubmit,b_delete_selected];
+        var b_details =              '<button class="btn jobviewer_menu" name="b_details" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-info-circle fa-sm disabled"></i><span>Job Details</span></button> ';
+        var b_resubmit =             '<button class="btn jobviewer_menu" name="b_resubmit" disabled="true"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "fas fa-retweet fa-sm disabled"  ></i><span>Resubmit</span></button> ';
+        var b_delete_selected =      '<button class="btn jobviewer_menu" name="b_delete_selected" disabled="true" onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "mdi mdi-trash-can-outline disabled" ></i><span>Delete Selected</span></button> ';
+        var b_jobchart =             '<button class="btn jobviewer_menu right" name="b_jobchart"  onclick="event.stopPropagation();history_grid_actions(this.name)"><i style = "margin-right:3px" class= "mdi mdi-chart-bar" ></i><span>Chart</span></button> ';
+        var arr_all_in_b = [b_details,b_resubmit,b_delete_selected,b_jobchart];
 
 
         //check user permissions
@@ -542,7 +546,7 @@
             //just render all btns
             console.log("Displaying unfiltered list of menu buttons" )
             _appendtext('Running',"<div class='jobviewer_menu_container historygrid'>" + arr_all_in_a.join("") + "</div>");
-            _appendtext('History',"<div class='jobviewer_menu_container activegrid'>" +  b_details + b_resubmit + b_delete_selected + "</div>");
+            _appendtext('History',"<div class='jobviewer_menu_container activegrid'>" + arr_all_in_b.join("") + "</div>");
         }
 
         document.querySelector('.jobviewer_menu_container').addEventListener('click', function(event) {
@@ -579,7 +583,7 @@
             let header_id = searchbox.closest('.dhx_grid-header-cell').dataset.dhxId;
             if (header_id.toUpperCase().match(filtername.toUpperCase())){
                 searchbox.value = filtervalue;
-
+                console.log("triggering enter on ",searchbox.id)
                 $(searchbox).trigger("input");
             }
         })
@@ -685,13 +689,12 @@
         });
 
         mainLayout.events.on("afterExpand", async function(id){
-            saveLayoutConf();
+            
             //after expand, we need to redraw the cell content, it is destroyed on collapse
             if (id == "a"){
                 console.log("Workflow Tree Expand")
                 m_jobviewerLayoutSettings.workflowtree_collapsed = false;
                 buildWorfklowTree();
-                localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerLayoutSettings));
             }
             if (id == "b"){
                 mainLayout.getCell("b").attach(await buildActiveGrid());
@@ -703,6 +706,7 @@
                 mainLayout.getCell("c").attach(await buildHistoryGrid());
                 m_historyGrid.loadGridData();
             }
+            saveLayoutConf();
         });
 
         mainLayout.events.on("afterResizeEnd", function(id){
@@ -752,7 +756,11 @@
             addMenuButtons();
         }
         //finally load data into grids
-        buildWorfklowTree();
+        if (!mainLayout.getCell("a").config.hidden){
+            buildWorfklowTree();
+            console.log("Cell A config: ",mainLayout.getCell("c").config)
+        }
+
 
         mainLayout.getCell("b").attach(await buildActiveGrid());
         m_activeGrid.loadGridData();
@@ -761,111 +769,6 @@
         m_historyGrid.loadGridData();
 
         await dhx8.dhx.awaitRedraw();
-
-        // restoreLayoutConf();
-        // //restore Layout config
-        // function restoreLayoutConf(){
-        //     //restore layout
-        //     if (!m_jobviewerLayoutSettings.workflowtree_collapsed){
-        //         mainLayout.getCell("a").expand();
-        //     }
-
-        // }
-
-        // mainLayout = new dhtmlXLayoutObject({
-        //     parent: document.body,
-        //     pattern: "3L",
-        //     cells: [
-		// 			{id: "a", text: "Workflow Filter", collapsed_text: "<span id='workflow_filter_header_collaped' style='display:flex;cursor:pointer'><b>Workflows</b></span>"},
-		// 			{id: "b", text: ""},
-		// 			{id: "c", text: ""}
-		// 		]
-        // });
-
-
-        // mainLayout.cells("a").showInnerScroll()
-        // mainLayout.cells("a").setMinWidth(150);
-        // mainLayout.cells("a").setWidth(350);
-        // mainLayout.cells("a").collapse();
-
-		// if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
-		// 	buildWorfklowTree(); //load workflows
-		// 	mainLayout.cells("a").setText('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
-
-		// }else{
-		// 	console.log("alternate server is true!")
-		// 	mainLayout.cells("a").setCollapsedText("");
-		// 	mainLayout.cells("a").hideArrow();
-        //     mainLayout.cells("a").collapse();
-		// }
-
-        // mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px;color:#888888" >Running</span>');
-        // mainLayout.cells("c").setText('<span id="page_number_text" style="margin-right:15px;font-size:13px;color:#888888" >Finished</span>');
-
-
-        //attach mouseclick event to exand workflow cell on click onto whole bar instead of < icon only
-        // $('#workflow_filter_header_collaped').click(()=>{
-        //     mainLayout.cells("a").expand()
-        //     restoreLayoutSizes(mainLayout, "mainLayout");
-        // });
-        // mainLayout.attachEvent("onCollapse", function(name){
-        //         $('#workflow_filter_header_collaped').click(()=>{
-        //             mainLayout.cells("a").expand()
-        //             restoreLayoutSizes(mainLayout, "mainLayout");
-        //         });
-        //         localStorage.setItem("mainLayout_c_collapsed", "true");
-        //         console.log("saving collapsed state")
-        // });
-        // mainLayout.attachEvent("onExpand", function(name){
-        //         localStorage.setItem("mainLayout_c_collapsed", "false");
-        // });
-
-        // mainLayout.cells("c").setWidth($(document).width() / 3);
-        // //mainLayout.cells("c").setText("Finished");
-        // mainLayout.cells("b").setHeight($(document).height() / 3.5);
-        //restoreLayoutSizes(mainLayout, "mainLayout");
-
-        //attach grids
-        // mainLayout.cells("c").attachObject("history_div_container");
-        // mainLayout.cells("c").showInnerScroll();
-        // mainLayout.cells("b").attachObject("active_div");
-        // mainLayout.cells("b").showInnerScroll();
-
-
-        //url parameter hideheaders
-        // if (query["hideheaders"]){
-        //     mainLayout.cells("b"). hideHeader();
-        //     mainLayout.cells("c"). hideHeader();
-        // }
-
-        //ur param hideactive
-        // if (query["hideactive"]){
-        //     mainLayout.cells("b").collapse()
-        //     mainLayout.cells("b").hideArrow();
-        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";
-        // }
-        // if (query["hidehistory"]){
-        //     mainLayout.cells("c").collapse()
-        //     mainLayout.cells("c").hideArrow();
-        //     $('.dhx_cell_layout.dhxlayout_collapsed_h')[0].style.height = "0px";
-        // }
-        //menu text and buttons
-
-
-        // mainLayout.attachEvent("onPanelResizeFinish", function() {
-        //     saveLayoutSizes(mainLayout, "mainLayout");
-        // });
-
-        // m_lastsortelementid = {}
-        // m_lastsortdir = {}
-        // m_lastsortelementid["treetable_active"] = "active-state";
-        // m_lastsortdir["treetable_active"] = "asc";
-        // m_lastsortelementid["treetable_history"] = "history-job_start";
-        // m_lastsortdir["treetable_history"] = "des";
-        // console.log("Applying default sorting for active and history grid")
-
-        //Build the grids
-
 
         //Socket events
         socket.on('newhistoryjob', async function() {
@@ -876,8 +779,8 @@
         socket.on('queuedjobs', function(msg) {
 
         });
-        socket.on('activejobs', async function(msg) {
-            console.log("got activejobs message from jobfetcher")
+        socket.on('activejobs', async function(count) {
+            console.log("got activejobs message from jobfetcher",count)
             m_activeGrid.loadGridData();
         })
 
@@ -887,8 +790,6 @@
         socket.on('msg', function(msg) {
             dhtmlx.message(msg);
         });
-
-
 
         /* check if new activejobs forever */
         window.setInterval(function() {
@@ -951,13 +852,13 @@ function buildWorfklowTree(){
 
                 //finally build workflow tree
                 parseWorkflows(m_workflowArray,{"selectMode":2,"dom_id":"workflowtree","extensions":["filter","multi","persist"]},on_treeWorkflowSelected,function(){/*no click evt*/});
-                var sel = $("#workflowtree").fancytree('getTree').getSelectedNodes();
-
-                if (sel.length != 0){
-                    //on initial page load, don't apply the filter if empty
-                    applyWorkflowSearch(sel);
-                }
-
+                if ($("#workflowtree").fancytree('getTree').hasOwnProperty("getSelectedNodes")){
+                    var sel = $("#workflowtree").fancytree('getTree').getSelectedNodes();            
+                    if (sel.length != 0){
+                        //on initial page load, don't apply the filter if empty
+                        applyWorkflowSearch(sel);
+                    }
+                }      
             }
         },
         error: function (xhr, status) {
@@ -1064,9 +965,25 @@ function show_options_window(){
     // win.attachURL("jobviewer_pages/options.html");
 }
 
+async function showJobChart(){
+    //this is the first es6 module we use, we should do that in future more often :D
+    try{
+        const chartmodule = await import('./jobviewer_pages/ES6modules/jobchart.js');
+        console.log("ES6:",chartmodule.doTheMagic(m_historyGrid.data.serialize()))
+        
+
+    }catch(ex){
+        console.error(ex)
+    }
+
+}
+
 window.history_grid_actions= history_grid_actions;
 function history_grid_actions(id,node) {
     //if we have node argument, we are called from context menu
+    if (id == "b_jobchart"){
+        showJobChart();
+    }
     if (id == "b_options") {
         show_options_window();
         return;
@@ -1139,6 +1056,7 @@ function active_grid_actions(id,node) {
     }
 }
 
+window.getActiveGridColumns = getActiveGridColumns;
 function getActiveGridColumns(){
     //let searchboxhtml = `<input class="searchbox" placeholder="" onclick="event.stopPropagation()"></input>`;
     let searchboxhtml = ``;
@@ -1191,7 +1109,7 @@ async function buildActiveGrid() {
     // if (!colres.ok)
     //     return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
     // let gridcolumns = await colres.json()
-    gridcolumns = getActiveGridColumns();
+    let gridcolumns = getActiveGridColumns();
 
     // //apply user state
     if (localStorage.jobviewer_active_grid_column_config){
@@ -1235,7 +1153,7 @@ async function buildActiveGrid() {
                     //only if user did not type for 750ms, function will fire
                     grid.filterobj = collectFilters();
                     grid.data.removeAll();
-                    loadGridData();
+                    loadGridData_internal();
                 },750),
             }
 
@@ -1323,8 +1241,8 @@ async function buildActiveGrid() {
 
         //restore selection if any
         let selectedCells = grid.selection.getCells();
-        selectedCells = JSON.parse(JSON.stringify(selectedCells))
-        console.log("selected Cells",selectedCells)
+        selectedCells = JSON.parse(JSON.stringify(selectedCells));
+        console.log("selected Cells",selectedCells);
 
 
         //redraw grid
@@ -1639,7 +1557,7 @@ async function buildActiveGrid() {
         function getSearchBoxHtml(config = {}){
             const searchbox_container = document.createElement("div");
             searchbox_container.classList.add("searchbox_container");
-
+            searchbox_container.setAttribute("onclick", "event.stopPropagation()");
             const clockIcon = document.createElement("span");
             clockIcon.classList.add("searchbox-icon-left");
             if (config.datepicker){
@@ -1702,7 +1620,7 @@ async function buildActiveGrid() {
             {id: "duration",    header: ["<span class='grid_header_text'>Duration</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span class='grid_header_text'>End</span>"+ getSearchBoxHtml({datepicker:true})],        sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "source",      header: ["<span class='grid_header_text'>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,template: function(val,row,column){
-                console.log("sourcesource",row.source)        
+                      
                 return '<span class="celltext_rtl">' + row.source + '</span>'
                     } },
             {id: "outcome",     header: ["<span class='grid_header_text'>Outcome</span>"+ getSearchBoxHtml()],    sortable: true,htmlEnable: true,
@@ -1807,10 +1725,11 @@ async function buildActiveGrid() {
                         //debounce function prevents this to fire multiple times parallel while user is typing
                         //only if user did not type for 500ms, function will fire
 
-                        console.log("searchbox input",event)
+                        
                         grid.filterobj = collectFilters(event);
+                        console.log("searchbox event:",event,"filter",grid.filterobj)
                         grid.data.removeAll();
-                        loadGridData();
+                        loadGridData_internal();
                     },750),
 
                 },
@@ -2378,6 +2297,7 @@ async function buildActiveGrid() {
      * Ensures that the "mainFunction" is at maximum executed in delay frequency (e.g if 50 jobs finish in the same second, we would load 50 times activejob)
     */
     function throttle(mainFunction, delay,throttleFlag,label) {
+        console.log("THROTTLE CALLED")
         return (...args) => {
             if (throttleFlag.throttle === null) { // If there is no timer currently running
             mainFunction(...args); // Execute the main function

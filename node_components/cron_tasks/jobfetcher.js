@@ -219,7 +219,7 @@ async function parseRunningJobs(a_running){
 		*/
 
 		try{
-			global.socketio.emit("activejobs");
+			global.socketio.emit("activejobs",all_jobs.length);
 		}catch(exc){
 			console.error("Error occured while sending activejobs to clients: " + exc + body)
 		}

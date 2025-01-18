@@ -116,7 +116,11 @@ function _defaultClick (data){
             return 1;
         }
     };
+    if (!$("#workflowtree").hasOwnProperty("fancytree"))
+        return
     var node = $("#"+config["dom_id"]).fancytree("getRootNode");
+    if (!node.hasOwnProperty("sortChildren"))
+        return;
     node.sortChildren(cmp,true);
     if (config["selected"]){
         var tree = $("#"+config["dom_id"]).fancytree("getTree");

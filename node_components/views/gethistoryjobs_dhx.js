@@ -97,9 +97,16 @@ module.exports = function(app, express){
 							ffasvars = Array.from(ffasvars);
 							let andCondition = []; //array of data, name pairs for search in job.children[].variables[]
 							ffasvars.forEach(regexmatch=>{
+								let _vname = regexmatch[1];
+								let dataFilter = new RegExp(escapeRegExp(current_filter.filter),"i");
+								if (_vname.match(/^i_/i)){
+									if (tryParseInt(current_filter.filter) != null){
+										dataFilter = tryParseInt(current_filter.filter);
+									}	
+								}
 								let mongoFilterForVar = {
-										"data": {$regex: new RegExp(escapeRegExp(current_filter.filter),"i")}, //the search filter from Userinterface search input
-										"name": regexmatch[1] //the ffas varname as seen in the variablecol template butwithout %%
+										"data": dataFilter, //the search filter from Userinterface search input
+										"name": _vname //the ffas varname as seen in the variablecol template butwithout %%
 									}
 									andCondition.push(mongoFilterForVar);
 							})
@@ -345,4 +352,10 @@ function sleep(ms) {
     });
 }
   
-  
+function tryParseInt(value, defaultValue = null) {
+	// Strictly match a valid integer using a regex
+	if (/^[+-]?\d+$/.test(value)) {
+	  return parseInt(value, 10); // Safely convert to an integer
+	}
+	return defaultValue; // Return the default value if validation fails
+  }
