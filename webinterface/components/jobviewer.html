@@ -286,8 +286,7 @@
 
     .btn.jobviewer_menu {
         height:100%;
-        width:120px;
-        font-size: inherit;
+        width:140px;
         color:inherit;
         padding-bottom: -2px;
         border:none
@@ -297,7 +296,7 @@
     }
     .btn.jobviewer_menu > .inner{
         border: var(--dhx-border);
-        height: 17px;
+        height: 18px;
         align-content: center;
     }
 
@@ -845,7 +844,7 @@ function buildWorfklowTree(){
                 //search button
                 $("input[name=wf_filter]").keyup(function(e){
                     var n,
-                        tree = $("#workflowtree").fancytree('getTree');
+                        tree = $("#workflowtree").fancytree('getTree'),
                         opts = {},
                         filterFunc = tree.filterNodes,
                         match = $(this).val();
