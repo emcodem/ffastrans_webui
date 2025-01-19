@@ -168,7 +168,7 @@ function handleListenError(err){
 async function start_server( _listenport,globalconf){
 	//GLOBAL CONFIG - the keyword global here will make the sub-objects available in all scripts that run in same process
 
-    var _approot = __dirname;
+    
     
     // var about_url = ("http://" + _host + ":" + _hostport + "/api/json/v2/about");
     // var install_info;
@@ -265,41 +265,45 @@ async function start_server( _listenport,globalconf){
   var all_swag_operations = {
       /* most or all of our controllers serve v2 and v3, so we just register all operations at once, even if the yamls might not use all of them */
       /* add new operationids from swagger.yaml here */
-      about_post :        require(_approot + "/api/controllers/about").post,
-      about :             require(_approot + "/api/controllers/about").get,
-      hello:              require(_approot + "/api/controllers/hello_world").get,
-      get_job_log:        require(_approot + "/api/controllers/get_job_log").get,
-      get_job_details:    require(_approot + "/api/controllers/get_job_details").get,
-      get_branch_log:     require(_approot + "/api/controllers/get_branch_log").get,
-      get_mediainfo:      require(_approot + "/api/controllers/get_mediainfo").get,
-      tickets:            require(_approot + "/api/controllers/tickets").get,
-      machines:           require(_approot + "/api/controllers/machines").get,
-      machines_post:      require(_approot + "/api/controllers/machines").post,
-      machines_delete:    require(_approot + "/api/controllers/machines").delete,
-      metrics:            require(_approot + "/api/controllers/metrics").get,
-      review:             require(_approot + "/api/controllers/review").get,
-      review_delete:      require(_approot + "/api/controllers/review").do_delete,
-      jobs_post :         require(_approot + "/api/controllers/jobs").post_jobs,
-      jobs_put :          require(_approot + "/api/controllers/jobs").put,
-      jobs_get:           require(_approot + "/api/controllers/jobs").get,
-      jobvars:            require(_approot + "/api/controllers/jobvars").get,
-      jobs_v2:            require(_approot + "/api/controllers/jobs").get,
-      presets:            require(_approot + "/api/controllers/presets").get,
-      presets_post:       require(_approot + "/api/controllers/presets").post,
-      presets_delete:     require(_approot + "/api/controllers/presets").delete,
-      workflow_put :      require(_approot + "/api/controllers/workflows").put,
-      workflow_post :     require(_approot + "/api/controllers/workflows").post,
-      workflows :         require(_approot + "/api/controllers/workflows").get,
-      workflows_v2 :      require(_approot + "/api/controllers/workflows").get,
-      workflows_status :  require(_approot + "/api/controllers/workflows_status").get,
-      variables :         require(_approot + "/api/controllers/variables").get,
-      variables_post :    require(_approot + "/api/controllers/variables").post,
-      variables_delete :  require(_approot + "/api/controllers/variables").delete
+      about_post :        require( "./api/controllers/about.js").post,
+      about :             require( "./api/controllers/about.js").get,
+      hello:              require( "./api/controllers/hello_world.js").get,
+      get_job_log:        require( "./api/controllers/get_job_log.js").get,
+      get_job_details:    require( "./api/controllers/get_job_details.js").get,
+      get_branch_log:     require( "./api/controllers/get_branch_log.js").get,
+      get_mediainfo:      require( "./api/controllers/get_mediainfo.js").get,
+      tickets:            require( "./api/controllers/tickets.js").get,
+      machines:           require( "./api/controllers/machines.js").get,
+      machines_post:      require( "./api/controllers/machines.js").post,
+      machines_delete:    require( "./api/controllers/machines.js").delete,
+      metrics:            require( "./api/controllers/metrics.js").get,
+      review:             require( "./api/controllers/review.js").get,
+      review_delete:      require( "./api/controllers/review.js").do_delete,
+      jobs_post :         require( "./api/controllers/jobs.js").post_jobs,
+      jobs_put :          require( "./api/controllers/jobs.js").put,
+      jobs_get:           require( "./api/controllers/jobs.js").get,
+      jobvars:            require( "./api/controllers/jobvars.js").get,
+      jobs_v2:            require( "./api/controllers/jobs.js").get,
+      presets:            require( "./api/controllers/presets.js").get,
+      presets_post:       require( "./api/controllers/presets.js").post,
+      presets_delete:     require( "./api/controllers/presets.js").delete,
+      workflow_put :      require( "./api/controllers/workflows.js").put,
+      workflow_post :     require( "./api/controllers/workflows.js").post,
+      workflows :         require( "./api/controllers/workflows.js").get,
+      workflows_v2 :      require( "./api/controllers/workflows.js").get,
+      workflows_status :  require( "./api/controllers/workflows_status.js").get,
+      variables :         require( "./api/controllers/variables.js").get,
+      variables_post :    require( "./api/controllers/variables.js").post,
+      variables_delete :  require( "./api/controllers/variables.js").delete
   }
 
+  var _yaml_location = path.join('rest_service/api/swagger/swagger.yaml');
+
+  const swaggerDocument = require('./api/swagger/swagger.yaml').default;//YAML.load(_yaml_location);
+  console.log("swaggerDocument",swaggerDocument)
   var swag_config = {
       app,
-      apiDoc: _approot + "/api/swagger/swagger.yaml", // required config
+      apiDoc:  swaggerDocument, // required config
       operations: all_swag_operations
 	};
 
@@ -307,8 +311,8 @@ async function start_server( _listenport,globalconf){
 
   //finally, initalize swagger UI by loading the yaml files (which point to the operations)
 
-  var _yaml_location = path.join(__dirname, '/api/swagger/swagger.yaml');
-	const swaggerDocument = YAML.load(_yaml_location);
+
+
 	app.use('/', swaggerUi.serve);
   app.get('/', swaggerUi.setup(swaggerDocument)); //only serves the swagger docs on /, anything else must be a method or returns 404
 

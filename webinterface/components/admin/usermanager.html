@@ -748,58 +748,63 @@ function deleteuser(){
 </head>
 <body onload="init()">
 <div id="documentation" class="documentation" style="font-family:Tahoma;font-size:12px;margin-left:20px;white-space: pre-wrap">
-<p>
-<b>General:</b>
-User management is only used when Web Authentification is enabled in Admin settings.
+<p><b>General:</b>
+
+    User management is only used when Web Authentification is enabled in Admin settings.
 
 <b>User management:</b>
-Select a user and drag&drop groups to the user (drag a grid row from left to right)
+
+    Select a user and drag&drop groups to the user (drag a grid row from left to right)
 
 <b>Group management:</b>
-Select a group and drag&drop permissions to the group (drag a grid row from left to right)
+
+    Select a group and drag&drop permissions to the group (drag a grid row from left to right)
 
 <b>Filters:</b>
 
-FILTER_WORKFLOW_NAME 
-On "Job starter" page, the workflows a user can choose is filtered. 
-On "Job status" page, the displayed Jobs are filtered
+    FILTER_WORKFLOW_NAME 
+        On "Job starter" page, the workflows a user can choose is filtered. 
+        On "Job status" page, the displayed Jobs are filtered
 
-FILTER_WORKFLOW_GROUP 
-For "Job starter" page only, limits the workflow "folders" a user is able to choose from
+    FILTER_WORKFLOW_GROUP 
+        For "Job starter" page only, limits the workflow "folders" a user is able to choose from
 
-FILTER_WORKFLOW_VARIABLES 
-For "Job starter" page only, limits the existing workflow user variables that are displayed to the user after choosing the workflow
+    FILTER_WORKFLOW_VARIABLES 
+        For "Job starter" page only, limits the existing workflow user variables that are displayed to the user after choosing the workflow
 
-FILTER_JOBSTATUS_BUTTONS
-Edit this item to filter Buttons (Resubmit, Job Details etc...) on the Job Status Page.
+    FILTER_JOBSTATUS_BUTTONS
+        Edit this item to filter Buttons (Resubmit, Job Details etc...) on the Job Status Page.
 
-FILTER_BROWSE_LOCATIONS
-Filters on registered "display names" of Browse Locations (Job Submitter). 
+    FILTER_BROWSE_LOCATIONS
+        Filters on registered "display names" of Browse Locations (Job Submitter). 
 
 <b>Filter management:</b>
-Filters are configured per Group.
-How to use Filters:
--) create a usergroup and add a Filter permission
--) select the Filter in the Permissions list (right side) and hit Edit button
 
-Filter rules:
--) We "include" matching data, not "exclude". If you want to "exclude", you need to use a complex regex (e.g. "(?!^ABC$)")
--) If you create a filter that results in "no item (workflow) being shown", we automatically fall back and show ALL items
--) Filter strings are regular expressions, case insensitive
--) If you create an invalid regular expression, no workflows can be loaded
+    Filters are configured per Group.
+
+    How to use Filters:
+        -) create a usergroup and add a Filter permission
+        -) select the Filter in the Permissions list (right side) and hit Edit button
+
+    Filter rules:
+        -) We "include" matching data, not "exclude". If you want to "exclude", you need to use a complex regex (e.g. "(?!^ABC$)")
+        -) If you create a filter that results in "no item (workflow) being shown", we automatically fall back and show ALL items
+        -) Filter strings are regular expressions, case insensitive
+        -) If you create an invalid regular expression, no workflows can be loaded
 
 <b>Filter Regular expression (regex) hints:</b>
-You do not need to care about how regex works when you just want to allow a certain job name e.g. "Lowres" is perfectly fine without knowledge of regex. It would show all workflows that contain Lowres anywhere in the name.
 
--) DO NOT USE "*" but instead use ".*?" (typically you do not need to specify this anyway)
--) use the "|" (which means OR in regex) to specify multiple conditions
--) avoid special characters like &, slashes and backslashes
--) avoid ".", in regex . means "one character"
+    No need to care about how regex works when you just want to allow a certain job name e.g. "Lowres" is perfectly fine without knowledge of regex. It would show all workflows that contain Lowres anywhere in the name.
 
-    Examples:
-        "Lowres": Match all Worfklows that contain the word Lowres
-        "Lowres|Highres": Match all Worfklows that contain the word "Lowres or Highres"
-        ".*?": Match all workflows
+    -) DO NOT USE "*" but instead use ".*?" (typically you do not need to specify this anyway)
+    -) use the "|" (which means OR in regex) to specify multiple conditions
+    -) avoid special characters like &, slashes and backslashes
+    -) avoid ".", in regex . means "one character"
+
+        Examples:
+            "Lowres": Match all Worfklows that contain the word Lowres
+            "Lowres|Highres": Match all Worfklows that contain the word "Lowres or Highres"
+            ".*?": Match all workflows
 
 
 

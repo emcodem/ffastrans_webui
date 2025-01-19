@@ -98,8 +98,9 @@ global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 var jobcontrol = require("./node_components/jobcontrol_socketio");
 
 //init DB
+console.log("Database file: ", global.approot  + "/database/config")
 global.db={};
-global.db.config = new AsyncNedb({ filename: global.approot  + "/database/config" });
+global.db.config = new AsyncNedb({ filename: path.join(global.approot , "database","config" )});
 
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
   assert.equal(null, err);
