@@ -199,6 +199,27 @@ async function getWorkflows(req, res) {
                 return wf.wf_id == req.query.id;
             })
         }
+        o_return.workflows.sort((a, b) => {
+            // Handle wf_folder: prioritize non-empty values
+            if (a.wf_folder === '' && b.wf_folder !== '') return 1;
+            if (a.wf_folder !== '' && b.wf_folder === '') return -1;
+          
+            // Sort wf_folder in ascending order (case-insensitive)
+            const folderA = a.wf_folder.toLowerCase();
+            const folderB = b.wf_folder.toLowerCase();
+            if (folderA < folderB) return -1;
+            if (folderA > folderB) return 1;
+          
+            // If wf_folder is the same, sort wf_name in ascending order (case-insensitive)
+            const nameA = a.wf_name.toLowerCase();
+            const nameB = b.wf_name.toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+          
+            return 0; // They are equal
+          });
+          
+          
         console.timeEnd("getWorkflows full api call, nodetails "  + req.query.nodetails + " " + callId);
         res.json(o_return);
         res.    end();
