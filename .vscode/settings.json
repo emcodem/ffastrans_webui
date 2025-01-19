@@ -11,7 +11,7 @@
         "**/*grafana*": true,
         "**/*mpv*": true,
         "**/*.log":true,
-        //"**/dist*":true
+        "**/dist*":true
         //"**/node_modules": true, // this excludes all folders 
                                 // named "node_modules" from 
                                 // the explore tree
