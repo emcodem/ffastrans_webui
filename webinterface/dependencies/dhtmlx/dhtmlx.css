@@ -8696,7 +8696,7 @@ ul.fancytree-container{/* workflow selection */
   background: unset;
 }
 
-:root,[data-dhx-theme]:hover  {
+/* :root,[data-dhx-theme]:hover  {
   
   --dhx-color-primary:unset;
-}
+} */
