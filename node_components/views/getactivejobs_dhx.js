@@ -31,7 +31,12 @@ module.exports = function(app, express){
 
             //filter based on user permissions
             var allowedWorkflows = [];
-            var allWorkflows = allactive.map(wf => {return wf.wf_name})
+            var allWorkflows = allactive.map(wf => {
+              if (!wf.wf_name){
+                wf.wf_name = wf.internal_wf_name; //workaround queued jobs have no wf_name
+              }
+              return wf.internal_wf_name || wf.wf_name;
+            })
             if (req.user){
               //serve only workflows the user has rights for
               for (let _wf of allWorkflows){
