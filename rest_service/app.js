@@ -297,9 +297,23 @@ async function start_server( _listenport,globalconf){
       variables_delete :  require( "./api/controllers/variables.js").delete
   }
 
-  var _yaml_location = path.join('rest_service/api/swagger/swagger.yaml');
+  let swaggerDocument; 
+  /*
+    "require a yaml file" does not work in cjs but it will trigger webpack compilation 
+    to use yaml-loader and nicely pack the yaml to the rest of the script
+  */
+    
+  try{
+    //for run as script or included as file in nexe build
+    let _yaml_location = path.join('rest_service/api/swagger/swagger.yaml');
+    swaggerDocument = YAML.load(_yaml_location);
+  }catch(ex){
+    //for webpack compilation only, it triggers yaml-loader.
+    swaggerDocument = require('./api/swagger/swagger.yaml').default;
+  }
+    
 
-  const swaggerDocument = require('./api/swagger/swagger.yaml').default;//YAML.load(_yaml_location);
+
   console.log("swaggerDocument",swaggerDocument)
   var swag_config = {
       app,
