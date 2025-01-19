@@ -8695,3 +8695,8 @@ ul.fancytree-container{/* workflow selection */
 .btn.jobviewer_menu:disabled > .inner:hover  {
   background: unset;
 }
+
+:root,[data-dhx-theme]:hover  {
+  
+  --dhx-color-primary:unset;
+}

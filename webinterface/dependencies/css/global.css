@@ -52,3 +52,13 @@
     height: 30px !important;
 }
 
+
+/* Dhx8 Layout Cells */
+
+/* 
+    The purpose of this is to disable blue color on hover for collapsable column headers 
+    Maybe we should select only the elements that are affected?
+*/
+:root,[data-dhx-theme]:hover  {
+    --dhx-color-primary:unset;
+}
