@@ -8681,3 +8681,17 @@ ul.fancytree-container{/* workflow selection */
 #treetable_log th{
   background-color: var(--dhx-background-primary);
 }
+
+.btn.jobviewer_menu{
+  background-color: unset !important;
+}
+
+.btn.jobviewer_menu:enabled > .inner:hover{
+	border: 1px solid #BBB;
+	background-color: #BBB;
+	background: linear-gradient(#BBBBBB1c, #d9d9d924);
+}
+
+.btn.jobviewer_menu:disabled > .inner:hover  {
+  background: unset;
+}

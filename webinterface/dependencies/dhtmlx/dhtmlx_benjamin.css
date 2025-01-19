@@ -8680,10 +8680,14 @@ body > div.dhx_popup.dhx_widget.dhx_popup--window_modal > div  > div.dhx_layout-
   background: #222;
 }
 
-.dhxform_obj_dhx_skyblue>button:hover,.dhxform_obj_dhx_skyblue div.dhxform_btn:hover,.btn.jobviewer_menu:hover{
+.dhxform_obj_dhx_skyblue>button:hover,.dhxform_obj_dhx_skyblue div.dhxform_btn:hover,.btn.jobviewer_menu:enabled > .inner:hover{
 	border: 1px solid #CCCCCC;
 	background-color: #CCCCCC;
-	background: linear-gradient(#CCCCCC, #d9d9d9);
+	background: linear-gradient(#cccccc1c, #d9d9d924);
+}
+
+.btn.jobviewer_menu:disabled > .inner:hover  {
+  background: unset;
 }
 
 .btn.jobviewer_menu {
