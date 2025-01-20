@@ -443,7 +443,7 @@ function init(){
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
     m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str,str");          //the sorting types  
-    m_fileBrowserGrid.setCustomSorting(sort_custom,0);
+    m_fileBrowserGrid.setCustomSorting(sort_filenames,0);
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -1283,7 +1283,7 @@ function removeItemFromLocationMenu(id){
     });
 }
 
-function sort_custom(a, b, order) {
+function sort_filenames(a, b, order) {
 
     // Check if either entry starts with '<'
     const aStartsWithLT = a.startsWith("<");

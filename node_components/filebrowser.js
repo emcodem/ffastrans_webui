@@ -64,6 +64,7 @@ module.exports = function(app, express){
 
 	app.get('/filebrowser', async (req, res) => {
 		try{
+            req.nostat = false;
 			if (req.method === 'GET' || req.method === 'POST') {
 				var baseFolder = req.body.name || req.query.name;
                 //filters
@@ -117,44 +118,53 @@ module.exports = function(app, express){
 				var split = baseFolder.split("\\");//todo: make sure path contains only backslashes
 				var parentPath = split.slice(0, split.length - 2).join("\\") + "\\";
 				//rows.rows.push();//add parent folder
-				fs.readdir(baseFolder, async (err, files) => {
-                    if (!files){
-                        res.status(500);//Send error response here
-                        res.send("ERROR: could not list files in " + baseFolder +" " + err);
-                        res.end();
-                        return;//todo: get out how to catch error of nested 
-                    }
-                    
-				  files.forEach(filename => {
-                        rows.rows.push({id:Math.random(),userdata:{"fullpath":baseFolder + filename}});
-				  });
+				//fs.readdir(baseFolder, async (err, files) => {
+                let files = await fs.promises.readdir(baseFolder,{ withFileTypes: true })
+                if (!files){
+                    res.status(500);//Send error response here
+                    res.send("ERROR: could not list files in " + baseFolder +" " + err);
+                    res.end();
+                    return;//todo: get out how to catch error of nested 
+                }
+                
+                files.forEach(fileobj => {
+                    rows.rows.push({id:Math.random(),
+                        userdata:{"fullpath": path.join(baseFolder, fileobj.name)},
+                        data:[fileobj.name,path.join(baseFolder, fileobj.name),fileobj.isDirectory()]
+                    });
+                });
+                if (req.nostat){
+                    res.json(rows);
+                    return;
+                }
 
-                  var a_nonerror = await getStats(rows.rows);
-                  a_nonerror = a_nonerror.filter(f => {
-                        if (f.data[2]){//2 = is_directory, wtf a plain array?!
-                            return true
+                var a_nonerror = await getStats(rows.rows);
+
+                a_nonerror = a_nonerror.filter(f => {
+                    if (f.data[2]){//2 = is_directory, wtf a plain array?!
+                        return true
+                    }
+                    var filenamewithext = f.data[0];//wtf a plain array?!
+                    if (filters.exclude.length != 0){
+                        if (filters.exclude.some((regex) => regex.test(filenamewithext)))//if some matches, keep becomes false
+                            return false;
+                    }
+                    if (filters.include.length != 0){
+                        if (filters.include.some((regex) => regex.test(filenamewithext))){
+                            return true;
+                        }else{
+                            return false;//if its not included, it is excluded :P
                         }
-                        var filenamewithext = f.data[0];//wtf a plain array?!
-                        if (filters.exclude.length != 0){
-                            if (filters.exclude.some((regex) => regex.test(filenamewithext)))//if some matches, keep becomes false
-                                return false;
-                        }
-                        if (filters.include.length != 0){
-                            if (filters.include.some((regex) => regex.test(filenamewithext))){
-                                return true;
-                            }else{
-                                return false;//if its not included, it is excluded :P
-                            }
-                        }
-                        else
-                            return true
-                  })
-                  rows = {};
-                  //add oneup entry
-				  rows.rows = [{id:"oneup",data:["..",parentPath, true, 0]},...a_nonerror];
-                  res.json(rows);
+                    }
+                    else
+                        return true
+                })
+                rows = {};
+                //add oneup entry
+                rows.rows = [{id:"oneup",data:["..",parentPath, true, 0]},...a_nonerror];
+                res.json(rows);
                   
-				})		
+				//})		
 			}
 		}catch (ex){
 				console.error("ERROR: in filebrowser : " + ex);
