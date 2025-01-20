@@ -442,7 +442,8 @@ function init(){
     m_fileBrowserGrid.setInitWidthsP("75,0,0,15,15,0,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("sort_custom,str,str,int,str,str,int,str,str,str");          //the sorting types  
+    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str,str");          //the sorting types  
+    m_fileBrowserGrid.setCustomSorting(sort_custom,0);
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -1282,16 +1283,33 @@ function removeItemFromLocationMenu(id){
     });
 }
 
-function sort_custom(a,b,order){//dhtmlx grid custom sorting function 
-    if (a == ""){
-        return 1;
+function sort_custom(a, b, order) {
+
+    // Check if either entry starts with '<'
+    const aStartsWithLT = a.startsWith("<");
+    const bStartsWithLT = b.startsWith("<");
+
+    // Handle '<' entries for both ascending and descending (like windows explorer)
+    if (aStartsWithLT && !bStartsWithLT) {
+        return order === "asc" ? -1 : 1; // '<' goes to the top in ascending, bottom in descending
     }
-    var n=a.toLowerCase().charCodeAt(0);
-    var m=b.toLowerCase().charCodeAt(0);
-    if(order=="asc")
-        return n>m?1:-1;
-    else
-        return n<m?1:-1;
+    if (!aStartsWithLT && bStartsWithLT) {
+        return order === "asc" ? 1 : -1; // Non '<' goes above '<' in ascending, below in descending
+    }
+
+    // Regular comparison logic for non-< entries
+    if (a === "") return 1; // Empty strings to the bottom
+    if (b === "") return -1; // Empty strings to the top
+
+    // Compare numbers and letters based on char codes
+    var n = a.toLowerCase().charCodeAt(0);
+    var m = b.toLowerCase().charCodeAt(0);
+
+    if (order === "asc") {
+        return n > m ? 1 : -1;
+    } else {
+        return n < m ? 1 : -1;
+    }
 }
 
 function selectFileToProcess(){
