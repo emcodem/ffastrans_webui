@@ -133,7 +133,7 @@ module.exports = function(app, express){
                     });
                 });
                 if (req.nostat){
-                    res.json(rows);
+                    res.json(rows); //todo: filter?!
                     return;
                 }
 
