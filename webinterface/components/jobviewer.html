@@ -1650,7 +1650,8 @@ async function buildActiveGrid() {
                     id: variablecolumns[i].col_header_name,
                     header: ["<span class='grid_header_text'>"+variablecolumns[i].col_header_name+"</span>"+ searchboxhtml],
                     sortable: false,
-                    htmlEnable: true
+                    htmlEnable:true,
+                    maxWidth: variablecolumns[i].col_config?.maxWidth
                 });
             }
         }
@@ -1733,7 +1734,6 @@ async function buildActiveGrid() {
                         //debounce function prevents this to fire multiple times parallel while user is typing
                         //only if user did not type for 500ms, function will fire
 
-                        
                         grid.filterobj = collectFilters(event);
                         console.log("searchbox event:",event,"filter",grid.filterobj)
                         grid.data.removeAll();

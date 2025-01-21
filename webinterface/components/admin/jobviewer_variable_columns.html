@@ -1,9 +1,12 @@
 <html>
 <head>
-<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+<link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 <link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
 <script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+
 <script>
     //theme changeer
     if (localStorage.global_skin_dark == "1"){
@@ -24,13 +27,12 @@
 
 
 </style>
-<script>
+<script type="module">
 
 var m_maingrid;
 var m_last_data= null;
 var m_alertmsg;
-
-
+window.init = init;
 
 function init(){
     buildLayout();
@@ -61,9 +63,6 @@ async function saveVariableColumns(data){
         alert("Unexpected error saving, contact developer and send server logs");
     }
 }
-
-
-
 
 function buildLayout(){
     //LAYOUT
@@ -122,6 +121,7 @@ function buildLayout(){
         columns: [
             {  id: "col_header_name",   header: [{ text: "Column Header Name" }] },
             {  id: "col_template",          header: [{ text: "Display Template" }], },
+            {  id: "col_config",          header: [{ text: "Config" }], template:(v)=>{return JSON.stringify(v)}},
             {  id:"id",hidden:true,header:[] }
         ],
 
@@ -131,10 +131,16 @@ function buildLayout(){
         selection:"row",
         
     });
-    m_maingrid.events.on("beforeEditStart", (row, column, editorType) => {
-        
-    });
 
+    m_maingrid.events.on("beforeEditStart", (row, column, editorType) => {
+        if (column.id == "col_config"){
+            console.log(row)
+            configEditorWin(row.col_header_name,row.id,row.col_config)
+            return false;
+        }
+
+    });
+    
     //TOOLBAR
     const cfg = [
         {
@@ -147,7 +153,7 @@ function buildLayout(){
             css:"dhxform_obj_dhx_skyblue"
         },
         {
-        type:"separator"
+            type:"separator"
         },
         {
             id: "btadd",
@@ -186,6 +192,67 @@ function buildLayout(){
     
 }
 
+function configEditorWin(_title, rowId, existingData = {}){
+    
+    //WINDOW
+    const dhxWindow = new dhx8.dhx.Window({
+      node: document.body,
+      viewportOverflow:true,
+      width: window.innerWidth/2,
+      height: window.innerHeight/2,
+      title: _title,
+      modal: false,
+      closable: true,
+      movable: true,
+      resizable:true,
+      css:"custom_window_small_borders"
+    });
+    dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
+
+    var isFullScreen = false;
+    dhxWindow.header.events.on("click", function (id) {
+        if (id === "fullscreen") {
+            if (isFullScreen) {
+                isFullScreen = false;
+                dhxWindow.unsetFullScreen();
+            } else {
+                isFullScreen = true;
+                dhxWindow.setFullScreen();
+            }
+        }
+    });
+    //FORM
+    const editFormConfig = {
+        rows: [
+            {
+                type: "input",
+                inputType: "number",
+                labelPosition:"left",
+                name: "maxWidth",
+                label: "maxWidth",
+                value: existingData.maxWidth || 100
+            },
+            {
+                type: "button",
+                text: "Save",
+                size: "medium",
+                view: "flat",
+                name: "save-button",
+                css:"dhxform_obj_dhx_skyblue",
+            }
+        ]
+    }
+    const editForm = new dhx8.dhx.Form(null, editFormConfig);
+    dhxWindow.attach(editForm);
+    dhxWindow.show();
+
+    editForm.getItem("save-button").events.on("click", function () {
+        const newData = editForm.getValue();
+        m_maingrid.data.update(rowId, { col_config: {maxWidth: newData.maxWidth} });
+        dhxWindow.destructor();
+    });
+}
+
 async function saveGridData(){
     let state = m_maingrid.data.serialize();
     console.log("gridstate",state);
@@ -194,11 +261,12 @@ async function saveGridData(){
         return {
                 col_header_name:data.col_header_name,
                 col_template:data.col_template,
+                col_config:data.col_config,
                 id: data.id
             }
     })
     
-await saveVariableColumns(state);
+    await saveVariableColumns(state);
     m_last_data = JSON.parse(JSON.stringify(state));
 }
 
@@ -220,7 +288,7 @@ function deleteSelected(){
 
 function addNewEntry(){
     //bring up form and post result to server
-    var row = m_maingrid.data.add({id:Math.random(),col_header_name:"Example Variable",col_template:"s_exaple_variable"});
+    var row = m_maingrid.data.add({id:Math.random(),col_header_name:"Example Variable",col_template:"%s_exaple_variable%"});
     m_maingrid.selection.setCell(row);
     return;
 }
