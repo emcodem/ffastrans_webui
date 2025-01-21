@@ -63,7 +63,7 @@ module.exports = function(app, express){
 
 	app.get('/filebrowser', async (req, res) => {
 		try{
-            req.nostat = true; //future feature, client can first request list of files and folders and only after that, request size and dates in batches NOT YET IMPLEMENTED
+            req.nostat = false; //future feature, client can first request list of files and folders and only after that, request size and dates in batches NOT YET IMPLEMENTED
 			if (req.method === 'GET' || req.method === 'POST') {
 				var baseFolder = req.body.name || req.query.name;
                 //filters
