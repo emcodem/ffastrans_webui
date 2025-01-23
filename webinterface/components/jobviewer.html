@@ -394,6 +394,7 @@
 
     /* GLOBALS */
     var mainLayout, runningJobGrid, m_serverconfig, m_userpermissions, m_lastsortelementid, m_lastsortdir;
+    
     let m_jobviewerLayoutSettings = localStorage.jobviewer_layout ? JSON.parse(localStorage.jobviewer_layout) :  {};
     let m_historyGrid;
     let m_activeGrid;
@@ -633,7 +634,7 @@
 
                 },
                 {
-                    id:"grid_container_cell",
+                    id:"running_and_history_gridcontainer",
                     gravity: 100,
                     rows: [
                         {
@@ -646,6 +647,7 @@
                         {
                             id: "c",
                             gravity:100,
+                            height: "50%",
                             resizable:true,
                             collapsable:true,
                             header:"History"
@@ -657,6 +659,8 @@
 
         //parse the layout config, construct layout object
         mainLayout = new dhx8.dhx.Layout(document.body, layoutConf);
+
+        window.mainLayout = mainLayout; //for debug only
 
 		if (m_serverconfig["alternate-server"] != true && m_serverconfig["alternate-server"] != "true"){
 			//buildWorfklowTree(); //load workflows
@@ -671,20 +675,21 @@
 		}
 
 
-        function saveLayoutConf(){
-
-            let cells = [];
-            mainLayout.forEach(function (cell, index) {
-                cells.push({
+        function saveLayoutConf() {
+            if (mainLayout.getCell("b").config.collapsed || mainLayout.getCell("c").config.collapsed){
+                return;
+            }
+            let fullheight = document.querySelector('[data-cell-id="running_and_history_gridcontainer"]')?.clientHeight;
+            if (!fullheight) throw new Error("Could not determine height of running_and_history_gridcontainer");
+            m_jobviewerLayoutSettings.layoutCells = [];
+            mainLayout.forEach(function(cell, index, array) {
+                m_jobviewerLayoutSettings.layoutCells.push({
                     id: cell.id,
                     collapsed: cell.config.collapsed,
-                    height: cell.config.height
-                })
+                    heightP: cell.config.height ? (parseFloat(cell.config.height) / fullheight) * 100 : undefined
+                });
             });
-            m_jobviewerLayoutSettings.layoutCells = cells;
-            localStorage.setItem("jobviewer_layout",JSON.stringify(m_jobviewerLayoutSettings));
-            console.log("saveLayoutConf",m_jobviewerLayoutSettings);
-            console.log("saveLayoutConf current",mainLayout);
+            localStorage.jobviewer_layout = JSON.stringify(m_jobviewerLayoutSettings);
         }
 
         mainLayout.events.on("afterResizeEnd", function(id){
@@ -719,24 +724,57 @@
 
         mainLayout.events.on("afterResizeEnd", function(id){
             //savelayoutsizes
+           
         });
 
-        function restoreLayoutConf(){
+        window.addEventListener('resize', function () {
+            /*as running layout cell does not have height set, it would be set to size zero on many window resize actions.
+            this restores history height percentage on window resize*/
+            let fullheight = document.querySelector('[data-cell-id="running_and_history_gridcontainer"]').clientHeight;
+            restoreLayoutConf();
+        });
 
-            try{
-                console.log("restoring layout config");
-                //restore layout conf
-                if (m_jobviewerLayoutSettings.layoutCells){
-                    console.log("Restore Layout conf",m_jobviewerLayoutSettings.layoutCells);
-                    m_jobviewerLayoutSettings.layoutCells.forEach(c=>{
+        mainLayout.events.on("beforeCollapse", function(id){
+            if (id == "b"){
+                //otherwise cell would have weird height
+                delete mainLayout.getCell("c").config.height
+            }
+        });
+
+        function restoreLayoutConf() {
+            if (!mainLayout.getCell("b") || !mainLayout.getCell("a"))
+                return
+            if (mainLayout.getCell("b").config.collapsed || mainLayout.getCell("c").config.collapsed){
+                alert("collapsed")
+                return;
+            }
+            let fullheight = document.querySelector('[data-cell-id="running_and_history_gridcontainer"]').clientHeight;
+            if (!fullheight) {
+                throw new Error("Could not determine height of", "running_and_history_gridcontainer");
+            }
+            try {
+                console.log("Restoring layout config");
+                
+                // Restore layout configuration
+                if (m_jobviewerLayoutSettings.layoutCells) {
+                    console.log("Restore Layout conf", m_jobviewerLayoutSettings.layoutCells);
+
+                    m_jobviewerLayoutSettings.layoutCells.forEach(c => {
                         let targetCell = mainLayout.getCell(c.id);
                         targetCell.config.collapsed = c.collapsed;
-                        if (c.height){
+
+                        // If heightPercentage exists, calculate pixel height
+                        if (c.heightP) {
+                            targetCell.config.height = (c.heightP / 100) * fullheight;
+                        } else if (c.height) {
+                            // Fallback to the raw height if percentage is not available
                             targetCell.config.height = c.height;
                         }
-                    })
+                    });
                 }
-            }catch(ex){}
+            } catch (ex) {
+                console.error("Error restoring layout config:", ex);
+            }
         }
 
         restoreLayoutConf()
@@ -1251,8 +1289,6 @@ async function buildActiveGrid() {
         //restore selection if any
         let selectedCells = grid.selection.getCells();
         selectedCells = JSON.parse(JSON.stringify(selectedCells));
-        console.log("selected Cells",selectedCells);
-
 
         //redraw grid
         grid.data.removeAll();
@@ -1380,7 +1416,7 @@ async function buildActiveGrid() {
         let lastWidth = window.innerWidth;
         let lastHeight = window.innerHeight;
         window.addEventListener("resize", function(){
-            // Get the new dimensions
+            // resize dhxwin with window
             const newWidth = window.innerWidth;
             const newHeight = window.innerHeight;
 
@@ -1392,6 +1428,7 @@ async function buildActiveGrid() {
             lastWidth = newWidth;
             lastHeight = newHeight;
         });
+
         // var dhxwins = new dhtmlXWindows();
         // var win = dhxwins.createWindow("Job Details", 10, 10,  window.innerWidth-20,window.innerHeight-20);
         // win.setText("Job Details");
@@ -1782,11 +1819,14 @@ async function buildActiveGrid() {
         //     }
         // }
 
+        let use_autowidth = false;
+        use_autowidth = !localStorage.jobviewer_historygrid_widths
+        
         /* build the grid */
         const grid = new dhx8.dhx.Grid("history_div", {
             columns: gridcolumns,
             keyNavigation: true,
-            // autoWidth:true, //only enabled on purpose
+            autoWidth: use_autowidth, //only enabled on purpose
             resizable: true,
             multiselection:true,
             height: "auto",
@@ -1848,17 +1888,8 @@ async function buildActiveGrid() {
                     newGridCols = applyHistoryGridColUserSettings(newGridCols);
                     grid.config.columns.map(c=>{
                     let targetc = newGridCols.filter(tc=>{return tc.id == c.id});
-                    // if (idx+2 > colcount){
-                    //     targetc[0].autoWidth = true;
-                    //     return;
-                    // }
-
-                    //targetc[0].width = (wSum/100 * conf.percent[idx]);
-                    //console.log("Restore ",c.id,(wSum/100 * conf.percent[idx]))
                     targetc[0].width = conf.raw[idx];
-                    console.log("Restore ",c.id,conf.raw[idx])
                     idx++;
-
                 });
 
                 grid.setColumns( newGridCols);
@@ -1995,6 +2026,8 @@ async function buildActiveGrid() {
 
         //resize columns evt
         grid.events.on("resize", (column, event) => {
+            if (grid.config.autoWidth)
+                delete grid.config.autoWidth;//enables overflow resize mode on initial resize
             let allColWidths = {order:"",percent:[],raw:[]}
             let sum_widths = 0;
             grid.config.columns.map(c=>{
@@ -2188,50 +2221,50 @@ async function buildActiveGrid() {
         });
     }
 
-    function saveLayoutSizes(dhxLayout, name) {
-        //store layout cells height and with into html5 storage (in percentage of document height)
-        var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
-        var ah = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
-        var bw = (dhxLayout.cells("c").getWidth() / document.body.scrollWidth);
-        var bh = (dhxLayout.cells("c").getHeight() / document.body.scrollHeight);
-        var cw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
-        var ch = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
-        localStorage.setItem(name + "_aw", aw);
-        localStorage.setItem(name + "_ah", ah);
-        localStorage.setItem(name + "_bw", bw);
-        localStorage.setItem(name + "_bh", bh);
-        if (!dhxLayout.cells("a").isCollapsed()){
-            localStorage.setItem(name + "_cw", cw);
-            localStorage.setItem(name + "_ch", ch);
-        }
-        localStorage.setItem(name + "_c_collapsed", dhxLayout.cells("a").isCollapsed());
-    }
+    // function saveLayoutSizes(dhxLayout, name) {
+    //     //store layout cells height and with into html5 storage (in percentage of document height)
+    //     var aw = (dhxLayout.cells("b").getWidth() / document.body.scrollWidth);
+    //     var ah = (dhxLayout.cells("b").getHeight() / document.body.scrollHeight);
+    //     var bw = (dhxLayout.cells("c").getWidth() / document.body.scrollWidth);
+    //     var bh = (dhxLayout.cells("c").getHeight() / document.body.scrollHeight);
+    //     var cw = (dhxLayout.cells("a").getWidth() / document.body.scrollWidth);
+    //     var ch = (dhxLayout.cells("a").getHeight() / document.body.scrollHeight);
+    //     localStorage.setItem(name + "_aw", aw);
+    //     localStorage.setItem(name + "_ah", ah);
+    //     localStorage.setItem(name + "_bw", bw);
+    //     localStorage.setItem(name + "_bh", bh);
+    //     if (!dhxLayout.cells("a").isCollapsed()){
+    //         localStorage.setItem(name + "_cw", cw);
+    //         localStorage.setItem(name + "_ch", ch);
+    //     }
+    //     localStorage.setItem(name + "_c_collapsed", dhxLayout.cells("a").isCollapsed());
+    // }
 
-    function restoreLayoutSizes(dhxLayout, name) {
-        if (localStorage.getItem(name + "_aw")) {
-            if (localStorage.getItem(name + "_c_collapsed") == "false"  && !m_serverconfig["alternate-server"]){
-                dhxLayout.cells("a").expand();
-            }
-            var aw = localStorage.getItem(name + "_aw");
-            var ah = localStorage.getItem(name + "_ah");
-            var bw = localStorage.getItem(name + "_bw");
-            var bh = localStorage.getItem(name + "_bh");
-            var cw = localStorage.getItem(name + "_cw");
-            var ch = localStorage.getItem(name + "_ch");
-            dhxLayout.cells("b").setWidth(aw * document.body.scrollWidth);
-            dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
-            dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
-            dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
+    // function restoreLayoutSizes(dhxLayout, name) {
+    //     if (localStorage.getItem(name + "_aw")) {
+    //         if (localStorage.getItem(name + "_c_collapsed") == "false"  && !m_serverconfig["alternate-server"]){
+    //             dhxLayout.cells("a").expand();
+    //         }
+    //         var aw = localStorage.getItem(name + "_aw");
+    //         var ah = localStorage.getItem(name + "_ah");
+    //         var bw = localStorage.getItem(name + "_bw");
+    //         var bh = localStorage.getItem(name + "_bh");
+    //         var cw = localStorage.getItem(name + "_cw");
+    //         var ch = localStorage.getItem(name + "_ch");
+    //         dhxLayout.cells("b").setWidth(aw * document.body.scrollWidth);
+    //         dhxLayout.cells("b").setHeight(ah * document.body.scrollHeight);
+    //         dhxLayout.cells("c").setWidth(bw * document.body.scrollWidth);
+    //         dhxLayout.cells("c").setHeight(bh * document.body.scrollHeight);
 
-            if (dhxLayout.cells("a").isCollapsed() == false){
-                console.log("CW",cw)
-                dhxLayout.cells("a").setWidth(cw * document.body.scrollWidth);
-                dhxLayout.cells("a").setHeight(ch * document.body.scrollHeight);
-            }
+    //         if (dhxLayout.cells("a").isCollapsed() == false){
+    //             console.log("CW",cw)
+    //             dhxLayout.cells("a").setWidth(cw * document.body.scrollWidth);
+    //             dhxLayout.cells("a").setHeight(ch * document.body.scrollHeight);
+    //         }
 
-        }
+    //     }
 
-    }
+    // }
 
     function resubmit_job(job_id) {
         //get all workflows from server and start main with the workflow of interest
@@ -2389,7 +2422,7 @@ async function buildActiveGrid() {
      * Ensures that the "mainFunction" is at maximum executed in delay frequency (e.g if 50 jobs finish in the same second, we would load 50 times activejob)
     */
     function throttle(mainFunction, delay,throttleFlag,label) {
-        console.log("THROTTLE CALLED")
+        //console.log("THROTTLE CALLED")
         return (...args) => {
             if (throttleFlag.throttle === null) { // If there is no timer currently running
             mainFunction(...args); // Execute the main function
