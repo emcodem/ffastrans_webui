@@ -444,6 +444,7 @@ function init(){
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
     m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str,str");          //the sorting types  
     m_fileBrowserGrid.setCustomSorting(sort_filenames,0);
+    m_fileBrowserGrid.setCustomSorting(sort_date,4);
     m_fileBrowserGrid.enableMultiselect(true);
     m_fileBrowserGrid.enableDragAndDrop(true);
     m_fileBrowserGrid.init();      //finishes initialization and renders the grid on the page 
@@ -1281,6 +1282,52 @@ function removeItemFromLocationMenu(id){
             }//if ok
         }
     });
+}
+
+function sort_date(a, b, order, aid, bid) {
+    // Retrieve folder status for each item
+    const a_is_folder = m_fileBrowserGrid.cells(aid, 2).getValue();
+    const b_is_folder = m_fileBrowserGrid.cells(bid, 2).getValue();
+
+    // If ascending, folders should be at the top, if descending at the bottom
+    if (order === "asc") {
+        if (a_is_folder && !b_is_folder) {
+            return -1; // Folders go to the top in ascending order
+        }
+        if (!a_is_folder && b_is_folder) {
+            return 1; // Non-folders go to the bottom in ascending order
+        }
+    } else { // Descending order
+        if (a_is_folder && !b_is_folder) {
+            return 1; // Folders go to the bottom in descending order
+        }
+        if (!a_is_folder && b_is_folder) {
+            return -1; // Non-folders go to the top in descending order
+        }
+    }
+
+    // If both are folders or both are files, continue with secondary sorting
+    const aStartsWithLT = a.startsWith("<");
+    const bStartsWithLT = b.startsWith("<");
+
+    // Handle '<' entries for both ascending and descending
+    if (aStartsWithLT && !bStartsWithLT) {
+        return order === "asc" ? -1 : 1; // '<' goes to the top in ascending, bottom in descending
+    }
+    if (!aStartsWithLT && bStartsWithLT) {
+        return order === "asc" ? 1 : -1; // Non '<' goes above '<' in ascending, below in descending
+    }
+
+    // Handle empty strings
+    if (a === "") return 1; // Empty strings to the bottom
+    if (b === "") return -1; // Empty strings to the top
+
+    // Finally, sort alphabetically or by date
+    if (order === "asc") {
+        return a.localeCompare(b); // Compare strings for ascending order
+    } else {
+        return b.localeCompare(a); // Compare strings for descending order
+    }
 }
 
 function sort_filenames(a, b, order) {
