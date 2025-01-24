@@ -1285,6 +1285,13 @@ function removeItemFromLocationMenu(id){
 }
 function sort_date(a, b, order, aid, bid) {
     /* like win explorer, if ascending, folders are on top */
+    // OneUp always goes first
+    const folderRegex = /<span class="fancytree-ico-cf">[\s\S]*?<span class="folder_text">\.\.<\/span>[\s\S]*?<\/span>/;
+    const a_filenameValue = m_fileBrowserGrid.cells(aid, 0).getValue();
+    const b_filenameValue = m_fileBrowserGrid.cells(bid, 0).getValue();
+    if (folderRegex.test(a_filenameValue)) return -1;
+    if (folderRegex.test(b_filenameValue)) return 1;
+
     const a_is_folder = m_fileBrowserGrid.cells(aid, 2).getValue();
     const b_is_folder = m_fileBrowserGrid.cells(bid, 2).getValue();
 
@@ -1309,7 +1316,12 @@ function sort_date(a, b, order, aid, bid) {
 }
 
 function sort_filenames(a, b, order) {
-    /* like win explorer, if ascending, folders are on top */
+    // OneUp always goes first
+    const folderRegex = /<span class="fancytree-ico-cf">[\s\S]*?<span class="folder_text">\.\.<\/span>[\s\S]*?<\/span>/;
+
+    if (folderRegex.test(a)) return -1;
+    if (folderRegex.test(b)) return 1;
+
     const aStartsWithLT = a.startsWith("<");
     const bStartsWithLT = b.startsWith("<");
 
