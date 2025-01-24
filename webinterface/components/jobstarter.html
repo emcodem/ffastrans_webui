@@ -442,7 +442,7 @@ function init(){
     m_fileBrowserGrid.setInitWidthsP("75,0,0,15,15,0,0,0");          //the widths of columns  
     m_fileBrowserGrid.setColAlign("left,left,left,left,left,left,left,left,left");       //the alignment of columns   
     m_fileBrowserGrid.setColTypes("ro,ro,ro,ro,ro,ro,ro,ro,ro");                //the types of columns  
-    m_fileBrowserGrid.setColSorting("str,str,str,int,str,str,int,str,str,str");          //the sorting types  
+    m_fileBrowserGrid.setColSorting("sort_filenames,str,str,int,sort_date,str,int,str,str,str");          //the sorting types  
     m_fileBrowserGrid.setCustomSorting(sort_filenames,0);
     m_fileBrowserGrid.setCustomSorting(sort_date,4);
     m_fileBrowserGrid.enableMultiselect(true);
@@ -1283,80 +1283,46 @@ function removeItemFromLocationMenu(id){
         }
     });
 }
-
 function sort_date(a, b, order, aid, bid) {
-    // Retrieve folder status for each item
+    /* like win explorer, if ascending, folders are on top */
     const a_is_folder = m_fileBrowserGrid.cells(aid, 2).getValue();
     const b_is_folder = m_fileBrowserGrid.cells(bid, 2).getValue();
 
-    // If ascending, folders should be at the top, if descending at the bottom
     if (order === "asc") {
-        if (a_is_folder && !b_is_folder) {
-            return -1; // Folders go to the top in ascending order
-        }
-        if (!a_is_folder && b_is_folder) {
-            return 1; // Non-folders go to the bottom in ascending order
-        }
-    } else { // Descending order
-        if (a_is_folder && !b_is_folder) {
-            return 1; // Folders go to the bottom in descending order
-        }
-        if (!a_is_folder && b_is_folder) {
-            return -1; // Non-folders go to the top in descending order
-        }
+        if (a_is_folder && !b_is_folder) return -1;
+        if (!a_is_folder && b_is_folder) return 1;
+    } else {
+        if (a_is_folder && !b_is_folder) return 1;
+        if (!a_is_folder && b_is_folder) return -1;
     }
 
-    // If both are folders or both are files, continue with secondary sorting
     const aStartsWithLT = a.startsWith("<");
     const bStartsWithLT = b.startsWith("<");
 
-    // Handle '<' entries for both ascending and descending
-    if (aStartsWithLT && !bStartsWithLT) {
-        return order === "asc" ? -1 : 1; // '<' goes to the top in ascending, bottom in descending
-    }
-    if (!aStartsWithLT && bStartsWithLT) {
-        return order === "asc" ? 1 : -1; // Non '<' goes above '<' in ascending, below in descending
-    }
+    if (aStartsWithLT && !bStartsWithLT) return order === "asc" ? -1 : 1;
+    if (!aStartsWithLT && bStartsWithLT) return order === "asc" ? 1 : -1;
 
-    // Handle empty strings
-    if (a === "") return 1; // Empty strings to the bottom
-    if (b === "") return -1; // Empty strings to the top
+    if (a === "") return 1;
+    if (b === "") return -1;
 
-    // Finally, sort alphabetically or by date
-    if (order === "asc") {
-        return a.localeCompare(b); // Compare strings for ascending order
-    } else {
-        return b.localeCompare(a); // Compare strings for descending order
-    }
+    return order === "asc" ? a.localeCompare(b) : b.localeCompare(a);
 }
 
 function sort_filenames(a, b, order) {
-
-    // Check if either entry starts with '<'
+    /* like win explorer, if ascending, folders are on top */
     const aStartsWithLT = a.startsWith("<");
     const bStartsWithLT = b.startsWith("<");
 
-    // Handle '<' entries for both ascending and descending (like windows explorer)
-    if (aStartsWithLT && !bStartsWithLT) {
-        return order === "asc" ? -1 : 1; // '<' goes to the top in ascending, bottom in descending
-    }
-    if (!aStartsWithLT && bStartsWithLT) {
-        return order === "asc" ? 1 : -1; // Non '<' goes above '<' in ascending, below in descending
-    }
+    if (aStartsWithLT && !bStartsWithLT) return order === "asc" ? -1 : 1;
+    if (!aStartsWithLT && bStartsWithLT) return order === "asc" ? 1 : -1;
 
-    // Regular comparison logic for non-< entries
-    if (a === "") return 1; // Empty strings to the bottom
-    if (b === "") return -1; // Empty strings to the top
+    if (a === "") return 1;
+    if (b === "") return -1;
 
-    // Compare numbers and letters based on char codes
-    var n = a.toLowerCase().charCodeAt(0);
-    var m = b.toLowerCase().charCodeAt(0);
+    const n = a.toLowerCase().charCodeAt(0);
+    const m = b.toLowerCase().charCodeAt(0);
 
-    if (order === "asc") {
-        return n > m ? 1 : -1;
-    } else {
-        return n < m ? 1 : -1;
-    }
+    return order === "asc" ? (n > m ? 1 : -1) : (n < m ? 1 : -1);
 }
 
 function selectFileToProcess(){
@@ -1495,20 +1461,7 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                 dhtmlxGrid.clearAll();
                 dhtmlxGrid.parse(response,"json");
                 
-                let o_sort;
-                if (localStorage.jobstarter_filebrowser_sort)
-                    o_sort = JSON.parse(localStorage.jobstarter_filebrowser_sort);
 
-                if (o_sort){
-                    //sort by last sorting order
-                    console.log("Restoring saved sort order for ",o_sort)
-                    dhtmlxGrid.sortRows(o_sort.colindex,o_sort.type,o_sort.dir);
-                    dhtmlxGrid.setSortImgState(true,o_sort.colindex,o_sort.dir);
-                }else{
-                    //no sort order known? sort by date
-                    dhtmlxGrid.sortRows(4,"str","des");
-                    dhtmlxGrid.setSortImgState(true,4,"des");
-                }
                 //add tooltip to filename cell for preview image
                 dhtmlxGrid.forEachRow(function(id){
                     addAjaxTooltip(dhtmlxGrid,id)
@@ -1525,7 +1478,25 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                         });
                     }
                 });
-            lazyload();
+
+                //apply sorting
+                let o_sort;
+                if (localStorage.jobstarter_filebrowser_sort)
+                    o_sort = JSON.parse(localStorage.jobstarter_filebrowser_sort);
+
+                if (o_sort){
+                    //sort by last sorting order
+                    console.log("Restoring saved sort order for ",o_sort)
+                    dhtmlxGrid.sortRows(o_sort.colindex,o_sort.type,o_sort.dir);//emcodem sort here
+                    dhtmlxGrid.setSortImgState(true,o_sort.colindex,o_sort.dir);
+                }else{
+                    //no sort order known? sort by date
+                    dhtmlxGrid.sortRows(4,"str","des");
+                    dhtmlxGrid.setSortImgState(true,4,"des");
+                }
+
+                //image previews
+                lazyload();
 
         },
         error: function (xhr, status) {
