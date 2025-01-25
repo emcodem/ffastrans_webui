@@ -6,7 +6,7 @@ const os = require("os");
 const axios = require("axios");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const proxy = require('express-http-proxy');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const { spawn } = require("child_process");
 
 const {Server,EVENTS} = require('@tus/server');
@@ -100,6 +100,7 @@ async function initializeTUSdProxy(app){
             we register this url when starting tusd.exe as callback url for reporting everything to us, especially finish
             on upload finish, rename uploaded file
         */
+        console.debug("/tusd_callback was called, type:",req.body.Type);
         try{
             if (req.body && req.body.Type == "post-finish"){
                 console.log("post-finish",req.body.Event);
@@ -146,44 +147,19 @@ async function initializeTUSdProxy(app){
         res.json({});
     });
 
-    /* data proxy. when client uploads a file, it runs through the normal webserver port, here we forward the data to tusd process */
-    app.use('/tusd_proxy', proxy("http://localhost:" + tusinstance.port, {
-        limit: '1000gb',
-        logLevel: "debug",
-        proxyTimeout: global.config.STATIC_API_TIMEOUT,
-        proxyReqPathResolver: function (req) {
-            // forwards exact url path from request to target server
-            return req.baseUrl;
-          },
-        // proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
-        //     // proxyReqOpts.path = srcReq.baseUrl;
-        //     console.log(proxyReqOpts);
-        //     return proxyReqOpts;
-        //   },
-        // userResDecorator: function(proxyRes, proxyResData, userReq, userRes) {
-        //     //You can modify the proxy's response before sending it to the client.
-        //     console.log("tusd_proxy req")
-        //     return proxyResData;
-        //   },
 
-        // onProxyReq: function (proxyReq, req, res) {
-        //                             console.log("proxying request to:", global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT,req.url) 
-        //                         },
+    // Proxy configuration
+    const proxyOptions = {
+        target: "http://localhost:" + tusinstance.port, // Replace with the actual target server
+        
+        pathRewrite: (path,req) => {
+            //otherwise the path is /tusd_proxy/tusd_proxy/...
+            return req.originalUrl;
+        },
 
-        // proxyReqBodyDecorator: function (bodyContent, srcReq) {
-        //     //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
-        //     //we actually want the body to be forwarded unmodified
-        //     console.debug("Proxying API call, request to url: " , srcReq.method,  global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + srcReq.url)
-        //     if (typeof(srcReq.body) == "object"){
-        //         bodyContent = ("" + JSON.stringify(srcReq.body));
-        //     }else{
-        //         bodyContent = ("" + srcReq.body);
-        //         console.debug("Body:",srcReq.body)
-        //     }
-
-        //     return bodyContent;
-        // }
-    }));
+        selfHandleResponse: false,  // Let the target server handle the response
+    };
+    app.use('/tusd_proxy', createProxyMiddleware(proxyOptions));
 
     let current_uploadpath = global.config.STATIC_UPLOADPATH;
     async function observeUploadPath(){
@@ -282,6 +258,7 @@ async function exists(f) {
      * starts tusd, returns listen port 
     * */
     async start(){
+        
         this.port = await portfinder.getPortPromise({port: 9010, stopPort: 9100});
         console.log("Port for TUSD: ",this.port);
         let existingBinary = false;
@@ -293,8 +270,9 @@ async function exists(f) {
             throw new Error("Did not find TUS executeable Binary.");
         }
         console.log("Starting TUSD Process...");
- 
-        this.childProcess = spawn(this.binaryFull, [
+        
+        //start console visible for user
+        let params = [
             "-upload-dir",
             this.#uploadPath,
             "-port",
@@ -308,7 +286,9 @@ async function exists(f) {
 
             "-base-path",
             "/tusd_proxy"
-        ],{cwd: this.binaryPath});
+        ];
+        console.log("Starting TUSD with params: ",this.binaryFull, params.join(" "));
+        this.childProcess = spawn(this.binaryFull, params, {cwd: this.binaryPath});
 
         console.log("TUSD process pid",this.childProcess.pid);
         this.lastPid = this.childProcess.pid;
