@@ -6,7 +6,7 @@ const app = express();
 global.expressapp = app;
 const path = require("path");
 const util = require('util');
-
+const bodyParser = require('body-parser');
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
 const AsyncNedb  = require('@seald-io/nedb');
@@ -270,8 +270,11 @@ async function init(conf){
 
 	connectDb(); //mongodb
 
-    //NON Password protected stuff
+    //bodyparser is bad because ALL requests are parsed, even if they are not needed (e.g. file uploads)
+	app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.json());
 
+    //NON Password protected stuff
     require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
 
     app.use('/webinterface/images/F364x64.png', express.static('./webinterface/images/F364x64.png'));
