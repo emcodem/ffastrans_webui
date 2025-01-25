@@ -39,6 +39,7 @@
     "grunt": "^1.4.0",
     "html-loader": "^5.1.0",
     "html-tablify": "^2.0.4",
+    "http-proxy-middleware": "^3.0.3",
     "https": "^1.0.0",
     "https-proxy-agent": "^7.0.5",
     "is-running": "^2.1.0",
