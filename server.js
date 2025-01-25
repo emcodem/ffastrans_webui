@@ -6,7 +6,7 @@ const app = express();
 global.expressapp = app;
 const path = require("path");
 const util = require('util');
-const bodyParser = require('body-parser');
+
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
 const AsyncNedb  = require('@seald-io/nedb');
