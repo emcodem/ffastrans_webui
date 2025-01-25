@@ -3,7 +3,7 @@ const fs = require("fs");
 const axios = require('axios');
 var child_process = require('child_process');
 var configmgr = require( './server_config');
-const bodyParser = require('body-parser');
+// const bodyParser = require('body-parser'); //the use of body-parser is deprecated, use express.json() instead
 var path = require("path");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -18,8 +18,8 @@ var os = require("os");
 module.exports =  function(app, passport){
 	
     //passport.authenticate('local-login');//fills req.user with infos from cookie -- we cannot do this as unauthentificated ajax requests it
-	app.use(bodyParser.urlencoded({ extended: true }));
-    app.use(bodyParser.json());
+	// app.use(bodyParser.urlencoded({ extended: true }));
+    // app.use(bodyParser.json());
 	
 	app.get('/metrics_control', async(req, res) => {
 		var currentDays = 15;
