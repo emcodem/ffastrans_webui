@@ -618,7 +618,7 @@ function init(){
     var browserurl = url.split("/");
     
     let parallel = m_serverconfig.TUSD_CONCURRENT_UPLOADS || 1;
-    if (m_serverconfig.USE_TUSD == "disabled"){
+    if (m_serverconfig.USE_TUSD != "enabled"){
         parallel = 1;
     }
     console.log("Paralell uploads: ", parallel);
@@ -654,7 +654,7 @@ function init(){
         //if something throws, uppy returns failure to the user!
         console.log("upload-progress event",fileInfo,uploadInfo);
         under_construction[fileInfo.id] = true;
-        if (uploadInfo.bytesUploaded && (uploadInfo.bytesUploaded == uploadInfo.bytesTotal)){
+        if (m_serverconfig.USE_TUSD == "enabled" && uploadInfo.bytesUploaded && (uploadInfo.bytesUploaded == uploadInfo.bytesTotal)){
             while(under_construction[fileInfo.id]){
                 uppy.info("Please wait while the Server is reconstructing the file...");
                 await sleep(3000);

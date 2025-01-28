@@ -83,15 +83,22 @@ function init(){
     <b>Enable File Uploads</b>
         Global setting, on Job Submitter Page, show/hide Upload tab.
 
-    <b>Upload Technology</b>
-        
-        Requires Webinterface service restart.
-        TUSd or node-tus-server (Alternative).
-        TUSd is faster, you only need to switch this when you have problems.
-
-
+    <b>Upload Technology</b></pre>
+    <ul><li>Requires Webinterface service restart.</li>
+        <li>The upload on frontend is always uppy. </li>
+            To receive the uploads on backend and write the files to disk, 
+            by default (Simple) we use html5 chunked, 64MB per chunk and 1 chunk parallel.
+        <li>Experimental setting needs tools/tusd/tusd.exe binary to exist. </li>
+            This is an external tool that handles the file receiving an writing which will be started automatically with Webinterface server.
+        <li>Experimental setting basically enables you to configure how many chunks the client will upload parallel (e.g. 5). </li>
+            This can speed up Uploads in Local Networks massively but it requires the server side to 
+            "reconstruct" the final file from the chunks once the upload is finished.
+            In order to reconstruct the final file from chunks, Webint server needs to read all chunks and write the final file, 
+            which can be "slow" if your upload destination is a UNC share.
+        <li>Recommended Setup for Experimental is to configure the upload target director to a local NVMe Folder on the Webinterface server.</li>
+    </ul>
+    <pre style="font-family:inherit">
     <b>Added Folders</b> 
-    
         Needed to serve custom files from Webinterface, for example you want to show an image in Manual Review or Job Viewer Columns. 
         In This case, your workflow would extract the image from a video and write it to one predefined location, e.g. \\\\server\\share\\myimages
         If you add \\\\server\\share\\myimages  to this "added folders list", you can populate a html link to the image using /myimages URL. 
@@ -104,7 +111,6 @@ function init(){
         </ul>
         <pre style="font-family:inherit">
     <b>Added Unsafe Folders</b>
-
         Same as Added Folders but can be accessed without login. 
         Usually you need this only if you customize webinterface login page, e.g. image in the welcome message.
 
@@ -218,18 +224,6 @@ function init(){
                 ]
             },
             {
-                name: "STATIC_HEADER_JOB_COUNT_DAYS",
-                value: m_serverconfig["STATIC_HEADER_JOB_COUNT_DAYS"],
-                inputType: "number",
-                type: "input",
-                label: "Job Count Days",
-                labelPosition: "left",
-                labelWidth: label_width,
-                required: true,
-                preMessage:"Job Counters on page header are limited to X days.  Lower is faster",
-                successMessage:"Job Counters on page header are limited to X days.  Lower is faster"
-            },
-            {
                 type: "radioGroup",
                 name: "JOBFETCHER_AGGREGATE_BRANCH_STATE",
                 value: m_serverconfig["JOBFETCHER_AGGREGATE_BRANCH_STATE"],
@@ -255,7 +249,7 @@ function init(){
             {
                 type: "radioGroup",
                 name: "JOB_SUBMIT_FILE_UPLOADS",
-                value: m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"],
+                value: m_serverconfig["JOB_SUBMIT_FILE_UPLOADS"] != "disabled" ? "enabled" : "disabled",
                 labelWidth: label_width,
                 required:true,
                 options: {
@@ -278,7 +272,7 @@ function init(){
             {
                 type: "radioGroup",
                 name: "USE_TUSD",
-                value: m_serverconfig["USE_TUSD"] || "enabled",
+                value: m_serverconfig["USE_TUSD"] == "enabled" ? "enabled" : "disabled",
                 labelWidth: label_width,
                 required:false,
                 options: {
@@ -286,13 +280,12 @@ function init(){
                     cols: [
                         {
                             "type": "radioButton",
-                            "text": "TUSd",
-                            "value": "enabled"
-                        },
-                        {
-                            "type": "radioButton",
-                            "text": "Alternative",
+                            "text": "Simple",
                             "value": "disabled"
+                        },{
+                            "type": "radioButton",
+                            "text": "Experimental",
+                            "value": "enabled"
                         }
                     ]
                 },
@@ -304,10 +297,11 @@ function init(){
                 value: m_serverconfig["TUSD_CONCURRENT_UPLOADS"] || 1,
                 inputType: "number",
                 type: "input",
-                label: "TUSD Concurrent",
+                hidden: m_serverconfig["USE_TUSD"] == "disabled",
+                label: "Experinmental Chunks",
                 labelPosition: "left",
                 labelWidth: label_width,
-                preMessage:"If TUSD is enabled, this defines the number of chunks for a single file",
+                preMessage:"For Experimental Upload, defines number of paralell chunks the client sends",
             },
             {
                 name: "STATIC_UPLOADPATH",
@@ -317,6 +311,19 @@ function init(){
                 labelPosition: "left",
                 labelWidth: label_width,
                 preMessage:"If File Uploads enabled, this is the location where uploaded Files are stored"
+            },
+            {
+                name: "STATIC_HEADER_JOB_COUNT_DAYS",
+                value: m_serverconfig["STATIC_HEADER_JOB_COUNT_DAYS"],
+                inputType: "number",
+                type: "input",
+
+                label: "Job Count Days",
+                labelPosition: "left",
+                labelWidth: label_width,
+                required: true,
+                preMessage:"Job Counters on page header are limited to X days.  Lower is faster",
+                successMessage:"Job Counters on page header are limited to X days.  Lower is faster"
             },
             { /* Button needs separate label */
                 cols:[
@@ -393,7 +400,22 @@ function init(){
 
         //EVENTS
         form.events.on("change", function(name, events) {
-           
+            let _val = form.getItem(name).getValue();
+            console.log("Form change name",name,_val);
+            if (name == "USE_TUSD"){
+                alert("Changing Upload Technology requires Webinterface restart.")
+                let _ctrl = form.getItem("TUSD_CONCURRENT_UPLOADS");
+                if (_val == "enabled"){
+                    _ctrl.show();
+                }else{
+                    _ctrl.hide();
+                }
+                // if (_val == "enabled"){
+                    
+                // }else{
+
+                // }
+            }
         });
         form.events.on("click", function(name, events) {
            if (name == "btn_database"){
