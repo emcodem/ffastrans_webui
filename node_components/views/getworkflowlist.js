@@ -62,8 +62,18 @@ module.exports = async function (app, passport) {
 
             var all_workflows_in_db = await global.db.jobs.distinct("workflow");
 
-            var all_workflows = all_workflows_in_db.map(wf_name => { return {"wf_name":wf_name}})
-            all_workflows = {data:{workflows:all_workflows}}
+            var all_workflows = all_workflows_in_db.map(wf_name => { return {"wf_name":wf_name}});
+            all_workflows = {data:{workflows:all_workflows}};
+            //enhance wf_groups from current workflows on disk
+            var _res = await global.jobfetcher.getWorkflowList(req.query.nodetails == "true");
+            let wf_from_disk = _res.data.workflows;
+            
+            all_workflows.data.workflows.forEach(wf => {
+                const diskmatch = wf_from_disk.find(d => d.wf_name === wf.wf_name);
+                if (diskmatch){
+                    wf.wf_folder = diskmatch.wf_folder;
+                }
+            });
             //todo: add the worfklows from running jobs, maybe we dont have them in the db already
 
             console.time("getworkflowjobcount getPermittedWorkflowList");

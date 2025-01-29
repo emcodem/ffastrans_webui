@@ -2,6 +2,8 @@
 const path = require("path");
 const express = require('express');
 const fs = require("fs");
+const proxy = require('express-http-proxy');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 module.exports = function(app, passport) {
 
     // =====================================
@@ -142,6 +144,70 @@ module.exports = function(app, passport) {
     app.get ('/webinterface/index.html', renderHTMLByMustache);
     //todo:move typescript_client to components?
     app.use("/webinterface/typescript_client/clientdist/dist/",express.static('./webinterface/typescript_client/clientdist/dist/'));
+
+    
+    function selectGrafanaProxy(req){
+        /* this "calculates" target url for proxy request. A parameter named url has to be in get parameters*/
+        return global.config.grafana_base;
+    }
+
+    // Proxy configuration
+    const proxyOptions = {
+        target: selectGrafanaProxy(), // Replace with the actual target server
+        changeOrigin: true, 
+        pathRewrite: (path,req) => {
+            //otherwise the path is /tusd_proxy/tusd_proxy/...
+            return req.url;
+        },
+        on: {
+            proxyReq: (proxyReq, req, res) => {
+              let stop = 1;
+            },
+            proxyRes: (proxyRes, req, res) => {
+                let stop = 1;
+            },
+            error: (err, req, res) => {
+                let stop = 1;
+            },
+          },
+        // onProxyReq(proxyReq, req, res) {
+        //     console.log('Proxy request:', req.url); // Log request info
+        //   },
+        // onProxyRes(proxyRes, req, res) {
+        //     // Check if the response is a redirect
+        //     if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400) {
+        //       const location = proxyRes.headers['location'];
+        
+        //       // Modify the redirect URL if needed
+        //       const newLocation = location.replace('http://example.com', 'http://new-url.com');
+        //       proxyRes.headers['location'] = newLocation;
+        //     }
+        //   },
+        hostRewrite:true,
+        autoRewrite:true,
+        selfHandleResponse: false,  // Let the target server handle the response
+        followRedirects: true
+    };
+    app.use('/grafana_proxy', createProxyMiddleware(proxyOptions));
+
+    // app.use('/grafana_proxy', proxy(selectGrafanaProxy, {
+    //     /* use like: /grafana_proxy?url=http://grafanaserver/pad... */
+    //     logLevel: "info", // TODO : configure grafana serve_from_sub_path 
+    //     proxyTimeout: 2000,
+    //     onProxyReq: function (proxyReq, req, res) {
+    //                                 console.log(proxyReq) 
+    //                             },
+    //     parseReqBody: true,
+    //     reqBodyEncoding: null,
+    //     reqAsBuffer: true,
+    //     proxyReqBodyDecorator: function (bodyContent, srcReq) {
+    //         //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
+    //         //we actually want the body to be forwarded unmodified
+    //         console.log("Proxying Grafana call: " , srcReq.url)
+    //         bodyContent = ("" + srcReq.body)
+    //         return bodyContent;
+    //     }
+    // }));
 
     //logout
     app.get('/logout', async function(req, res) {
