@@ -411,29 +411,6 @@ async function init(conf){
         }
     }));
 
-    function selectGrafanaProxy(req){
-        /* this "calculates" target url for proxy request. A parameter named url has to be in get parameters*/
-        return global.config.grafana_base;
-    }
-
-    app.use('/grafana_proxy', proxy(selectGrafanaProxy, {
-        /* use like: /grafana_proxy?url=http://grafanaserver/pad... */
-        logLevel: "info", // TODO : configure grafana serve_from_sub_path 
-        proxyTimeout: 2000,
-        onProxyReq: function (proxyReq, req, res) {
-                                    console.log(proxyReq) 
-                                },
-        parseReqBody: true,
-        reqBodyEncoding: null,
-        reqAsBuffer: true,
-        proxyReqBodyDecorator: function (bodyContent, srcReq) {
-            //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
-            //we actually want the body to be forwarded unmodified
-            console.log("Proxying Grafana call: " , srcReq.url)
-            bodyContent = ("" + srcReq.body)
-            return bodyContent;
-        }
-    }));
 	
     //log all requests
     app.use(function(req, res, next) {
