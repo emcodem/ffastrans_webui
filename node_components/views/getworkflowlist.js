@@ -39,6 +39,10 @@ module.exports = async function (app, passport) {
         
         m_req_count++;
         try {
+            if (global.config["alternate-server"]){
+                res.json({sys: {Success: 0, Error: 0, Cancelled: 0, Incoming: 0, Queued: 0, Running: 0, Users: global.logged_in_users_count}});
+                return; 
+            }
             //counts jobs based on user permissions
             var username = "";
             if (req.user)
