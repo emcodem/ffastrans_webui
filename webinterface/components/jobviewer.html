@@ -668,10 +668,11 @@
 			//mainLayout.getCell("a").header = ('<span id="workflow_filter_header_expanded" style="margin-right:15px;font-size:13px;display:flex" >Workflows</span>');
 
 		}else{
-            mainLayout.getCell("a").config.header  = "";
-            mainLayout.getCell("a").config.width   = 0;
-			console.log("alternate server is true!");
-            mainLayout.getCell("a").collapse();
+            mainLayout.getCell("a").config.hidden=true;
+            // mainLayout.getCell("a").config.header  = "";
+            // mainLayout.getCell("a").config.width   = 0;
+			// console.log("alternate server is true!");
+            // mainLayout.getCell("a").collapse();
 		}
 
 
