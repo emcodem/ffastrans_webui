@@ -36,7 +36,7 @@ async function initializeUppy(app){
     //if we shall not start external process, initialize node-tus-server
     const tusServer = new Server({
         path: '/tusd_proxy',
-        relativeLocation:true,
+        // relativeLocation:true,
         datastore: new FileStore({directory: global.config.STATIC_UPLOADPATH}),
       });
     
