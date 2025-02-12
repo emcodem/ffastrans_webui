@@ -106,7 +106,7 @@ module.exports =  function(app, passport){
 			console.log("New hosts:",data)
             var new_data = [];
             data.forEach(function(what){
-                new_data.push(what + ":9182");//add windows exporter port
+                new_data.push(what);
             })
             data = new_data;
             

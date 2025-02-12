@@ -16,7 +16,6 @@ defaultConfig.STATIC_WEBSERVER_LISTEN_PORT = 3002;
 defaultConfig.STATIC_WEBSERVER_ENABLE_HTTPS = false;
 defaultConfig.STATIC_WEBSERVER_HTTPS_PK_PASSWORD = "webserver";
 defaultConfig.database_maintenance_autodelete = 365;
-
 defaultConfig.STATIC_USE_WEB_AUTHENTIFICATION = false;
 //escape backslash with a backslash, so \\server\folder is written as \\\\server\\folder
 //your path MUST end with slash or backslash, the rest of the code assumes it.

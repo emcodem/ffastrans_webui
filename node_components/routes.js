@@ -155,38 +155,24 @@ module.exports = function(app, passport) {
     const proxyOptions = {
         target: selectGrafanaProxy(), // Replace with the actual target server
         changeOrigin: true, 
-        pathRewrite: (path,req) => {
-            //otherwise the path is /tusd_proxy/tusd_proxy/...
-            return req.url;
-        },
-        on: {
-            proxyReq: (proxyReq, req, res) => {
-              let stop = 1;
-            },
-            proxyRes: (proxyRes, req, res) => {
-                let stop = 1;
-            },
-            error: (err, req, res) => {
-                let stop = 1;
-            },
-          },
-        // onProxyReq(proxyReq, req, res) {
-        //     console.log('Proxy request:', req.url); // Log request info
+        // pathRewrite: (path,req) => {
+        //     return req.url;
+        // },
+        // on: {
+        //     proxyReq: (proxyReq, req, res) => {
+        //       let stop = 1;
+        //     },
+        //     proxyRes: (proxyRes, req, res) => {
+        //         let stop = 1;
+        //     },
+        //     error: (err, req, res) => {
+        //         let stop = 1;
+        //     },
         //   },
-        // onProxyRes(proxyRes, req, res) {
-        //     // Check if the response is a redirect
-        //     if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400) {
-        //       const location = proxyRes.headers['location'];
-        
-        //       // Modify the redirect URL if needed
-        //       const newLocation = location.replace('http://example.com', 'http://new-url.com');
-        //       proxyRes.headers['location'] = newLocation;
-        //     }
-        //   },
-        hostRewrite:true,
-        autoRewrite:true,
-        selfHandleResponse: false,  // Let the target server handle the response
-        followRedirects: true
+        // hostRewrite:true,
+         autoRewrite:true,
+        // selfHandleResponse: false,  // Let the target server handle the response
+        // followRedirects: true
     };
     app.use('/grafana_proxy', createProxyMiddleware(proxyOptions));
 
