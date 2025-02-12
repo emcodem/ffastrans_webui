@@ -7,8 +7,8 @@ const fsPromises = require('fs').promises;
 const path = require("path")
 const common = require("./common/helpers.js")
 const readLastLines = require('read-last-lines')
+const axios = require('axios');
 
-    
 var   first_call_after_startup = false;
 var   caller_ip= 0;
 module.exports = {
@@ -44,7 +44,7 @@ async function start(req, res) {
         var running = await count_running_tickets()
         res.write("ffas_jobs_running_count " + running[0] + "\n");
         res.write(running[1]);
-        res.write(await parse_monitor_log());
+        res.write(await parse_monitor_log(req));
         res.write("\n");//last line must-write for prometheus metrics
 		res.end();
         if (incount != 0 || qcount  != 0 || running[0] != 0)
@@ -144,7 +144,7 @@ async function count_incoming(){
         return found_incoming.length;
 }
 
-async function parse_monitor_log(){   
+async function parse_monitor_log(req){   
     var monitorlog  = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor"),"log.txt");
     var _stat = await fsPromises.stat(monitorlog);
     var mtime = _stat["mtime"];
@@ -152,31 +152,50 @@ async function parse_monitor_log(){
         global["metrics"]["monitorlog_mtime"] = mtime;
     }else{
         return "";//nothing to report if log did not change
-            }
-            var returnvalue = "";
-            var result = await readLastLines.read(monitorlog, 50);//the log.txt can get indefinite in size, we are just interested in updates
+    }
+    
+    //fetch jobs from self
+    var youngestHistory;
+    try {
+        const protocol = req.protocol; // 'http' or 'https'
+        const host = req.get('host'); // Includes hostname and port (e.g., 'localhost:3000')
+        
+        const url = `${protocol}://${host}/jobs`;
+        console.log(`Fetching from: ${url}`);
+
+        const response = await axios.get(url);
+        youngestHistory = await response.data.history;
+
+        //res.json({ fetchedData: data });
+    } catch (error) {
+        res.status(500).json({ error: 'Error fetching jobs from self: ' +url });
+    }
+
+    var returnvalue = "";
+    //var result = await readLastLines.read(monitorlog, 50);//the log.txt can get indefinite in size, we are just interested in updates
     //check number of errors in monitorlog;
-    var lines = result.toString().split("\n");
-    for  (var _l in lines){
+    //var lines = result.toString().split("\n");
+
+    for  (var _l in youngestHistory){
         // line = WF_NAME|STARTDATE|ENDDATE|FILENAME|OUTCOME|INT STATE|JOB_ID~SPLIT_ID
 		
-        var split = lines[_l].split("|");
-        var state = split[5]; //0= error, 1= good, 2= aborted
+        var _job = youngestHistory[_l];
+        //var state = split[5]; //0= error, 1= good, 2= aborted
         if(first_call_after_startup){
             //at startup, just store all currently known error jobs 
-            global["metrics"]["monitorlog_reported_erros"][caller_ip][lines[_l]]   = 1;
+            global["metrics"]["monitorlog_reported_erros"][caller_ip][_job.job_id]   = 1;
             continue;
         }else{
-            if (state == 0 && !(lines[_l] in global["metrics"]["monitorlog_reported_erros"][caller_ip])){
-                global["metrics"]["monitorlog_reported_erros"][caller_ip][lines[_l]]   = 1; //todo: me              
+            if (_job.state == 0 && !(_job.job_id in global["metrics"]["monitorlog_reported_erros"][caller_ip])){
+                global["metrics"]["monitorlog_reported_erros"][caller_ip][_job.job_id]   = 1; //todo: me              
                 returnvalue = "ffas_jobs_error_job_info";
                 returnvalue+= "{"
-                returnvalue+= "job_id=\"" + split[5].split("~")[0] +"\",";
-                returnvalue+= "wf_name=\"" + split[0] + "\",";
-                returnvalue+= "file=\"" + split[3] + "\",";
-                returnvalue+= "status=\"" + split[4] + "\"";
+                returnvalue+= "job_id=\"" + _job.job_id +"\",";
+                returnvalue+= "wf_name=\"" + _job.workflow + "\",";
+                returnvalue+= "file=\"" + _job.source + "\",";
+                returnvalue+= "status=\"" + _job.state + "\"";
                 returnvalue+= "} 1\n"
-                console.log("Metrics report new error job. State was:",state,"Message:",returnvalue)
+                console.log("Metrics report new error job. State was:",_job.status,"Message:",returnvalue)
             }
         }
     }
