@@ -37,6 +37,10 @@ async function initializeUppy(app){
     const tusServer = new Server({
         path: '/tusd_proxy',
         // relativeLocation:true,
+        generateUrl(req, {proto, host, path, id}) {
+            // id = Buffer.from(id, 'utf-8').toString('base64url')
+            return `${req.protocol}://${host}${path}/${id}`
+          },
         datastore: new FileStore({directory: global.config.STATIC_UPLOADPATH}),
       });
     
