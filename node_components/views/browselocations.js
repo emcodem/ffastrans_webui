@@ -6,12 +6,7 @@ const configServer = require('../server_config');
 module.exports = async function(app, passport){
     /* gets allowed browselocations */
 	app.get('/browselocations', async (req, res) => {
-		//passport.authenticate('local-login'); //fills req.user with infos from cookie
-		// var all_locations = {
-		// 	STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES: global.config.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES,
-		// 	STATIC_ALLOWED_BROWSE_LOCATIONS : global.config.STATIC_ALLOWED_BROWSE_LOCATIONS
-		// };
-		
+
 		//migrate from old style, todo: delete 2026
 		if (global.config.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES){
 			//migrate possible old config to new config
@@ -41,49 +36,13 @@ module.exports = async function(app, passport){
 			}
 
 		}
-
-		var all_locations = global.config.allowed_browselocations;
-		var filtered_locations = [];
-		
-		//loop through all permissions and collect allowed locations
-		let has_location_filter = false; 
-		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "true"){
-			let perms = await userpermissions.getpermissionlistAsync(req.user.local.username);
-			
-			for (perm of perms){
-				if (perm.key == "FILTER_BROWSE_LOCATIONS"){
-					has_location_filter = true;
-					all_locations.map(function(loc){
-						var filter = perm["value"]["filter"];
-						if (loc.displayname.toLowerCase().match(filter.toLowerCase())){
-							filtered_locations.push(loc);
-						}
-					});
-					
-				}
-			}
-		}else{
-			filtered_locations = all_locations;
-		}
-		if (!has_location_filter)
-			filtered_locations = all_locations;
-		//above filter logic can potentially produce duplicate entries, filter unique array objects
-		filtered_locations = filtered_locations.filter((obj1, i, arr) => 
-			arr.findIndex(obj2 => 
-			  JSON.stringify(obj2) === JSON.stringify(obj1)
-			) === i
-		)
-
+		let allowed = await userpermissions.getAllowedBrowseLocations(req.user?.local?.username);
 		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false" ){//removed check for no locations || Object.keys(allowed_locations).length == 0
-			//just add all locations to list if no auth or no filter
-			// easylist.map(function(kv){
-			// 	allowed_locations[kv.key] = kv.value;
-			// })
-			res.json(global.config.allowed_browselocations);
+			res.json(allowed);
 			return;
 		}
-
-		res.json(filtered_locations);
+		//return all locations
+		res.json(allowed);
 	});
 
     /* saves new browselocations */

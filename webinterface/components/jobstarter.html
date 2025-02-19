@@ -1631,7 +1631,7 @@ async function getBrowseLocations(restore_saved = true){
         if (localStorage.getItem("lastVisitedBrowseLocation") &&  restore_saved){
                 getFileList(m_fileBrowserGrid,localStorage.getItem("lastVisitedBrowseLocation")); //restore last visit location
         }else{
-                getFileList(m_fileBrowserGrid, m_serverconfig.allowed_browselocations[0].path);    //load first available location
+                getFileList(m_fileBrowserGrid, locations[0].path);    //load first available location
         }
    }catch(ex){
         dhtmlx.alert("There was an error loading allowed Browse locations, contact Administrator");

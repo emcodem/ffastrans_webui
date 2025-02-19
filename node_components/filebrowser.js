@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn,execSync } = require('child_process');
 const { PromisePool } = require('@supercharge/promise-pool');
+const userpermissions = require('./userpermissions');
 
 function regexEscape(string) {
 	if (typeof string !== 'string') {
@@ -107,9 +108,12 @@ module.exports = function(app, express){
 					baseFolder += "\\";
 				}
                 if (!checkFolderInGlobalConfig(baseFolder,res)){
-                   return; 
+                   throw new Error(baseFolder + " is not configured as Location"); 
                 }; //ends request with error if basefolder is is not within configured locations
 
+                if (!await userpermissions.checkFolderPermissions(req.user?.local?.username,baseFolder)){
+                    throw new Error("No permission to browse",baseFolder)
+                }
                 //do the work
 				var rows = {};
 				rows.rows =[];
