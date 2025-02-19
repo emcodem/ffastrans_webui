@@ -1,0 +1,295 @@
+<html>
+<head>
+
+<script src="../../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
+<link rel="stylesheet" href="../../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<link rel="stylesheet" href="../../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
+
+<script>
+    //theme changeer
+    if (localStorage.global_skin_dark == "1"){
+        try{
+            document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+        }catch(ex){}
+        try{
+            dhx.setTheme("dark");
+        }catch(ex){}
+        try{
+            dhx8.dhx.setTheme("dark");
+        }catch(ex){}
+    }
+</script>
+
+<script type="module">
+window.init=init;
+let m_mainGrid,m_mainLayout;
+
+async function init(){
+    //LAYOUT
+    let hostname = window.location.hostname;
+    const layoutconfig = {
+            //type: "wide",//"line" | "wide" | "space" | "none";
+            type:"wide",
+            padding:5,
+            cols:
+                [
+                    {
+                        id: "options_layout_grid_conf_cell",
+                        resizable:true,
+                        width:"50%",
+                        height:"content",
+                        cols:[
+                            {
+                                padding:5,
+                                header:"Prometheus Targets",
+                                id: "button_cell",
+                                html: template_prom_ok.innerHTML,
+                            },
+                        ]
+                    },
+                    {
+                        id: "С1",
+                        padding:20,
+                        height:"content",
+                        html: `Prometheus Targets are retrieved directly from prometheus server.
+                        <br><br>
+                        This only works if 
+                        <li> Prometheus is installed on the same host as webinterface. 
+                            <a href="https://github.com/emcodem/ffastrans_metrics/releases/" target="_blank">Download FFAStrans Prometheus and Grafana here</a></li>
+                        <li>prometheus.yml is set to http_sd_configs http://localhost:3002/metrics_control/service_discovery</li>
+                        <br/>By default, Prom and Grafana can be reached here: 
+                        <br/><li><a href="http://${hostname}:3000" target="_blank">Grafana (http://${hostname}:3000)</a> </li>
+                            <li><a href="http://${hostname}:9090" target="_blank">Prometheus (http://${hostname}:9090)</a></li>
+                            `,
+                },
+            ]
+	}
+    m_mainLayout = new dhx8.dhx.Layout("optsform", layoutconfig);
+
+    attachClickEvents();
+
+
+    //GRID
+    m_mainGrid = new dhx8.dhx.Grid("promgrid", {
+        
+        multiselection: true,
+        selection: "row",
+        columns: [
+            
+            { id: "instance", type: "string", header: [{ text: "Instance" }, { content: "inputFilter" }]},
+
+            { id: "health", header: [{ text: "Health" }, { content: "selectFilter" }], gravity: 0.5 },
+        ],
+        
+        autoWidth: true
+    });
+
+    loadGridData();
+    window.setInterval(function(){loadGridData()},3000)
+}
+
+function attachClickEvents(){
+    
+    const btnAdd = document.querySelector('#btn_add');
+    const btnRemove = document.querySelector('#btn_remove');
+
+    btnAdd.addEventListener('click', function() {
+        const dhxWindow = new dhx8.dhx.Window({
+            width: 600,
+            height: 600,
+            title: "Add Prometheus Data Source",
+            modal: false,
+            closable: true,
+            movable: true,
+            resizable:true
+        });
+        
+        const editFormConfig = {
+            padding: 0,
+            rows: [
+                {
+                    type: "text",name: "text3",value:"You must download and install Prom Exporters on the target host before adding it here."
+                },  
+                {
+                    type: "text",name: "text1",value:"FFAStrans Metrics comes with webint: localhost:3003"
+                },       
+                {
+                    type: "text",name: "text4",value:"Windows Metrics: localhost:9182"
+                },
+                {
+                    type: "text",name: "text5",value:"After adding an entry, it can take up to one minute to take effect."
+                },
+                {
+                    id: "instance",
+                    type: "input",
+                    name: "instance",
+                    label:"hostname:port",
+                    validation: function(value) {
+                        return value && value.length >= 1;
+                    },
+                    required: true,
+                },
+                {
+                    id: "ok",
+                    type: "button",
+                    name: "ok",
+                    value:"OK",
+                    submit: true,
+                }
+            ]
+        }
+
+        const editForm = new dhx8.dhx.Form(null, editFormConfig);
+        // pressing the Apply button will get all data of the form, update data of the edited item, and close the editing form
+        editForm.events.on("click", async (clickedId) => {
+            const result = editForm.validate();
+            if (!result)
+                return;
+
+            let existing = m_mainGrid.data.serialize().map(entry=>{
+                return entry.instance;
+            })
+            existing.push(editForm.getItem("instance").getValue());
+            const response = await fetch('/metrics_control', {
+                method: 'POST', // Specify POST method
+                headers: {
+                    'Content-Type': 'application/json' // Send data as JSON
+                },
+                    body: JSON.stringify(existing) // Convert data to JSON string
+                });
+
+                if (!response.ok) {
+                    dhx8.dhx.alert({  title: "Error",  text: "Error, status:"+ response.status,  buttons: ["OK"]})
+                }else{
+                    dhx8.dhx.alert({  title: "Success",  text: "Success, it can take up to a minute to take effect. Refresh is automatic",  buttons: ["OK"]})
+                }
+            //m_mainGrid.data.add({instance:editForm.getItem("instance").getValue()})
+
+            window.setTimeout(()=>{dhxWindow.destructor()},100) //doestroy win in event can raise error at eventhandler for form
+        });
+        window.addEventListener("keydown", (event) => {
+            //closes windoww on escape key
+            if (event.isComposing || event.keyCode === 27){//esc
+                dhxWindow.destructor()
+            } 
+        });
+
+        dhxWindow.attach(editForm);
+        dhxWindow.show()
+    });
+
+    btnRemove.addEventListener('click', async function() {
+        let selected = m_mainGrid.selection.getCells();
+        if (!selected.length)
+            return
+        const config = {
+            header: "Confirm Deletion",
+            text: "Delete " + selected.length + " entries? Deletion can take up to 1 minute to take effect.",
+            buttons: ["Cancel", "Apply"],
+            buttonsAlignment: "center"
+        };
+        let result = await dhx8.dhx.confirm(config);
+        if (!result)
+            return;
+
+        selected.forEach(async function(cell_and_row) {
+            if (cell_and_row.row) {
+                const response = await fetch(`/metrics_control`, {
+                    method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8'
+                        },
+                        body: JSON.stringify([cell_and_row.row.instance])
+                    });
+                    if (!response.ok) {
+                        dhx8.dhx.alert({
+                                    title: "Error",
+                                    text: "Error, status: " + response.statusText + ", Text: " + await response.text(),
+                                    buttons: ["OK"]
+                                })
+                    }else{
+                        dhx8.dhx.alert({
+                                    title: "Success",
+                                    text: "Success, Data will refresh automatically, it can take up to 1 minute to take effect.",
+                                    buttons: ["OK"]
+                                })  
+                    }
+                
+            }
+        });
+    });
+
+}
+
+async function loadGridData(){
+    const response = await fetch('/metrics_control');
+        // Check if the response status is OK (status code 200-299)
+    
+    if (!response.ok) {
+        m_mainLayout.getCell("button_cell").attachHTML(template_prom_error.innerHTML);
+        return;
+    }
+
+    let resdata = await response.json();
+    let instances = resdata.data.activeTargets.map(promTarget=>{
+        //this data comes from prom directly
+        return {
+            instance:promTarget.labels.instance,
+            health:promTarget.health
+        }
+    })
+    instances = sortByInstance(instances);
+    
+    let currentData = m_mainGrid.data.serialize().map(d=>{
+        return {
+            instance:d.instance,
+            health:d.health
+        }
+    })
+    currentData = sortByInstance(currentData);
+    
+    if (JSON.stringify(currentData) != JSON.stringify(instances))
+        m_mainGrid.data.parse(instances)
+    else
+        console.log("Data did not change")
+
+    
+}
+
+function sortByInstance(data) {
+  return data.sort((a, b) => {
+    if (a.instance < b.instance) return -1;
+    if (a.instance > b.instance) return 1;
+    return 0;
+  });
+}
+</script>
+</head>
+
+<body>
+    <body onload="init()">
+        <div id="optsform" style="width:100%;height:100%"></div> 
+    
+        <div style="display:none" id="template_prom_ok">
+            <div class="dhxform_obj_dhx_skyblue" style="display:flex">
+                <button id="btn_add" class="dhx_button  dhx_button--color_secondary dhx_button--size_small dhx_button--view_flat" >
+                    <span class="dhx_button__icon dxi dxi dxi-plus"></span><span class="dhx_button__text">Add</span>
+                    </button>
+                <button id="btn_remove" class="dhx_button  dhx_button--color_secondary dhx_button--size_small dhx_button--view_flat" >
+                    <span class="dhx_button__icon dxi dxi dxi-delete"></span><span class="dhx_button__text">Delete</span>
+                </button>
+            </div>
+            
+            <div id="promgrid">
+                
+            </div>
+        </div>
+
+        <div style="display:none" id="template_prom_error">
+            <div style="color:brown">Error getting Targets from Prometheus, is it installed and running?</div>
+        </div>
+
+
+</body>
+</html>

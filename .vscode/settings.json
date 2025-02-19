@@ -8,7 +8,6 @@
     "files.exclude": {
         "**/.git": true,         // this is a default value
         "**/*bundle*": true,
-        "**/*grafana*": true,
         "**/*mpv*": true,
         "**/*.log":true,
         "**/dist*":true

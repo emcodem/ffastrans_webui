@@ -29,8 +29,8 @@ module.exports = async function(app, passport){
 			}catch(ex){
 				global.config.allowed_browselocations = [
 					{
-						displayname: "Error",
-						path:"There was an error migrating browse locations from old webinterface version",
+						displayname: "Error migrating browse locations from old webinterface version",
+						path:"Error migrating browse locations from old webinterface version",
 						filters: {include:"",exclude:""}
 					}
 				];
@@ -44,18 +44,7 @@ module.exports = async function(app, passport){
 
 		var all_locations = global.config.allowed_browselocations;
 		var filtered_locations = [];
-		//allowed_locations = global.defaultConfig.allowed_browselocations;
-
-
-		//build kv list for easy filtering, we never should have separated display names and locations..
-		// var easylist = [];
-		// for (var i=0;i<all_locations.STATIC_ALLOWED_BROWSE_LOCATIONS.length;i++){
-		// 	easylist.push ({
-		// 					key:all_locations.STATIC_ALLOWED_BROWSE_LOCATIONS_DISPLAY_NAMES[i],
-		// 					value: all_locations.STATIC_ALLOWED_BROWSE_LOCATIONS[i]
-		// 					});
-		// }
-
+		
 		//loop through all permissions and collect allowed locations
 		let has_location_filter = false; 
 		if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "true"){
