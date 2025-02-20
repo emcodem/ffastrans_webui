@@ -414,7 +414,7 @@ async function init(){
     typecombo.put("watch_fsnotify","Watch using Filsystem Events");
     */ 
     m_mainGrid.init();    
-    m_mainGrid.setColValidators(",NotEmpty,,,NotEmpty,,NotEmpty"); 
+    m_mainGrid.setColValidators(",NotEmpty,,,NotEmpty,NotEmpty,NotEmpty"); 
 
 	m_mainGrid.attachEvent("onRowDblClicked", function(rId,cInd){
 		//opens workflow chooser
@@ -577,7 +577,7 @@ async function init(){
     //EVENTS
     m_mainGrid.attachEvent("onValidationCorrect", function(id,index,value,rule){
         console.log("Validation correct, saving");
-        saveJobGrid();
+        //saveJobGrid();
     });
     m_mainGrid.attachEvent("onCheck", function(rId,cInd,state){
         //enable/disable checkbox
@@ -1043,7 +1043,11 @@ function createJobRowInGrid(_job,dhxGrid){
 
 
 function saveJobGrid(rIdToSave,callback){
-    m_mainGrid.forEachRow(function(rId){   
+    m_mainGrid.forEachRow(function(rId){ 
+        for (let i=1;i<7;i++){
+            m_mainGrid.validateCell(rId,i);  //set or removes red underlines
+        }
+
         if (rIdToSave){
             if (rIdToSave != rId){
                 return;//used to save only one row instead of all rows
