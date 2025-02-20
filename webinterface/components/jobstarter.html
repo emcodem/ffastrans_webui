@@ -1284,6 +1284,7 @@ function removeItemFromLocationMenu(id){
     });
 }
 function sort_date(a, b, order, aid, bid) {
+
     /* like win explorer, if ascending, folders are on top */
     // OneUp always goes first
     const folderRegex = /<span class="fancytree-ico-cf">[\s\S]*?<span class="folder_text">\.\.<\/span>[\s\S]*?<\/span>/;
@@ -1316,25 +1317,37 @@ function sort_date(a, b, order, aid, bid) {
 }
 
 function sort_filenames(a, b, order) {
-    // OneUp always goes first
-    const folderRegex = /<span class="fancytree-ico-cf">[\s\S]*?<span class="folder_text">\.\.<\/span>[\s\S]*?<\/span>/;
+    console.log("Sorting filenames", order);
 
-    if (folderRegex.test(a)) return -1;
-    if (folderRegex.test(b)) return 1;
+    try {
+        const folderRegex = /<span class="fancytree-ico-cf">[\s\S]*?<span class="folder_text">\.\.<\/span>[\s\S]*?<\/span>/;
 
-    const aStartsWithLT = a.startsWith("<");
-    const bStartsWithLT = b.startsWith("<");
+        // ".." folder always goes first
+        if (folderRegex.test(a)) return -1;
+        if (folderRegex.test(b)) return 1;
 
-    if (aStartsWithLT && !bStartsWithLT) return order === "asc" ? -1 : 1;
-    if (!aStartsWithLT && bStartsWithLT) return order === "asc" ? 1 : -1;
+        if (a === "") return 1;
+        if (b === "") return -1;
 
-    if (a === "") return 1;
-    if (b === "") return -1;
+        const a_isFolder = a.startsWith("<");
+        const b_isFolder = b.startsWith("<");
 
-    const n = a.toLowerCase().charCodeAt(0);
-    const m = b.toLowerCase().charCodeAt(0);
+        // **Ensure folders come before files**
+        if (a_isFolder && !b_isFolder) return order === "asc" ? -1 : 1;
+        if (!a_isFolder && b_isFolder) return order === "asc" ? 1 : -1;
 
-    return order === "asc" ? (n > m ? 1 : -1) : (n < m ? 1 : -1);
+        // **Sort alphabetically within the same type (folder-folder or file-file)**
+        const a_clean = a.replace(/<[^>]+>/g, "").trim(); // Remove HTML tags if present
+        const b_clean = b.replace(/<[^>]+>/g, "").trim();
+
+        return order === "asc" 
+            ? a_clean.localeCompare(b_clean, undefined, { sensitivity: 'base' }) 
+            : b_clean.localeCompare(a_clean, undefined, { sensitivity: 'base' });
+
+    } catch (ex) {
+        console.error("Sorting order problem", ex);
+        return 0; // Prevent crashes, treat as equal
+    }
 }
 
 function selectFileToProcess(){
