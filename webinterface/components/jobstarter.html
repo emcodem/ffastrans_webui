@@ -1516,7 +1516,8 @@ function getFileList(dhtmlxGrid,path,path_is_base64 = false){
                     dhtmlxGrid.setSortImgState(true,o_sort.colindex,o_sort.dir);
                 }else{
                     //no sort order known? sort by date
-                    dhtmlxGrid.sortRows(4,"str","des");
+                    
+                    dhtmlxGrid.sortRows(4,"cus","des");
                     dhtmlxGrid.setSortImgState(true,4,"des");
                 }
 
