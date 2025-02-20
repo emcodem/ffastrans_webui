@@ -100,15 +100,32 @@ module.exports = function(app, express){
 								let _vname = regexmatch[1];
 								let dataFilter = new RegExp(escapeRegExp(current_filter.filter),"i");
 								if (_vname.match(/^i_/i)){
+									//check if we have gt lt filter
+									if (current_filter.filter.match(/<.*?\d+|>.*?\d+/)){
+										let gtltmatch = current_filter.filter.match(/(>.*?\d+)|(<.*?\d+)/g)
+										gtltmatch.map(tuple=>{
+											tuple = tuple.replace(/\s+/g, "");//spaces must go
+											_operator = tuple.charAt(0) == ">" ? "$gt" : "$lt";
+											let _value = tuple.slice(1);
+											let _flt = {"name": _vname, "data": {}}
+											_flt.data[_operator] = _value;
+											andCondition.push(_flt); //{"$gt":1234
+										})
+										return; //must end prematurely because already pushed our stuff to andCondition
+									}
+									
 									if (tryParseInt(current_filter.filter) != null){
-										dataFilter = tryParseInt(current_filter.filter);
+
+										dataFilter = tryParseInt(current_filter.filter); //not sure why i added the paresint initially, we use that later as regex now anyway. It is problematic that we dont know the datatype of the field in mongo, should force datatype in future when inserting the data or using some other constraint
 									}	
 								}
-								let mongoFilterForVar = {
-										"data": dataFilter, //the search filter from Userinterface search input
-										"name": _vname //the ffas varname as seen in the variablecol template butwithout %%
-									}
-									andCondition.push(mongoFilterForVar);
+
+								//no gt lt just value
+								const mongoFilterForVar = {
+									"data": {$regex: new RegExp(dataFilter,"i")}, //the search filter from Userinterface search input
+									"name": _vname //the ffas varname as seen in the variablecol template butwithout %%
+								}
+								andCondition.push(mongoFilterForVar);
 							})
 							//locate all variable names in the search template
 							newfilter["children.variables"] = {
@@ -117,8 +134,6 @@ module.exports = function(app, express){
 								  }
 							}
 						})
-
-
 
 						continue;
 					}
