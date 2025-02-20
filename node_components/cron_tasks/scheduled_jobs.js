@@ -1,5 +1,4 @@
-const assert = require('assert');
-const Request = require("request");
+const path = require("path");
 const parser = require('cron-parser');
 var tmp = require('tmp');
 tmp.setGracefulCleanup();
@@ -11,7 +10,8 @@ const ffastransapi = require("../ffastransapi");
 const moment = require("moment");
 const Datastore = require("@seald-io/nedb");
 const axios = require("axios");
-const logfactory = require("../../shared_modules/logger")
+const logfactory = require("../../shared_modules/logger");
+const { exitCode } = require("process");
 
 var logger = logfactory.getLogger("scheduler");
 logger.log = logger.info;
@@ -91,7 +91,7 @@ function formatFilename(str){
 function executeJob(current_job,socketioClientId,informCallback){
 
     var runId = Math.random();
-    var joblogger = logfactory.getLogger(formatFilename(new Date().toISOString()),current_job['job_name']);
+    var joblogger = logfactory.getLogger(formatFilename(new Date().toISOString()),true,path.join("scheduled_jobs",current_job['id'] + "_" + current_job['job_name']));
     joblogger.info("Job Start: [" + current_job['job_name'] + "]");
     global.socketio.to(socketioClientId).emit("logmessage","Job Start: [" + current_job['job_name'] + "]");
 	//logger.log ("SCIRPT",current_job["script"])
@@ -148,7 +148,7 @@ function executeJob(current_job,socketioClientId,informCallback){
             logger.log("MESSAGE FROM FORK: " + msg);
             if (current_job["workflow"] == ""){
                 logger.warn("No Workflow selected!", "number of non started jobs:", msg.length);
-                updateScheduledJob(current_job["id"],"last_message","No Workflow selected!");
+                updateScheduledJob(current_job["id"],"last_message","No Workflow selected!" + formatDate());
                 return;
             }
             //if we have an array of values, execute the ffastrans job
@@ -215,6 +215,7 @@ function executeJob(current_job,socketioClientId,informCallback){
                 }
 
             })()
+
             //delete userscript file
             fs.unlink(path, (err) => {
                 if (err) {
@@ -223,7 +224,11 @@ function executeJob(current_job,socketioClientId,informCallback){
                     
                 }
             });
-            
+    
+            if (exitCode == 0){
+                updateScheduledJob(current_job["id"],"last_message","Executed successfully " + formatDate());
+            }
+
         });
         
         
@@ -281,7 +286,7 @@ async function needsExecution(current_job){
     var youngest_next = new Date("9999"); //hight start date, year 9999
     for (var _idx in crons){ 
         var _cur_cron = crons[_idx];
-        var _interval = parser.parseExpression(_cur_cron,{//parseExpression func needs last_start_date to calcualte next interval
+        var _interval = parser.parseExpression(_cur_cron,{//parseExpression func needs last_start_date to calcualte next interval, but why can it not work with current date?
             currentDate: last_start_date,
             iterator: false
           });
@@ -333,7 +338,7 @@ async function needsExecution(current_job){
 
         if ("last_job_id" in current_job){
             if (current_job["last_job_id"] != ""){
-                updateScheduledJob(current_job["id"],"last_message","Detected last Jobid exists, checking if Jobid is active");
+                updateScheduledJob(current_job["id"],"last_message","Detected last Jobid exists, checking if Jobid is active " + formatDate());
                 logger.log("checking if job is still runing");
                 var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
                 var url = protocol + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_NEW_PORT"] + "/tickets?nodetails=true" ;
@@ -342,7 +347,7 @@ async function needsExecution(current_job){
                     var resp = await axios.get(url);
                     if ("data" in resp){
                         if (JSON.stringify(resp["data"]).indexOf(current_job["last_job_id"]) != -1){
-                            updateScheduledJob(current_job["id"],"last_message","Last job is still active");
+                            updateScheduledJob(current_job["id"],"last_message","Last job is still active "+ formatDate());
                             logger.log("last_job_id is still active")
                             return false;
                         }else{
@@ -352,7 +357,7 @@ async function needsExecution(current_job){
                     }
                 }catch(ex){
                     logger.error("Could not get information about currently running job, resetting las_job_id",ex);
-                    updateScheduledJob(current_job["id"],"last_message","Reset last job id due to error getting job details: " + current_job["last_job_id"] + ex);
+                    updateScheduledJob(current_job["id"],"last_message","Reset last job id due to error getting job details: " + current_job["last_job_id"] + ex + + formatDate());
                     updateScheduledJob(current_job["id"],"last_job_id","");
                     return true;
                 }
@@ -383,4 +388,24 @@ function updateScheduledJob(id,field,value){
     
 }
 
+/**
+ * Formats a Date object into a string with the format "YYYY-MM-DD HH:MM:SS".
+ * Pads single-digit months, days, hours, minutes, and seconds with leading zeros.
+ *
+ * @param {Date} date - The date to format.
+ * @returns {string} The formatted date string.
+ */
 
+function formatDate(date) {
+    if (!date) {
+      date = new Date();
+    }
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+  
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }

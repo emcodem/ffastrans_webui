@@ -10,49 +10,37 @@ module.exports = {
     getLogger: getLogger
 }
 
-// /**
-//  * this is for getting out the line and file of the caller. use by adding to winston.format.combine: humanReadableFormatter,
-//  * Use CallSite to extract filename and number
-//  * @returns {string} filename and line number separated by a colon
-//  */
-// const getFileNameAndLineNumber = () => {
-//     const oldStackTrace = Error.prepareStackTrace;
-//     try {
-//         // eslint-disable-next-line handle-callback-err
-//         Error.prepareStackTrace = (err, structuredStackTrace) => structuredStackTrace;
-//         Error.captureStackTrace(this);
-//         // in this example I needed to "peel" the first 10 CallSites in order to get to the caller we're looking for, hence the magic number 11
-//         // in your code, the number of stacks depends on the levels of abstractions you're using, which mainly depends on winston version!
-//         // so I advise you to put a breakpoint here and see if you need to adjust the number!
-// 		var files = [];
-// 		var nums = [];
-// 		files = this.stack.map(st=> st.getFileName())
-// 		nums = this.stack.map(st=> st.getLineNumber())
-// 		var cnt = 0;
-// 		var to_return = "";
-// 		for (f of files){
-// 			to_return += f;
-// 			to_return += nums [cnt]+ "\n";
-// 			cnt++
-// 		}
-//         return to_return
-//     } finally {
-//         Error.prepareStackTrace = oldStackTrace;
-//     }
-// };
+const m_maxLogAgeMillis = 86400000 * 14; //14 days
+const m_deleteIntervals = {};
 
+function ensureDeleteInterval(dir){
+	if (! m_deleteIntervals[dir]){
+		m_deleteIntervals[dir] = setInterval(function(){deleteOldFiles(dir,m_maxLogAgeMillis)},3600);
+		deleteOldFiles(dir,m_maxLogAgeMillis);
+	}
+}
 
-// const humanReadableFormatter = winston.format((info) => {
-// 	const {level, message} = info;
-//     const filename = getFileNameAndLineNumber();
-// 	info.message = `${message} ${filename}`;
-//     return info;
-// })();
+/**
+ * Retrieves or creates a new logger instance with the specified label.
+ *
+ * @param {string} label - The label for the logger instance.
+ * @param {boolean} [suppress_startup_msg=false] - If true, suppresses the startup message in the log.
+ * @param {string} [log_subdir=""] - Subdirectory under the global log path for storing logs.
+ * @returns {object} - A winston logger instance.
+ *
+ * This function checks if a logger with the given label already exists. If not, it creates a new logger
+ * configured with console and daily rotating file transports. The log files are stored in the specified
+ * subdirectory, or the default log path if no subdirectory is provided. The logger writes logs with
+ * timestamps and supports error stack traces. The console transport is configured for debugging, and
+ * the daily file transport archives logs daily, keeping them for 14 days with a maximum size of 200MB each.
+ */
 
 function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
   /* returns a logger if exists, if not creates a new one */
-
+  
   var logpath = path.join(global.approot, "/logs/",log_subdir);
+  ensureDeleteInterval(logpath);
+
   fs.ensureDirSync(logpath);
   if (!winston.loggers.has(label)) {
 
@@ -81,11 +69,9 @@ function getLogger(label,suppress_startup_msg = false, log_subdir = "") {
 	let dailyFileTransport = new winston.transports.DailyRotateFile({
 		level: 'debug',
 		filename: path.join( logpath, label + "-%DATE%.log"),
-		auditFile: path.join( logpath,"audit", label),
+		//auditFile: path.join( logpath,"audit", label),
 		datePattern: 'YYYY-MM-DD',
-		zippedArchive: true,
-		maxSize: '50m',
-		maxFiles: '14d'
+		maxSize: '200m',
 	  });
 
     winston.loggers.add(label, {
@@ -128,3 +114,56 @@ const wrapper = (original) => {
 
 };
 
+const deleteOldFiles = (directory, maxAge, maxFiles) => {
+	const now = Date.now();
+  
+	// Read all files in the directory
+	fs.readdir(directory, (err, files) => {
+	  if (err) {
+		console.error('Error reading directory', err);
+		return;
+	  }
+  
+	  // If there are more than maxFiles, start deleting old ones
+	  if (files.length > 10000) {
+		// Get file stats (including modification time) for each file
+		const fileStats = [];
+  
+		files.forEach(file => {
+		  const filePath = path.join(directory, file);
+		  
+		  fs.stat(filePath, (err, stats) => {
+			if (err) {
+			  console.error('Error reading file stats', err);
+			  return;
+			}
+  
+			// Add file stats to the array
+			fileStats.push({ file, stats });
+  
+			// After collecting all file stats, proceed to sort and delete
+			if (fileStats.length === files.length) {
+			  // Sort the files by modification time (oldest first)
+			  fileStats.sort((a, b) => a.stats.mtimeMs - b.stats.mtimeMs);
+  
+			  // Loop through sorted files and delete the oldest ones if older than maxAge
+			  fileStats.forEach(({ file, stats }) => {
+				const filePath = path.join(directory, file);
+  
+				if (now - stats.mtimeMs > maxAge) {
+				  fs.unlink(filePath, (err) => {
+					if (err) {
+					  console.error('Error deleting file', err);
+					} else {
+					  console.log(`Deleted old file: ${file}`);
+					}
+				  });
+				}
+			  });
+			}
+		  });
+		});
+	  }
+	});
+  };
+  

@@ -116,6 +116,9 @@ function renderCron(_id,_initial){
     $("#sched"+_id+"").cron({
                                 initial: _initial,
                                 customValues: {
+                                    "5 Seconds" : "*/5 * * * * *",
+                                    "15 Seconds" : "*/15 * * * * *",
+                                    "30 Seconds" : "*/30 * * * * *",
                                     "1 Minutes" : "*/1 * * * *",
 									"2 Minutes" : "*/2 * * * *",
                                     "5 Minutes" : "*/5 * * * *",
