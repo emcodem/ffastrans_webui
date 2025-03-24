@@ -1138,6 +1138,8 @@ function getActiveGridColumns(){
                  },
 				{id: "proc",     	header: ["<span>Step</span>"+ searchboxhtml],       sortable: true,htmlEnable: true, maxWidth: 600,
 					template: function(val,row,column){
+                        if (!row.priority)
+                            row.priority = 2
 						return "Prio " + (row.priority || "") + " | " + row.proc + " | " + row.host
 				} },
 				//Prio " +  (node.data.priority || 1) + " @ " + node.data.proc + " @ " + node.data.host
@@ -1685,13 +1687,17 @@ async function buildActiveGrid() {
             let searchboxhtml = getSearchBoxHtml({variablecol:true});
             let variablecolumns = m_serverconfig.job_viewer.variable_columns;
             for (let i=0;i<variablecolumns.length;i++){
-                c.push({
+                let varColConf = {
                     id: variablecolumns[i].col_header_name,
                     header: ["<span class='grid_header_text'>"+variablecolumns[i].col_header_name+"</span>"+ searchboxhtml],
                     sortable: false,
                     htmlEnable:true,
-                    maxWidth: variablecolumns[i].col_config?.maxWidth
-                });
+                }
+                if (variablecolumns[i].col_config && variablecolumns[i].col_config.maxWidth){
+                    //!! without parseint the resize behaviour is weird!
+                    varColConf.maxWidth =  parseInt(variablecolumns[i].col_config.maxWidth, 10);
+                }
+                c.push(varColConf);
             }
         }
         return c;
@@ -1888,12 +1894,12 @@ async function buildActiveGrid() {
                     let newGridCols = getHistoryGridColumns(); //ERROR, cannot do this as we already applied filters and modifications!
                     newGridCols = applyHistoryGridColUserSettings(newGridCols);
                     grid.config.columns.map(c=>{
-                    let targetc = newGridCols.filter(tc=>{return tc.id == c.id});
-                    targetc[0].width = conf.raw[idx];
-                    idx++;
-                });
+                        let targetc = newGridCols.filter(tc=>{return tc.id == c.id});
+                        targetc[0].width = conf.raw[idx];
+                        idx++;
+                    });
 
-                grid.setColumns( newGridCols);
+                grid.setColumns(newGridCols);
 
             }
             }catch(ex){
