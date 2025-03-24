@@ -146,35 +146,35 @@ module.exports = function(app, passport) {
     app.use("/webinterface/typescript_client/clientdist/dist/",express.static('./webinterface/typescript_client/clientdist/dist/'));
 
     
-    function selectGrafanaProxy(req){
-        /* this "calculates" target url for proxy request. A parameter named url has to be in get parameters*/
-        return global.config.grafana_base;
-    }
+    // function selectGrafanaProxy(req){
+    //     /* this "calculates" target url for proxy request. A parameter named url has to be in get parameters*/
+    //     return global.config.grafana_base;
+    // }
 
-    // Proxy configuration
-    const proxyOptions = {
-        target: selectGrafanaProxy(), // Replace with the actual target server
-        changeOrigin: true, 
-        // pathRewrite: (path,req) => {
-        //     return req.url;
-        // },
-        // on: {
-        //     proxyReq: (proxyReq, req, res) => {
-        //       let stop = 1;
-        //     },
-        //     proxyRes: (proxyRes, req, res) => {
-        //         let stop = 1;
-        //     },
-        //     error: (err, req, res) => {
-        //         let stop = 1;
-        //     },
-        //   },
-        // hostRewrite:true,
-         autoRewrite:true,
-        // selfHandleResponse: false,  // Let the target server handle the response
-        // followRedirects: true
-    };
-    app.use('/grafana_proxy', createProxyMiddleware(proxyOptions));
+    // // Proxy configuration
+    // const proxyOptions = {
+    //     target: selectGrafanaProxy(), // Replace with the actual target server
+    //     changeOrigin: true, 
+    //     // pathRewrite: (path,req) => {
+    //     //     return req.url;
+    //     // },
+    //     // on: {
+    //     //     proxyReq: (proxyReq, req, res) => {
+    //     //       let stop = 1;
+    //     //     },
+    //     //     proxyRes: (proxyRes, req, res) => {
+    //     //         let stop = 1;
+    //     //     },
+    //     //     error: (err, req, res) => {
+    //     //         let stop = 1;
+    //     //     },
+    //     //   },
+    //     // hostRewrite:true,
+    //      autoRewrite:true,
+    //     // selfHandleResponse: false,  // Let the target server handle the response
+    //     // followRedirects: true
+    // };
+    // app.use('/grafana_proxy', createProxyMiddleware(proxyOptions));
 
     // app.use('/grafana_proxy', proxy(selectGrafanaProxy, {
     //     /* use like: /grafana_proxy?url=http://grafanaserver/pad... */

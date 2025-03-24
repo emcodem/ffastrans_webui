@@ -74,6 +74,8 @@ module.exports =  function(app, passport){
 		}
 	});
     
+
+
     app.get('/metrics_control/service_discovery', async(req, res) => {
         //used to configure prometheus dynamically, if configured in prometeus.yml, this will be called recurring
             var hostname = os.hostname();
@@ -89,10 +91,10 @@ module.exports =  function(app, passport){
                 configmgr.save(global.config);
             }
         
-            res.writeHead(200,{"Content-Type":"application/json"});
-            res.write(JSON.stringify(global.config["prometheus_targets"]));
+           // res.writeHead(200,{"Content-Type":"application/json"});
+            res.json(global.config["prometheus_targets"]);
             
-            res.end(); 
+            //res.end(); 
     
     })
     
@@ -101,18 +103,19 @@ module.exports =  function(app, passport){
 		try{
             
             var data = req.body;
-            console.log(req)
-            console.log("Current hosts:",global.config["prometheus_targets"]);
-			console.log("New hosts:",data)
-            var new_data = [];
-            data.forEach(function(what){
-                new_data.push(what);
-            })
-            data = new_data;
+            console.log("metrics_control Current hosts:",global.config["prometheus_targets"]);
+			console.log("metrics_control New hosts:",data)
             
+            if (!global.config["prometheus_targets"]){
+                global.config["prometheus_targets"] = [
+                    {
+                      "targets": [ ],
+                    },
+                  ];
+            }
             
-            console.log("Adding hosts to metrics config:",data);
-            global.config["prometheus_targets"][0]["targets"].push(...data);
+            console.log("Savinc prometheus_targets config",data);
+            global.config["prometheus_targets"][0]["targets"] = data;
             configmgr.save(global.config,function(){
                 res.status(200);//Send error response here
                 res.end(); 
@@ -162,109 +165,108 @@ module.exports =  function(app, passport){
                 return;
 		}
 	});
-    
-    app.put('/metrics_control', async (req, res) => {
+}
+//     app.put('/metrics_control', async (req, res) => {
 
-        //install service
-		try{
-            var data = req.body;
+//         //install service
+// 		try{
+//             var data = req.body;
 
-			if (data["prometheus_data_retention"]){
-				console.log("Saving new prometheus_data_retention",data)
-				var nssmPath = path.join(global.approot + "/tools/nssm.exe");
-				var editCmd =  '"' +nssmPath + '" set "FFAStrans Metrics Collector" AppParameters "--storage.tsdb.retention.time '+ data["prometheus_data_retention"] + 'd"';
-				console.log("Executing cmd: ", editCmd);
+// 			if (data["prometheus_data_retention"]){
+// 				console.log("Saving new prometheus_data_retention",data)
+// 				var nssmPath = path.join(global.approot + "/tools/nssm.exe");
+// 				var editCmd =  '"' +nssmPath + '" set "FFAStrans Metrics Collector" AppParameters "--storage.tsdb.retention.time '+ data["prometheus_data_retention"] + 'd"';
+// 				console.log("Executing cmd: ", editCmd);
 				
-				try{
-					//edit service params
-					var editChild = await exec(editCmd);
-					console.log("Edit prom Service success.")
-				}catch(ex){
-					console.log("Error editing prometheus service:",ex)
-					res.status(500);
-					res.write('Error editing prometheus service: <br/>Please try to manually edit the service startup parameters e.g. --storage.tsdb.retention.time 1d using nssm.exe edit "FFAStrans Metrics Collector"');
-					res.end();
-					return;
-				}
-				try{
-					//restart service
-					var restartCmd = 'net stop "FFAStrans Metrics Collector" && net start "FFAStrans Metrics Collector"';
-					console.log("Executing restart cmd: ", restartCmd);
-					var restartService = await exec(restartCmd);
-					console.log("Restart prom Service success.");
-					res.send("OK");
-					res.status(200);//Send error response here
-					res.end(); 
-				}catch(ex){
-					res.status(500);
-					res.write('Error restarting prometheus service: <br/>Please try to manually edit the service startup parameters e.g. --storage.tsdb.retention.time 1d using nssm.exe edit "FFAStrans Metrics Collector"' + " Message, " + JSON.stringify(ex) );
-					res.end();
-					return;
-				}
+// 				try{
+// 					//edit service params
+// 					var editChild = await exec(editCmd);
+// 					console.log("Edit prom Service success.")
+// 				}catch(ex){
+// 					console.log("Error editing prometheus service:",ex)
+// 					res.status(500);
+// 					res.write('Error editing prometheus service: <br/>Please try to manually edit the service startup parameters e.g. --storage.tsdb.retention.time 1d using nssm.exe edit "FFAStrans Metrics Collector"');
+// 					res.end();
+// 					return;
+// 				}
+// 				try{
+// 					//restart service
+// 					var restartCmd = 'net stop "FFAStrans Metrics Collector" && net start "FFAStrans Metrics Collector"';
+// 					console.log("Executing restart cmd: ", restartCmd);
+// 					var restartService = await exec(restartCmd);
+// 					console.log("Restart prom Service success.");
+// 					res.send("OK");
+// 					res.status(200);//Send error response here
+// 					res.end(); 
+// 				}catch(ex){
+// 					res.status(500);
+// 					res.write('Error restarting prometheus service: <br/>Please try to manually edit the service startup parameters e.g. --storage.tsdb.retention.time 1d using nssm.exe edit "FFAStrans Metrics Collector"' + " Message, " + JSON.stringify(ex) );
+// 					res.end();
+// 					return;
+// 				}
 				 
 				 
-				return;
-			}
+// 				return;
+// 			}
 			
-			//default: install prom service
-            if(global.approot.match(/^\\\\/)){
-                throw "Sorry, you cannot install Prometeus Database on a UNC share. Please copy and install the webinterface locally on the server."
-            }
+// 			//default: install prom service
+//             if(global.approot.match(/^\\\\/)){
+//                 throw "Sorry, you cannot install Prometeus Database on a UNC share. Please copy and install the webinterface locally on the server."
+//             }
 			
-            var inst = global.approot + "/tools/install_metrics_server.bat";
+//             var inst = global.approot + "/tools/install_metrics_server.bat";
             
             
            
-            console.log("Executing " + inst)
+//             console.log("Executing " + inst)
             
-            result = await exec('cmd /C "' + inst + '"');
-            console.log("Metrics install result:" + result)
-            if (result["code"] != 0){
-                throw "Installation failed, does the webinterface server.exe run with administrative privileges?"
-            }
+//             result = await exec('cmd /C "' + inst + '"');
+//             console.log("Metrics install result:" + result)
+//             if (result["code"] != 0){
+//                 throw "Installation failed, does the webinterface server.exe run with administrative privileges?"
+//             }
             
-            res.send("OK");
-            res.status(200);//Send error response here
-            res.end();  
+//             res.send("OK");
+//             res.status(200);//Send error response here
+//             res.end();  
             
-        }
-		catch (ex){
-				console.log("ERROR in PUT metrics_control: " + ex);
-                res.status(500);//Send error response here
-                res.write("ERROR in PUT metrics_control: " + ex)
-                res.end();
-                return;
-		}
-	});
+//         }
+// 		catch (ex){
+// 				console.log("ERROR in PUT metrics_control: " + ex);
+//                 res.status(500);//Send error response here
+//                 res.write("ERROR in PUT metrics_control: " + ex)
+//                 res.end();
+//                 return;
+// 		}
+// 	});
     
-    
-}
+// }
 
 
-function systemSync(cmd) {
-  try {
-    return child_process.execSync(cmd).toString();
-  } 
-  catch (error) {
-    error.status;  // Might be 127 in your example.
-    error.message; // Holds the message you typically want.
-    error.stderr;  // Holds the stderr output. Use `.toString()`.
-    error.stdout;  // Holds the stdout output. Use `.toString()`.
-    return error;
-  }
-};
+// function systemSync(cmd) {
+//   try {
+//     return child_process.execSync(cmd).toString();
+//   } 
+//   catch (error) {
+//     error.status;  // Might be 127 in your example.
+//     error.message; // Holds the message you typically want.
+//     error.stderr;  // Holds the stderr output. Use `.toString()`.
+//     error.stdout;  // Holds the stdout output. Use `.toString()`.
+//     return error;
+//   }
+// };
 
-function hashCode (string) {
-//this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
-  var hash = 0, i, chr;
-  if (string.length === 0) return hash;
-  for (i = 0; i < string.length; i++) {
-    chr   = string.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
+// function hashCode (string) {
+// //this creates a hash from a stringified object, it is used to workaround and create missing jobids from ffastrans version 0.9.3
+//   var hash = 0, i, chr;
+//   if (string.length === 0) return hash;
+//   for (i = 0; i < string.length; i++) {
+//     chr   = string.charCodeAt(i);
+//     hash  = ((hash << 5) - hash) + chr;
+//     hash |= 0; // Convert to 32bit integer
+//   }
+//   return hash;
+// };
   
   
   

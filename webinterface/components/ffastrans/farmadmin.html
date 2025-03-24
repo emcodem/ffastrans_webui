@@ -150,6 +150,8 @@
         
     /* build basic page layout and init periodic job loading*/
     function init() {
+        return;
+        
         buildLayout()
         return;
         var contentiframe = document.getElementById("content_iframe");
@@ -189,27 +191,27 @@
     }
     
 
-async function buildLayout(){
+// async function buildLayout(){
     
-    const tabbar = new dhx8.dhx.Tabbar(document.body,{
-        mode: "top",
-        css: "ffas_tabbar",
-        views: [
-            // { id: "hosts",      tab: "Hosts", html: '<iframe src="farmadmin/host_metrics.html"  class="farm_iframe"></iframe>'},
-            // { id: "jobs",       tab: "Jobs" , html: '<iframe src="farmadmin/job_metrics.html"   class="farm_iframe"></iframe>'}, //email disabled because of password encryption problems
-            { id: "setup",      tab: "Setup", html: '<iframe src="farmadmin/metrics_setup.html" class="farm_iframe"></iframe>'}
-        ],
-        // more config options
-    });
+//     const tabbar = new dhx8.dhx.Tabbar(document.body,{
+//         mode: "top",
+//         css: "ffas_tabbar",
+//         views: [
+//             // { id: "hosts",      tab: "Hosts", html: '<iframe src="farmadmin/host_metrics.html"  class="farm_iframe"></iframe>'},
+//             // { id: "jobs",       tab: "Jobs" , html: '<iframe src="farmadmin/job_metrics.html"   class="farm_iframe"></iframe>'}, //email disabled because of password encryption problems
+//             { id: "setup",      tab: "Setup", html: '<iframe src="farmadmin/metrics_setup_dhx.html" class="farm_iframe"></iframe>'}
+//         ],
+//         // more config options
+//     });
 
-    tabbar.events.on("beforeClose", function () {
-        //eventHandler(event, arguments);
-    });
+//     tabbar.events.on("beforeClose", function () {
+//         //eventHandler(event, arguments);
+//     });
 
-}
+// }
 
 
 </script>
 <body onload="loadserverconfig()">
-   
+    <iframe src="farmadmin/metrics_setup_dhx.html" class="farm_iframe"></iframe>
 </body>

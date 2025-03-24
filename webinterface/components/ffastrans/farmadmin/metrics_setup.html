@@ -134,9 +134,9 @@
                 //fill grafana url texboxes
  
                 //fill data retention textbox
-				if (document.getElementById("prometheus_data_retention").value == ""){
-					document.getElementById("prometheus_data_retention").value = response["prometheus_data_retention"];
-				}
+				// if (document.getElementById("prometheus_data_retention").value == ""){
+				// 	document.getElementById("prometheus_data_retention").value = response["prometheus_data_retention"];
+				// }
                 //transform response to fancytree compatible
                 var fancytreeobj = [];
                 try{
@@ -174,6 +174,7 @@
         });
     
     }
+
     function buildHostsGrid(setup_json){
     	
         //var sourceUrl = "testdata.xml";
@@ -230,31 +231,31 @@
 
     }
     
-    function install_prometeus(){
-        $.ajax({
-            url: ("/metrics_control" + "?" + Math.random()),
-            type: "PUT",
-            success: function(response) {
-                //transform response to fancytree compatible
-                alert(success);
-            },
-            error: function(xhr, status) {
+    // function install_prometeus(){
+    //     $.ajax({
+    //         url: ("/metrics_control" + "?" + Math.random()),
+    //         type: "PUT",
+    //         success: function(response) {
+    //             //transform response to fancytree compatible
+    //             alert(success);
+    //         },
+    //         error: function(xhr, status) {
                 
-                window.setTimeout(function(){
+    //             window.setTimeout(function(){
                     
-                    err_html = "<div style='margin:10px'>";
-                    err_html += "Error installing: <br/>" + xhr.responseText;
-                    err_html += "<br/><br/>Please try to install the service manually: webinterface/tools/install_metrics_server.bat"
-                    err_html += "<br/><br/>Once the FFAStrans Metrics Services are installed and running, reload this page"
-                    err_html += "</div>"
-                    document.body.innerHTML = err_html;
-                },2000);
-                clearInterval(m_loadinterval)
+    //                 err_html = "<div style='margin:10px'>";
+    //                 err_html += "Error installing: <br/>" + xhr.responseText;
+    //                 err_html += "<br/><br/>Please try to install the service manually: webinterface/tools/install_metrics_server.bat"
+    //                 err_html += "<br/><br/>Once the FFAStrans Metrics Services are installed and running, reload this page"
+    //                 err_html += "</div>"
+    //                 document.body.innerHTML = err_html;
+    //             },2000);
+    //             clearInterval(m_loadinterval)
                 
-            }
+    //         }
 
-        });
-    }
+    //     });
+    // }
     
     function build_new_api_url(what) {
         if (JSON.parse(m_serverconfig['STATIC_USE_PROXY_URL'])) {
@@ -366,14 +367,14 @@
 			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
 			
                 <legend class="fs_legend">Information</legend>
-                This page provides easy access to configure prometheus settings. 
-                <br/>The embedded version in webint was removed because it limits your freedom when using metrics.
-                <br/><br/>
-                <h5>Grafana: <a href="http://localhost:3004" target="_blank">http://localhost:3004</a></h5>
+                This page provides simplified access to configure prometheus settings. 
+                <br/>
+                <br/>
+               Grafana: <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>
                 <br/>Prometheus: <a href="http://localhost:9090" target="_blank">http://localhost:9090</a>
 
             </fieldset>
-			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
+			<!-- <fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
 			
                 <legend class="fs_legend">Data retention</legend>       
 						   <div style="width: 100%;margin-bottom: 10px;" class="form-group dhxform_label dhxform_label_align_left">
@@ -391,14 +392,14 @@
 							 <div id="retention-loading" style="visibility:hidden" class="spinner-border" role="status">
 							  <span class="sr-only">Loading...</span>
 							</div>
-			</fieldset>		
+			</fieldset>		 -->
 				
 			<fieldset class="dhxform_fs" style="padding-left:20px;margin-top:20px">
 				
                 <legend class="fs_legend">Monitored Hosts</legend>
 				Register Prometheus "exporters" here, it will alter webinterface/tools/prometheus/prometheus.yml file<br/>
                 Example: After you installed "windows exporter" (ffastrans_metrics_clients.bat) for CPU and memory on hostname THEHOST, add THEHOST:9182 to the list.<br/><br/>
-                <br/>Webinterface/FFAStrans API V3 exports prometheus metrics on port 3003.
+                Webinterface/FFAStrans API V3 exports prometheus metrics on port 3003.
                 <br/>
 
                     <div style="display: table-row" class="" role="link" tabindex="0" dir="ltr" style="width: 150px;">

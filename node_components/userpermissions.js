@@ -4,6 +4,9 @@ var ffastransapi = require("./ffastransapi")
 
 module.exports = {
     checkworkflowpermission: checkworkflowpermission, 
+    getAllowedBrowseLocations : getAllowedBrowseLocations,
+    checkFolderPermissions : checkFolderPermissions,
+    getpermissionlistAsync:getpermissionlistAsync,
 
     /* this is old style, we should not use inline functions in exports */
     //set object to config obj
@@ -33,28 +36,7 @@ module.exports = {
        return [];
     },
 
-	getpermissionlistAsync:async (username) => {
-		try{
-            if (username == "")
-                return []
-			var data = await global.db.config.findOne({"local.username":username});
-			//{ "local.usergroup.name": { data.local.groups }}
-			var cursor = await global.db.config.find({ "local.usergroup.name": {$in: data.local.groups }});
-			var allpermissions = [];
-			for (let i in cursor){
-				if (typeof(cursor[i]) == "function"){
-					continue;
-				}
-				//concat all permission arrays from all groups
-				//console.log(cursor[i])
-				allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
-			}
-			return (allpermissions);
-		}catch(ex){
-			console.error("Fatal error getting userpermissions for username: ",username);
-			return [];
-		}
-	},
+	
 
     //collects all permissions of all groups the username is memberof in array
      getpermissionlist:  (username,callback) => {
@@ -131,6 +113,30 @@ module.exports = {
     }
 };
 
+
+async function getpermissionlistAsync(username) {
+    try{
+        if (username == "")
+            return []
+        var data = await global.db.config.findOne({"local.username":username});
+        //{ "local.usergroup.name": { data.local.groups }}
+        var cursor = await global.db.config.find({ "local.usergroup.name": {$in: data.local.groups }});
+        var allpermissions = [];
+        for (let i in cursor){
+            if (typeof(cursor[i]) == "function"){
+                continue;
+            }
+            //concat all permission arrays from all groups
+            //console.log(cursor[i])
+            allpermissions = allpermissions.concat(cursor[i].local.usergroup.permissions)
+        }
+        return (allpermissions);
+    }catch(ex){
+        console.error("Fatal error getting userpermissions for username: ",username);
+        return [];
+    }
+}
+
 let workflowCache = {expires_on:new Date(),all_workflows:null};//example structure of course invalid data
 
 async function checkworkflowpermission(username,wf_name){
@@ -192,4 +198,61 @@ async function checkworkflowpermission(username,wf_name){
     if (!have_filter)
         return true;
     return false;
+
+}
+
+async function checkFolderPermissions(username,path){
+    let got_permission = false;
+    try{
+        let allowedLocs = await getAllowedBrowseLocations(username);
+        allowedLocs.forEach(loc => {
+            if (path.toLowerCase().indexOf(loc.path.toLowerCase()) != -1){
+                got_permission = true;
+            }
+        });
+    }catch(ex){
+        console.log("Error checkFolderPermissions " + ex)
+        return false;
+    }
+    return got_permission;
+
+}
+
+async function getAllowedBrowseLocations(username){
+	var all_locations = global.config.allowed_browselocations;
+	var filtered_locations = [];
+	
+	//loop through all permissions and collect allowed locations
+	let has_location_filter = false; 
+	if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "true"){
+		let perms = await getpermissionlistAsync(username);
+		for (perm of perms){
+			if (perm.key == "FILTER_BROWSE_LOCATIONS"){
+				has_location_filter = true;
+				all_locations.map(function(loc){
+					var filter = perm["value"]["filter"];
+					if (loc.displayname.toLowerCase().match(filter.toLowerCase())){
+						filtered_locations.push(loc);
+					}
+				});
+				
+			}
+		}
+	}else{
+		filtered_locations = all_locations;
+	}
+	if (!has_location_filter)
+		filtered_locations = all_locations;
+	//above filter logic can potentially produce duplicate entries, filter unique array objects
+	filtered_locations = filtered_locations.filter((obj1, i, arr) => 
+		arr.findIndex(obj2 => 
+		  JSON.stringify(obj2) === JSON.stringify(obj1)
+		) === i
+	)
+
+	if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false" ){//removed check for no locations || Object.keys(allowed_locations).length == 0
+		return global.config.allowed_browselocations;
+	}
+	//return all locations
+	return filtered_locations;
 }
