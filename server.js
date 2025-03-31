@@ -239,7 +239,9 @@ function start_cron(){
     
 }
 
+
 async function registerAddedFolders(newline_separated_folder_list){
+
     if (newline_separated_folder_list){
         let list = newline_separated_folder_list.split("\n");
         if (list.length == 0)
@@ -249,7 +251,13 @@ async function registerAddedFolders(newline_separated_folder_list){
                 let parts = path.parse(list[i]);
                 let lastDir = parts.name;
                 console.log("Registering additional Webserver Folder: ", list[i],"Url:","/" + lastDir);
-                app.use("/"+lastDir, express.static(list[i]));
+                app.use("/"+lastDir, express.static(list[i], {
+                    index: false,
+                    setHeaders: (response, file_path, file_stats) => {
+                        // This function is called when “serve-static” makes a response.
+                        console.log("Added folder Serving file:", file_path);
+                    }
+                }));
             }else{
                 console.error("Error registering additional folder, does not exist: ", list[i]);
             }
@@ -415,7 +423,7 @@ async function init(conf){
     //log all requests
     app.use(function(req, res, next) {
         //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
-        if (req.url.indexOf("dhtmlx.css") != -1){
+        if (req.url.indexOf("temp") != -1){
             var stop = 1;
         }
         next();
@@ -423,8 +431,13 @@ async function init(conf){
 
     //"routes"
 
+
+
     require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
     require('./node_components/passport/passport')(passport); // pass passport for configuration
+    
+
+    
     // require("./upload_backend/common")(app, express);
     // require("./upload_backend/saverename")(app, express);
     // require("./upload_backend/getFullUploadPath")(app, express);
@@ -457,12 +470,15 @@ async function init(conf){
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/databasemaintenance_views")(app, passport);
 
+    //Registers user configured additinal webfolders
+    await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS);
+
+    //uppy overrides "all other urls" for receiving the upload using tus so it should be the last thing to load
     require("./node_components/uppy")(app, passport);
+
 
     //upload backend
 
-    //Registers user configured additinal webfolders
-    await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS);
 
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));
