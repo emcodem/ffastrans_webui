@@ -198,9 +198,9 @@ window.onerror = function(msg, url, line, col, error) {
    // supported in every browser.  It worked for me in Chrome.
    var extra = !col ? '' : '\ncolumn: ' + col;
    extra += !error ? '' : '\nerror: ' + error;
-
+   extra += !error.stack ? '' : '\nstack: <pre>' + error.stack + "</pre>";
    // You can view the information in an alert to see things working like this:
-   document.body.innerHTML = "Error, please contact Administrator: " + msg + "\nurl: " + url + "\nline: " + line + extra;
+   document.body.innerHTML = "<pre><h1><br/>Error, please contact Administrator</h1> <h3>" + msg + "</h3>\nurl: " + url + "\nline: " + line + extra + "</pre>>";
 
 };
 
@@ -1284,7 +1284,6 @@ function removeItemFromLocationMenu(id){
     });
 }
 function sort_date(a, b, order, aid, bid) {
-
     /* like win explorer, if ascending, folders are on top */
     // OneUp always goes first
     const folderRegex = /<span class="fancytree-ico-cf">[\s\S]*?<span class="folder_text">\.\.<\/span>[\s\S]*?<\/span>/;
@@ -1739,20 +1738,51 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
         document.getElementById("form_wf_description").innerHTML = wf_description;
     }
     //all_form_rows.push({name: "wf_description",type: "text", value: wf_description,css:"job_submit_wf_description" })
-    
+    console.log("WFSELOBJ",wf_object)
     //push user variables into form rows
-    var dhxform_user_vars = webuiVariables_processVariables(wf_object.user_variables.variables)//(workflowdetails.workflows[0].user_variables.variables)
-    console.log("dhxform_items",dhxform_user_vars)
+    var dhxform_user_vars = webuiVariables_processVariables(wf_object.user_variables.variables)
+    console.log("dhxform_items",dhxform_user_vars);
     all_form_rows.push(...dhxform_user_vars);
+
     //add form start btn
     var startBtnFormItm = {"view":"flat","css":"dhxform_obj_dhx_skyblue","width":"200","circle":true,"full":true,"type":"button","name":"btn_save","text":"Start","color":"primary"};
+    all_form_rows.push(startBtnFormItm);
+
+    if (wf_object.webinterface?.job_submit?.form_conf?.start_btn?.extra_fields){
+        //we have extra fields in the workflow config, these are added, overwriting possible existing
+        var extraparams = wf_object.webinterface.job_submit.form_conf.start_btn.extra_fields;
+        Object.assign(
+            startBtnFormItm,
+            extraparams
+        );
+        if (extraparams.hasOwnProperty('merit')){
+            //if userconf has merit, we must resort
+            all_form_rows.sort((a, b) => {
+                if (a.merit && !b.merit)
+                    return -1
+                if (!a.merit && b.merit)
+                    return 1
+                return a.merit - b.merit ;
+            });
+        }
+        //example of extraparams in workflow json under "workflow"
+        //"webinterface":{
+        // 	  "job_submit":{
+        // 		  "form_conf":{
+        // 			  "start_btn":{
+        // 				  "extra_fields":
+        // 					  {"merit":"0","width":"100"}			  
+        // 			  }
+        // 		  }
+        // 	  }
+        //   }
+
+    }
+    
 
     const vars_form = new dhx8.dhx.Form("form_wf_form", {
                 //css: "dhx_widget--bordered",
-                rows: [ 
-                        ...all_form_rows,
-                        startBtnFormItm
-                    ]
+                rows: all_form_rows
             });
 
     vars_form.getItem("btn_save").events.on("click", async function(events){
