@@ -1081,26 +1081,30 @@ function active_grid_actions(id,node) {
         dhtmlx.alert("Please select row");
         return;
     }
-    // if (id.match("resubmit")) {
-    //     selected.forEach(function(node) {
-    //         resubmit_job(node.row.guid||node.row.job_id);
-    //     })
-    // }
-    if (id == "a_details") {
+
+    if (id.match("details")) {
         var jobid = (selected[0].row.job_id);
         openLogViewer(jobid);
     }
-    if (id == "a_abort") {
+    if (id.match("abort")) {
         jobCommand(selected, "abort");//jobid for incoming jobs is the filename of mons/i file
     }
-    if (id == "a_pause") {
+    if (id.match("pause")){
         jobCommand(selected, "pause");
     }
-    if (id == "a_resume") {
+    if (id.match("resume")) {
         jobCommand(selected, "resume");
     }
-    if (id == "a_priority") {
-        // show_priority_window();
+    if (id.match("priority")) {
+        let newprio = prompt("New Priority (0 = Lowest, 5 = Highest)");
+        if (newprio !== null) {
+            newprio = parseInt(newprio); // Ensure it's a number
+            if (!isNaN(newprio) && newprio >= 0 && newprio <= 5) {
+                jobCommand(selected, "priority", newprio);
+            } else {
+                alert("Priority must be a number between 0 and 5.");
+            }
+        }
     }
 }
 
@@ -1152,13 +1156,8 @@ function getActiveGridColumns(){
 }
 
 async function buildActiveGrid() {
-    console.log("building activegrid")
 
-    //grid columns are defined on server side
-    // let colres = await fetch("/get_jobviewercolumns");
-    // if (!colres.ok)
-    //     return dhx8.dhx.message({ expire: 3000, text: "Error loading grid config"});
-    // let gridcolumns = await colres.json()
+    console.log("building activegrid")
     let gridcolumns = getActiveGridColumns();
 
     // //apply user state
@@ -1198,7 +1197,6 @@ async function buildActiveGrid() {
         eventHandlers: {
             oninput:{
                 searchbox: debounce((event,  args) => {
-
                     //debounce function prevents this to fire multiple times parallel while user is typing
                     //only if user did not type for 750ms, function will fire
                     grid.filterobj = collectFilters();
@@ -1304,66 +1302,59 @@ async function buildActiveGrid() {
         selectedCells = grid.selection.getCells();
         if (selectedCells.length == 0)
             toggleJobControl("active",false);
+
         return;
-
-        // let existing    = grid.data.serialize();
-        // let existingIds = existing.map(r=>{return r.id});
-        // let newIds      = newData.map(r=>{return r.id});
-        // let newRows     = newData.filter(   r=>{return existingIds.indexOf(r.id) == -1});
-        // let existingRows = newData.filter(  r=>{return existingIds.indexOf(r.id) != -1});
-        // let missing     = existing.filter(  r=>{return newIds.indexOf(r.id) == -1})
-        // let missingIds  = missing.map(r=>{return r.id});
-
-        // //insert new
-        // grid.data.add(newRows);
-        // missingIds.forEach(rid=>{grid.selection.removeCell(rid);}); //unselect
-        // //remove missing
-        // grid.data.remove(missingIds);
-        // //update existing
-        // console.log("rows to update:",existingRows)
-        // existingRows.map(r=>{
-        //     console.log("updating",r,newData.filter(nrow=>{return nrow.id == r.id}));
-        //     grid.data.update(r.id, newData.filter(nrow=>{return nrow.id == r.id})[0]);
-        // });
-
-        // //sort
-        // applySort();
-        // function applySort(){
-        //     if (grid.sortcol == "state"){
-        //         //sort by first by date and state second
-        //         let $do_if_gt = grid.sortdir == "asc" ? 1 : -1;
-        //         console.log("do_if_gt",$do_if_gt)
-        //         console.log("before sort",grid.data.serialize())
-        //         console.log("sorting state before",grid.getSortingState())
-        //         grid.data.sort({
-        //                 rule: (a, b) => {
-        //                     let a_state_date = a.state + a.job_start;
-        //                     let b_state_date = b.state + b.job_start;
-        //                     //first ternary moves a down, second moves it up or keeps current position if dup
-        //                     return a_state_date > b_state_date ? $do_if_gt : (a_state_date < b_state_date ? ($do_if_gt*-1) : 0);
-        //                 }
-        //             }
-        //         )
-
-
-        //         console.log("after sort",grid.data.serialize())
-        //         console.log("sorting state after",grid.getSortingState())
-
-        //     }else{
-        //         //let the grid sort without help
-        //         grid.data.sort({
-        //             by: grid.sortcol,
-        //             dir: grid.sortdir
-        //         })
-        //     }
-
-
-        // }
-        //check if we have selected rows
-
-
-
     }
+
+            //history grid context menu
+    function attachGridContextMenu(){
+        const contextMenu = new dhx8.dhx.ContextMenu(null, { css: 'grid-context-menu' });
+        let menuitems = [
+            {
+                type: 'menuItem',id: 'details',value: 'Job Details'
+            },
+            {
+                type: 'menuItem',id: 'abort',value: 'Abort'
+            },
+            {
+                type: 'menuItem',id: 'pause',value: 'Pause'
+            },
+            {
+                type: 'menuItem',id: 'resume',value: 'Resume'
+            },
+            {
+                type: 'menuItem',id: 'priority',value: 'Priority'
+            }
+        ]
+
+        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+        if (_filter.length > 0){
+            //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
+            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+            console.log("Displaying filtered list of buttons, regex: ", regex);
+            menuitems = menuitems.filter(itm=>{
+                if (itm.value.match(regex))
+                    return itm;
+            })
+        }
+
+        contextMenu.data.parse(menuitems);
+        /* context events */
+        contextMenu.events.on("click", function(menu_id,e){
+            active_grid_actions(menu_id);
+        });
+
+        grid.events.on('CellRightClick', function (row, column, e) {
+            grid.selection.setCell(row.id, column);
+                dhx8.dhx.awaitRedraw().then(function () {
+                    contextMenu.showAt(e);
+                });
+            event.preventDefault();
+            return false;
+        });
+    }
+    attachGridContextMenu()
+
     //attachGridContextMenu()
     // loadGridData();
     return grid;
@@ -1513,11 +1504,13 @@ async function buildActiveGrid() {
     {
         var total = config.total;
         // var tree = $('#treetable_history').fancytree('getTree');
+
         if (dhxgrid.mystuff.page != 1){
             //skip rebuilding pagination if we show another page than first
             return;
         }
-        $('#pagination-container').pagination({
+
+        let pagination_obj = $('#pagination-container').pagination({
             totalNumber: total,
             pageSize: m_max_history_gridrows,
             showGoInput: true,
@@ -1531,19 +1524,16 @@ async function buildActiveGrid() {
                         done(result);
                     },
             callback: function(data, pagination) {
+                
                 //click on some page number
+                console.log("pagination clicked",pagination);
                 if (pagination.pageNumber != dhxgrid.mystuff.page){
-                    //a new  page was selected, reload tree
-                    // var start = (pagination.pageNumber-1) * m_max_history_gridrows;
-                    // var sourceUrl = "/gethistoryjobsajax_treegrid?sortcol="+tree.mystuff.sortcol+"&direction="+tree.mystuff.sortdir+"&start=" +start+ "&count=" + m_max_history_gridrows+"&filterobj="+encodeURIComponent(JSON.stringify(tree.mystuff.filterobj));
-
-                    // tree.mystuff.page = pagination.pageNumber;
-                    // tree.reload({
-                    //     url: sourceUrl,
-                    //     cache: false
-                    // });
-                    dhxgrid.mystuff.page = pagination.pageNumber;
-                    dhxgrid.loadGridData();
+                    console.log("new page selected");
+                    //$('#pagination-container').pagination("disable");
+                    //a new  page was selected, reload grid
+                    
+                    //dhxgrid.mystuff.page = pagination.pageNumber;
+                    dhxgrid.setPage(pagination.pageNumber);
 
                     if (pagination.pageNumber != 1){
                         document.getElementById("page_number_text").innerHTML = '<span style="color:orange">(Page ' +pagination.pageNumber+ ')</span>'
@@ -1733,7 +1723,7 @@ async function buildActiveGrid() {
     async function buildHistoryGrid(layoutcell){
         //show total count div on the right side
         let paginationHtml = `
-                <div id="pagination" >
+                <div id="pagination" style="display:flex">
                     <div id="pagination-container" class="dhx_cell_hdr" style="font-weight: normal !important;padding:5px;font-family:Tahoma !important;font-size:12px !important">
                             
                     </div>
@@ -1755,77 +1745,9 @@ async function buildActiveGrid() {
             ]
         });
 
-        //find out actual with of grid
-        // layoutcell.attach(historyLayout);
-        // await dhx8.dhx.awaitRedraw();
          let gridcolumns = getHistoryGridColumns();
          gridcolumns = applyHistoryGridColUserSettings(gridcolumns);
          
-
-        // let parentWidth =  document.getElementById("pagination").clientWidth;
-        // console.log(gridcolumns.map(c=>{
-        //     console.log(c)
-        //     return {"id":c.id,"$width":c.$width,"width":c.width,"maxWidth":c.maxWidth}
-        // }))
-        // let c = gridcolumns;
-        // let totalWidth = c.reduce((sum, col) => sum + (col.$width || col.width || col.maxWidth || 100), 0); // Default width to 100 if unspecified
-        // if (totalWidth < parentWidth) {
-        //     alert()
-        //     // Calculate the scale factor to adjust the column widths proportionally
-        //     let scaleFactor = parentWidth / totalWidth;
-        //     let remainder = 0; // Variable to store any excess width
-        //     c.forEach((col, index) => {
-        //         console.log("Checking colwidth", col);
-        //         // If the column has a specific width or maxWidth, scale it
-        //         if (col.$width || col.width || col.maxWidth) {
-                   
-        //             // Use the maximum value between the width and maxWidth to avoid exceeding the max limit
-        //             let currentWidth = col.$width || col.maxWidth || 100;
-        //             let newWidth = Math.round(currentWidth * scaleFactor) + remainder;
-                    
-        //             // If the new width exceeds maxWidth, adjust it to not exceed
-        //             if (col.maxWidth && newWidth > col.maxWidth) {
-        //                 remainder = newWidth - col.maxWidth; // Store the excess width for the next column
-        //                 newWidth = col.maxWidth;
-        //             } else {
-        //                 remainder = 0; // Reset remainder if no excess
-        //             }
-
-        //             console.log("scaling from", currentWidth, "to", newWidth);
-        //             col.width = newWidth; // Update the width with the scaled value
-        //          } 
-        //          //else {
-        //         //     // If no width or maxWidth is set, assign a default width
-        //         //     col.width = Math.round(100 * scaleFactor) + remainder; // Default width if unspecified
-
-        //         //     remainder = 0; // Reset remainder for columns without specific width settings
-        //         // }
-        //     });
-        // }
-
-        
-        //apply user state - we cannot move this to getHistoryGridColumns because options.html needs the original cols
-        //MOVED TO Func applyHistoryGridColUserSettings
-        // if (localStorage.jobviewer_history_grid_column_config){
-        //     try{
-        //         //inject merit and hidden state from user config (options.html)
-        //         let userconf = JSON.parse(localStorage.jobviewer_history_grid_column_config);
-        //         gridcolumns = gridcolumns.map(c=>{
-        //             let uc = userconf.filter(uc=>{return uc.id == c.id});
-        //             if (uc.length != 1)
-        //                 return c;
-        //             c.hidden    = uc[0].user_hidden;
-        //             c.merit     = uc[0].merit;
-        //             return c;
-        //         });
-
-        //         gridcolumns.sort((a, b) => a.merit - b.merit);
-        //     }catch(ex){
-        //         console.error("Cannot restore user column config",ex)
-        //         delete localStorage.jobviewer_history_grid_column_config;
-        //     }
-        // }
-
         let use_autowidth = false;
         use_autowidth = !localStorage.jobviewer_historygrid_widths
         
@@ -1857,6 +1779,8 @@ async function buildActiveGrid() {
                         grid.filterobj = collectFilters(event);
                         console.log("searchbox event:",event,"filter",grid.filterobj)
                         grid.data.removeAll();
+                        grid.mystuff.page = 1;
+                        document.getElementById("page_number_text").innerHTML = ''
                         loadGridData_internal();
                     },750),
 
@@ -1985,7 +1909,10 @@ async function buildActiveGrid() {
         grid.sortdir        = "desc";
         grid.mystuff        = {page:1}
         grid.loadGridData   = loadGridData;
-
+        grid.setPage        = function(num){
+            grid.mystuff.page = num;
+            loadGridData_internal();
+        };
 
         function expandHistoryGridRow(row){
             if (row.expanded) {
@@ -2179,54 +2106,56 @@ async function buildActiveGrid() {
 
         }
 
+        //history grid context menu
+        function attachGridContextMenu(){
+            const contextMenu = new dhx8.dhx.ContextMenu(null, { css: 'grid-context-menu' });
+            let menuitems = [
+                {
+                    type: 'menuItem',id: 'details',value: 'Job Details'
+                },
+                {
+                    type: 'menuItem',id: 'resubmit',value: 'Resubmit'
+                },
+                {
+                    type: 'menuItem',id: 'delete',value: 'Delete'
+                }
+            ]
+
+            var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
+            if (_filter.length > 0){
+                //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
+                var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
+                console.log("Displaying filtered list of buttons, regex: ", regex);
+                menuitems = menuitems.filter(itm=>{
+                    if (itm.value.match(regex))
+                        return itm;
+                })
+            }
+
+            contextMenu.data.parse(menuitems);
+            /* context events */
+            contextMenu.events.on("click", function(menu_id,e){
+                history_grid_actions(menu_id);
+            });
+
+            m_historyGrid.events.on('CellRightClick', function (row, column, e) {
+                m_historyGrid.selection.setCell(row.id, column);
+                dhx8.dhx.awaitRedraw().then(function () {
+                    contextMenu.showAt(e);
+                });
+                event.preventDefault();
+                return false;
+            });
+        }
         attachGridContextMenu()
-        // loadGridData();
+
+        //finally attach the grid to page
         historyLayout.getCell("history_grid_cell").attach(grid);
         return historyLayout;
 
     }//buildHistoryGrid
 
-    function attachGridContextMenu(){
 
-        const contextMenu = new dhx8.dhx.ContextMenu(null, { css: 'grid-context-menu' });
-        let menuitems = [
-            {
-                type: 'menuItem',id: 'details',value: 'Job Details'
-            },
-            {
-                type: 'menuItem',id: 'resubmit',value: 'Resubmit'
-            },
-			{
-                type: 'menuItem',id: 'delete',value: 'Delete'
-            }
-        ]
-
-        var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
-        if (_filter.length > 0){
-            //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
-            var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
-            console.log("Displaying filtered list of buttons, regex: ", regex);
-            menuitems = menuitems.filter(itm=>{
-                if (itm.value.match(regex))
-                    return itm;
-            })
-        }
-
-        contextMenu.data.parse(menuitems);
-        /* context events */
-        contextMenu.events.on("click", function(menu_id,e){
-            history_grid_actions(menu_id);
-        });
-
-        m_historyGrid.events.on('CellRightClick', function (row, column, e) {
-            m_historyGrid.selection.setCell(row.id, column);
-            dhx8.dhx.awaitRedraw().then(function () {
-                contextMenu.showAt(e);
-            });
-            event.preventDefault();
-            return false;
-        });
-    }
 
     // function saveLayoutSizes(dhxLayout, name) {
     //     //store layout cells height and with into html5 storage (in percentage of document height)
