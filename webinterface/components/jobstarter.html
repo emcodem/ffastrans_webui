@@ -94,16 +94,18 @@
     .dhxform_control{
         width: auto;
     }
+    
     .job_submit_wf_description > div > div > input{
         /* sadly dhtmlx supports css at text form component but it sets the css 3 elements away*/
         
         font-weight: bold;
         font-size:16px;
     }
+
     ul.fancytree-container {
         font-size:12px !important;
         font-family: Tahoma !important;
-    }x
+    }
     
     .alternate_row .dhx_grid-row {
 		background: #edfab2;
@@ -1655,14 +1657,28 @@ async function getBrowseLocations(restore_saved = true){
 async function on_gridWorkflowSelected(wf_name,wf_object){
     console.log("Selected Workflow",wf_object)
 
+    //parse workflow description
+    var wf_description = wf_object["description"] || "";
+    wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
+
+    //reset and rebuild
     document.getElementById("variables_form").innerHTML = "";
+    let desc_hide = false;
+    if (wf_description == ""){
+        desc_hide = true;
+    }
     let layout = new dhx8.dhx.Layout("variables_form", {
                                             type: "space",
                                             rows: [
                                                 {
                                                     id: "top",
-                                                    html:"<div id='form_wf_description' style='font-weight:bold;font-size:14px;margin: 5px'></div><div id='form_wf_form'></div>"
-                                                },
+                                                    html:"<div id='form_wf_description' style='font-weight:bold;font-size:14px;margin: 5px'></div>",
+                                                    height:"content",
+                                                    hidden:desc_hide
+                                                },{
+                                                    id:"wf_frm",
+                                                    html: "<div id='form_wf_form'></div>"
+                                                }
                                             ]
                                         });
     
@@ -1725,10 +1741,6 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     }finally{
         m_jobLayout.cells("b").progressOff();
     }
-
-    //parse workflow description
-    var wf_description = wf_object["description"] || "";
-    wf_description = wf_description.replace("webui_stitch","");//webui_stitch is a controlling pattern, users are not interested to see this as text 
 
     var all_form_rows = []; 
     //add form text field for wf_desc
