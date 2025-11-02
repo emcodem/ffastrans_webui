@@ -39,7 +39,7 @@ module.exports = async function (app, passport) {
         
         m_req_count++;
         try {
-            if (global.config["alternate-server"]){
+            if (global.config["alternate-server"] == "true") {
                 res.json({sys: {Review:0, Success: 0, Error: 0, Cancelled: 0, Queued: 0, Running: 0, Users: global.logged_in_users_count}});
                 return; 
             }

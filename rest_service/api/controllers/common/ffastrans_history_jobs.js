@@ -11,7 +11,7 @@ let fileContentDatabase = {};
 let jobCache = {};//{job_id:[task,task]},job_id:...}
 let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
-async function getHistoryJobs(start,end, jobid = ''){
+async function getHistoryJobs(start,end, jobid = '', variablesFilter = null){
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
     if (Object.keys(jobCache).length > 1000){ //housekeeping
@@ -112,6 +112,20 @@ async function getHistoryJobs(start,end, jobid = ''){
                     taskjson[split_id]      = splitcontent;
                 }
                 let current_split = buildSplitInfo(taskjson,split_id);
+
+                //we return only variables that are used in variablecolumns
+                if (variablesFilter && current_split.variables) {
+                    current_split.variables = current_split.variables.filter(v => {
+                        // Keep the variable if it matches any of the provided filters
+                        return variablesFilter.some(f => {
+                            
+                            return v.name == f;
+                        });
+                    });
+                }else{
+                    //by default return no variables
+                    current_split.variables = [];
+                }
                 taskArray.push(current_split);
                 jobCache[job_id].push(current_split);
                 

@@ -98,22 +98,23 @@ module.exports = function(app, express){
 			var workflowResponse = await axios.get(build_new_api_url("/workflows"), {timeout: global.config.STATIC_API_TIMEOUT,agent: false, maxSockets: Infinity});
             var a_workflows = workflowResponse.data.workflows;//wf_name
 			var date_start = new Date();
-			date_start.setFullYear(date_start.getFullYear() - 4);
+			date_start.setFullYear(date_start.getFullYear());
             //2022-02-20T23:44:56.317+01:00
-            for (i=0;i<10;i++){
+            for (i=0;i<1000;i++){
                 var jobArray =[];
-                for (x=0;x<100000;x++){ 
-                    date_start.setSeconds(date_start.getSeconds() + 10);
+                for (x=0;x<100;x++){ 
+                    date_start.setSeconds(date_start.getSeconds() + i);
                     var dts = moment.tz(date_start, "Asia/Taipei").format("YYYY-MM-DD HH:mm:ss");//2022-06-28T08:42:30.780+02:00
-                    date_start.setSeconds(date_start.getSeconds() + 10);
-                    var dte = moment.tz(date_start, "Asia/Taipei").format("YYYY-MM-DD HH:mm:ss");
+                    var dte = dts;
                     var duration = "00:00:0" + Math.floor(Math.random() * 10); //0-9
                     var jobname= '255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=255Charactersöäü!"§$%&/()=';
                     var outcome = jobname + jobname + jobname + jobname + jobname + jobname + jobname  + jobname;
                     var wf_name = a_workflows[Math.floor(Math.random()*a_workflows.length)].wf_name;
                     let jobid = uuid();
 					let jobobj = {
-						"_id": jobid + "~1-0-0_main",
+						"_id": jobid + "_main",
+                        "job_id": jobid,
+                        split_id: "1-0-0.json",
 						"state": m_jobStates[getRandomInt()],
 						"workflow": wf_name,
 						"start_time": dts,
@@ -123,10 +124,25 @@ module.exports = function(app, express){
 						"source": jobname + i + x,
 						"outcome": outcome,
 						"duration": duration,
-                        children:[]
+                        children:[],
+                        variables: []
 					}
+
+                    const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ";
+                    let largeString = "";
+                    while (largeString.length < 1024 * 102) {
+                        largeString += loremIpsum;
+                    }
+                    for (let v = 0; v < 6; v++) {
+                        jobobj.variables.push({
+                            name: `s_var_${v}`,
+                            data: JSON.stringify({ payload: largeString })
+                        });
+                    }
+
                     let copyobj = JSON.parse(JSON.stringify(jobobj))
                     copyobj._id = jobid + "~1-0-0";
+                    copyobj.split_id = "2-0-0.json";
                     delete copyobj.children 
                     jobobj.children.push(copyobj); //must put the first job into children, its currently a copy of the outer job obj
                     
@@ -134,6 +150,7 @@ module.exports = function(app, express){
                     delete copyobj.children 
                     //create one split
                     copyobj._id = jobid + "~1-1-1";
+                    copyobj.split_id = "3-0-0.json";
                     copyobj.source = jobid + "anotherfile " + date_start;
                     copyobj.outcome = "second outcome " + date_start;
                     jobobj.children.push(copyobj);

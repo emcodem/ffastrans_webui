@@ -114,17 +114,34 @@ async function getQueuedJobs(){
 async function getJobs(){
 
 	//gets history and active jobs. Todo: add queued jobs to jobs api so we have only a single call here?
-	var all_history_jobs 	= [];
-	var all_running_jobs 	= [];
-	var failed_count = 0;
-	
-	var HISTORY_URLS = []
+	let HISTORY_URLS = [];
+	let all_history_jobs 	= [];
+	let all_running_jobs 	= [];
+	let failed_count = 0;
+
+
+	let varcols = global.config.job_viewer?.variable_columns || [];
+	let varsToFetch = new Set();
+	const rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
+
+	// Extract all unique variable names from the variable column templates
+	varcols.forEach(col => {
+		const matches = [...col.col_template.matchAll(rgx)];
+		matches.forEach(match => {
+			varsToFetch.add(match[1]);
+		});
+	});
 	
 	let hostnames = global.config.STATIC_API_HOSTS.split(",");
-	for (let h of hostnames)
-		HISTORY_URLS.push([helpers.build_new_api_url("/jobs/?start=0&count=100",h,global.config["STATIC_API_NEW_PORT"])]);
+	for (let h of hostnames) {
+		let url = `/jobs/?start=0&count=100`;
+		if (varsToFetch.size > 0) {
+			url += `&vars=${Array.from(varsToFetch).join('|')}`;
+		}
+		HISTORY_URLS.push([helpers.build_new_api_url(url, h, global.config["STATIC_API_NEW_PORT"])]);
+	}
 
-	for (var _currentUrl of HISTORY_URLS){
+	for (let _currentUrl of HISTORY_URLS){
 		console.time("Jobfetcher duration for: " + _currentUrl);
 		try{
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
@@ -277,43 +294,6 @@ function parseQueuedJobs(responseBody){
 		
 		}
 		
-		//incoming disable since ffastrans 1407 the tickets became uselesee
-        // try{
-		// 	//WATCHFOLDER Incoming
-		// 	let q_obj =responseBody.tickets.incoming;
-		// 	if (q_obj !== undefined) {
-		// 		for (let i=0; i<q_obj.length;i++){
-		// 					q_obj[i]["key"] = JSON.stringify(q_obj[i]).hashCode();
-		// 					q_obj[i]["ticket_path"] = q_obj[i]["ticket_path"];
-		// 					q_obj[i]["split_id"] = "";
-		// 					q_obj[i]["state"] = "Incoming";
-		// 					q_obj[i]["title"] = "Incoming";
-		// 					q_obj[i]["steps"] = "";
-		// 					q_obj[i]["progress"] = "0";
-		// 					q_obj[i]["workflow"] = q_obj[i]["internal_wf_name"]; 
-		// 					q_obj[i]["source"] = path.basename(q_obj[i]["sources"]["current_file"]);
-		// 					q_obj[i]["status"] = "Incoming";
-		// 					q_obj[i]["job_start"] = getDateStr(q_obj[i]["submit"]["time"]);
-		// 					q_obj[i]["proc"] = "Watchfolder";
-		// 		}
-		// 	}
-			
-		// 	//send the new jobs to connected clients
-		// 	//TODO: clients currently apply the workflow filters, we must filter on server side
-		// 	//that means we have to apply a similar strategy as with history and active jobs, e.g. clients pull the joblist
-		// 	if (responseBody.tickets.incoming){
-				
-		// 		global.socketio.emit("incomingjobs", JSON.stringify(q_obj));           
-		// 	}else{
-		// 		console.error("Error, we should not come here, keyword: incoming")
-		// 		global.socketio.emit("incomingjobs", "[]");
-		// 		// global.socketio.emit("incomingjobcount", 0);               
-		// 	}
-		// }catch(exc){
-		// 	console.error("Error occured while sending incoming to clients: " + exc )
-		// 	console.error(exc.stack)
-        //     console.error(q_obj[i])
-		// }
 }
 
 async function parseHistoryJobs(all_jobs){

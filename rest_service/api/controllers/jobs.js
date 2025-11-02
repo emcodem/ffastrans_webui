@@ -35,9 +35,19 @@ function sleep(ms) {
             end     = 100
         }
 
+
+        let variablesFilter = null
+        if (req.query.vars){
+            try{
+                variablesFilter = req.query.vars.split("|")
+            }catch(ex){
+                console.error("Error parsing variables filter:", req.query.vars)
+            }
+        }
+            
         //if start and end was set, we cannot use cache mode
         if (start != 0 || end != 100){
-            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid);
+            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid, variablesFilter);
             let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
             let returnobj = {discovery:req.headers.referer,history:a_jobs,active:a_active}
             res.json(returnobj)
@@ -54,7 +64,7 @@ function sleep(ms) {
         if (jobs_cache.born < maxAge || !jobs_cache.data){
             jobs_cache.is_refreshing = true;
             try{
-                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid);
+                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid, variablesFilter);
                 let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
                 jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
 
@@ -202,9 +212,3 @@ async function post(req, res) {
 		return res.status(500).json({message:err.toString(),description: err});
 	}
 }
-
-
-
-
-
-
