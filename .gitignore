@@ -17,3 +17,4 @@ alternate-server.old/
 logs
 audit
 /dist/
+/redist
