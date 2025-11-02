@@ -12,7 +12,7 @@
 /* DO NOT USE global objects of webserver here!!! */
 
 const path = require("path");
-const request = require("request");
+//const request = require("request");
 const fs = require("fs");
 const fsPromises = require('fs').promises;
 const dns = require('node:dns');
@@ -75,18 +75,6 @@ function init (_listenport,_ffastranspath,globalconf = {}) {
     start_server(_listenport,globalconf);
 }
 
-function doRequest(url) {
-  return new Promise(function (resolve, reject) {
-    request(url, function (error, res, body) {
-      if (!error && res.statusCode == 200) {
-        resolve(body);
-      } else {
-        reject(error);
-      }
-    });
-  });
-}
-
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -103,47 +91,6 @@ async function getFfastransProcessPromise() {
   } catch (e) {
       console.trace(e); 
   }
-}
-
-async function renewInstallInfo(about_url){
-    return;
-    //refresh ffastrans install info infinitely
-    while (true){
-        await sleep(1000);
-        var install_info;
-        var skip_api = false;
-        var resolved_path;
-        try{
-            //try to get path from tasklist
-            try{
-              let ffasPath = await getFfastransProcessPromise();
-              await fsPromises.access(ffasPath);//throws error if not exist
-              resolved_path = ffasPath;
-              skip_api = true;
-            }catch(ex){
-              console.error("Could not update ffastrans install path from tasklist, ",ex)
-            }
-
-            if (! skip_api){
-              //old method, ask ffastrans api. this is problematic because up to 1.4, the install path was not updated when moving ffastrans in the ffastrans.json
-              console.log("Fallback refresh install path, trying to read from FFAStrans about API")
-              install_info = await doRequest(about_url);
-              resolved_path = JSON.parse(install_info)["about"]["general"]["install_dir"];  
-            }
-          
-          if (global.api_config["s_SYS_DIR"] != resolved_path + "/"){
-            console.log("Detected move of FFAStrans installation, resetting paths");
-            global.api_config["s_SYS_DIR"] = resolved_path + "/";
-            global.api_config["s_SYS_CACHE_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/cache/";
-            global.api_config["s_SYS_CONFIGS_DIR"]    = global.api_config["s_SYS_DIR"] + "Processors/db/configs/";
-            global.api_config["s_SYS_JOB_DIR"]      = global.api_config["s_SYS_DIR"] + "Processors/db/cache/jobs/";
-            global.api_config["s_SYS_WORKFLOW_DIR"] = global.api_config["s_SYS_DIR"] + "Processors/db/configs/workflows/";
-          }
-        }catch(ex){
-            console.error("Error getting install info, is FFAStrans API online?", about_url)
-        }
-
-    }
 }
 
 function changeInstallPath(newPath){

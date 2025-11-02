@@ -1,9 +1,5 @@
-const Request = require("request");
-const fs = require("fs");
 const axios = require('axios');
-var child_process = require('child_process');
 var configmgr = require( './server_config');
-const bodyParser = require('body-parser');
 var path = require("path");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);

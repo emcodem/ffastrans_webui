@@ -95,7 +95,7 @@ console.debug = (...args)   => logger.debug.call(logger, ...args);
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
 //Before DB init, we need socket.io
-var jobcontrol = require("./node_components/jobcontrol_socketio");
+// var jobcontrol = require("./node_components/jobcontrol_socketio");
 
 //init DB
 console.log("Database file: ", global.approot  + "/database/config")
@@ -443,7 +443,7 @@ async function init(conf){
     // require("./upload_backend/getFullUploadPath")(app, express);
     require("./node_components/filebrowser")(app, express);
     require("./node_components/getserverconfig")(app, express);
-    require("./node_components/logparser")(app, express);
+    //require("./node_components/logparser")(app, express);
 
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobs_dhx")(app, express);
@@ -590,24 +590,25 @@ function initSocketIo(created_httpserver){
 			
 			//non player commands are logged
 			
-			console.log("Received jobcommand via socket.io",data);
-			//var regex = /cancel/
-			//var result = data.data[0].match(regex);
+            //this uses new api now
+			// console.log("Received jobcommand via socket.io",data);
+			// //var regex = /cancel/
+			// //var result = data.data[0].match(regex);
 
-			if (cmd == "pausejob"){
-				jobcontrol.pausejob(obj);
-				return;
-			}
-			if (cmd == "deletejob"){
-				//obj is job_id array
-                try{
-                    obj = JSON.parse(obj);
-				    database_controller.deleteRecords(obj);
-                }catch(ex){
-                    console.log("Error deleting jobs: ",ex);
-                }
-                return;
-			}
+			// if (cmd == "pausejob"){
+			// 	jobcontrol.pausejob(obj);
+			// 	return;
+			// }
+			// if (cmd == "deletejob"){
+			// 	//obj is job_id array
+            //     try{
+            //         obj = JSON.parse(obj);
+			// 	    database_controller.deleteRecords(obj);
+            //     }catch(ex){
+            //         console.log("Error deleting jobs: ",ex);
+            //     }
+            //     return;
+			// }
 		})
 		
 		//client disconnected

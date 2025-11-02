@@ -1,5 +1,5 @@
-const Request = require("request");
-var userpermissions = require("../userpermissions");
+//const Request = require("request");
+//var userpermissions = require("../userpermissions");
 
 module.exports = async function(app, passport){
     app.get('/getjobstate', (req, res) => {
