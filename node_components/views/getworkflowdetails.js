@@ -111,8 +111,7 @@ module.exports = function(app, passport){
 
             } catch (ex) {
               console.log("ERROR: error in getworkflow variables: " + ex);
-              res.status(500); // Send error response here
-              res.end();
+              res.status(500).send("Error processing workflow variables.");
               return;
             }
 
@@ -133,8 +132,7 @@ module.exports = function(app, passport){
       }
     } catch (ex) {
       console.log("ERROR: unexpected error in getworkflowlist: " + ex);
-      res.status(500); // Send error response here
-      res.end();
+      res.status(500).send("Unexpected error in getworkflowlist.");
     }
   });
 }
