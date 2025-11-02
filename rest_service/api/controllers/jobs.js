@@ -106,7 +106,7 @@ async function put(req, res){
             s_extra = Number(s_extra);
             if(s_extra){
                 //auto resume
-                console.log("Pause Job with enabled auto resume in " + s_exta + " Millis")
+                console.log("Pause Job with enabled auto resume in " + s_extra + " Millis")
                 setTimeout(async function(){
                     fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart));
                 })

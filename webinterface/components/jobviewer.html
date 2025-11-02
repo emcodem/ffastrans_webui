@@ -2338,6 +2338,8 @@ async function buildActiveGrid() {
         });
     }
 
+    //used by html
+    window.clear_workflow_tree_selection = clear_workflow_tree_selection;
     function clear_workflow_tree_selection(what){
         try{
             var tree = $("#workflowtree").fancytree('getTree');
