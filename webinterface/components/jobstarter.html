@@ -1668,16 +1668,23 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
         desc_hide = true;
     }
     let layout = new dhx8.dhx.Layout("variables_form", {
-                                            type: "space",
+                                            type: "line",
                                             rows: [
+                                                // {
+                                                //     id: "top",
+                                                //     html:"<div id='form_wf_description' style='font-weight:bold;font-size:14px;margin: 10px'></div>",
+                                                //     height:"content",
+                                                //     hidden:desc_hide
+                                                // },
                                                 {
-                                                    id: "top",
-                                                    html:"<div id='form_wf_description' style='font-weight:bold;font-size:14px;margin: 5px'></div>",
-                                                    height:"content",
-                                                    hidden:desc_hide
-                                                },{
                                                     id:"wf_frm",
-                                                    html: "<div id='form_wf_form'></div>"
+                                                    html: "<div id='form_wf_form'></div>",
+                                                    margin:10
+                                                },{
+                                                    id:"start_btn_frm",
+                                                    html: "<div id='start_btn_frm'></div>",
+                                                    margin:10,
+                                                    height:70
                                                 }
                                             ]
                                         });
@@ -1746,9 +1753,7 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
     //add form text field for wf_desc
 
     all_form_rows.push(startProcSelectFormItm);
-    if (wf_description != ""){
-        document.getElementById("form_wf_description").innerHTML = wf_description;
-    }
+
     //all_form_rows.push({name: "wf_description",type: "text", value: wf_description,css:"job_submit_wf_description" })
     console.log("WFSELOBJ",wf_object)
     //push user variables into form rows
@@ -1758,38 +1763,37 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
 
     //add form start btn
     var startBtnFormItm = {"view":"flat","css":"dhxform_obj_dhx_skyblue","width":"200","circle":true,"full":true,"type":"button","name":"btn_save","text":"Start","color":"primary"};
-    all_form_rows.push(startBtnFormItm);
 
-    if (wf_object.webinterface?.job_submit?.form_conf?.start_btn?.extra_fields){
-        //we have extra fields in the workflow config, these are added, overwriting possible existing
-        var extraparams = wf_object.webinterface.job_submit.form_conf.start_btn.extra_fields;
-        Object.assign(
-            startBtnFormItm,
-            extraparams
-        );
-        if (extraparams.hasOwnProperty('merit')){
-            //if userconf has merit, we must resort
-            all_form_rows.sort((a, b) => {
-                if (a.merit && !b.merit)
-                    return -1
-                if (!a.merit && b.merit)
-                    return 1
-                return a.merit - b.merit ;
-            });
-        }
-        //example of extraparams in workflow json under "workflow"
-        //"webinterface":{
-        // 	  "job_submit":{
-        // 		  "form_conf":{
-        // 			  "start_btn":{
-        // 				  "extra_fields":
-        // 					  {"merit":"0","width":"100"}			  
-        // 			  }
-        // 		  }
-        // 	  }
-        //   }
+    // if (wf_object.webinterface?.job_submit?.form_conf?.start_btn?.extra_fields){
+    //     //we have extra fields in the workflow config, these are added, overwriting possible existing
+    //     var extraparams = wf_object.webinterface.job_submit.form_conf.start_btn.extra_fields;
+    //     Object.assign(
+    //         startBtnFormItm,
+    //         extraparams
+    //     );
+    //     if (extraparams.hasOwnProperty('merit')){
+    //         //if userconf has merit, we must resort
+    //         all_form_rows.sort((a, b) => {
+    //             if (a.merit && !b.merit)
+    //                 return -1
+    //             if (!a.merit && b.merit)
+    //                 return 1
+    //             return a.merit - b.merit ;
+    //         });
+    //     }
+    //     //example of extraparams in workflow json under "workflow"
+    //     //"webinterface":{
+    //     // 	  "job_submit":{
+    //     // 		  "form_conf":{
+    //     // 			  "start_btn":{
+    //     // 				  "extra_fields":
+    //     // 					  {"merit":"0","width":"100"}			  
+    //     // 			  }
+    //     // 		  }
+    //     // 	  }
+    //     //   }
 
-    }
+    // }
     
 
     const vars_form = new dhx8.dhx.Form("form_wf_form", {
@@ -1797,29 +1801,34 @@ async function on_gridWorkflowSelected(wf_name,wf_object){
                 rows: all_form_rows
             });
 
-    vars_form.getItem("btn_save").events.on("click", async function(events){
+
+    const start_btn_frm = new dhx8.dhx.Form("start_btn_frm", {
+                //css: "dhx_widget--bordered",
+                rows: [startBtnFormItm]
+            });
+
+    start_btn_frm.getItem("btn_save").events.on("click", async function(events){
         startJobs(vars_form,wf_object);
     })
 
-    //finally add form to layout
-    //layout.getCell("top").attach(vars_form); 
+    //wait for form to draw, then attach the wf_description
+    //the backgrounds for this is that we can draw the html wf_desc in a way that scrollbars work perfectly only this way
+    //reason because there is no "html" type in dhx form
+    await dhx8.dhx.awaitRedraw();
+    if (wf_description != ""){
+        console.log("wf_description",wf_description)
+        // add wf_description as first child of form_wf_form
+        var wf_desc_div = document.createElement("div");
+        wf_desc_div.style.fontWeight = "bold";
+        wf_desc_div.style.fontSize = "14px";
+        wf_desc_div.style.margin = "10px";
+        wf_desc_div.innerHTML = wf_description;
 
-    //
+        //insert wf_description div as child of first child of form_wf_form
+        var parent = document.getElementById("form_wf_form").firstChild;
+        parent.insertBefore(wf_desc_div, parent.firstChild);
 
-    // var itemData = {type: "select",name: "start_proc", width:200,options: options,  offsetLeft:10};  
-    // m_mainForm.addItem("data", itemData, 2);
-    // m_mainForm.setUserData("start_proc", "workflow_object", wf_object);       //store selected workflow along with start_proc
-
-    // //hide whole startproc selection if there is only a single startproc
-    
-    // if (options.length == 1){
-    //     document.getElementById("mainform").style.display = "none";
-    // }else{
-    //     document.getElementById("mainform").style.display = "";
-    // }
-
-    //switch to variables tab
-    //on_processorSelected(wf_object);                                           //auto select first processor    
+    }
     
 }
 
