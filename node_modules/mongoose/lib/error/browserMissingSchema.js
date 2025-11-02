@@ -4,13 +4,14 @@
 
 'use strict';
 
-const MongooseError = require('./');
+const MongooseError = require('./mongooseError');
 
+/**
+ * MissingSchema Error constructor.
+ */
 
 class MissingSchemaError extends MongooseError {
-  /*!
-   * MissingSchema Error constructor.
-   */
+
   constructor() {
     super('Schema hasn\'t been registered for document.\n'
       + 'Use mongoose.Document(name, schema)');

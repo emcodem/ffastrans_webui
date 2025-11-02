@@ -1,6 +1,7 @@
 'use strict';
 
 const isDefiningProjection = require('./isDefiningProjection');
+const isPOJO = require('../isPOJO');
 
 /*!
  * ignore
@@ -12,18 +13,22 @@ module.exports = function isExclusive(projection) {
   }
 
   const keys = Object.keys(projection);
-  let ki = keys.length;
   let exclude = null;
 
-  if (ki === 1 && keys[0] === '_id') {
-    exclude = !!projection[keys[ki]];
+  if (keys.length === 1 && keys[0] === '_id') {
+    exclude = !projection._id;
   } else {
-    while (ki--) {
+    for (let ki = 0; ki < keys.length; ++ki) {
       // Does this projection explicitly define inclusion/exclusion?
       // Explicitly avoid `$meta` and `$slice`
-      if (keys[ki] !== '_id' && isDefiningProjection(projection[keys[ki]])) {
-        exclude = !projection[keys[ki]];
-        break;
+      const key = keys[ki];
+      if (key !== '_id' && isDefiningProjection(projection[key])) {
+        exclude = isPOJO(projection[key]) ?
+          (isExclusive(projection[key]) ?? exclude) :
+          !projection[key];
+        if (exclude != null) {
+          break;
+        }
       }
     }
   }

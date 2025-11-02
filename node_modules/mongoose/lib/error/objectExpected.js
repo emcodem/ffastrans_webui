@@ -4,21 +4,22 @@
 
 'use strict';
 
-const MongooseError = require('./');
+const MongooseError = require('./mongooseError');
 
+/**
+ * Strict mode error constructor
+ *
+ * @param {string} type
+ * @param {string} value
+ * @api private
+ */
 
 class ObjectExpectedError extends MongooseError {
-  /**
-   * Strict mode error constructor
-   *
-   * @param {string} type
-   * @param {string} value
-   * @api private
-   */
+
   constructor(path, val) {
     const typeDescription = Array.isArray(val) ? 'array' : 'primitive value';
     super('Tried to set nested object field `' + path +
-      `\` to ${typeDescription} \`` + val + '` and strict mode is set to throw.');
+      `\` to ${typeDescription} \`` + val + '`');
     this.path = path;
   }
 }
