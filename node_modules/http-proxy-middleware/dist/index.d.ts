@@ -1,6 +1,6 @@
 export * from './factory';
 export * from './handlers';
-export type { Filter, Options, RequestHandler } from './types';
+export type { Plugin, Filter, Options, RequestHandler } from './types';
 /**
  * Default plugins
  */

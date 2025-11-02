@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------------
 // Description:   System Information - library
 //                for Node.js
-// Copyright:     (c) 2014 - 2024
+// Copyright:     (c) 2014 - 2025
 // Author:        Sebastian Hildebrandt
 // ----------------------------------------------------------------------------------
 // Contributors:  Guillaume Legrain (https://github.com/glegrain)
@@ -55,6 +55,7 @@ const _sunos = (_platform === 'sunos');
 
 if (_windows) {
   util.getCodepage();
+  util.getPowershell();
 }
 
 // ----------------------------------------------------------------------------------
@@ -94,7 +95,11 @@ function getStaticData(callback) {
         graphics.graphics(),
         network.networkInterfaces(),
         memory.memLayout(),
-        filesystem.diskLayout()
+        filesystem.diskLayout(),
+        audio.audio(),
+        bluetooth.bluetoothDevices(),
+        usb.usb(),
+        printer.printer(),
       ]).then((res) => {
         data.system = res[0];
         data.bios = res[1];
@@ -109,6 +114,10 @@ function getStaticData(callback) {
         data.net = res[10];
         data.memLayout = res[11];
         data.diskLayout = res[12];
+        data.audio = res[13];
+        data.bluetooth = res[14];
+        data.usb = res[15];
+        data.printer = res[16];
         if (callback) { callback(data); }
         resolve(data);
       });
