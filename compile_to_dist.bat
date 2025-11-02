@@ -23,6 +23,9 @@ cmd /C ""%~dp0build_tools/ResourceHacker.exe" -open "server.exe" -save "server.e
  
 ie4uinit.exe -ClearIconCache
 
+cd "%~dp0"
+node scripts\package.js
+
 REM cmd /C "nexe test.js  -t windows-x64-18.14.0 --remote https://github.com/urbdyn/nexe_builds/releases/download/0.3.0/
 
 
