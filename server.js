@@ -443,7 +443,7 @@ async function init(conf){
     // require("./upload_backend/getFullUploadPath")(app, express);
     require("./node_components/filebrowser")(app, express);
     require("./node_components/getserverconfig")(app, express);
-    //require("./node_components/logparser")(app, express);
+    //require("./node_components/logparser")(app, express); //removed due to audit and change to new api
 
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobs_dhx")(app, express);
@@ -463,7 +463,7 @@ async function init(conf){
     require("./node_components/views/localdrives")(app, express);
 
     require("./node_components/get_userpermissions")(app, passport);
-    require("./node_components/resumeable_backend.js")(app, passport);
+    //require("./node_components/resumeable_backend.js.deprecated")(app, passport); //removed due to uppy and audit
 	require("./node_components/activedirectory_tester.js")(app, passport);
 	require("./node_components/admin_alert_email_tester.js")(app, passport);
 	require("./node_components/farmadmin_install_service.js")(app, passport);
