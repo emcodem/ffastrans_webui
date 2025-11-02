@@ -2344,6 +2344,7 @@ async function buildActiveGrid() {
         try{
             var tree = $("#workflowtree").fancytree('getTree');
             tree.selectAll(false);
+            document.getElementById("wf_filter").value = ""
         }catch(ex){}
     }
 
