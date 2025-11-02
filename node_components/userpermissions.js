@@ -7,6 +7,7 @@ module.exports = {
     getAllowedBrowseLocations : getAllowedBrowseLocations,
     checkFolderPermissions : checkFolderPermissions,
     getpermissionlistAsync:getpermissionlistAsync,
+    hasPermissionAsync: hasPermissionAsync,
 
     /* this is old style, we should not use inline functions in exports */
     //set object to config obj
@@ -67,19 +68,6 @@ module.exports = {
         });
     },
     
-    //return true if any group of the user includes specified permission key
-    haspermission:(username,permissionkey,callback) => {
-        module.exports.getpermissionlist(username,function(permarray){//mmodule.exports is like this.
-            for (i in permarray){
-                if (permarray[i].key == permissionkey){
-                    callback(true);
-                    return;
-                }  
-            }
-        });
-        callback(false);
-    },
-    
     //return a list of all permissions that exist
     getallpossiblepermissions:() => {
             var rights = [
@@ -112,6 +100,19 @@ module.exports = {
             return rights;
     }
 };
+
+async function hasPermissionAsync(username, permissionkey) {
+    if (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")
+        return true;
+
+    const permarray = await getpermissionlistAsync(username);
+    for (const i in permarray) {
+        if (permarray[i].key == permissionkey) {
+            return true;
+        }
+    }
+    return false;
+}
 
 
 async function getpermissionlistAsync(username) {

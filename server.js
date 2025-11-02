@@ -326,10 +326,10 @@ async function init(conf){
     // required for passport
 	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
     app.use(session({
-                        secret:             'you_will_never_guess_the_secret' ,    
-                        resave:             true,
-                        saveUninitialized:  true,
-						cookie:             { maxAge: farFuture }
+                        secret:             process.env.SESSION_SECRET || 'a-fallback-secret-for-dev-only',
+                        resave:             false, // Do not save session if unmodified
+                        saveUninitialized:  false, // Do not create session until something stored
+						cookie:             { maxAge: farFuture, sameSite: 'lax' } // Add sameSite for CSRF protection
         }));
 
     app.use(passport.initialize());
@@ -623,4 +623,3 @@ function initSocketIo(created_httpserver){
 
 	
 }
-

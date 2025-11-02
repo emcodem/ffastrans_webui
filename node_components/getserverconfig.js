@@ -1,4 +1,5 @@
 var configServer = require('./server_config');
+var userpermissions = require("../node_components/userpermissions");
 
 module.exports = function(app, express){
 //just output json array of array whole server config configured in server_config.js
@@ -19,7 +20,14 @@ module.exports = function(app, express){
 	});
 
 	app.get('/serverconfig_confidential', async (req, res) =>  {
-        
+        // Security: Only allow users with admin rights to see confidential config
+        const hasPermission = await userpermissions.hasPermissionAsync(req.user.local.username, "GROUPRIGHT_MENU_VIEW_ADMIN");
+        if (!hasPermission) {
+            res.status(403).json({ message: "Forbidden" });
+            res.end();
+            return;
+        }
+
 		try{
 			if (req.method === 'GET' || req.method === 'POST') {
                 
@@ -38,8 +46,15 @@ module.exports = function(app, express){
 		}
 	});
 
-	app.post('/serverconfig_confidential', async (req, res) => {
-        //var current_config = await configServer.getAsync();
+	app.post('/serverconfig_confidential', async (req, res) => {        
+        // Security: Only allow users with admin rights to save confidential config
+        const hasPermission = await userpermissions.hasPermissionAsync(req.user.local.username, "GROUPRIGHT_MENU_VIEW_ADMIN");
+        if (!hasPermission) {
+            res.status(403).json({ message: "Forbidden" });
+            res.end();
+            return;
+        }
+
         try{
             var new_fields = req.body;
             //update global config with the keys to store
