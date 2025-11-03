@@ -1,6 +1,7 @@
 const os = require("os")
 const path = require("path");
 const fs = require("fs");
+const fsextra = require('fs-extra');
 const { spawn } = require("child_process");
 
 class Mongod {
@@ -27,7 +28,8 @@ class Mongod {
     binaryFull  = false;
 
     //public fields read/write (change before calling start)
-    binaryPath  = os.tmpdir();   //where mongod binary will be extracted to. Can be changed before calling start method
+    binaryPath  = path.join(os.tmpdir(),"ffastrans_webinterface");   //where mongod binary will be extracted to. Can be changed before calling start method
+    
     port        = 27017;
 
     //private fields
@@ -58,6 +60,7 @@ class Mongod {
                 //create database binary
                 console.log("Writing Database binary to: ",this.binaryPath);
                 try{
+                    await fsextra.ensureDir(this.binaryPath);
                     this.binaryFull = await dumpBinaryToDisk(this.binaryPath);
                 }catch(ex){
                     console.error("Error writing database binaries:",ex);
