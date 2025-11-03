@@ -106,35 +106,6 @@ async function loadData(){
 
 }
 
-async function saveVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables")),
-        type: "POST",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
-    });
-    loadGridData(true);//reload with every save
-    dhx8.dhx.message({
-        text:"Success Saving Variables", 
-        css:"expire", 
-        expire:2000
-    });
-    return data;
-}
-
-async function deleteVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables?name=" + var_name_and_data.name)),
-        type: "DELETE",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
-    });
-    loadGridData(true);//reload with every save
-    return data;
-}
-
 function build_new_api_url(what) {
         return "/new_proxy" + what;
 }
@@ -273,7 +244,6 @@ async function buildLayout(){
     layout.getCell("main").progressHide(); 
 }
 
-
 async function loadGridData(force=false){
     console.trace("loadGridData called.., force:",force)
 
@@ -301,40 +271,6 @@ async function loadGridData(force=false){
     m_maingrid.data.parse(data.machines);
     await dhx8.dhx.awaitRedraw();
 }
-
-
-function deleteSelected(){
-    const selectedCells = m_maingrid.selection.getCells();
-    if (selectedCells.length == 0){
-        return;
-    }
-
-    var to_delete = selectedCells[0].row;
-    
-
-    dhx8.dhx.alert({
-        header: "Not possible",
-        text: "Selected Variable is used ("+to_delete.use_count+"), you must edit your workflows to not make use of the variable before deleting it.",
-        buttons: ["ok"]
-    });
-
-
-    dhx8.dhx.confirm({
-        header: "Confirm delete",
-        text: "Delete "+to_delete.name+"?",
-    }).then(function (i) { 
-        try{
-            deleteVariableAjax(to_delete);
-        }catch(ex){
-            console.log("Error deleting".ex)
-            alert("Error deleting variable: " + ex.responseText)
-            console.log("Error deleting",ex.responseText)
-        }
-        m_maingrid.data.remove(selectedCells[0].row.id);
-    });
-    
-}
-
 
 function constructFormEmptyLabel(labelW = 130){
         return {type: "text", name: "form_ignore_" + Math.random(), label: "", labelPosition: "left",width:labelW,value: ""};
