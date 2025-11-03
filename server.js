@@ -149,6 +149,23 @@ async function connectDb(){
     var mongoclient;
 	try{ 
 		mongoclient = await MongoClient.connect(url)
+        // try {
+           
+
+        //     // Connect to the admin database
+        //     const adminDb = mongoclient.db("admin");
+
+        //     // Set the feature compatibility version
+        //     const result = await adminDb.command({
+        //         setFeatureCompatibilityVersion: "8.0"
+        //     });
+
+        //     console.log("FCV result:", result);
+        // } catch (err) {
+        //     console.error("Error setting FCV:", err);
+        // } finally {
+        //     await client.close();
+        // }
 	}catch(ex){
 		// var myInterval = setInterval(function(){
 		// 	//show errormsg forever as we do not attempt to reconnect
@@ -171,17 +188,40 @@ async function connectDb(){
     }
     //ensure db indexes
     //try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
-	try{await global.db.deleted_jobs.createIndex({ job_id:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
-    try{await global.db.jobs.createIndex({ workflow:     "text" });}catch(ex){} 
-    //try{await global.db.jobs.createIndex({ workflow:     -1 });}catch(ex){} //must be -1 for global.db.jobs.distinct("workflow");
-    try{await global.db.jobs.createIndex({ job_end:     1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ job_start:   1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ deleted:     1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ state:       -1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ job_id:      -1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ job_id:       1 });}catch(ex){}
-    try{await global.db.jobs.createIndex({ state:       1,job_start:   1 });}catch(ex){}
+	await global.db.jobs.dropIndexes();
+    ensureJobsIndexes()
     db_connected_first_time();
+}
+
+async function ensureJobsIndexes() {
+    const desiredIndexes = [
+        { key: { workflow: "text" }, name: "workflow_text" },       // text search
+        { key: { workflow: 1 }, name: "workflow_1" },              // distinct() and equality queries
+        { key: { job_start: 1 }, name: "job_start_1" },
+        { key: { job_end: 1 }, name: "job_end_1" },
+        { key: { deleted: 1 }, name: "deleted_1" },
+        { key: { state: 1, job_start: 1 }, name: "state_job_start" },
+        { key: { job_id: -1 }, name: "job_id_-1" }                 // for distinct() logic
+    ];
+
+  // Get existing indexes
+    const existingIndexes = await global.db.jobs.indexes();
+
+  // Filter out indexes that already exist by name
+    const indexesToCreate = desiredIndexes.filter(idx => 
+    !existingIndexes.some(e => {
+        // Compare key pattern, not just name
+        return JSON.stringify(e.key) === JSON.stringify(idx.key);
+    })
+    );
+
+    if (indexesToCreate.length > 0) {
+        // Create only the missing indexes
+        await global.db.jobs.createIndexes(indexesToCreate);
+        console.log("Created indexes:", indexesToCreate.map(i => i.name));
+    } else {
+        console.log("All indexes already exist ✅");
+    }
 }
 
 function db_connected_first_time(){
