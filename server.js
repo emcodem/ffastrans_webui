@@ -188,7 +188,7 @@ async function connectDb(){
     }
     //ensure db indexes
     //try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
-	await global.db.jobs.dropIndexes();
+	//await global.db.jobs.dropIndexes();
     ensureJobsIndexes()
     db_connected_first_time();
 }
@@ -206,7 +206,7 @@ async function ensureJobsIndexes() {
 
   // Get existing indexes
     const existingIndexes = await global.db.jobs.indexes();
-
+    console.log("Existing indexes:", existingIndexes.map(i => i.name));
   // Filter out indexes that already exist by name
     const indexesToCreate = desiredIndexes.filter(idx => 
     !existingIndexes.some(e => {
