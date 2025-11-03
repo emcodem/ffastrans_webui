@@ -130,7 +130,7 @@ module.exports = function(app, express){
 
                     const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ";
                     let largeString = "";
-                    while (largeString.length < 1024 * 102) {
+                    while (largeString.length < 1024 * 10) {
                         largeString += loremIpsum;
                     }
                     for (let v = 0; v < 6; v++) {
