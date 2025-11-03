@@ -208,7 +208,8 @@ async function buildLayout(){
             },
             {  readonly:true, id: "ffas_end_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_shutdown")}],
                 template:function(date){
-                    
+                    if (!date)
+                        return "";
                     return  moment(date).format('YYYY-MM-DD HH:mm:ss');   
                 }
             },
