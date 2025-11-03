@@ -21,6 +21,8 @@ function sleep(ms) {
 
 
   async function get(req, res) {
+    const benchmarkId = `getJobs ${Math.random()}`;
+    console.time(benchmarkId);
     try{
         
         var start,end;
@@ -51,7 +53,7 @@ function sleep(ms) {
             let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
             let returnobj = {discovery:req.headers.referer,history:a_jobs,active:a_active}
             res.json(returnobj)
-            res.end();
+            console.timeEnd(benchmarkId);
             return;
         }
         /* ensure we only read the jobs from filesystem once every x seconds */
@@ -75,12 +77,13 @@ function sleep(ms) {
             }
         }
         res.json(jobs_cache.data)
-        res.end();
+        console.timeEnd(benchmarkId);
 
     }catch(ex){
         console.log("return error")
         console.log(ex)
 
+        console.timeEnd(benchmarkId);
         return res.status(500).json({message:ex,description: ""});
     }
 }
