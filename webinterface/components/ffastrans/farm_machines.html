@@ -189,7 +189,9 @@ async function buildLayout(){
                 }
             },
             {  readonly:true, id: "last_heartbeat", header: [{ content: "inputFilter" },{ text: label_map("farm_last_heartbeat") }],
-                template:function(date){    
+                template:function(date){
+                    if (!date)
+                        return "";    
                     const now = moment();
                     const diffInMinutes = now.diff(moment(date), 'minutes');
                     let colordot = "&#128994"; //green
@@ -202,7 +204,8 @@ async function buildLayout(){
             },
             {  readonly:true, id: "ffas_start_time", header: [{ content: "inputFilter" },{ text: label_map("farm_ffas_start") }],
                 template:function(date){
-                    
+                    if (!date)
+                        return "";
                     return  moment(date).format('YYYY-MM-DD HH:mm:ss');   
                 }
             },
