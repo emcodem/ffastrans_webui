@@ -1656,25 +1656,14 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 $("#log_div").css("visibility", "visible");
             }
 
-
             //load data into node grid
-            //var rootNode = $("#treetable_nodes").fancytree("getRootNode");
-            
-
-            //var nodetree = $("#treetable_nodes").fancytree("getTree");
-            //rootNode.removeChildren();
             //turn m_unique_nodes to array
             var result = Object.keys(m_unique_nodes).map(function (key) {
                 m_unique_nodes[key]["key"] = key;
                 return m_unique_nodes[key];
             });
-            /*result = result.filter(function (el) {
-                return el != null;//filters empty entries from map function
-            });*/
-            
+
             //add nodegrid rows
-            //rootNode.addChildren(result);
-            //$("#node_div").css("visibility", "visible");
             refreshNodeGrid(result);
 
         },
