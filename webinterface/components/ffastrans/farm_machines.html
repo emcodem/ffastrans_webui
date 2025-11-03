@@ -99,7 +99,7 @@ async function loadData(){
     }catch(ex){
         dhx8.dhx.alert({
             header: "Not possible",
-            text: "Error getting workflow list, Message: "+ JSON.stringify(ex),
+            text: "Error getting machines from api (/machines), Message: "+ JSON.stringify(ex),
             buttons: ["ok"]
         });
     }
