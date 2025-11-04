@@ -195,13 +195,15 @@ async function connectDb(){
 
 async function ensureJobsIndexes() {
     const desiredIndexes = [
-        { key: { workflow: "text" }, name: "workflow_text" },       // text search
-        { key: { workflow: 1 }, name: "workflow_1" },              // distinct() and equality queries
+        { key: { workflow: "text" }, name: "workflow_text" },                 // text search
+        { key: { workflow: 1 }, name: "workflow_1" },                        // distinct() and equality queries
         { key: { job_start: 1 }, name: "job_start_1" },
         { key: { job_end: 1 }, name: "job_end_1" },
+        { key: { job_start: 1, job_end: 1 }, name: "job_start_job_end" },    // compound index for date range queries
         { key: { deleted: 1 }, name: "deleted_1" },
         { key: { state: 1, job_start: 1 }, name: "state_job_start" },
-        { key: { job_id: -1 }, name: "job_id_-1" }                 // for distinct() logic
+        { key: { state: 1, job_start: 1, workflow: 1 }, name: "state_job_workflow" }, // new compound index for filtering by state, start, and workflow
+        { key: { job_id: -1 }, name: "job_id_-1" }                             // for distinct() logic
     ];
 
   // Get existing indexes
