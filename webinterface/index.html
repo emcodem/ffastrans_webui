@@ -383,7 +383,8 @@ function updateJobCount(){
         url:  ("/getworkflowjobcount") ,
         type: "GET",
         success: function (msg) {
-
+            if (!msg.sys)
+                return;
             document.getElementById("cancelledjobcount").innerHTML  = msg.sys.Cancelled;
             document.getElementById("successjobcount").innerHTML    = msg.sys.Success;
             document.getElementById("errorjobcount").innerHTML      = msg.sys.Error;
