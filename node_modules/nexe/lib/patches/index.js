@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const gyp_1 = require("./gyp");
+const third_party_main_1 = require("./third-party-main");
+const build_fixes_1 = require("./build-fixes");
+const disable_node_cli_1 = require("./disable-node-cli");
+const flags_1 = require("./flags");
+const ico_1 = require("./ico");
+const node_rc_1 = require("./node-rc");
+const snapshot_1 = require("./snapshot");
+const patches = [gyp_1.default, third_party_main_1.default, build_fixes_1.default, disable_node_cli_1.default, flags_1.default, ico_1.default, node_rc_1.default, snapshot_1.default];
+exports.default = patches;
