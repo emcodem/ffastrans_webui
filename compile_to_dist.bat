@@ -15,7 +15,7 @@ REM WORKS cmd /C "nexe /dist/index.js  -t windows-x64-18.14.0 -r ./webinterface/
 cd dist
 
 ::cmd /C "nexe /dist/bundle.js  -t windows-x64-20.18.0 -r ./webinterface/** -r "./rest_service/**" -r  "./rest_service/app.js" --verbose --ico "%~dp0build_tools/webint_icon.ico""
-cmd /C "nexe server.js  -t windows-x64-20.18.0 -r webinterface/** -r "rest_service/**" --verbose "
+cmd /C "..\..\node_modules\.bin nexe server.js  -t windows-x64-20.18.0 -r webinterface/** -r "rest_service/**" --verbose "
 
 cmd /C "%~dp0build_tools/verpatch.exe server.exe "%MAJOR%.%MINOR%.%SECMINOR%.%NEWVERSION%"  /s product "FFAStrans Webinterface" /s desc "FFAStrans Webinterface" /s copyright "emcodem@FFAStrans.com" "
 
