@@ -29,15 +29,6 @@
 <script src="../dependencies/fancytree/modules/jquery.fancytree.fixed.js"></script>
 
 <script src="../dependencies/json.human.js-master/src/json.human.js"></script>
-<!--    <script src="../dependencies/json.human.js-master/lib/codemirror_min.js"></script>
-    <script src="../dependencies/json.human.js-master/lib/codemirror_mode.js"></script>
-    <script src="../dependencies/json.human.js-master/lib/require.js"></script>
-    <link rel="stylesheet" href="../dependencies/json.human.js-master/lib/codemirror.css" type="text/css">
-    -->
-    
-<!-- google chart timeline - cannot be used offline due to license restrictions -->
-<script type='text/javascript' src='https://www.google.com/jsapi'></script>
-
 <link rel="stylesheet" href="../dependencies/json.human.js-master/css/json.human.css" type="text/css"></link>
 
 <!-- FONTAWESOME -->
@@ -720,11 +711,35 @@ async function branchGridSelect(row,col){
     
 }
 
-google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
-function open_timeline() {
+function loadScriptAsync(url) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = url;
+        script.onload = () => resolve(script);
+        script.onerror = () => reject(new Error(`Failed to load ${url}`));
+        document.head.appendChild(script);
+    });
+}
+
+function loadVisualizationPackage() {
+    return new Promise((resolve) => {
+        google.load('visualization', '1.1', {
+            packages: ['timeline'],
+            callback: resolve
+        });
+    });
+}
+
+//google.load('visualization', '1.1', { packages: ['timeline'] }); //must be called before open_timeline() is called
+async function open_timeline() {
         /* log message frequency, only useful for steinar mostly */
     var myWins= new dhtmlXWindows();
     var win = myWins.createWindow("Timeline", 50, 50,  window.innerWidth - 50, 600);
+    await loadScriptAsync("https://www.google.com/jsapi"); //license does not allow offline usage
+    await loadVisualizationPackage();
+    //await google.load('visualization', '1.1', {packages: ['timeline']});
+
     win.setText("Timeline");
     win.attachHTMLString('<div id="div_timeline"></div>');
     //google.setOnLoadCallback(open_timeline);
