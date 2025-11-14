@@ -18,6 +18,9 @@ module.exports = function(app, passport) {
     //      res.sendFile(global.approot + '/webinterface/components/login.html'); //need to use sendfile to keep referer at client OK
     // });
     //allow unauthorized access 
+    app.get('/socket.io/*', async function(req, res) {
+         res.sendFile(global.approot + "/node_modules/socket.io/client-dist/socket.io.js");
+    });
 
     app.get('/webinterface/dependencies/*', async function(req, res) {
          res.sendFile(global.approot + req.originalUrl);
@@ -61,6 +64,9 @@ module.exports = function(app, passport) {
 		});
 	  })(req, res, next);
 	});
+
+    
+
 
 
 	//protect / require auth for all other pages

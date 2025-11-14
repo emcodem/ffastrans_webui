@@ -599,7 +599,10 @@ function handleListenError(err){
 function initSocketIo(created_httpserver){
 		
 	//init live connection to clients using socket.io
-	global.socketio = socket(created_httpserver);
+	global.socketio = socket(created_httpserver,{
+        serveClient: false,     // disables serving /socket.io/socket.io.js from socket.io require, we serve it in routes
+        path: "/ws"             // i have no clue what this does but without this, we do not get the request into routes
+    });
 	var wildcard = socketwildcard();
 	global.socketio.use(wildcard);
 	//register supported functions
