@@ -24,6 +24,7 @@ module.exports = {
 		/*swagger-ui needs some static files, if we used the typescript module this would not be the case but as long as we use cjs, we need to copy the files into root of rest_service */
 		new CopyWebpackPlugin({
 			patterns: [
+			{from: './node_modules/socket.io/client-dist/socket.io.js', to: "./node_modules/socket.io/client-dist/", toType:"dir"},
 				{from: './rest_service/node_modules/swagger-ui-dist/swagger-ui.css', to: "rest_service", toType:"dir"},
 				{from:'./rest_service/node_modules/swagger-ui-dist/swagger-ui-bundle.js',to: "rest_service", toType:"dir"},
 				{from:'./rest_service/node_modules/swagger-ui-dist/swagger-ui-standalone-preset.js',to: "rest_service", toType:"dir"},
