@@ -8,9 +8,9 @@ const COPY_CONFIG = [
     { src: 'service_uninstall.bat', dest: 'service_uninstall.bat', type: 'file', required: true },
     { src: 'tools', dest: 'tools', type: 'dir', required: true },
     { src: 'cert', dest: 'cert', type: 'dir', required: true },
-    { src: 'node_modules/engine.io-parser', dest: 'node_modules/engine.io-parser', type: 'dir', required: true },
-    { src: 'node_modules/socket.io', dest: 'node_modules/socket.io', type: 'dir', required: true },
-    { src: 'node_modules/socket.io-parser', dest: 'node_modules/socket.io-parser', type: 'dir', required: true }
+    // { src: 'node_modules/engine.io-parser', dest: 'node_modules/engine.io-parser', type: 'dir', required: true },
+    // { src: 'node_modules/socket.io', dest: 'node_modules/socket.io', type: 'dir', required: true },
+    // { src: 'node_modules/socket.io-parser', dest: 'node_modules/socket.io-parser', type: 'dir', required: true }
 ];
 
 // Utility function to copy directory recursively
