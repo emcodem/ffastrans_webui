@@ -62,7 +62,7 @@
 
 /* GLOBALS */
 var m_mainLayout,m_usergrid,m_groupgrid,m_userPropsGrid,m_permissiongrid,m_groupPropsGrid;
-var socket = io();
+var socket = io({ path: "/ws" });
 
 /* build basic page layout and init periodic job loading*/
 function init(){

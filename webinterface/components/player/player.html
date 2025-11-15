@@ -197,7 +197,7 @@
 			</style>
 			
 			<script>
-var socket = io(); 
+var socket = io({ path: "/ws" }); 
 var m_player;
 var m_ffprobe;
 var g_framerate = 0;

@@ -93,7 +93,7 @@
 
 // #region Helpers 
 
-var socket = io(); 
+var socket = io({ path: "/ws" }); 
 socket.on('socketid', function(msg){
     m_socketId = msg;
 });

@@ -49,7 +49,7 @@
 
 /* GLOBALS */
 var m_mainLayout,m_mainForm, m_serverconfig;
-var socket = io();
+var socket = io({ path: "/ws" });
 /* build basic page layout and init periodic job loading*/
 function init(){
     socket.on('activedirectory_tester', function(msg){
