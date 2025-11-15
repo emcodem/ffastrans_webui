@@ -400,8 +400,14 @@ class Player
 	async startmpv(config,port,extraopts = [],seekToSec = false){
 		let playerInstance = this;
 		
+		try{
+			if (fs.existsSync("logs/mpvoutput.log")){
+				fs.unlinkSync("logs/mpvoutput.log");
+			}
+		}catch(ex){}
+
 		let mpvopts = [
-			"--log-file=mpvoutput.log",
+			"--log-file=logs/mpvoutput.log",
 			"--o=-",//+ playerInstance.port ,	//prevent downmix all channels
 			]
 			if (extraopts)
