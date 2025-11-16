@@ -53,7 +53,12 @@ var logger = logfactory.getLogger("rest_api");
 console.log = (...args)     => logger.info.call(logger, ...args);
 console.info = (...args)    => logger.info.call(logger, ...args);
 console.warn = (...args)    => logger.warn.call(logger, ...args);
-console.error = (...args)   => logger.error.call(logger, ...args);
+console.error = (...args)   => {
+  // Serialize error objects properly and capture stack trace
+  const stack = new Error().stack;
+  const callerLine = stack.split('\n')[2]; // Get the line that called console.error
+  logger.error.call(logger, `Called from: ${callerLine}`, ...args);
+};
 console.debug = (...args)   => logger.debug.call(logger, ...args);
 
 
@@ -147,6 +152,12 @@ async function start_server( _listenport,globalconf){
     const bodyParser = require('body-parser');
 
     app.use((req, res, next) => {
+        // Allow multipart/form-data for file upload endpoints
+        if (req.url.includes('/getjoblog') && req.method === 'POST') {
+            console.log("request to", req.method, req.url);
+            return next();
+        }
+        
         if (!req.is('application/json') && ['PATCH', 'POST', 'PUT'].includes(req.method)){
             //we didnt quickly find out how to make bodyParser support any content-type so we need application/json for POST
             res.status(400);
@@ -179,8 +190,13 @@ async function start_server( _listenport,globalconf){
     })
 
     //must use bodyparser in order to retrieve post messages as req.body
-    // app.use(bodyParser.json())
-    app.use(bodyParser.json({ limit: '500mb' }));
+    // Skip bodyParser for file upload endpoints - busboy will handle it
+    app.use((req, res, next) => {
+        if (req.url.includes('/getjoblog') && req.method === 'POST') {
+            return next();
+        }
+        bodyParser.json({ limit: '500mb' })(req, res, next);
+    });
 
     //startup server
     console.log('\x1b[32mNew API starting up...') 
@@ -216,6 +232,7 @@ async function start_server( _listenport,globalconf){
       about :             require( "./api/controllers/about.js").get,
       hello:              require( "./api/controllers/hello_world.js").get,
       get_job_log:        require( "./api/controllers/get_job_log.js").get,
+      uploadJobZip:       require( "./api/controllers/get_job_log.js").post,
       get_job_details:    require( "./api/controllers/get_job_details.js").get,
       get_branch_log:     require( "./api/controllers/get_branch_log.js").get,
       get_mediainfo:      require( "./api/controllers/get_mediainfo.js").get,
@@ -265,10 +282,41 @@ async function start_server( _listenport,globalconf){
   var swag_config = {
       app,
       apiDoc:  swaggerDocument, // required config
-      operations: all_swag_operations
+      operations: all_swag_operations,
+      // Disable request validation for multipart/form-data to allow file uploads
+      consumesMiddleware: {
+        'multipart/form-data': (req, res, next) => {
+          // Skip validation, let busboy handle it in the controller
+          req.body = req.body || {};
+          next();
+        }
+      }
 	};
 
   initialize(swag_config);
+
+  // Add error handler middleware to catch and properly format errors
+  app.use((err, req, res, next) => {
+    console.error('Express error handler caught:', err);
+    console.error('Error stack:', err.stack);
+
+    // If headers already sent, delegate to default Express error handler
+    if (res.headersSent) {
+      console.error('Headers already sent, cannot send error response');
+      return next(err);
+    }
+    
+    // Send JSON error response with stack trace
+    const statusCode = err.status || err.statusCode || 500;
+    res.status(statusCode).json({
+      error: err.message || 'Internal Server Error',
+      status: statusCode,
+      path: req.path,
+      method: req.method,
+      stack: err.stack,
+      details: err.errors || undefined
+    });
+  });
 
   //finally, initalize swagger UI by loading the yaml files (which point to the operations)
 

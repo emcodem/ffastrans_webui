@@ -201,7 +201,7 @@ async function ensureJobsIndexes() {
         { key: { job_end: 1 }, name: "job_end_1" },
         { key: { job_start: 1, job_end: 1 }, name: "job_start_job_end" },    // compound index for date range queries
         { key: { deleted: 1 }, name: "deleted_1" },
-        { key: { state: 1, job_start: 1 }, name: "state_job_start" },
+        // { key: { state: 1, job_start: 1 }, name: "state_job_start" }, // we have a compound index for state,job_start, workflow so no need for state,job_start
         { key: { state: 1, job_start: 1, workflow: 1 }, name: "state_job_workflow" }, // new compound index for filtering by state, start, and workflow
         { key: { job_id: -1 }, name: "job_id_-1" }                             // for distinct() logic
     ];
@@ -321,8 +321,19 @@ async function init(conf){
 	connectDb(); //mongodb
 
     //bodyparser is bad because ALL requests are parsed, even if they are not needed (e.g. file uploads)
-	app.use(bodyParser.urlencoded({ extended: true }));
-    app.use(bodyParser.json());
+    // Skip body-parser for /new_proxy routes to preserve multipart data
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/new_proxy')) {
+            return next();
+        }
+        bodyParser.urlencoded({ extended: true })(req, res, next);
+    });
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/new_proxy')) {
+            return next();
+        }
+        bodyParser.json()(req, res, next);
+    });
 
     //NON Password protected stuff
     require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
@@ -450,6 +461,14 @@ async function init(conf){
             //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
             //we actually want the body to be forwarded unmodified
             console.debug("Proxying API call, request to url: " , srcReq.method, protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + srcReq.url)
+            
+            // Don't modify multipart/form-data requests - pass through as-is
+            const contentType = srcReq.headers['content-type'] || '';
+            if (contentType.includes('multipart/form-data')) {
+                console.debug("Proxying multipart/form-data - passing through unchanged");
+                return bodyContent;
+            }
+            
             if (typeof(srcReq.body) == "object"){
                 bodyContent = ("" + JSON.stringify(srcReq.body));
             }else{

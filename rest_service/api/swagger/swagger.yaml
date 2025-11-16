@@ -71,7 +71,7 @@ paths:
   /getjoblog:
     x-swagger-router-controller: get_job_log
     get:
-      description: Gets an existing jobs log file contents
+      description: Gets an existing jobs log file contents or downloads job folder as ZIP
       operationId: get_job_log
       parameters:
         - name: jobid
@@ -81,11 +81,53 @@ paths:
           required: true
           schema:
             type: string
+        - name: download
+          in: query
+          description: If set, downloads the entire job folder as ZIP
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: Success
         default:
           description: Error
+    post:
+      description: Upload a ZIP file containing job logs to be extracted to the job folder
+      operationId: uploadJobZip
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: ZIP file containing job logs. Must contain a folder named with job GUID or files with job GUID in path.
+      responses:
+        "200":
+          description: Successfully uploaded and extracted ZIP file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  job_id:
+                    type: string
+                  extractPath:
+                    type: string
+                  filesExtracted:
+                    type: integer
+                  message:
+                    type: string
+        "400":
+          description: Bad request - invalid ZIP file or missing job GUID
+        "500":
+          description: Server error during upload or extraction
   /getbranchlog:
     x-swagger-router-controller: get_branch_log
     get:
