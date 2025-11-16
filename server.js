@@ -320,19 +320,31 @@ async function init(conf){
 
 	connectDb(); //mongodb
 
-    //bodyparser is bad because ALL requests are parsed, even if they are not needed (e.g. file uploads)
+    // we need bodyparser to take care about the sent jsons except for the following cases
     // Skip body-parser for /new_proxy routes to preserve multipart data
     app.use((req, res, next) => {
-        if (req.path.startsWith('/new_proxy')) {
-            return next();
+        const contentType = req.headers['content-type'] || '';
+        if (req.path.startsWith('/new_proxy') && contentType.includes('multipart/form-data')) {
+            return next(); //bodyparser disabled for multipart/form-data
         }
-        bodyParser.urlencoded({ extended: true })(req, res, next);
+        try{
+            bodyParser.urlencoded({ extended: true })(req, res, next);
+        }   
+        catch(ex){
+            console.error("FATAL Error in bodyParser:",ex.stack);
+        }
     });
     app.use((req, res, next) => {
-        if (req.path.startsWith('/new_proxy')) {
-            return next();
+        const contentType = req.headers['content-type'] || '';
+        if (req.path.startsWith('/new_proxy') && contentType.includes('multipart/form-data')) {
+            return next(); //bodyparser disabled for multipart/form-data
         }
-        bodyParser.json()(req, res, next);
+        try{
+            bodyParser.json()(req, res, next);
+        }   catch(ex){
+            console.error("FATAL Error in bodyParser:",ex.stack);
+        }
+
     });
 
     //NON Password protected stuff
