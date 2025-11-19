@@ -91,6 +91,10 @@ console.warn = (...args)    => logger.warn.call(logger, ...args);
 console.error = (...args)   => logger.error.call(logger, ...args);
 console.debug = (...args)   => logger.debug.call(logger, ...args);
 
+try{
+    console.log("Version: " + fs.readFileSync(path.join(global.approot,"/webinterface/version.txt")))
+}catch(ex){}
+
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
