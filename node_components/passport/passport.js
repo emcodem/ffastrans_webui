@@ -136,7 +136,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					console.log("Parsed AD groups for user",username,groups_cn_only)
 					var group_exists = false;
                     var intersection_groups = [] //groups that exist locally and user has in ad are stored to users group list
-					for (_gid in groups_cn_only){
+					for (let _gid in groups_cn_only){
 						_gid = groups_cn_only[_gid]
 						var _exist = await asyncqueryOne(global.db.config,{"local.usergroup.name":_gid});
 						if (_exist){
@@ -170,8 +170,8 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					newUser.local.username    = username;
 					newUser.local.password    = "aduser";
 					newUser.local.is_ad_user        = true;
-					newUser.local.id                = Math.random(1000000000000);
-					newUser.local.groups            = intersection_groups;
+					newUser.local.id                = Math.floor(Math.random() * 1000000000000);
+					newUser.local.groups            = newGroups;
 					console.log("Storing user in db: ",newUser)
 					await asyncInsertOne(global.db.config,newUser);
 					return done(null, newUser);
