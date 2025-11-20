@@ -71,7 +71,7 @@ async function getHistoryJobs(start,end, jobid = '', variablesFilter = null){
                 let taskjsonpath    = path.join(jobDir,job_id,".json");
                 let taskjson        = await fs.readFile(taskjsonpath, 'utf8');//no need to cache the file, we cache the parsed job obj in jobCache
                 taskjson            = taskjson.replace(/^\uFEFF/, ''); //BOM
-                taskjson             = JSON.parse(taskjson);
+                taskjson             = JSON.parse(taskjson);    
                 console.debug(`Performance read job json ${taskjsonpath}: ${Date.now() - perf_start}ms`);
                 if (true){
                     //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
