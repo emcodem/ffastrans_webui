@@ -746,7 +746,6 @@
             if (!mainLayout.getCell("b") || !mainLayout.getCell("a"))
                 return
             if (mainLayout.getCell("b").config.collapsed || mainLayout.getCell("c").config.collapsed){
-                alert("collapsed")
                 return;
             }
             let fullheight = document.querySelector('[data-cell-id="running_and_history_gridcontainer"]').clientHeight;
@@ -1627,6 +1626,8 @@ async function buildActiveGrid() {
             return searchbox_container.outerHTML;
         }
 
+
+
         let c = [
             {
                 id: "state",
@@ -1649,26 +1650,24 @@ async function buildActiveGrid() {
             {
                 id: "workflow",
                 width:300,
-                header: ["<span class='grid_header_text'>Workflow</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,
-                template:function(val,row,column){
-                    return val
-                }
-
+                header: ["<span class='grid_header_text'>Workflow</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true
             },
             {id: "job_start",   header: ["<span class='grid_header_text'>Start</span>" + getSearchBoxHtml({datepicker:true})],      sortable: true,htmlEnable: true,  maxWidth: 152},
             {id: "duration",    header: ["<span class='grid_header_text'>Duration</span>"+ getSearchBoxHtml()],   sortable: true,htmlEnable: true,  maxWidth: 80},
             {id: "job_end",     header: ["<span class='grid_header_text'>End</span>"+ getSearchBoxHtml({datepicker:true})],        sortable: true,htmlEnable: true,  maxWidth: 152},
-            {id: "source",      header: ["<span class='grid_header_text'>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,template: function(val,row,column){
-                      
-                return '<span class="celltext_rtl">' + row.source + '</span>'
-                    } },
-            {id: "outcome",     header: ["<span class='grid_header_text'>Outcome</span>"+ getSearchBoxHtml()],    sortable: true,htmlEnable: true,
+            {id: "source",      header: ["<span class='grid_header_text'>Source</span>"+ getSearchBoxHtml()],     sortable: true,htmlEnable: true,
+                template: function(val,row,column){
+                    return '<div class="celltext_rtl">' + row.source + '</div>'
+                }
+            },
+            {id: "outcome",     header: ["<span class='grid_header_text'>Outcome</span>"+ getSearchBoxHtml()], sortable: true, htmlEnable: true,
                 template: function(val,row,col){
                     if (val.length > 5000)
                         val = val.substring(0, 5000);
                     val=val.replaceAll(/\n|\r/g,"");
                     return val;
-            }}
+                }
+            }
         ]; //gridcolumns
 
         //add variablecols
@@ -1991,6 +1990,22 @@ async function buildActiveGrid() {
             grid.data.removeAll();
             loadGridData_internal();
             return true;
+        });
+
+        /* Tooltip on hover for non-HTML content */
+        grid.events.on("cellMouseOver", (row, column, e) => {
+            // Only add tooltips for specific columns
+            if (["outcome", "workflow", "source"].includes(column.id)) {
+                let cellValue = row[column.id];
+                // Check if value contains actual HTML tags
+                const htmlTags = /<(div|span|p|a|br|img|strong|em|b|i|ul|ol|li|table|tr|td|th|h[1-6]|pre|code|font|color)[\s>]/i;
+                if (!htmlTags.test(cellValue)) {
+                    // Set title on the target element for native tooltip
+                    e.target.title = cellValue;
+                } else {
+                    e.target.title = ""; // Clear tooltip for HTML content
+                }
+            }
         });
 
         /* Searching */
