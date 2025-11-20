@@ -915,6 +915,9 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 var FF_NODE_DESC    = escapeXml(cell.ffastransobj["description"] || "");
                 var FF_NODE_ID      = cell.ffastransobj["id"].toUpperCase();
                 var FF_NODE_TYPE    = cell.ffastransobj["type"];
+                
+                // Add container prefix to make HTML table IDs unique across graphs
+                var TABLE_ID_PREFIX = this.container.id + "_";
 
                 //create the cell style
                 if (this.isCellCollapsed(cell))//we dont support collapsing
@@ -950,13 +953,13 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 
                 var tbl = '<div class="div_ffastrans_processor_container" style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
                             '<table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
-                            'class="table_ffastrans_processor_disabled" id = "' + FF_NODE_ID + '" > ' +
+                            'class="table_ffastrans_processor_disabled" id = "' + TABLE_ID_PREFIX + FF_NODE_ID + '" > ' +
                             '<tr class="tr_ffastrans_processor_top" >' +
-                                `<th width="100%" title="'${FF_NODE_TITLE}'"><span id="${FF_NODE_ID}_exec_count" class="exec_count" title="Execution Counter">0</span><div><span>` + FF_NODE_TITLE + "</span>" +
+                                `<th width="100%" title="'${FF_NODE_TITLE}'"><span id="${TABLE_ID_PREFIX}${FF_NODE_ID}_exec_count" class="exec_count" title="Execution Counter">0</span><div><span>` + FF_NODE_TITLE + "</span>" +
                                         '</div>' + sub_wf_btns + '</th>'+
                             '</tr>' +
-                            `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${FF_NODE_ID}_tr_container">`+
-                                `<th class="tr_ffastrans_processor_desc" id="${FF_NODE_ID}_body">` + 
+                            `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${TABLE_ID_PREFIX}${FF_NODE_ID}_tr_container">`+
+                                `<th class="tr_ffastrans_processor_desc" id="${TABLE_ID_PREFIX}${FF_NODE_ID}_body">` + 
                                 //this div is needed to control sub-workflow scrolling/overflow
                                 `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc ${description_container_classes}" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
                                     FF_NODE_DESC +
@@ -1017,7 +1020,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             console.log("subwf_element",subwf_element);
             
             //move sub-wf graph from processor to window
-            let original_container = document.getElementById(cell.ffastransobj.id.toUpperCase() + "_body");
+            let original_container = document.getElementById("graphContainer_" + cell.ffastransobj.id.toUpperCase() + "_body");
             let sub_wf_graph_ele = original_container.firstChild;
             let newParent = document.getElementById("window_"+swf_id);  
             newParent.appendChild(sub_wf_graph_ele); // Moves the element to the new container
@@ -1151,7 +1154,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             graph.getModel().endUpdate();
 
             graph.fit(); //(	border,keepOrigin,margin,enabled,ignoreWidth,ignoreHeight,maxHeight	)
-
+            
             //on initial workflow show, zoom out but only if not sub-wf
             
             //graph.zoomOut();
@@ -1272,6 +1275,26 @@ async function parseJobLog(lines) {
     var id_pid_mapping = {};
     var sub_workflow_is_loading = false;
     console.time("parseJobLog");
+    
+    // Helper function to find which container a node belongs to
+    function getContainerPrefixForNode(nodeId) {
+        // First check if this node exists in the main workflow
+        if ($("#graphContainer_" + nodeId).length > 0) {
+            return "graphContainer_";
+        }
+        
+        // Check in each sub-workflow container
+        for (var subWfNodeId in m_subWorkflows) {
+            var containerId = subWfNodeId.toUpperCase() + "_description_container_";
+            if ($("#" + containerId + nodeId).length > 0) {
+                return containerId;
+            }
+        }
+        
+        // Default to main graph container
+        return "graphContainer_";
+    }
+    
     for (var i = 0; i < lines.length; i++) {
         var _proc_id;
         var line = lines[i];
@@ -1300,7 +1323,7 @@ async function parseJobLog(lines) {
                 console.log("Sub wf detected, loadinhg json");
                 if (line['data']['wf_id']){
                     m_subWorkflows[line["node"]["id"]] = line['data']['wf_id'];
-                    var _subwfdiv = document.getElementById(line["node"]["id"].toUpperCase()+"_body").firstChild;
+                    var _subwfdiv = document.getElementById("graphContainer_" + line["node"]["id"].toUpperCase()+"_body").firstChild;
                     _subwfdiv.style.backgroundColor ="white";
                     
                     //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
@@ -1354,21 +1377,25 @@ async function parseJobLog(lines) {
 
             //show processor as enabled on ui
             a_log_per_node[_proc_id] = [];
-            $("#" + _proc_id).removeClass("table_ffastrans_processor_disabled");
-            $("#" + _proc_id).addClass("table_ffastrans_processor_enabled");
+            
+            // Find the correct container for this node
+            var containerPrefix = getContainerPrefixForNode(_proc_id);
+            
+            $("#" + containerPrefix + _proc_id).removeClass("table_ffastrans_processor_disabled");
+            $("#" + containerPrefix + _proc_id).addClass("table_ffastrans_processor_enabled");
             
             //check processor error state and count
             if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
                 m_unique_nodes[new_key] = (line);
                 m_unique_nodes[new_key]["state"] = "running";
                 //raise proc count on gui
-                var _o_counter = $("#" + _proc_id + "_exec_count");//execution count
+                var _o_counter = $("#" + containerPrefix + _proc_id + "_exec_count");//execution count
                 
-                console.log("_o_counter","#" + _proc_id + "_exec_count",_o_counter);
+                console.log("_o_counter","#" + containerPrefix + _proc_id + "_exec_count",_o_counter);
                 _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
 
                 //progress-circle
-                $("#" + _proc_id).parent().addClass("blinking-progress");
+                $("#" + containerPrefix + _proc_id).parent().addClass("blinking-progress");
 
             }
             
@@ -1376,11 +1403,11 @@ async function parseJobLog(lines) {
             if (line["event"] == "node end") {
                 m_unique_nodes[new_key]["date_end"] = line["created"];
                 m_unique_nodes[new_key]["state"] = "success";
-                $("#" + _proc_id).parent().removeClass("blinking-progress");
+                $("#" + containerPrefix + _proc_id).parent().removeClass("blinking-progress");
 
                 //red border for errored nodes
                 if (line["data"] != null) { //when this exists, we have a node in error
-                    $("#" + _proc_id).parent().addClass("blinking-error");
+                    $("#" + containerPrefix + _proc_id).parent().addClass("blinking-error");
                 } 
             }
 
@@ -1570,7 +1597,7 @@ function toggleNodeSelected(nodeid){
     //there can be only one node selected at a time. 
     $(".blinking-selected").removeClass("blinking-selected");
     if (nodeid)
-        $("#" + nodeid).parent().parent().addClass("blinking-selected");
+        $("#graphContainer_" + nodeid).parent().parent().addClass("blinking-selected");
 }
 
 function initNodeGrid() {
