@@ -870,10 +870,17 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             m_graph = graph; 
 
         graph.setHtmlLabels(true);
-        graph.panningHandler.ignoreCell = true; //disables selection of a single cell but instead allow moving the whole graph
+        graph.panningHandler.ignoreCell = true; //when false, panning ignores cells and allows clicking them
         graph.setPanning(panning); 
         if (!panning)
             graph.useScrollbarsForPanning = true;
+        
+        // Disable cell editing on double-click
+        graph.setCellsEditable(false);
+        
+        // Increase tolerance for drag vs click - only consider it a drag if mouse moves more than this many pixels
+        graph.tolerance = 10;
+        
         //     evt.preventDefault();
         //     evt.consume();
         // });
@@ -964,7 +971,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             var cell = evt.getProperty("cell"); // cell may be null
             if (cell == null) return
             if (!cell.ffastransobj) return
-            if (!cell.ffastransobj.type == "sub_wf") return
+            if (cell.ffastransobj.type != "sub_wf") return
             if (!cell.ffastransobj.properties.workflow_id) return
             evt.consume(); //mxgraph stuff
             //we get a reference to graph object of the currently selected sub_wf this way:
