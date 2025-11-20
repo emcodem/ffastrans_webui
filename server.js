@@ -668,27 +668,16 @@ function initSocketIo(created_httpserver){
 				return;
 			}
 			
-			//non player commands are logged
-			
-            //this uses new api now
-			// console.log("Received jobcommand via socket.io",data);
-			// //var regex = /cancel/
-			// //var result = data.data[0].match(regex);
-
-			// if (cmd == "pausejob"){
-			// 	jobcontrol.pausejob(obj);
-			// 	return;
-			// }
-			// if (cmd == "deletejob"){
-			// 	//obj is job_id array
-            //     try{
-            //         obj = JSON.parse(obj);
-			// 	    database_controller.deleteRecords(obj);
-            //     }catch(ex){
-            //         console.log("Error deleting jobs: ",ex);
-            //     }
-            //     return;
-			// }
+			if (cmd == "deletejob"){
+				//obj is job_id array
+                try{
+                    obj = JSON.parse(obj);
+				    database_controller.deleteRecords(obj);
+                }catch(ex){
+                    console.log("Error deleting jobs: ",ex);
+                }
+                return;
+			}
 		})
 		
 		//client disconnected
