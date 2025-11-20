@@ -256,6 +256,20 @@
         position:sticky;
         top:0;
     }
+
+    /* Fix blurry mxGraph rendering */
+    svg {
+        shape-rendering: crispEdges;
+    }
+    
+    svg text {
+        shape-rendering: geometricPrecision;
+    }
+    
+    #graphContainer {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
 </style>
 
 <script>
