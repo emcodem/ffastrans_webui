@@ -2,7 +2,9 @@
 <head>
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
 <script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
 <script>
     //theme changeer
     if (localStorage.global_skin_dark == "1"){
@@ -17,56 +19,273 @@
         }catch(ex){}
     }
 </script>
+
 <script src="../../dependencies/jquery/jquery.js"></script>
-<link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css"/>
-<link href="../../dependencies/bootstrap/5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet" >
-<script src="../../dependencies/bootstrap/5.0.0-beta3/js/bootstrap.bundle.min.js" ></script>
 
 <style>
     /* it's important to set width/height to 100% for full-screen init */
-    html  {
-
-        margin: 5px;
-        overflow: scroll;
-    }
-	hr {
-	  margin-top: 1rem;
-	  margin-bottom: 1rem;
-	  border: 0;
-	  border-top: 1px solid rgba(0, 0, 0, 0.1);
-	}
-    div, label, input{
-        font-size:12px; 
-        width: 300px !important;
-    }
-    form{
-        width:100%
+    html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0px;
     }
 
 </style>
 
-<script>
+<script type="module">
 
 /* GLOBALS */
-var m_mainLayout,m_mainForm, m_serverconfig;
+var m_mainLayout, m_mainForm, m_testForm, m_serverconfig;
 var socket = io({ path: "/ws" });
+
 /* build basic page layout and init periodic job loading*/
 function init(){
     socket.on('activedirectory_tester', function(msg){
-		alert(msg);
+		dhx8.dhx.message({ expire: 5000, text: msg});
     });
 	
-	registerButtonClicks();
-    restoreAdConfig();
+	buildForm();
 }
 
-function loadserverconfig() {
+function buildForm(){
+	const config = {
+		width:"100%", 
+		height:"100%",
+		rows: [
+			{
+				id: "config_section",
+				resizable: false,
+				height: "content",
+				header: "Active Directory Configuration",
+				padding: "20px",
+			},
+			{
+				id: "test_section",
+				resizable: false,
+				height: "content",
+				header: "Test Connection",
+				padding: "20px",
+			},
+			{
+				id: "result_section",
+				resizable: false,
+				header: "Test Result",
+				height: "content",
+				padding: "20px",
+			}
+		]
+	}
+
+	//LAYOUT
+	m_mainLayout = new dhx8.dhx.Layout("dhx_layout_here", config);
 	
+	let fqdnDesc = "Fully Qualified Domain Name, e.g. local.acme.com";
+	let portDesc = "LDAP port, usually 389 for ldap or 636 for ldaps";
+	let protocolDesc = "Use secure LDAPS connection (requires valid SSL certificate on AD server)";
+	
+	var config_form = {
+		align: "start",
+		padding: "10px",
+		height: "100%",
+		rows: [{
+			cols:[
+			{
+				name: "ad_fqdn",
+				type: "input",
+				label: "AD FQDN",
+				labelPosition: "left",
+				labelWidth: "100",
+				placeholder: "local.acme.com",
+				preMessage: fqdnDesc,
+				successMessage: fqdnDesc,
+				errorMessage: fqdnDesc
+			},
+			{
+				name: "ad_port",
+				type: "input",
+				label: "AD Port",
+				labelPosition: "left",
+				labelWidth: "100",
+				placeholder: "389",
+				preMessage: portDesc,
+				successMessage: portDesc,
+				errorMessage: portDesc
+			},
+			]},
+			
+			{
+				name: "ad_protocol",
+				type: "checkbox",
+				label: "Use LDAPS",
+				labelPosition: "left",
+				labelWidth: "100",
+				text: "Enable secure connection",
+				preMessage: protocolDesc,
+				successMessage: protocolDesc,
+				errorMessage: protocolDesc
+			},
+			{type: "spacer", height: 20},
+			{
+				cols: [
+					{type: "button", css: "dhxform_obj_dhx_skyblue", id: "btn_save", name: "btn_save", width: 100, value: "Save"}
+				]
+			}
+		]
+	}
+	
+	var test_form = {
+		align: "start",
+		padding: "10px",
+		height: "100%",
+		rows: [{cols:[
+				{
+					name: "ad_user",
+					type: "input",
+					label: "Username",
+					labelPosition: "left",
+					labelWidth: "100",
+					placeholder: "mypersonaldomainuser",
+					preMessage: "AD username for testing connection",
+					successMessage: "AD username for testing connection",
+					errorMessage: "AD username for testing connection"
+				},
+				{
+					name: "ad_password",
+					type: "input",
+					inputType: "password",
+					label: "Password",
+					labelPosition: "left",
+					labelWidth: "100",
+					autocomplete: "one-time-code",
+					preMessage: "AD password for testing connection",
+					successMessage: "AD password for testing connection",
+					errorMessage: "AD password for testing connection"
+				},
+			]},
+			{
+				name: "ad_alternate_user",
+				type: "input",
+				label: "Show GroupsOf",
+				labelPosition: "left",
+				labelWidth: "100",
+				placeholder: "optional: different username",
+				preMessage: "Optional: Check group membership for a different user",
+				successMessage: "Optional: Check group membership for a different user",
+				errorMessage: "Optional: Check group membership for a different user"
+			},
+			{type: "spacer", height: 20},
+			{
+				cols: [
+					{type: "button", css: "dhxform_obj_dhx_skyblue", id: "btn_test", name: "btn_test", width: 100, value: "Test"}
+				]
+			}
+		]
+	}
+	
+	m_mainForm = new dhx8.dhx.Form(null, config_form);
+	m_testForm = new dhx8.dhx.Form(null, test_form);
+	
+	m_mainLayout.getCell("config_section").attach(m_mainForm);
+	m_mainLayout.getCell("test_section").attach(m_testForm);
+	m_mainLayout.getCell("result_section").attachHTML('<pre id="testresult" style="width:100%;height:100%;overflow:auto;margin:0;padding:10px;"></pre>');
+
+	restoreAdConfig();
+
+	// Event handlers
+	m_mainForm.events.on("click", function(name, e){
+		if(name == "btn_save")
+			saveAdConfig();
+	});
+	
+	m_testForm.events.on("click", function(name, e){
+		if(name == "btn_test")
+			testAdConfig();
+	});
+	
+	// Enter key handlers
+	m_mainForm.events.on("keydown", function(name, event) {
+		if (event.key === "Enter" && (name === "ad_fqdn" || name === "ad_port")) {
+			saveAdConfig();
+		}
+	});
+	
+	m_testForm.events.on("keydown", function(name, event) {
+		if (event.key === "Enter" && name === "ad_password") {
+			testAdConfig();
+		}
+	});
+}
+
+function testAdConfig(){
+	var o_ad = {};
+	o_ad["ad_config"] = m_serverconfig["ad_config"];
+	o_ad["ad_user"] = m_testForm.getItem("ad_user").getValue();
+	o_ad["ad_alternate_user"] = m_testForm.getItem("ad_alternate_user").getValue();
+	o_ad["ad_password"] = btoa(m_testForm.getItem("ad_password").getValue());
+	
+	document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain FQDN\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
+	
+	$.ajax({
+		url: ("/activedirectory_tester" + "?" + Math.random()),
+		type: "POST",
+		data: o_ad,
+		success: function(response) {
+			console.log("AD TEST OK", response);
+			try {
+				response = JSON.parse(response);
+				response = JSON.stringify(response, undefined, 2);
+			} catch(ex) {}
+			document.getElementById("testresult").innerHTML = response;
+			dhx8.dhx.message({ expire: 3000, text: "Test completed successfully"});
+		},
+		error: function(xhr, status) {
+			console.log("AD TEST FAIL");
+			document.getElementById("testresult").innerHTML = xhr.responseText;
+			dhx8.dhx.message({ expire: 5000, text: "Test failed: " + status});
+		}
+	});
+}
+
+function restoreAdConfig(){
+	if ("ad_config" in m_serverconfig){
+		m_mainForm.getItem("ad_fqdn").setValue(m_serverconfig["ad_config"]["ad_fqdn"]);
+		m_mainForm.getItem("ad_port").setValue(m_serverconfig["ad_config"]["ad_port"]);
+		m_mainForm.getItem("ad_protocol").setValue(m_serverconfig["ad_config"]["ad_protocol"] === "ldaps");
+	}
+	m_mainForm.validate(true);
+}
+
+function saveAdConfig(){
+	var o_ad = {};
+	o_ad["ad_fqdn"] = m_mainForm.getItem("ad_fqdn").getValue();
+	o_ad["ad_port"] = m_mainForm.getItem("ad_port").getValue();
+	o_ad["ad_protocol"] = m_mainForm.getItem("ad_protocol").getValue() ? "ldaps" : "ldap";
+
+	m_serverconfig["ad_config"] = o_ad;
+   
+	$.ajax({
+		url: ("/activedirectory_config_set"),
+		type: "POST",
+		data: m_serverconfig,
+		success: function(response) {
+			dhx8.dhx.message({ expire: 3000, text: "Configuration saved successfully"});
+			parent.window.parent.window.parent.window.m_needreload = true; //reload parent window so it updates the new config
+			console.log("parent", window.parent);
+		},
+		error: function(xhr, status) {
+			console.log(status);
+			dhx8.dhx.message({ expire: 5000, text: "Error saving config: " + xhr.responseText});
+		}
+	});
+}
+
+window.loadserverconfig = loadserverconfig; //export for use in html onload
+function loadserverconfig() {
 	$.ajax({
 		url: ("/getserverconfig" + "?" + Math.random()),
 		type: "GET",
 		success: function(response) {
-			console.log("got server conf")
+			console.log("got server conf");
 			m_serverconfig = JSON.parse(response);
 			init();
 		},
@@ -77,167 +296,18 @@ function loadserverconfig() {
 	});
 }
 
-function registerButtonClicks(){
-	
-	$( "#btn_save" ).click(function(event) {
-	  event.preventDefault();
-	  saveAdConfig();
-	});
-	$( "#btn_test" ).click(function(event) {
-	  event.preventDefault();
-	  testAdConfig();
-	});
-    $('#ad_fqdn,#ad_port').on("keypress", function(e) {
-        if (e.keyCode == 13) {
-            e.preventDefault();
-            saveAdConfig();
-        }
-    });
-    $('#ad_password').on("keypress", function(e) {
-        if (e.keyCode == 13) {
-            e.preventDefault();
-            testAdConfig();
-        }
-    });   
-    
-    //button hover style
-    $("div").hover(function(){
-          $(this).parent().addClass("dhxform_btn_over");  //Add the active class to the area is hovered
-      }, function () {
-          $(this).parent().removeClass("dhxform_btn_over");
-      });
-}
-
-function testAdConfig(){
-    var o_ad = {};
-    o_ad["ad_config"] = m_serverconfig["ad_config"];
-    o_ad["ad_user"] = document.getElementById("ad_user").value;
-	o_ad["ad_alternate_user"] = document.getElementById("ad_alternate_user").value;
-	o_ad["ad_password"] = btoa(document.getElementById("ad_password").value);
-    document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain fqdn\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
-	$.ajax({
-		url: ("/activedirectory_tester" + "?" + Math.random()),
-		type: "POST",
-		data: o_ad,
-		success: function(response) {
-			console.log("AD TEST OK",response);
-			try{
-				response= JSON.parse(response);
-				response = JSON.stringify(response, undefined, 2);
-			}catch(ex){
-			
-			}
-			document.getElementById("testresult").innerHTML = response;
-			
-		},
-		error: function(xhr, status) {
-			console.log("AD TEST FAIL");
-			document.getElementById("testresult").innerHTML = xhr.responseText;
-		}
-	});
-}
-
-function restoreAdConfig(){
-
-	if ("ad_config" in m_serverconfig){
-		document.getElementById("ad_fqdn").value = m_serverconfig["ad_config"]["ad_fqdn"];
-		document.getElementById("ad_port").value = m_serverconfig["ad_config"]["ad_port"];
-		document.getElementById("ad_protocol").checked = m_serverconfig["ad_config"]["ad_protocol"] == "ldaps";
-	}
-
-}
-function saveAdConfig(){
-	var o_ad = {};
-	o_ad["ad_fqdn"] = document.getElementById("ad_fqdn").value;
-    o_ad["ad_port"] = document.getElementById("ad_port").value;
-	o_ad["ad_protocol"] = document.getElementById("ad_protocol").checked ? "ldaps" : "ldap";
-
-	m_serverconfig["ad_config"] = o_ad;
-   
-	$.ajax({
-		url: ("/activedirectory_config_set"),
-		type: "POST",
-		data: m_serverconfig,
-		success: function(response) {
-			$('#alert').css("display","")
-			parent.window.parent.window.parent.window.m_needreload = true;//reload parent window so it updates the new config
-			console.log("parent",window.parent);
-			setTimeout(function () {
-	  
-				// Closing the alert
-				$('#alert').css("display","none")
-
-			}, 1000);
-			
-			
-		},
-		error: function(xhr, status) {
-			console.log(status)
-			alert("Error saving config!")
-		}
-	});
-
-}
 /* */
 
 </script>
 
 </head>
-<body onload="loadserverconfig()" style="overflow:hidden;margin-left:20px">
-<!-- Flash msg -->
-<div id="alert" class="alert alert-success" style="opacity:5;position:absolute;display:none;margin-top:20px">
-	Saved
+<body onload="loadserverconfig()">
+
+<div id="info" class="dhx_input__caption" style="margin-left:30px;margin-right:30px;margin:10px;overflow:auto;">
+	Active Directory authentication allows users to log in with their domain credentials. No Passwords are stored for AD users.
+    <br/>Create a Usergroup in Webinterface with same Name as an AD Group to configure Permissions for the AD Users.
 </div>
+<div id="dhx_layout_here" style="height:88%;"></div>
 
-<!-- Configuration Form -->
-<form class="dhxform_obj_dhx_skyblue">
-	<div class="row mb-3" >
-		<div class="col-sm-4">
-		<label for="ad_fqdn" class="col-sm-0 dhxform_label dhxform_label_align_left" >Activedirectory FQDN</label>
-	
-		<input type="text"  class="form-control form-control-sm" id="ad_fqdn" placeholder="local.acme.com" /></div></div>
-	
-		<label for="ad_port" class="dhxform_label dhxform_label_align_left" >Activedirectory port</label>
-		
-		<input type="text"  class="form-control form-control-sm" id="ad_port" placeholder="389">
-		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-		<input type="checkbox" style="width:unset!important" id="ad_protocol">
-		<label for="ad_protocol">Use ldaps</label>
-		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
-			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_save">Save</div>
-		</div>
-		</div>
-	</div>
-
-</form>
-
-<!-- Test Form -->
-<form class="dhxform_obj_dhx_skyblue">
-<div class="row mb-3">
-	<div class="col-sm-4">
-		<label for="ad_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username for testing</label>
-		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-		<input type="text" class="form-control form-control-sm"  id="ad_user" placeholder="mypersonaldomainuser">
-		
-		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-		<label for="ad_password" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Password for testing</label>
-		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-		<input type="password" class="form-control form-control-sm" autocomplete="one-time-code"  id="ad_password" />
-		<!-- alternate username to get groups for -->
-		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-		<label for="ad_alternate_user" class="col-sm-0 dhxform_label dhxform_label_align_left">AD Username to check groups</label>
-		<div class="dhxform_item_label_top" style=""><div class="dhxform_txt_label2"></div></div>
-		<input type="text" class="form-control form-control-sm"  id="ad_alternate_user" />
-		<div class="dhxform_obj_dhx_skyblue dhxform_btn dhxform_btn_filler" >
-			<div class="dhxform_btn_txt dhxform_btn_txt_autowidth" id="btn_test">Test</div>
-		</div>
-	</div>
-
-</div>
-    
-
-<!-- Testresult Display -->
-<div  style="width:90%;" class="card-header">Testresult (get AD memberof)</div>
-<pre  style="width:90%;height:1000px" class="form-control form-control-sm"  id="testresult"></pre>
-</form>
 </body>
+</html>
