@@ -1328,7 +1328,7 @@ async function buildActiveGrid() {
 
         var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
         if (_filter.length > 0){
-            //filters user permissions, todo: support multiple FILTER_JOBSTATUS_BUTTONS?
+            //filters user permissions 77todo: support multiple filters
             var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
             console.log("Displaying filtered list of buttons, regex: ", regex);
             menuitems = menuitems.filter(itm=>{
@@ -2107,7 +2107,7 @@ async function buildActiveGrid() {
             if (selectedCells.length == 0)
                 toggleJobControl("history",false);
 
-            //build pagination, todo, should we do this non blocking?
+            //build pagination
             urlSearchParams.append("getcount", 1);
             let counturl = "/gethistoryjobs_dhx?"+urlSearchParams.toString();
             var countresponse = await fetch(counturl);
@@ -2262,7 +2262,7 @@ async function buildActiveGrid() {
     }
 
     function jobCommand(dhx_grid_rows, action, value) {
-        //only available in ffastrans 9.4>//TODO: wait for the new version call, then do version detection
+        //only available in ffastrans 9.4>//TODO: wait until ffastrans has version calls, then do version detection
         console.log("jobcommand", dhx_grid_rows,action,value)
         console.log(m_serverconfig)
         dhx_grid_rows.forEach(function(node) {
@@ -2278,7 +2278,7 @@ async function buildActiveGrid() {
                 postBody["value"] = value;
             }
             $.ajax({
-                url: build_new_api_url("/jobs"),//("/proxy" + m_serverconfig['STATIC_START_JOB_URL']) + node.data.job_id,
+                url: build_new_api_url("/jobs"),
                 type: "PUT",
                 context: this,
                 contentType: "application/json",
@@ -2394,16 +2394,6 @@ async function buildActiveGrid() {
     <div style="display:none">
         <!-- global hiding div prevents showing raw tables before dhtmlx layout attaches the template divs -->
         <!-- THIS DIV CONTAINS THE FINISHED JOBGRID FANCYTREE TEMPLATE -->
-
-
-        <!-- height calc solution was the only way i found to have pagination and history div in same grid layout cell, todo: move on to dhx8 layout and put the 2 in separate layout cells -->
-
-
-
-         <!-- WORKFLOW FILTER TEMPLATE -->
-
-
-
     </div><!-- global hiding div -->
 
     <!-- html code to be loaded by javascript into dhtmlx cells. This is not directly shown on the page but loaded as a template on demand -->
