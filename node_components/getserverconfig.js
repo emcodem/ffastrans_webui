@@ -20,8 +20,14 @@ module.exports = function(app, express){
 	});
 
 	app.get('/serverconfig_confidential', async (req, res) =>  {
+        passport.authenticate('local-login');//fills req.user with infos from cookie
+        var _user = "";
+        if (req.user){
+            _user = req.user.local.username;
+        }
+        
         // Security: Only allow users with admin rights to see confidential config
-        const hasPermission = await userpermissions.hasPermissionAsync(req.user.local.username, "GROUPRIGHT_MENU_VIEW_ADMIN");
+        const hasPermission = await userpermissions.hasPermissionAsync(_user, "GROUPRIGHT_MENU_VIEW_ADMIN");
         if (!hasPermission) {
             res.status(403).json({ message: "Forbidden" });
             res.end();
