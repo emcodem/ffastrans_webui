@@ -40,7 +40,7 @@ function start(req, res) {
 async function main(res, filepath,do_html) {
     try {
         let mediainfo_exe = await findMediainfoExe();
-        let data = await MediaInfo(filepath,mediainfo_exe);
+        let data = await mediaInfo(filepath,mediainfo_exe);
         return res.status(200).send(data);
         
     } catch (ex) {
@@ -48,7 +48,7 @@ async function main(res, filepath,do_html) {
     }
 }
 
-function MediaInfo(file,mediainfo_exe) {
+function mediaInfo(file,mediainfo_exe) {
     var args = [].slice.call(arguments);
     var cmd_options = typeof args[0] === "object" ? args.shift() : {};
     var cmd = [];
