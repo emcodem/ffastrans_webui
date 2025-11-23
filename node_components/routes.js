@@ -85,7 +85,7 @@ module.exports = function(app, passport) {
     //redirect /admin - TODO: check if we actually need this
     app.get('/admin', async function(req, res, next) {
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
-            res.redirect('/webinterface/admin');          
+            res.redirect('/webinterface/components/webinterface_admin/index.html');          
         }else{
             console.log(req.originalUrl)
             res.redirect('/webinterface/components/login.html');         

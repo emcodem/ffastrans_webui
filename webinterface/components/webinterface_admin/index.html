@@ -92,12 +92,12 @@ function init(){
             icon: "mdi mdi-account-group"
         },
         {
-            id: "/webinterface/components/admin/browselocation_setup.html",
+            id: "/webinterface/components/webinterface_admin/browselocation_setup.html",
             value: "Locations",
             icon: "mdi mdi-folder-eye"
         },
         {
-            id: "/webinterface/components/admin/network_setup.html",
+            id: "/webinterface/components/webinterface_admin/network_setup.html",
             value: "Network",
             icon: "mdi mdi-access-point-network"
         },
@@ -147,8 +147,8 @@ function init(){
         arrows_mode:        "auto" ,
         tabs: [ // tabs config
             {id:"serverconfig",text:"Server Configuration",width:null,index:0,active:true,enabled: true,close:false,},
-            {id:"/webinterface/admin/usermanager.html",text:"Users",width:null,index:1,active:false,enabled: true,close:false},
-            {id:"/webinterface/admin/browselocation_setup.html",text:"Locations",width:null,index:2,active:false,enabled: true,close:false},
+            {id:"/webinterface/components/webinterface_admin/usermanager.html",text:"Users",width:null,index:1,active:false,enabled: true,close:false},
+            {id:"/webinterface/components/webinterface_admin/browselocation_setup.html",text:"Locations",width:null,index:2,active:false,enabled: true,close:false},
             /*{
                 id:"upload",text:"Upload",width:null,index:1,active:false,enabled: true,close:false
             },*/
@@ -252,7 +252,7 @@ function showConfigWindow(win_text,win_url){
 <body onload="init()">
     <!-- <div style="width: 100%; overflow: hidden;">
         <div style="height: 100%;width:150px;float:left" id="sidebar"></div>
-        <iframe style="margin-left: 620px;width:100%;height:100%" src="/webinterface/admin/usermanager.html"></iframe>
+        <iframe style="margin-left: 620px;width:100%;height:100%" src="/webinterface/components/webinterface_admin/usermanager.html"></iframe>
    </div> -->
 
 
@@ -287,7 +287,7 @@ Note, after enabling this, you must enter https://localhost:3002
 When using HTTPS and your own certificate, the Privatekey password goes here.
 
 <b>STATIC_USE_WEB_AUTHENTIFICATION</b>
-<a href="/webinterface/admin/usermanager.html"><b>Create Users here before (and after) enabling this option</b></a>
+<a href="/webinterface/components/webinterface_admin/usermanager.html"><b>Create Users here before (and after) enabling this option</b></a>
 Enables password login for users and admins. <b>Make sure you have a created a user before you enable this or you cannot access the webserver anymore at all. </b>
 In case you locked yourself out, open the database using a text editor (%installpath%\database\config) and set the authentification to false.
 
