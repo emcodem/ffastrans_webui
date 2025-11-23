@@ -22,7 +22,7 @@
     }
 </script><!-- legacy dhtml css goes first -->
 
-<script src="../../dependencies/jquery/jquery.js"></script>
+<!-- <script src="../../dependencies/jquery/jquery.js"></script> -->
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
 <style>
@@ -80,21 +80,22 @@ window.addEventListener("pagehide",(event) => {
 );
 
 async function loadData(){
-    var locations = await  $.ajax({
-        url:  ("/getworkflowlist"),
-        type: "GET"
-    });
+    const response = await fetch("/getworkflowlist");
+    if (!response.ok) throw new Error(await response.text());
+    const locations = await response.text();
     return locations;
 }
 
 async function saveVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables")),
-        type: "POST",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
+    const response = await fetch(build_new_api_url("/variables"), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(var_name_and_data)
     });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.text();
     loadGridData(true);//reload with every save
     dhx8.dhx.message({
         text:"Success Saving Variables", 
@@ -105,13 +106,15 @@ async function saveVariableAjax(var_name_and_data){
 }
 
 async function deleteVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables?name=" + var_name_and_data.name)),
-        type: "DELETE",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
+    const response = await fetch(build_new_api_url("/variables?name=" + var_name_and_data.name), {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(var_name_and_data)
     });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.text();
     loadGridData(true);//reload with every save
     return data;
 }
