@@ -139,7 +139,7 @@ async function updateWorkflowField(wf_id,new_data){
         var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
         var wf_contents = await  helpers.readfile_cached(wf_file);
         wf_contents = JSON.parse(wf_contents);
-        Object.assign(wf_contents, new_data);
+        deepMerge(wf_contents, new_data);
         await fs.writeFile(wf_file,JSON.stringify(wf_contents,null,3));
     }else{
         throw new Error("Workflow file does not exist, " + wf_file);
@@ -355,6 +355,18 @@ function zeropad(number, amount = 2) {
       return number;
     }
     return (Array(amount).join(0) + number).slice(-amount);
+}
+
+function deepMerge(target, source) {
+    for (let key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key]) target[key] = {};
+            deepMerge(target[key], source[key]);
+        } else {
+            target[key] = source[key];
+        }
+    }
+    return target;
 }
 
 
