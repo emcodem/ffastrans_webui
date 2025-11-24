@@ -1,0 +1,472 @@
+@font-face {
+    font-family: "dhxicons";
+    src: url("./dhxicons.woff") format("woff"),
+url("./dhxicons.woff2") format("woff2");
+}
+
+.dxi:before {
+    font-family: dhxicons !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.dxi.dxi-alert-circle:before {
+    content: "\f101";
+}
+.dxi.dxi-align-horizontal-center:before {
+    content: "\f102";
+}
+.dxi.dxi-align-horizontal-distribute:before {
+    content: "\f103";
+}
+.dxi.dxi-align-horizontal-left:before {
+    content: "\f104";
+}
+.dxi.dxi-align-horizontal-right:before {
+    content: "\f105";
+}
+.dxi.dxi-align-vertical-bottom:before {
+    content: "\f106";
+}
+.dxi.dxi-align-vertical-center:before {
+    content: "\f107";
+}
+.dxi.dxi-align-vertical-distribute:before {
+    content: "\f108";
+}
+.dxi.dxi-align-vertical-top:before {
+    content: "\f109";
+}
+.dxi.dxi-alpha-h-box:before {
+    content: "\f10a";
+}
+.dxi.dxi-alpha-w-box:before {
+    content: "\f10b";
+}
+.dxi.dxi-alpha-x-box:before {
+    content: "\f10c";
+}
+.dxi.dxi-alpha-y-box:before {
+    content: "\f10d";
+}
+.dxi.dxi-arrow-collapse:before {
+    content: "\f10e";
+}
+.dxi.dxi-arrow-down:before {
+    content: "\f10f";
+}
+.dxi.dxi-arrow-expand:before {
+    content: "\f110";
+}
+.dxi.dxi-arrow-left:before {
+    content: "\f111";
+}
+.dxi.dxi-arrow-right:before {
+    content: "\f112";
+}
+.dxi.dxi-arrow-up:before {
+    content: "\f113";
+}
+.dxi.dxi-blur-off:before {
+    content: "\f114";
+}
+.dxi.dxi-blur:before {
+    content: "\f115";
+}
+.dxi.dxi-border-all:before {
+    content: "\f116";
+}
+.dxi.dxi-border-bottom:before {
+    content: "\f117";
+}
+.dxi.dxi-border-horizontal:before {
+    content: "\f118";
+}
+.dxi.dxi-border-inside:before {
+    content: "\f119";
+}
+.dxi.dxi-border-left:before {
+    content: "\f11a";
+}
+.dxi.dxi-border-none:before {
+    content: "\f11b";
+}
+.dxi.dxi-border-outside:before {
+    content: "\f11c";
+}
+.dxi.dxi-border-right:before {
+    content: "\f11d";
+}
+.dxi.dxi-border-top:before {
+    content: "\f11e";
+}
+.dxi.dxi-border-vertical:before {
+    content: "\f11f";
+}
+.dxi.dxi-calendar-today:before {
+    content: "\f120";
+}
+.dxi.dxi-chart-horizontal:before {
+    content: "\f121";
+}
+.dxi.dxi-chart-vertical:before {
+    content: "\f122";
+}
+.dxi.dxi-check:before {
+    content: "\f123";
+}
+.dxi.dxi-checkbox-blank-outline:before {
+    content: "\f124";
+}
+.dxi.dxi-checkbox-marked-circle:before {
+    content: "\f125";
+}
+.dxi.dxi-checkbox-marked:before {
+    content: "\f126";
+}
+.dxi.dxi-chevron-double-down:before {
+    content: "\f127";
+}
+.dxi.dxi-chevron-double-left:before {
+    content: "\f128";
+}
+.dxi.dxi-chevron-double-right:before {
+    content: "\f129";
+}
+.dxi.dxi-chevron-double-up:before {
+    content: "\f12a";
+}
+.dxi.dxi-chevron-down:before {
+    content: "\f12b";
+}
+.dxi.dxi-chevron-left:before {
+    content: "\f12c";
+}
+.dxi.dxi-chevron-right:before {
+    content: "\f12d";
+}
+.dxi.dxi-chevron-up:before {
+    content: "\f12e";
+}
+.dxi.dxi-clock-outline:before {
+    content: "\f12f";
+}
+.dxi.dxi-clock:before {
+    content: "\f130";
+}
+.dxi.dxi-close-circle:before {
+    content: "\f131";
+}
+.dxi.dxi-close:before {
+    content: "\f132";
+}
+.dxi.dxi-content-save:before {
+    content: "\f133";
+}
+.dxi.dxi-copy:before {
+    content: "\f134";
+}
+.dxi.dxi-cut:before {
+    content: "\f135";
+}
+.dxi.dxi-delete-forever:before {
+    content: "\f136";
+}
+.dxi.dxi-delete-outline:before {
+    content: "\f137";
+}
+.dxi.dxi-delete:before {
+    content: "\f138";
+}
+.dxi.dxi-dots-horizontal:before {
+    content: "\f139";
+}
+.dxi.dxi-dots-vertical:before {
+    content: "\f13a";
+}
+.dxi.dxi-download:before {
+    content: "\f13b";
+}
+.dxi.dxi-drag-vertical:before {
+    content: "\f13c";
+}
+.dxi.dxi-email:before {
+    content: "\f13d";
+}
+.dxi.dxi-empty:before {
+    content: "\f13e";
+}
+.dxi.dxi-eraser:before {
+    content: "\f13f";
+}
+.dxi.dxi-eye-off:before {
+    content: "\f140";
+}
+.dxi.dxi-eye:before {
+    content: "\f141";
+}
+.dxi.dxi-eyedropper-variant:before {
+    content: "\f142";
+}
+.dxi.dxi-file-excel:before {
+    content: "\f143";
+}
+.dxi.dxi-file-export:before {
+    content: "\f144";
+}
+.dxi.dxi-file-import:before {
+    content: "\f145";
+}
+.dxi.dxi-file-outline:before {
+    content: "\f146";
+}
+.dxi.dxi-filter-variant:before {
+    content: "\f147";
+}
+.dxi.dxi-folder-open:before {
+    content: "\f148";
+}
+.dxi.dxi-folder:before {
+    content: "\f149";
+}
+.dxi.dxi-format-align-center:before {
+    content: "\f14a";
+}
+.dxi.dxi-format-align-left:before {
+    content: "\f14b";
+}
+.dxi.dxi-format-align-right:before {
+    content: "\f14c";
+}
+.dxi.dxi-format-annotation-plus:before {
+    content: "\f14d";
+}
+.dxi.dxi-format-bold:before {
+    content: "\f14e";
+}
+.dxi.dxi-format-color-fill:before {
+    content: "\f14f";
+}
+.dxi.dxi-format-color-text:before {
+    content: "\f150";
+}
+.dxi.dxi-format-horizontal-align-left:before {
+    content: "\f151";
+}
+.dxi.dxi-format-horizontal-align-right:before {
+    content: "\f152";
+}
+.dxi.dxi-format-italic:before {
+    content: "\f153";
+}
+.dxi.dxi-format-line-spacing:before {
+    content: "\f154";
+}
+.dxi.dxi-format-line-style:before {
+    content: "\f155";
+}
+.dxi.dxi-format-quote-close:before {
+    content: "\f156";
+}
+.dxi.dxi-format-quote-open:before {
+    content: "\f157";
+}
+.dxi.dxi-format-strikethrough:before {
+    content: "\f158";
+}
+.dxi.dxi-format-text-rotation-angle-up:before {
+    content: "\f159";
+}
+.dxi.dxi-format-text-rotation-none:before {
+    content: "\f15a";
+}
+.dxi.dxi-format-text-wrapping-clip:before {
+    content: "\f15b";
+}
+.dxi.dxi-format-text-wrapping-overflow:before {
+    content: "\f15c";
+}
+.dxi.dxi-format-text-wrapping-wrap:before {
+    content: "\f15d";
+}
+.dxi.dxi-format-textbox:before {
+    content: "\f15e";
+}
+.dxi.dxi-format-underline:before {
+    content: "\f15f";
+}
+.dxi.dxi-format-vertical-align-bottom:before {
+    content: "\f160";
+}
+.dxi.dxi-format-vertical-align-center:before {
+    content: "\f161";
+}
+.dxi.dxi-format-vertical-align-top:before {
+    content: "\f162";
+}
+.dxi.dxi-function-variant:before {
+    content: "\f163";
+}
+.dxi.dxi-grid-step:before {
+    content: "\f164";
+}
+.dxi.dxi-help-circle-outline:before {
+    content: "\f165";
+}
+.dxi.dxi-image-outline:before {
+    content: "\f166";
+}
+.dxi.dxi-information-outline:before {
+    content: "\f167";
+}
+.dxi.dxi-key:before {
+    content: "\f168";
+}
+.dxi.dxi-line-connect:before {
+    content: "\f169";
+}
+.dxi.dxi-line-curved:before {
+    content: "\f16a";
+}
+.dxi.dxi-line-elbow:before {
+    content: "\f16b";
+}
+.dxi.dxi-line-straight:before {
+    content: "\f16c";
+}
+.dxi.dxi-link-variant-off:before {
+    content: "\f16d";
+}
+.dxi.dxi-link-variant:before {
+    content: "\f16e";
+}
+.dxi.dxi-loading:before {
+    content: "\f16f";
+}
+.dxi.dxi-magnify:before {
+    content: "\f170";
+}
+.dxi.dxi-menu-down:before {
+    content: "\f171";
+}
+.dxi.dxi-menu-left:before {
+    content: "\f172";
+}
+.dxi.dxi-menu-right:before {
+    content: "\f173";
+}
+.dxi.dxi-menu-up:before {
+    content: "\f174";
+}
+.dxi.dxi-minus-box:before {
+    content: "\f175";
+}
+.dxi.dxi-minus:before {
+    content: "\f176";
+}
+.dxi.dxi-numeric:before {
+    content: "\f177";
+}
+.dxi.dxi-paste:before {
+    content: "\f178";
+}
+.dxi.dxi-pencil:before {
+    content: "\f179";
+}
+.dxi.dxi-person:before {
+    content: "\f17a";
+}
+.dxi.dxi-plus-box:before {
+    content: "\f17b";
+}
+.dxi.dxi-plus-circle:before {
+    content: "\f17c";
+}
+.dxi.dxi-plus:before {
+    content: "\f17d";
+}
+.dxi.dxi-printer:before {
+    content: "\f17e";
+}
+.dxi.dxi-redo:before {
+    content: "\f17f";
+}
+.dxi.dxi-rotate-right:before {
+    content: "\f180";
+}
+.dxi.dxi-select-all:before {
+    content: "\f181";
+}
+.dxi.dxi-snowflake:before {
+    content: "\f182";
+}
+.dxi.dxi-sort-variant:before {
+    content: "\f183";
+}
+.dxi.dxi-sort:before {
+    content: "\f184";
+}
+.dxi.dxi-table-check:before {
+    content: "\f185";
+}
+.dxi.dxi-table-column-plus-after:before {
+    content: "\f186";
+}
+.dxi.dxi-table-column-plus-before:before {
+    content: "\f187";
+}
+.dxi.dxi-table-column-remove-after:before {
+    content: "\f188";
+}
+.dxi.dxi-table-column-remove:before {
+    content: "\f189";
+}
+.dxi.dxi-table-column:before {
+    content: "\f18a";
+}
+.dxi.dxi-table-merge-cells:before {
+    content: "\f18b";
+}
+.dxi.dxi-table-row-plus-after:before {
+    content: "\f18c";
+}
+.dxi.dxi-table-row-plus-before:before {
+    content: "\f18d";
+}
+.dxi.dxi-table-row-remove-after:before {
+    content: "\f18e";
+}
+.dxi.dxi-table-row-remove:before {
+    content: "\f18f";
+}
+.dxi.dxi-table-row:before {
+    content: "\f190";
+}
+.dxi.dxi-table-split-cell:before {
+    content: "\f191";
+}
+.dxi.dxi-undo:before {
+    content: "\f192";
+}
+.dxi.dxi-unfold-more-horizontal:before {
+    content: "\f193";
+}
+.dxi.dxi-vault:before {
+    content: "\f194";
+}
+.dxi.dxi-view-grid:before {
+    content: "\f195";
+}
+.dxi.dxi-view-sequential:before {
+    content: "\f196";
+}
+
+
+.dxi-spin {
+    -webkit-animation:fa-spin 2s linear infinite;animation:fa-spin 2s linear infinite
+}
