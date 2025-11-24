@@ -1,0 +1,12 @@
+{
+    "references": [{
+        "path": "../src"
+    }],
+    "compilerOptions": {
+        "composite": true,
+        "allowJs": true,
+        "noEmit": true,
+        "types": ["node"],
+        "esModuleInterop": true
+    }
+}
