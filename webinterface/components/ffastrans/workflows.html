@@ -1,11 +1,7 @@
 <html>
 <head>
-
-
-<link rel="stylesheet" href="/alternate-server/css/override.css"/>
-
-<script src="../../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
-<link rel="stylesheet" href="../../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"/> 
+<!-- <script src="../../dependencies/dhtmlx/9.2.4/suite.umd.js"></script> -->
+<link rel="stylesheet" href="../../dependencies/dhtmlx/9.2.4/suite.min.css" type="text/css"/> 
 <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 <script>
     //theme changeer
@@ -13,17 +9,12 @@
         try{
             document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
         }catch(ex){}
-        try{
-            dhx.setTheme("dark");
-        }catch(ex){}
-        try{
-            dhx8.dhx.setTheme("dark");
-        }catch(ex){}
     }
 </script><!-- legacy dhtml css goes first -->
 
 <!-- <script src="../../dependencies/jquery/jquery.js"></script> -->
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="/alternate-server/css/override.css"/>
 
 <style>
 * {
@@ -65,7 +56,18 @@
 </style>
 
 <script type="module">
+window.global = window;
 import { webuiVariables_processVariables } from "../common/webuiVariables.js";
+
+//humble try to use dhtmlx as es6 module, its not very successful because window.dhx is still defined
+//we can use this as example for future experiments
+import { dhx924 } from '../../dependencies/dhtmlx/9.2.4/suite.umd.js';
+if (localStorage.global_skin_dark == "1"){
+    try{
+        dhx924.dhx.setTheme("dark");
+    }catch(ex){}
+}
+// Then use dhx924.dhx.Grid, etc.
 
 window.m_last_data = null;
 window.init = init;
@@ -97,7 +99,7 @@ async function saveVariableAjax(var_name_and_data){
     if (!response.ok) throw new Error(await response.text());
     const data = await response.text();
     loadGridData(true);//reload with every save
-    dhx8.dhx.message({
+    dhx924.dhx.message({
         text:"Success Saving Variables", 
         css:"expire", 
         expire:2000
@@ -146,11 +148,11 @@ async function buildLayout(){
 		]
 	}
         
-    var layout = new dhx8.dhx.Layout("layout", mainlayout_config);
+    var layout = new dhx924.dhx.Layout("layout", mainlayout_config);
     layout.getCell("main").progressShow();
 
     //GRID
-    m_maingrid = new dhx8.dhx.Grid(null, {
+    m_maingrid = new dhx924.dhx.Grid(null, {
         adjust:"data",
         columns: [
             {  readonly:true, id: "wf_folder",minWidth: 80, header: [{ content: "selectFilter" },           { text: "Folder" }]},
@@ -277,7 +279,7 @@ async function buildLayout(){
             css: "dhxform_obj_dhx_skyblue"      
         }
     ]
-    const toolbar = new dhx8.dhx.Toolbar("toolbar", {
+    const toolbar = new dhx924.dhx.Toolbar("toolbar", {
         css:"dhx_widget--bordered"
         });
     toolbar.data.add(cfg);
@@ -342,15 +344,15 @@ async function webuiWorkflowIntegrationEditor(workflowData){
     }
     
     
-    var dhxWindow = new dhx8.dhx.Window({
+    var dhxWindow = new dhx924.dhx.Window({
         header: true,
         title: "WebUI Workflow Integration",
         movable: true,
         closable:true,
         modal:true,
         resizable:true,
-        height:550,
-        html:"<div style='height:80%' id='newvarform'></div>Final variable name: <input style='width:70%;color:rgba(0, 0, 0, 0.5)' readonly=true id='newvarname'></div>"
+        height:"content",
+       // html:"<div style='height:80%' id='newvarform'></div>Final variable name: <input style='width:70%;color:rgba(0, 0, 0, 0.5)' readonly=true id='newvarname'></div>"
     });
     dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen" }, 2);
             var isFullScreen = false;
@@ -366,7 +368,7 @@ async function webuiWorkflowIntegrationEditor(workflowData){
                 }
             });
     dhxWindow.show();
-    await dhx8.dhx.awaitRedraw(); //wait until html part of dhxWindow is drawn on page
+    await dhx924.dhx.awaitRedraw(); //wait until html part of dhxWindow is drawn on page
 
     const layout_config = {
         //type: "wide",//"line" | "wide" | "space" | "none";
@@ -400,7 +402,7 @@ async function webuiWorkflowIntegrationEditor(workflowData){
                     {
                     cols:[
                     {
-                            header:"Features",
+                            header:"Settings",
                             id: "right_cell",
                             resizable:true,
                             width:"100%",
@@ -421,36 +423,50 @@ async function webuiWorkflowIntegrationEditor(workflowData){
             }
 		]
 	}
-    let layout = new dhx8.dhx.Layout(null, layout_config);
+    let layout = new dhx924.dhx.Layout(null, layout_config);
     dhxWindow.attach(layout);
 
-    const features_form = new dhx8.dhx.Form(null, {
+    let stitch_text     = "Submits all selected files into a single job, sets %webui_a_source% and %webui_o_source%";
+    let top_text        = workflowData.webui.job_submitter.settings.top_text || workflowData.description.replace("webui_stitch",""); 
+    let submit_mode  = workflowData.webui.job_submitter.settings.submit_mode || "unset"; 
+    console.log("top_text value:",workflowData)
+    const features_form = new dhx924.dhx.Form(null, {
         css: "dhx_widget--bordered",
         rows: [
             {
                 name : "top_text",
-                "type": "textarea",
-                "label": "Top Text",
-                "labelPosition": "left",
-                "labelWidth": "80",
-                "placeholder": "Displayed on Top",
-                "readOnly": false,
-                "resizable": true
+                
+                type: "textarea",
+                label: "Top Text",
+                labelPosition: "left",
+                labelWidth: "80",
+                width: "100%",
+                placeholder: "Displayed on Top",
+                readOnly: false,
+                resizable: true,
+                value:top_text
+                
             },
             {
-                name: "stitch",
-                "type": "checkbox",
-                "label": "Stitch",
-                "labelPosition": "left",
-                "labelWidth": "80",
-                "checked": false
-            },
-            {
-                "type": "text",
-                "label": "",
-                "labelPosition": "left",
-                "labelWidth": "80",
-                "value": "Submits all selected files into a single job, sets %webui_a_source% and %webui_o_source%"
+                name: "submit_mode",
+                type: "select",
+                label: "Submit Mode",
+                labelPosition: "left",
+                labelWidth: "80",
+                value: submit_mode,
+                options: [
+                    {
+                        "value": "single",
+                        "content": "One job for each File"
+                    },
+                    {
+                        "value": "multi",
+                        "content": "One job for all Files"
+                    }
+                ],
+                preMessage: stitch_text,
+                successMessage: stitch_text,
+                errorMessage: stitch_text
             },
 
             {view:"link",width:"250px",css:"dhxform_obj_dhx_skyblue",circle:true,full:true,type: "button",name: "btn_save",text: "Save",view: "flat",color: "primary"},
@@ -461,36 +477,49 @@ async function webuiWorkflowIntegrationEditor(workflowData){
     
     features_form.events.on("click", async function(event, name, id) {
             //form submit
+
             if (!features_form.validate()){
                 alert("Error, Please check your inputs.");
                 return;
             }
             
             var v = features_form.getValue();
-            var real_var_name = document.getElementById("newvarname").value.replaceAll("%","");
-            try{
-                var res = await saveVariableAjax({name:real_var_name,data:v.description});
-                console.log("Save variable response",res);
-            }catch(ex){
-                console.log("Error Saving variable: ", ex)
-                alert("Error Saving variable: " + ex.responseText)
-                console.log("Responsetext: ", ex.responseText)
-            }
-            dhxWindow.destructor();
-            await loadGridData();
-            await dhx8.dhx.awaitRedraw();
-            //select cell in grid 
-            
-            var foundRow = m_maingrid.data.find(function(item){
-                if(item.name=== real_var_name){return true}
-            });
-            if (!foundRow)
-                alert("row not found")
-            console.log("rowid",foundRow.id)
-            m_maingrid.selection.setCell(m_maingrid.data.getItem(foundRow.id));
+            console.log(v)
 
-            //open variable editor
-            editWebUiTypeVar()
+            try{
+                const wf_id = workflowData.wf_id;
+                const updateData = {
+                    wf_id: wf_id,
+                    update: {
+                        webui: {
+                            job_submitter: {
+                                settings: v
+                            }
+                        }
+                    }
+                };
+                const response = await fetch(build_new_api_url("/workflows"), {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.text();
+                console.log("Save workflow response", data);
+                dhx924.dhx.message({
+                    text: "Success Saving Workflow Features",
+                    css: "expire",
+                    expire: 2000
+                });
+                // dhxWindow.destructor();
+                // await loadGridData();
+                // await dhx924.dhx.awaitRedraw();
+            } catch (ex) {
+                console.log("Error Saving workflow features: ", ex);
+                alert("Error Saving workflow features: " + ex.message);
+            }
     });
     features_form.events.on("change", function(event, name, id) {
         //onNameChange();
@@ -502,7 +531,7 @@ async function webuiWorkflowIntegrationEditor(workflowData){
     });
 
     //Merit grid
-    const merit_grid = new dhx8.dhx.Grid("grid", {
+    const merit_grid = new dhx924.dhx.Grid("grid", {
         selection: "row",
         editable: true,
         columns: [
@@ -520,7 +549,7 @@ async function webuiWorkflowIntegrationEditor(workflowData){
 function createWorkflowForm(wf_object){
 
     var dhxform_user_vars = webuiVariables_processVariables(wf_object.user_variables.variables);
-    const vars_form = new dhx8.dhx.Form("form_wf_form", {
+    const vars_form = new dhx924.dhx.Form("form_wf_form", {
                 //css: "dhx_widget--bordered",
                 rows: dhxform_user_vars
             });
