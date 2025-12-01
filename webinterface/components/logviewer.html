@@ -1200,7 +1200,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 };
 
 
-function filterLogByNodeId(nodeId){
+function filterLogByNodeId(nodeId, branch){
     /* visually filters log  */
     var tree = $("#treetable_log").fancytree('getTree');
     toggleNodeSelected(nodeId);
@@ -1212,12 +1212,19 @@ function filterLogByNodeId(nodeId){
 
     tree.filterNodes(function (node) {
         if (node["data"]["node"]["id"]){
-            
             if (node["data"]["node"]["id"].toUpperCase().match(nodeId)) {
-                //node.titleWithHighlight = "<mark>" + node.title + "</mark>";
-                return true;
+                if (branch){
+                    if (node["data"]["split_id"] == branch){
+                        console.log("branch filter matched")
+                        return true;//branch and node matched
+                    }else{
+                        return false;//branch filter active but not matched
+                    }
+                }else{
+                    return true;//branch filter inactive and node matched
+                }
             }else{
-                return false;
+                return false; //no node id
             }
         }
     }, {
@@ -1298,6 +1305,7 @@ async function parseJobLog(lines) {
     for (var i = 0; i < lines.length; i++) {
         var _proc_id;
         var line = lines[i];
+        let node_has_errors = false;
         try {
             //m_timelineobject = [];
             //['Group1', 'Item1', 'this is a tooltip for Item1.cpp', new Date(1485183398349.28) /* 2017-01-23 14:56:38.349 */, new Date(1485183403210.01) /* 2017-01-23 14:56:43.210 */],
@@ -1408,6 +1416,8 @@ async function parseJobLog(lines) {
                 //red border for errored nodes
                 if (line["data"] != null) { //when this exists, we have a node in error
                     $("#" + containerPrefix + _proc_id).parent().addClass("blinking-error");
+                    m_unique_nodes[new_key]["state"] = "error";
+                    node_has_errors = true;
                 } 
             }
 
@@ -1416,13 +1426,13 @@ async function parseJobLog(lines) {
         if (line["pid"] != "undefined") { //we have a pid, perfect
             var id_from_pid = id_pid_mapping[line["pid"]];
             try{
-                a_log_per_node[id_from_pid].push(line);
+                //a_log_per_node[id_from_pid].push(line);
             }catch(ex){
                 debug = true;
             }
         } else {
             //did not get pid, so cannot guarantee that this line belongs to the proc but it is the best we can do...
-            a_log_per_node[_proc_id].push(line);
+            //a_log_per_node[_proc_id].push(line);
         }
     }
     console.timeEnd("parseJobLog");
@@ -1604,12 +1614,12 @@ function initNodeGrid() {
     console.log("initNodeGrid");
     
     const columns = [
-        { id: "state",   header: [{ text: "State" }],       width:100 },
+        { id: "state",   header: [{ text: "State" }],       width:100, sortable: true  },
         { id: "name",    header: [{ text: "Name" }],                    },
         { id: "start",   header: [{ text: "Start" }],       width:100},
         { id: "duration",   header: [{ text: "Duration" }], width:100},
-        { id: "host",    header: [{ text: "Host" }],   },
-        { id: "branch",  header: [{ text: "Branch" }], },
+        { id: "host",    header: [{ text: "Host" }],   sortable: true },
+        { id: "branch",  header: [{ text: "Branch" }], sortable: true },
         { id: "node_id",     header: [{ text: "ID" }], },
     ];
 
@@ -1634,9 +1644,9 @@ function initNodeGrid() {
     function nodeGridSelect(data) {
         console.log("data",data);
         
-        filterLogByNodeId(data.node_id.toUpperCase());
         toggleNodeSelected(data.node_id.toUpperCase());
-
+        filterLogByNodeId(data.node_id.toUpperCase(),data.branch);
+        
         //check which graph contains the cell and center it
         Object.keys(m_graphs_by_container_id).forEach( key => {
             let g = m_graphs_by_container_id[key];
