@@ -58,7 +58,7 @@ module.exports = {
                 {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify(job)
+                    body: job
                 }
             );
             const body = await response.text();
