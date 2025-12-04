@@ -270,6 +270,28 @@
         image-rendering: -webkit-optimize-contrast;
         image-rendering: crisp-edges;
     }
+
+    /* Loader spinner */
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 8px solid #3498db;
+        -webkit-animation: spin 2s linear infinite;
+        /* position absolute so centering is relative to the positioned parent element */
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 30px;
+        height: 30px;
+        z-index: 100;
+        /* center within parent */
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        visibility: hidden;
+    }
+
 </style>
 
 <script>
@@ -1820,10 +1842,20 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 $("#treetable_log").css("visibility", "hidden");
                 var rootNode = $("#treetable_log").fancytree("getRootNode");
                 window.setPerformanceInfo("Rendering log...");
-                await asyncsleep(10); //yield to UI thread
-                rootNode.removeChildren();
-                rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
-                window.setPerformanceInfo("Rendering log done.");
+                //mainLayout.cells("c").progressOn();
+                showLoading()
+                try{
+                    await asyncsleep(10); //yield to UI thread
+                    rootNode.removeChildren();
+                    rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
+                    
+                    window.setPerformanceInfo("Rendering log done.");
+                }catch(ex){}
+                finally{
+                    hideLoading()
+                    //mainLayout.cells("c").progressOff();
+                }
+
                 //console.log("full log",response);
                 $("#treetable_log").css("visibility", "visible");
                 $("#log_div").css("visibility", "visible");
@@ -1990,6 +2022,17 @@ function buildUrl(what) {
     //old, delete at next iteration
 }
 
+function showLoading(){
+    console.log("showLoading")
+    document.getElementById("spinner").style.visibility = "visible";
+}
+
+function hideLoading(){
+    console.log("hideLoading")
+    document.getElementById("spinner").style.visibility = "hidden";
+}
+
+
 </script>
 </head>
 
@@ -2000,6 +2043,7 @@ function buildUrl(what) {
 </div>
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
     <div id="log_div" style="visibility:visible;height:100%;overflow:scroll" class="gridbox_dhx_skyblue gridbox">
+        <div id="spinner" class="loader"></div>
         <table id="treetable_log"  class="obj">
             <colgroup>
                 <col width="7%"></col>
