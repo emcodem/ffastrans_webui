@@ -277,18 +277,18 @@
         border-radius: 50%;
         border-top: 8px solid #3498db;
         -webkit-animation: spin 2s linear infinite;
-        /* position absolute so centering is relative to the positioned parent element */
-        position: absolute;
+        position: fixed;
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 30px;
-        height: 30px;
+        width: 30;
+        height: 30;
         z-index: 100;
-        /* center within parent */
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        -webkit-transform: translate(-50%, -50%);
+        margin-left: -25px;
+        margin-top: 0px;
         visibility: hidden;
     }
 
