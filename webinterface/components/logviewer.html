@@ -627,7 +627,8 @@ function buildMainLayout() {
     
     //Left Layout
     
-    let info_layout = mainLayout.cells("a").attachLayout("3E");
+    let info_layout = mainLayout.cells("a").attachLayout("4E");
+
     info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleGeneralDock()"><span class="mdi mdi-eject"></span></button>' +
         "<span id='general_text'>General</span>");
     info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>');
@@ -641,6 +642,13 @@ function buildMainLayout() {
     info_layout.cells("b").attachHTMLString('<div id="branch_div" style=""/>');
     info_layout.cells("b").showInnerScroll();
 
+    info_layout.cells("d").hideHeader();
+    info_layout.cells("d").setHeight(50);
+    info_layout.cells("d").attachHTMLString('<div id="performance_div" class="dhx_grid-cell dhx_string-cell" style="height:100%;width:100%;"/>');
+    window.setPerformanceInfo = function(html){
+        document.getElementById("performance_div").innerHTML = html;
+    }
+    window.setPerformanceInfo("Idle");
 
     initBranchGrid();
     
@@ -684,13 +692,13 @@ function initBranchGrid(){
     const columns = [
         {
             id: "name",
-            header: [{ text: "ID" }],
+            header: [{ text: "ID" }, { content: "inputFilter" }],
             resizable: true,
             
         },
         {
             id: "object",
-            header: [{ text: "Outcome" },],
+            header: [{ text: "Outcome" }, { content: "inputFilter" }],
             template: function(o_branch){
                 let to_display = o_branch.result;
                 to_display = o_branch.result.replaceAll(/\r|\n/g,"");
@@ -1282,7 +1290,7 @@ async function parseJobLog(lines) {
     var id_pid_mapping = {};
     var sub_workflow_is_loading = false;
     console.time("parseJobLog");
-    
+    window.setPerformanceInfo("Parsing log...");
     // Helper function to find which container a node belongs to
     function getContainerPrefixForNode(nodeId) {
         // First check if this node exists in the main workflow
@@ -1303,6 +1311,10 @@ async function parseJobLog(lines) {
     }
     
     for (var i = 0; i < lines.length; i++) {
+        window.setPerformanceInfo("Parsing log Line " + (i + 1) + " of " + lines.length);
+        if (i % 1000 == 0){
+            await asyncsleep(1); //yield to UI thread every 1000 lines
+        }
         var _proc_id;
         var line = lines[i];
         let node_has_errors = false;
@@ -1435,6 +1447,7 @@ async function parseJobLog(lines) {
             //a_log_per_node[_proc_id].push(line);
         }
     }
+    window.setPerformanceInfo("Log parsing completed.");
     console.timeEnd("parseJobLog");
 }
 
@@ -1553,12 +1566,18 @@ function buildLogGridGrid() {
             var xid = Math.random(100000000);
             var x = document.createElement("INPUT");
             x.setAttribute("type", "checkbox");
-            x.setAttribute("checked", "true");
+            x.checked = true;
             x.setAttribute("class", "togglecontentvisible");
             x.style.float = "left";
             x.id = xid;
             x.name = node.data["event"];
             document.getElementById(evt_id).parentElement.insertBefore(x,document.getElementById(evt_id));
+            
+            if (data.node.getIndex() > 1000){
+                //too many items visible lead to bad performance on page
+                x.checked = false;
+                x.parentElement.nextElementSibling.style.display = "none"
+            }
             x.onchange = function () { 
                             if (this.checked){
                                 this.parentElement.nextElementSibling.style.display = ""
@@ -1614,13 +1633,13 @@ function initNodeGrid() {
     console.log("initNodeGrid");
     
     const columns = [
-        { id: "state",   header: [{ text: "State" }],       width:100, sortable: true  },
-        { id: "name",    header: [{ text: "Name" }],                    },
-        { id: "start",   header: [{ text: "Start" }],       width:100},
-        { id: "duration",   header: [{ text: "Duration" }], width:100},
-        { id: "host",    header: [{ text: "Host" }],   sortable: true },
-        { id: "branch",  header: [{ text: "Branch" }], sortable: true },
-        { id: "node_id",     header: [{ text: "ID" }], },
+        { id: "state",   header: [{ text: "State" },{content: "selectFilter" }], width:100, sortable: true },
+        { id: "name",    header: [{ text: "Name" }, {content: "selectFilter" }]},
+        { id: "start",   header: [{ text: "Start" }, {content: "inputFilter" }],       width:100},
+        { id: "duration",   header: [{ text: "Duration" }, {content: "selectFilter" }], width:100},
+        { id: "host",    header: [{ text: "Host" },   {content: "selectFilter" }],   sortable: true },
+        { id: "branch",  header: [{ text: "Branch" }, {content: "inputFilter" }], sortable: true },
+        { id: "node_id",     header: [{ text: "ID" }, {content: "inputFilter" }], },
     ];
 
     const nodeGrid = new dhx8.dhx.Grid("node_div", {
@@ -1759,10 +1778,15 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 $("#log_div").css("visibility", "visible");
             } else {
                 //full log received
+                $("#treetable_log").css("visibility", "hidden");
                 var rootNode = $("#treetable_log").fancytree("getRootNode");
+                window.setPerformanceInfo("Rendering log...");
+                await asyncsleep(10); //yield to UI thread
                 rootNode.removeChildren();
                 rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
-                console.log("full log",response);
+                window.setPerformanceInfo("Rendering log done.");
+                //console.log("full log",response);
+                $("#treetable_log").css("visibility", "visible");
                 $("#log_div").css("visibility", "visible");
             }
 
