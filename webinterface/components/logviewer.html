@@ -720,7 +720,7 @@ function initBranchGrid(){
         },
         {
             id: "object",
-            header: [{ text: "Outcome" }, { content: "inputFilter" }],
+            header: [{ text: "Outcome" }],
             template: function(o_branch){
                 let to_display = o_branch.result;
                 to_display = o_branch.result.replaceAll(/\r|\n/g,"");
