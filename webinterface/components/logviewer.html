@@ -1175,6 +1175,27 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
                 let graph  = this;
 
+                // prevent zooming the outer graph when scrolling a sub-graph
+                // Find the nearest ancestor element of the event target that corresponds to a registered graph container
+                try {
+                    var node = evt.target;
+                    var nearestGraphContainer = null;
+                    while (node) {
+                        if (node.id && window.m_graphs_by_container_id && m_graphs_by_container_id[node.id]) {
+                            nearestGraphContainer = node;
+                            break;
+                        }
+                        node = node.parentNode;
+                        if (!node || node === document) break;
+                    }
+                    // If the nearest graph container is present and it's not this graph's container, skip handling here.
+                    if (nearestGraphContainer && nearestGraphContainer !== this.container) {
+                        return;
+                    }
+                } catch (e) {
+                    // fallback to original containment check on error
+                }
+
                 if (this.container && !this.container.contains(evt.target)){ //if ! graph container contains a child scroll matching event target
                     return
                 }
@@ -1183,7 +1204,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                     return;
                 }
 
-                var gridEnabled = graph.gridEnabled;
+                
                 // disable snapping
                 graph.gridEnabled = false;
                 var p1 = graph.getPointForEvent(evt, false);
@@ -1197,13 +1218,31 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 var deltaY = p2.y - p1.y;
                 var view = graph.view;
                 view.setTranslate(view.translate.x + deltaX, view.translate.y + deltaY);
-                graph.gridEnabled = gridEnabled;
-                mxEvent.consume(evt);
-                
-                return;
-                
+                graph.gridEnabled = false;
+                console.log("over and out")
+
+                try {
+                    for (const id in m_graphs_by_container_id) {
+                        const g = m_graphs_by_container_id[id];
+                        console.log('Graph container:', id, 'graph:', g);
+
+                        if (g?.view?.validate instanceof Function) {
+                            try {
+                                g.view.validate();
+                            } catch (e) {
+                                console.warn('validate failed for', id, e);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('validateAllGraphs iteration failed', e);
+                }
             }))
         }
+        console.log("tryin")
+        //After building this graph, validate all registered graphs and expose helper
+
+
     }
 };
 
