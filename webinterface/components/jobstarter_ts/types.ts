@@ -90,4 +90,35 @@ export class UserPermissions {
     getAllPermissions(): Map<string, any> {
         return new Map(this.permissions);
     }
+
+    /**
+     * Get UI feature visibility based on FILTER_JOBSTATUS_BUTTONS permission
+     * @returns Object with boolean flags for browse, upload, and preview visibility
+     */
+    getUIFeatureVisibility(): { show_browse: boolean; show_upload: boolean; show_preview: boolean } {
+        const defaults = {
+            show_browse: true,
+            show_upload: true,
+            show_preview: true
+        };
+
+        const filterPermission = this.permissions.get('FILTER_JOBSTATUS_BUTTONS');
+        
+        if (!filterPermission || !filterPermission.filter) {
+            return defaults;
+        }
+
+        try {
+            const regex = new RegExp(filterPermission.filter, 'i');
+            
+            return {
+                show_browse: regex.test('browse'),
+                show_upload: regex.test('upload'),
+                show_preview: regex.test('preview')
+            };
+        } catch (error) {
+            console.error('Invalid filter regex in FILTER_JOBSTATUS_BUTTONS:', error);
+            return defaults;
+        }
+    }
 }

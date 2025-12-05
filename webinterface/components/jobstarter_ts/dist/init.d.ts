@@ -1,4 +1,15 @@
 import type { Layout } from "../../dependencies/dhtmlx/9.2.4/types/ts-layout/sources/Layout";
+import { UserPermissions } from "./types";
+declare global {
+    interface Window {
+        m_userpermissions: UserPermissions;
+    }
+}
+export declare let userPermissions: UserPermissions | null;
+/**
+ * Create tabbar with browse and upload tabs based on user permissions
+ */
+export declare function createFileTabbar(cell: any): any;
 /**
  * Create a dhtmlx Layout with proper TypeScript typing
  */

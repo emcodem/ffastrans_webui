@@ -44,5 +44,14 @@ export declare class UserPermissions {
      * Get all permissions as Map
      */
     getAllPermissions(): Map<string, any>;
+    /**
+     * Get UI feature visibility based on FILTER_JOBSTATUS_BUTTONS permission
+     * @returns Object with boolean flags for browse, upload, and preview visibility
+     */
+    getUIFeatureVisibility(): {
+        show_browse: boolean;
+        show_upload: boolean;
+        show_preview: boolean;
+    };
 }
 //# sourceMappingURL=types.d.ts.map
