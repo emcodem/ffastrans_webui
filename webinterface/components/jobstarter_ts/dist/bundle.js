@@ -14,6 +14,7 @@ exports.userPermissions = void 0;
 exports.createFileTabbar = createFileTabbar;
 exports.createLayout = createLayout;
 exports.initializeApp = initializeApp;
+const events_1 = __webpack_require__(/*! ../../dependencies/dhtmlx/9.2.4/events */ "../../dependencies/dhtmlx/9.2.4/events.ts");
 const types_1 = __webpack_require__(/*! ./types */ "./types.ts");
 // Exported global reference for easier access
 exports.userPermissions = null;
@@ -40,45 +41,36 @@ async function getUserPermissions() {
  * Create tabbar with browse and upload tabs based on user permissions
  */
 function createFileTabbar(cell) {
-    if (!exports.userPermissions) {
-        console.warn("User permissions not loaded yet, cannot create tabbar");
-        return null;
-    }
     const { show_browse, show_upload } = exports.userPermissions.getUIFeatureVisibility();
-    // Create tabs configuration
-    const tabs = [];
+    // Create views configuration for dhtmlx Tabbar
+    const views = [];
     if (show_browse) {
-        tabs.push({
-            id: "tab_browse",
-            text: "Browse",
-            active: true,
-            icon: "mdi mdi-folder-open"
+        views.push({
+            tab: "browse"
         });
     }
     if (show_upload) {
-        tabs.push({
-            id: "tab_upload",
-            text: "Upload",
-            active: !show_browse,
-            icon: "mdi mdi-cloud-upload"
+        views.push({
+            tab: "upload",
+            html: "<div id='main_upload_area' style='height:100%'/>"
         });
     }
-    if (tabs.length === 0) {
-        tabs.push({
-            id: "tab_empty",
-            text: "No Access",
-            active: true
+    if (views.length === 0) {
+        views.push({
+            tab: "noaccess"
         });
         console.warn("No file operations available based on permissions");
     }
-    // Create the tabbar
-    const tabbar = new dhx924.dhx.Tabbar({
-        tabs: tabs,
-        mode: "top"
+    // Create the tabbar with proper config
+    const tabbar = new dhx924.dhx.Tabbar(null, {
+        views: views
     });
-    // Attach to cell using dhtmlx attach method
-    cell.attach(tabbar);
-    console.log("Tabbar created with tabs:", tabs.map(t => t.id));
+    tabbar.events.on(events_1.TabbarEvents.change, (id, prev) => {
+        console.log(`Tab changed from ${prev} to ${id}`);
+        tabbar.getCell(id).attachHTML("<div style='padding:10px'>Content for " + id + " tab</div>");
+        // Additional logic for tab change can be added here
+    });
+    console.log("Tabbar created with views:", views.map(v => v.id));
     return tabbar;
 }
 /**
@@ -91,8 +83,8 @@ function createLayout(containerId) {
             {
                 id: "header",
                 //header: "Header",
-                height: "80px",
-                html: "<h1>Welcomeaaa</h1>",
+                height: "20px",
+                html: "",
                 resizable: true,
             },
             {
@@ -100,7 +92,6 @@ function createLayout(containerId) {
                     {
                         id: "main_left",
                         header: "Left",
-                        html: "<div>Navigation</div>",
                         resizable: true,
                         collapsable: true,
                     },
@@ -127,17 +118,19 @@ function initializeApp() {
             return;
         }
         const initializeComponents = async () => {
-            const layout = createLayout(document.body);
-            console.log("Layout initialized on document.body", layout);
             // Load user permissions
             const userPerms = await getUserPermissions();
             exports.userPermissions = userPerms;
             window.m_userpermissions = userPerms;
             console.log("User permissions available as window.m_userpermissions or import { userPermissions }");
+            // Initialize layout
+            const layout = createLayout(document.body);
+            console.log("Layout initialized on document.body", layout);
             // Create file tabbar in main_left
             const mainLeftCell = layout.getCell("main_left");
             if (mainLeftCell) {
-                createFileTabbar(mainLeftCell);
+                let _tabbar = createFileTabbar(mainLeftCell);
+                mainLeftCell.attach(_tabbar);
                 console.log("File tabbar attached to main_left");
             }
         };
@@ -256,6 +249,234 @@ class UserPermissions {
     }
 }
 exports.UserPermissions = UserPermissions;
+
+
+/***/ }),
+
+/***/ "../../dependencies/dhtmlx/9.2.4/events.ts":
+/*!*************************************************!*\
+  !*** ../../dependencies/dhtmlx/9.2.4/events.ts ***!
+  \*************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+/**
+ * DHTMLX 9.2.4 Suite - Event Enums
+ * This File was created by Copilot asking: can we create a single file that contains all event declarations from the dhtmlx 942 suite?
+ * This file re-exports all event enums from the DHTMLX suite for use in TypeScript code.
+ * It provides runtime values that match the type definitions, enabling intellisense support
+ * while avoiding webpack import resolution issues with .d.ts type-only files.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ProgressBarEvents = exports.UploaderEvents = exports.SelectionEvents = exports.NavigationBarEvents = exports.ChartEvents = exports.TimepickerEvents = exports.WindowEvents = exports.PopupEvents = exports.SidebarEvents = exports.SliderEvents = exports.ColorpickerEvents = exports.CalendarEvents = exports.ComboboxEvents = exports.FormEvents = exports.ListEvents = exports.DataViewEvents = exports.TreeEvents = exports.GridSystemEvents = exports.GridEvents = exports.TabbarEvents = exports.LayoutEvents = void 0;
+// Layout Events
+exports.LayoutEvents = {
+    beforeShow: "beforeShow",
+    afterShow: "afterShow",
+    beforeHide: "beforeHide",
+    afterHide: "afterHide",
+    beforeResizeStart: "beforeResizeStart",
+    resize: "resize",
+    afterResizeEnd: "afterResizeEnd",
+    beforeAdd: "beforeAdd",
+    afterAdd: "afterAdd",
+    beforeRemove: "beforeRemove",
+    afterRemove: "afterRemove",
+    beforeCollapse: "beforeCollapse",
+    afterCollapse: "afterCollapse",
+    beforeExpand: "beforeExpand",
+    afterExpand: "afterExpand",
+};
+// Tabbar Events
+exports.TabbarEvents = {
+    beforeChange: "beforeChange",
+    change: "change",
+    beforeClose: "beforeClose",
+    afterClose: "afterClose",
+    close: "close", // deprecated
+};
+// Grid Events
+exports.GridEvents = {
+    beforeEdit: "beforeEdit",
+    afterEdit: "afterEdit",
+    beforeEditEnd: "beforeEditEnd",
+    afterEditEnd: "afterEditEnd",
+    change: "change",
+    click: "click",
+    dblclick: "dblclick",
+    headerClick: "headerClick",
+    headerDblclick: "headerDblclick",
+    headerMouseDown: "headerMouseDown",
+    beforeRowHide: "beforeRowHide",
+    afterRowHide: "afterRowHide",
+    beforeRowShow: "beforeRowShow",
+    afterRowShow: "afterRowShow",
+    beforeColHide: "beforeColHide",
+    afterColHide: "afterColHide",
+    beforeColShow: "beforeColShow",
+    afterColShow: "afterColShow",
+    beforeSort: "beforeSort",
+    afterSort: "afterSort",
+    beforeFilter: "beforeFilter",
+    afterFilter: "afterFilter",
+    scroll: "scroll",
+};
+exports.GridSystemEvents = {
+    expandStart: "expandStart",
+    expandEnd: "expandEnd",
+    beforeKeyDown: "beforeKeyDown",
+    keyDown: "keyDown",
+};
+// Tree Events
+exports.TreeEvents = {
+    beforeExpand: "beforeExpand",
+    afterExpand: "afterExpand",
+    beforeCollapse: "beforeCollapse",
+    afterCollapse: "afterCollapse",
+    beforeSelect: "beforeSelect",
+    afterSelect: "afterSelect",
+    beforeCheck: "beforeCheck",
+    afterCheck: "afterCheck",
+    beforeDrag: "beforeDrag",
+    afterDrag: "afterDrag",
+    beforeDrop: "beforeDrop",
+    afterDrop: "afterDrop",
+    beforeEditStart: "beforeEditStart",
+    beforeEditEnd: "beforeEditEnd",
+    afterEditEnd: "afterEditEnd",
+    beforeContextMenu: "beforeContextMenu",
+    click: "click",
+    dblclick: "dblclick",
+};
+// DataView Events
+exports.DataViewEvents = {
+    beforeSelect: "beforeSelect",
+    afterSelect: "afterSelect",
+    beforeCheck: "beforeCheck",
+    afterCheck: "afterCheck",
+    click: "click",
+    dblclick: "dblclick",
+};
+// List Events
+exports.ListEvents = {
+    beforeSelect: "beforeSelect",
+    afterSelect: "afterSelect",
+    beforeCheck: "beforeCheck",
+    afterCheck: "afterCheck",
+    beforeEditStart: "beforeEditStart",
+    beforeEditEnd: "beforeEditEnd",
+    afterEditEnd: "afterEditEnd",
+    click: "click",
+    dblclick: "dblclick",
+};
+// Form Events
+exports.FormEvents = {
+    change: "change",
+    click: "click",
+};
+// Combobox Events
+exports.ComboboxEvents = {
+    change: "change",
+    beforeBlur: "beforeBlur",
+    blur: "blur",
+    beforeFocus: "beforeFocus",
+    focus: "focus",
+    beforeOpen: "beforeOpen",
+    open: "open",
+    beforeClose: "beforeClose",
+    close: "close",
+    beforeSelect: "beforeSelect",
+    select: "select",
+    beforeInput: "beforeInput",
+    input: "input",
+    beforeFilter: "beforeFilter",
+    filter: "filter",
+};
+// Calendar Events
+exports.CalendarEvents = {
+    beforeChange: "beforeChange",
+    change: "change",
+    beforeClose: "beforeClose",
+    close: "close",
+};
+// ColorPicker Events
+exports.ColorpickerEvents = {
+    beforeChange: "beforeChange",
+    change: "change",
+    beforeClose: "beforeClose",
+    close: "close",
+};
+// Slider Events
+exports.SliderEvents = {
+    change: "change",
+    beforeChange: "beforeChange",
+};
+// Sidebar Events
+exports.SidebarEvents = {
+    toggle: "toggle",
+    beforeCollapse: "beforeCollapse",
+    afterCollapse: "afterCollapse",
+    beforeExpand: "beforeExpand",
+    afterExpand: "afterExpand",
+};
+// Popup Events
+exports.PopupEvents = {
+    beforeHide: "beforeHide",
+    afterHide: "afterHide",
+    beforeShow: "beforeShow",
+    afterShow: "afterShow",
+};
+// Window Events
+exports.WindowEvents = {
+    beforeHide: "beforeHide",
+    afterHide: "afterHide",
+    beforeShow: "beforeShow",
+    afterShow: "afterShow",
+    move: "move",
+    resize: "resize",
+};
+// TimePicker Events
+exports.TimepickerEvents = {
+    beforeChange: "beforeChange",
+    change: "change",
+    beforeClose: "beforeClose",
+    close: "close",
+};
+// Chart Events
+exports.ChartEvents = {
+    beforeRender: "beforeRender",
+    afterRender: "afterRender",
+    beforeMouseMove: "beforeMouseMove",
+    mouseMove: "mouseMove",
+    beforeTooltipShow: "beforeTooltipShow",
+    tooltipShow: "tooltipShow",
+    beforeTooltipHide: "beforeTooltipHide",
+    tooltipHide: "tooltipHide",
+};
+// NavigationBar Events
+exports.NavigationBarEvents = {
+    beforeCollapse: "beforeCollapse",
+    afterCollapse: "afterCollapse",
+    beforeExpand: "beforeExpand",
+    afterExpand: "afterExpand",
+};
+// Selection Events
+exports.SelectionEvents = {
+    beforeSelect: "beforeSelect",
+    afterSelect: "afterSelect",
+};
+// Uploader Events
+exports.UploaderEvents = {
+    uploadFile: "uploadFile",
+    uploadProgress: "uploadProgress",
+    uploadFail: "uploadFail",
+    uploadComplete: "uploadComplete",
+    beforeSend: "beforeSend",
+};
+// ProgressBar Events
+exports.ProgressBarEvents = {
+    change: "change",
+};
 
 
 /***/ })

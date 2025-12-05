@@ -1,7 +1,10 @@
-import type { ILayoutConfig, ICellConfig } from "../../dependencies/dhtmlx/9.2.4/types/ts-layout/sources/types";
-import type { Layout } from "../../dependencies/dhtmlx/9.2.4/types/ts-layout/sources/Layout";
-import type { Tabbar } from "../../dependencies/dhtmlx/9.2.4/types/ts-tabbar/sources/Tabbar";
-import type { Grid } from "../../dependencies/dhtmlx/9.2.4/types/ts-grid/sources/Grid";
+import { UppyManager }      from "./uppy-manager";
+import type { ILayoutConfig, ICellConfig, ICell } from "../../dependencies/dhtmlx/9.2.4/types/ts-layout/sources/types";
+import type { Layout }      from "../../dependencies/dhtmlx/9.2.4/types/ts-layout/sources/Layout";
+import type { Tabbar }      from "../../dependencies/dhtmlx/9.2.4/types/ts-tabbar/sources/Tabbar";
+import { TabbarEvents }     from "../../dependencies/dhtmlx/9.2.4/events";
+import type { ITabConfig }  from "../../dependencies/dhtmlx/9.2.4/types/ts-tabbar/sources/types";
+import type { Grid }        from "../../dependencies/dhtmlx/9.2.4/types/ts-grid/sources/Grid";
 import { UserPermissions, type IUserPermissionsResponse } from "./types";
 
 // Declare dhx as global to access the loaded library
@@ -38,8 +41,8 @@ async function getUserPermissions(): Promise<UserPermissions> {
         
         const data: IUserPermissionsResponse = await response.json();
         const userPermissions = new UserPermissions(data);
-        
         console.log("User permissions loaded:", userPermissions);
+
         return userPermissions;
     } catch (error) {
         console.error("Failed to load user permissions:", error);
@@ -50,44 +53,45 @@ async function getUserPermissions(): Promise<UserPermissions> {
 /**
  * Create tabbar with browse and upload tabs based on user permissions
  */
-export function createFileTabbar(cell: any): Tabbar | null {
-    if (!userPermissions) {
-        console.warn("User permissions not loaded yet, cannot create tabbar");
-        return null;
-    }
+export function createFileTabbar(cell: ICell): Tabbar {
 
     const { show_browse, show_upload } = userPermissions.getUIFeatureVisibility();
     
     // Create views configuration for dhtmlx Tabbar
-    const views: any[] = [];
+    const views: ITabConfig[] = [];
     
     if (show_browse) {
         views.push({
-            id: "browse",
-            header: "Browse"
+            tab: "browse"
         });
     }
     
     if (show_upload) {
         views.push({
-            id: "upload",
-            header: "Upload"
+            tab: "upload",
+            html: "<div id='main_upload_area' style='height:100%'/>"
         });
     }
     
     if (views.length === 0) {
         views.push({
-            id: "noaccess",
-            header: "No Access"
+            tab: "noaccess"
         });
         console.warn("No file operations available based on permissions");
     }
     
     // Create the tabbar with proper config
-    const tabbar = new dhx924.dhx.Tabbar(cell.node, {
+    const tabbar = new dhx924.dhx.Tabbar(null, {
         views: views
     });
-    
+
+    tabbar.events.on(TabbarEvents.change, (id: string, prev: string) => {
+        console.log(`Tab changed from ${prev} to ${id}`);
+        (tabbar.getCell(id) as ICell).attachHTML("<div style='padding:10px'>Content for " + id + " tab</div>");
+        
+        // Additional logic for tab change can be added here
+    });
+
     console.log("Tabbar created with views:", views.map(v => v.id));
     return tabbar;
 }
@@ -102,8 +106,8 @@ export function createLayout(containerId: string | HTMLElement): Layout {
             {
                 id: "header",
                 //header: "Header",
-                height: "80px",
-                html: "<h1>Welcomeaaa</h1>",
+                height: "20px",
+                html: "",
                 resizable: true,
                 
             } as ICellConfig,
@@ -112,7 +116,7 @@ export function createLayout(containerId: string | HTMLElement): Layout {
                     {
                         id: "main_left",
                         header: "Left",
-                        html: "<div>Navigation</div>",
+                        
                         resizable: true,
                         collapsable: true,
                     } as ICellConfig,
@@ -146,21 +150,27 @@ export function initializeApp(): void {
         }
         
         const initializeComponents = async () => {
-            const layout = createLayout(document.body);
-            console.log("Layout initialized on document.body", layout);
+
             
             // Load user permissions
             const userPerms = await getUserPermissions();
             userPermissions = userPerms;
             window.m_userpermissions = userPerms;
             console.log("User permissions available as window.m_userpermissions or import { userPermissions }");
-            
+
+            // Initialize layout
+            const layout: Layout = createLayout(document.body);
+            console.log("Layout initialized on document.body", layout);
+
             // Create file tabbar in main_left
-            const mainLeftCell = layout.getCell("main_left");
+            const mainLeftCell : ICell = layout.getCell("main_left") as ICell;
             if (mainLeftCell) {
-                createFileTabbar(mainLeftCell);
+                let _tabbar : ICell = createFileTabbar(mainLeftCell);
+                mainLeftCell.attach(_tabbar);
                 console.log("File tabbar attached to main_left");
             }
+
+
         };
         
         if (document.readyState === "loading") {
