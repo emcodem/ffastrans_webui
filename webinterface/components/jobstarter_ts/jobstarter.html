@@ -6,12 +6,29 @@
     
     <!-- dhtmlx styles -->
     <link rel="stylesheet" href="../../dependencies/dhtmlx/9.2.4/suite.min.css">
-    
+    <link rel="stylesheet" href="../../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+    <script>
+        //theme changeer
+
+    </script>
+
     <!-- Load dhtmlx and app -->
     <script type="module">
         // Import dhtmlx as module (it will set window.dhx924)
         import "../../dependencies/dhtmlx/9.2.4/suite.umd.js";
         
+        if (localStorage.global_skin_dark == "1"){
+            try{
+                document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
+            }catch(ex){}
+            try{
+                dhx.setTheme("dark");
+            }catch(ex){}
+            try{
+                dhx924.dhx.setTheme("dark");
+            }catch(ex){}
+        }
+
         // Wait a tick for dhx924 to be set, then load the app
         setTimeout(() => {
             import('./dist/bundle.js');

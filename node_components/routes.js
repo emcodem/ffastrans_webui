@@ -149,7 +149,7 @@ module.exports = function(app, passport) {
     app.get ('/webinterface/components/*', renderHTMLByMustache);
     app.get ('/webinterface/index.html', renderHTMLByMustache);
     //todo:move typescript_client to components?
-    app.use("/webinterface/typescript_client/clientdist/dist/",express.static('./webinterface/typescript_client/clientdist/dist/'));
+    app.use("/webinterface/uppy_typescript_client/clientdist/dist/",express.static('./webinterface/uppy_typescript_client/clientdist/dist/'));
 
     
     // function selectGrafanaProxy(req){

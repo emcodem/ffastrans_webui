@@ -8,7 +8,7 @@ import '@uppy/dashboard/dist/style.min.css';
 //this is only used for building uppy main.js which is what we use in the file uploader on job submitter page
 
 //after changing this file you have to run a build:
-//cd C:\dev\ffastrans_webui\webinterface\typescript_client\clientdist && npx webpack --config ../prod.config.js --mode=development
+//cd C:\dev\ffastrans_webui\webinterface\uppy_typescript_client\clientdist && npx webpack --config ../prod.config.js --mode=development
 
 window.Uppy = Uppy;
 window.Dashboard = Dashboard;
