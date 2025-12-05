@@ -1,0 +1,27 @@
+export declare function getKeysHandlers(grid: any): {
+    enter: () => void;
+    space: (e: any) => void;
+    escape: () => void;
+    tab: (e: any) => void;
+    delete: () => void;
+    "shift+tab": (e: any) => void;
+    arrowUp: (event: any) => void;
+    "ctrl+z": () => void;
+    "ctrl+shift+z": () => void;
+    "ctrl+enter": () => void;
+    "ctrl+arrowUp": (event: any) => void;
+    "shift+arrowUp": (event: any) => void;
+    "ctrl+shift+arrowUp": (event: any) => void;
+    arrowDown: (event: any) => void;
+    "ctrl+arrowDown": (event: any) => void;
+    "shift+arrowDown": (event: any) => void;
+    "ctrl+shift+arrowDown": (event: any) => void;
+    arrowRight: (event: any) => void;
+    "ctrl+arrowRight": (event: any) => void;
+    "shift+arrowRight": (event: any) => void;
+    "ctrl+shift+arrowRight": (event: any) => void;
+    arrowLeft: (event: any) => void;
+    "ctrl+arrowLeft": (event: any) => void;
+    "shift+arrowLeft": (event: any) => void;
+    "ctrl+shift+arrowLeft": (event: any) => void;
+};

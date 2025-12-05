@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "moduleResolution": "node",
+    "strict": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "baseUrl": "./",
+    "typeRoots": ["../../../node_modules/@types"],
+    "paths": {
+      "dhtmlx": ["../../dependencies/dhtmlx/9.2.4/suite.d.ts"]
+    }
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules.noused", "dist"]
+}

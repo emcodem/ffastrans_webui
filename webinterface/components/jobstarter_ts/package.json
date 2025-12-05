@@ -1,0 +1,9 @@
+{
+  "name": "jobstarter-ts",
+  "version": "1.0.0",
+  "description": "JobStarter TypeScript component",
+  "scripts": {
+    "build": "cd ../../.. && npx webpack --config webinterface/components/jobstarter_ts/webpack.config.js",
+    "watch": "cd ../../.. && npx webpack --config webinterface/components/jobstarter_ts/webpack.config.js --watch"
+  }
+}
