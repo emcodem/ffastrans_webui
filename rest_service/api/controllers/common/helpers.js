@@ -192,12 +192,12 @@ async function ticket_files_to_array(dir,cache_name = "unsorted") {
         
         for (var _idx in allfiles){
             try{
-                var newitem = await readfile_cached(path.join(dir,allfiles[_idx]),true)//removes BOM	;
+                var newitem = await readfile_cached(path.join(dir,allfiles[_idx]),true)//removes BOM;
                 
-                var wf_id =  allfiles[_idx].split("~")[3]; //ffastrans <1.3
+                var wf_id =  allfiles[_idx].split("~")[4]; //ffastrans >1.3
                 if (!wf_id.match(/........-/)){
                     //ffastrans 1.3 changed ticket token structure
-                    wf_id =  allfiles[_idx].split("~")[4];
+                    wf_id =  allfiles[_idx].split("~")[3];
                 }
                 newitem["fullpath"] = path.join(dir,allfiles[_idx]);
                 newitem["internal_wf_id"] = wf_id;

@@ -702,7 +702,8 @@ async function refreshBranches(){
     //until job is finished, update list
     const response = await fetch(build_new_api_url("/getbranchlog?jobid=" + getQueryVariable("job_id")));
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.log("error refreshing branches for job:",getQueryVariable("job_id"))
+        //throw new Error(`HTTP error! status: ${response.status}`);
     }
     let data = await response.json(); // Assuming the response is JSON
     m_branchGrid.data.parse(data.branches);

@@ -115,9 +115,10 @@ module.exports = async function (app, passport) {
             try {
                 //ask tickets api for incoming, queued, running
 
-                    if (!m_ticket_cache || !m_ticket_cache.tickets || (((new Date) - m_ticket_cache.last_update) > 5000)) {
+                    if (!m_ticket_cache || !m_ticket_cache.tickets || ((Date.now() - m_ticket_cache.last_update) > 5000)) {
                         console.time("getworkflowjobcount ticket cache refresh");
                         m_ticket_cache.tickets = await global.jobfetcher.tickets();
+                        m_ticket_cache.last_update = Date.now();
                         console.timeEnd("getworkflowjobcount ticket cache refresh");
                         console.log("Refreshed tickets cache",m_ticket_cache);
                     }

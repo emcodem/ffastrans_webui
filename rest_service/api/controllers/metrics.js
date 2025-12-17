@@ -69,10 +69,9 @@ async function count_running_tickets() {
             var _job= "";
             var wfname 
 				try{
-					wfname = await common.get_wf_name(allfiles[_idx].split("~")[3]);//up to ffastrans 1.2
-					
+					wfname = await common.get_wf_name(allfiles[_idx].split("~")[4]);//from ffastrans 1.3
 				}catch(ex){
-					wfname =await common.get_wf_name(allfiles[_idx].split("~")[4]) //from ffastrans 1.3
+					wfname =await common.get_wf_name(allfiles[_idx].split("~")[3]) //from ffastrans 1.2
 				}
             _job+= "{"
             _job+= "job_id=\"" + allfiles[_idx].split("~")[1] +"\",";

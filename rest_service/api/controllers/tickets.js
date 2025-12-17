@@ -37,7 +37,7 @@ async function get_review(){
 async function get_running(){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
     var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"));
-   
+    console.log("Running tickets before filtering:",a_running.length);
     //as we dont want to show both at the same time, we ignore the running tickets from mon_folder to prevent showing the same file twice
     var keys_to_ignore = []; 
     for (var key in a_running){
@@ -67,6 +67,8 @@ async function get_running(){
     var filtered = a_running.filter(function (el) {
       return el != null;
     });
+
+    console.log("Running tickets after filtering:",filtered.length);
 	return filtered;
 }
 
@@ -197,9 +199,11 @@ async function start(req, res) {
 
         // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
         if ("nodetails" in req.query){
+
             var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
             o_return["tickets"]["running"] = await fsPromises.readdir(path.join(s_tick_path,"running"), { withFileTypes: false });
             o_return["tickets"]["queued"] = await fsPromises.readdir(path.join(s_tick_path,"pending"), { withFileTypes: false });
+            console.log("Serving ticket summary without details:",    o_return["tickets"]["running"].length,"queued count",o_return["tickets"]["queued"].length);
         }else{
         
             //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
@@ -209,7 +213,7 @@ async function start(req, res) {
             //o_return["tickets"]["incoming"] = await get_incoming(); NOTE; INCOMING DISABLED BECAUSE SINCE FFASTRANS 1407 they are useless because not contains file information
             o_return["tickets"]["running"] = await get_running();
             o_return["tickets"]["review"] = await get_review();
-            
+            console.log("Serving ticket summary + details:",    o_return["tickets"]["running"].length,"queued count",o_return["tickets"]["queued"].length);
         }
 
 	} catch(err) {
