@@ -117,29 +117,72 @@ async function connectDb(){
 
     //fire up database process
     var dbpath = path.join(global.approot, "/database/job_db");
+    
+    let is_initial_db_setup = await (fs.exists(dbpath));
     await fs.ensureDir(dbpath);
     console.log("Database path:",dbpath)
-    var dbPort = await portfinder.getPortPromise({port: 8010, stopPort: 8020});
+
     var dblogger = logfactory.getLogger("database");
-    console.log("Database port: " + dbPort);
     global.db.mongod = new Mongod(dbpath);
-    global.db.mongod.port = dbPort;
+    let db_config_from_file = path.join(dbpath,"..","mongo_config.json");
+    
+    if (fs.existsSync(path.join(dbpath,"..","mongo_config.json"))){
+        //we have a db config file!
+        global.db.mongod.configFilePath = path.join(dbpath,"..","mongo_config.json");
+        db_config_from_file = fs.readFileSync(path.join(dbpath,"..","mongo_config.json"));
+        db_config_from_file = JSON.parse(db_config_from_file);
+        
+        if (!db_config_from_file.net?.port){
+            console.log("No net.port property in config file ",db_config_from_file);
+            process.exit(1);
+        }
+
+        if (!db_config_from_file.storage?.dbPath){
+            console.log("No storage.dbPath property in config file ",db_config_from_file);
+            process.exit(1);
+        }else{
+            full_dbpath = db_config_from_file.storage.dbPath;
+            if (!fs.existsSync(db_config_from_file.storage.dbPath)){
+                //mongod sets cwd to database folder, if a relative path is in config, it will assume it from there
+                full_dbpath = path.join(global.approot,"database",db_config_from_file.storage.dbPath);
+            }
+            
+            console.log("Ensure Database path exists: ",full_dbpath);
+            await fs.ensureDir(full_dbpath);
+            
+        }
+
+        global.db.mongod.port = db_config_from_file.net.port;
+        console.log("Port from Config file: ", global.db.mongod.port)
+        
+        ;
+        console.log("mongo_config.json contents:",db_config_from_file);
+
+    }else{
+        //no db config, choose random port
+        var dbPort = await portfinder.getPortPromise({port: 8010, stopPort: 8020});
+        console.log("Database port: " + dbPort);
+        global.db.mongod.port = dbPort;
+        dblogger.info("Database port: ",dbPort);
+    }
+
     global.db.mongod.start();
     
-    dblogger.info("Database port: ",dbPort);
     global.db.mongod.onStdOut = function(data){
         dblogger.info(data.toString());
     }
+
     global.db.mongod.onStdErr = function(data){
         dblogger.error(data.toString());
     }
+
     global.db.mongod.onExit = function(data){
         dblogger.info("database process exited, code: ",data);
         //todo:restart DB? Anyway, we must inform clients continuously...
 		setTimeout(function(){
             dblogger.info("Initiating connect retry in 3 seconds");
-            global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
-            connectDb()
+            //global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
+            //connectDb();
         },3000);
         // setInterval(function(){
 		// 	//show errormsg forever as we do not attempt to reconnect
@@ -149,36 +192,68 @@ async function connectDb(){
 
     //connect to database, store connection in global object
     var MongoClient = require('mongodb').MongoClient;
-    var url = "mongodb://localhost:"+dbPort+"/";//jobs
+    var url = "mongodb://localhost:" + global.db.mongod.port + "/";//jobs
+    if (await(fs.exists(path.join(dbpath,"..","mongo_connection_string.txt")))){
+        url = fs.readFileSync(path.join(dbpath,"..","mongo_connection_string.txt"));
+        url = url.toString().trim();
+    }
     var mongoclient;
 	try{ 
+        
+        if (db_config_from_file.replication?.replSetName && url.indexOf(",") == -1){
+            url += "?directConnection=true"
+        }
+
 		mongoclient = await MongoClient.connect(url)
-        // try {
-           
 
-        //     // Connect to the admin database
-        //     const adminDb = mongoclient.db("admin");
+        let status = await checkStatus(mongoclient);
 
-        //     // Set the feature compatibility version
-        //     const result = await adminDb.command({
-        //         setFeatureCompatibilityVersion: "8.0"
-        //     });
+        async function checkStatus(client) {
+            const admin = client.db("admin");
+            const status = await admin.command({ hello: 1 });
 
-        //     console.log("FCV result:", result);
-        // } catch (err) {
-        //     console.error("Error setting FCV:", err);
-        // } finally {
-        //     await client.close();
-        // }
+            if (status.isWritablePrimary) {
+                console.log("Connected to the Primary node.");
+                return "PRIMARY";
+            } else if (status.secondary) {
+                console.log("Connected to a Secondary node.");
+                return "SECONDARY";
+            } else {
+                return "STARTUP/OTHER";
+            }
+        }
+        
+
+        // Check if the replica set needs to be initialized
+        let is_uninitialized_master = db_config_from_file.replication?.replSetName && url.indexOf(",") == -1;
+        if (is_uninitialized_master){
+            //this is the only cluster member, if there is a client config with replication set, we must initialize it
+            const adminDb = mongoclient.db("admin");
+            try {
+                dblogger.info("DB Command replSetGetStatus...");
+                await adminDb.command({ replSetGetStatus: 1 });
+            } catch (e) {
+                if (e.codeName === "NotYetInitialized") {
+                    dblogger.info("Initializing Replica Set...");
+                    await adminDb.command({
+                        replSetInitiate: {
+                            _id: "rs0", // Must match your config file
+                            members: [{ _id: 0, host: "localhost:" + global.db.mongod.port }]
+                        }
+                    });
+                    dblogger.info("Replica Set Initialized!");
+                }else{
+                    dblogger.error("Unexpected error while checking replica set",e)
+                }
+            }
+        }
+
 	}catch(ex){
-		// var myInterval = setInterval(function(){
-		// 	//show errormsg forever as we do not attempt to reconnect
-		// 	
-		// }, 3000);
+        dblogger.error("Unexpected error connecting to DB:",ex)
         setTimeout(function(){
-            dblogger.info("Initiating connect retry in 3 seconds");
+            dblogger.error("Initiating connect retry in 3 seconds");
             global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
-            connectDb()
+            connectDb();
         },3000);
 	}
     
@@ -525,6 +600,7 @@ async function init(conf){
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobs_dhx")(app, express);
     require("./node_components/views/get_jobviewercolumns")(app, express);
+    require("./node_components/views/generic_json_to_html")(app, express);
 
     // require("./node_components/views/gethistoryjobsajax_treegrid")(app, express);
     require("./node_components/views/getactivejobs_dhx")(app, express);

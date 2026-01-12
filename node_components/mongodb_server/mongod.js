@@ -30,16 +30,19 @@ class Mongod {
     //public fields read/write (change before calling start)
     binaryPath  = path.join(os.tmpdir(),"ffastrans_webinterface");   //where mongod binary will be extracted to. Can be changed before calling start method
     
-    port        = 27017;
+    port        = 27017; //default, caller can override 
+    configFilePath = null; //path to config file, if set this will be used instead of commandline parameters
 
     //private fields
     #dbpath = "";   //private field, initialized by start
+
 
     async stop(){
         if (this.childProcess){
             this.childProcess.kill('SIGINT');
         }
     }
+
 
     /* starts the database process */
     async start() {
@@ -68,7 +71,12 @@ class Mongod {
                 }
             }
             console.log("Starting Database Process...");
-            this.childProcess = spawn(this.binaryFull, ["--dbpath",this.#dbpath,"--port",this.port],{cwd: this.binaryPath});
+            if (!this.configFilePath)
+                this.childProcess = spawn(this.binaryFull, ["--dbpath",this.#dbpath,"--port",this.port],{cwd: this.binaryPath});
+            else{
+                this.childProcess = spawn(this.binaryFull, ["--config", this.configFilePath], { cwd: path.join(global.approot,"database") });
+                console.log("Using config file for database:", this.configFilePath);
+            }
             //"mongod.exe --dbpath c:\webinterface\database\job_db\ --port 8010
             console.log("Database process pid",this.childProcess.pid);
             this.lastPid = this.childProcess.pid;
