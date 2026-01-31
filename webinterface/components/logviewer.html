@@ -1390,17 +1390,20 @@ function filterLogByNodeId(nodeId, branch){
         return;
     }
 
+    var matchCount = 0;
     tree.filterNodes(function (node) {
         if (node["data"]["node"]["id"]){
             if (node["data"]["node"]["id"].toUpperCase().match(nodeId)) {
                 if (branch){
                     if (node["data"]["split_id"] == branch){
                         console.log("branch filter matched")
+                        matchCount++;
                         return true;//branch and node matched
                     }else{
                         return false;//branch filter active but not matched
                     }
                 }else{
+                    matchCount++;
                     return true;//branch filter inactive and node matched
                 }
             }else{
@@ -1410,6 +1413,21 @@ function filterLogByNodeId(nodeId, branch){
     }, {
         mode: "hide"
     });
+
+    // Auto-show all log content if filtered log lines are less than 10k
+    console.log("filterLogByNodeId matchCount:", matchCount);
+    if (matchCount > 0 && matchCount < 10000) {
+        setTimeout(function() {
+            // Directly show all content by checking all visible togglecontentvisible checkboxes
+            $(".togglecontentvisible").prop("checked", true).trigger("change");
+            // Also ensure the "All" checkbox reflects this state
+            var allCheckbox = document.querySelector("input[name='toggle_hide_all']");
+            if (allCheckbox) {
+                allCheckbox.checked = true;
+            }
+            console.log("Auto-expanded all log content for", matchCount, "entries");
+        }, 100);
+    }
 }
             
 
