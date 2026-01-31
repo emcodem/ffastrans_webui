@@ -629,7 +629,7 @@ function buildMainLayout() {
     mainLayout.cells("a").setText('Info');
 
     //SIZES
-    mainLayout.cells("b").setWidth($(document).width() / 2);
+    mainLayout.cells("b").setWidth($(document).width() / 3 * 2.2);
     //mainLayout.cells("c").setText("Finished");
     mainLayout.cells("a").setHeight($(document).height() / 2);
     restoreLayoutSizes(mainLayout, "mainLayout");
@@ -1129,8 +1129,8 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             let swf_id = cell.ffastransobj.properties.workflow_id;
             
             const dhxWindow = new dhx8.dhx.Window({
-                width: 640,
-                height: 420,
+                width: Math.round($(document).width() * 2 / 3),
+                height: Math.round($(document).height() * 2 / 3),
                 title: cell.ffastransobj.name,
                 modal: false,
                 closable: true,
@@ -1777,6 +1777,13 @@ function buildLogGridGrid() {
             x.id = xid;
             x.name = node.data["event"];
             document.getElementById(evt_id).parentElement.insertBefore(x,document.getElementById(evt_id));
+            
+            // Uncheck by default for mediainfo, exiftool, ffprobe events
+            var eventLower = node.data["event"].toLowerCase();
+            if (eventLower === "mediainfo" || eventLower === "exiftool" || eventLower === "ffprobe") {
+                x.checked = false;
+                x.parentElement.nextElementSibling.style.display = "none";
+            }
             
             if (data.node.getIndex() > 1000){
                 //too many items visible lead to bad performance on page
