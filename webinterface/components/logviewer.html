@@ -135,7 +135,7 @@
     }
 
     .table_ffastrans_sub_wf_enabled {
-        overflow: hidden;
+        overflow: hidden !important;
         font-size: var(--canvas-font-size-processor);
         font-family: Calibri;
         border: 3px rgb(85,85,85);
@@ -915,7 +915,7 @@ function drawNestedSubWorkflows(workflow_json, available_workflows) {
                     _subwfdiv.style.width = "100%";
                     _subwfdiv.style.height = "100%";
                     _subwfdiv.style.backgroundColor = "white";
-                    _subwfdiv.style.overflow = "auto";
+                    //_subwfdiv.style.overflow = "auto"; //we want the parent to overflow, subwf div is too flaky on the page
                     description_container.appendChild(_subwfdiv);
                 }
             }
