@@ -134,6 +134,14 @@
         opacity: .4
     }
 
+    .table_ffastrans_sub_wf_enabled {
+        overflow: hidden;
+        font-size: var(--canvas-font-size-processor);
+        font-family: Calibri;
+        border: 3px rgb(85,85,85);
+        background-color: white;
+    }
+
     .sub_wf_ctrl_icons{
         display:inline-flex;
         float:right;
@@ -329,6 +337,8 @@ var m_timelineobject =  [];
 var m_userpermissions;
 let m_subWorkflows = {node_id:"workflow_id"}
 let m_branchGrid;
+// Maps node IDs to their container prefixes (for nested workflows)
+let m_node_to_container = {};
 
 
 /** Support closing the dhtmlx window in parent window, when this is loaded as iframe 
@@ -665,7 +675,8 @@ function buildMainLayout() {
     info_layout.cells("b").showInnerScroll();
 
     info_layout.cells("d").hideHeader();
-    info_layout.cells("d").setHeight(50);
+    info_layout.cells("d").setHeight(30);
+    info_layout.cells("d").fixSize(true, true);
     info_layout.cells("d").attachHTMLString('<div id="performance_div" class="dhx_grid-cell dhx_string-cell" style="height:100%;width:100%;"/>');
     window.setPerformanceInfo = function(html){
         document.getElementById("performance_div").innerHTML = html;
@@ -789,6 +800,7 @@ async function branchGridSelect(row,col){
     let a_nodeids = branchjson.branches[0].object.path.map(o=>{return o.id});
     let a_branchids = branchjson.branches[0].object.path.map(o=>{return o.split});
     m_subWorkflows = [];
+    m_node_to_container = {};
     get_job_log(getQueryVariable("job_id"),0,a_nodeids,a_branchids); 
     
 }
@@ -867,6 +879,56 @@ async function open_timeline() {
         chart.draw(data, options);
     
 
+}
+
+function drawNestedSubWorkflows(workflow_json, available_workflows) {
+    // Recursively find and draw all sub-workflow nodes
+    if (!workflow_json || !workflow_json.nodes) return;
+    
+    // Convert available_workflows object to array if provided
+    var available_wfs = [];
+    if (available_workflows) {
+        if (Array.isArray(available_workflows)) {
+            available_wfs = available_workflows;
+        } else {
+            for (var key in available_workflows) {
+                available_wfs.push(available_workflows[key]);
+            }
+        }
+    }
+    
+    for (var i = 0; i < workflow_json.nodes.length; i++) {
+        var node = workflow_json.nodes[i];
+        
+        if (node.type === "sub_wf") {
+            var container_id = "graphContainer_" + node.id.toUpperCase();
+            var _subwfdiv = document.getElementById(container_id);
+            
+            if (!_subwfdiv) {
+                var description_container = document.getElementById(node.id.toUpperCase() + "_description_container");
+                if (description_container) {
+                    _subwfdiv = document.createElement("div");
+                    _subwfdiv.id = container_id;
+                    _subwfdiv.style.width = "100%";
+                    _subwfdiv.style.height = "100%";
+                    _subwfdiv.style.backgroundColor = "white";
+                    _subwfdiv.style.overflow = "auto";
+                    description_container.appendChild(_subwfdiv);
+                }
+            }
+            
+            // Try to find and render an available workflow in this container
+            if (_subwfdiv && _subwfdiv.children.length === 0 && available_wfs.length > 0) {
+                // Use the first available workflow that hasn't been rendered
+                var wf_to_render = available_wfs[0];
+                if (wf_to_render && wf_to_render !== workflow_json) {
+                    buildMxGraph(_subwfdiv, wf_to_render, false);
+                    // Recursively draw nested sub-workflows within this one
+                    drawNestedSubWorkflows(wf_to_render, available_wfs);
+                }
+            }
+        }
+    }
 }
 
 function toggle_hide_all(chkbox){
@@ -1137,6 +1199,11 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 nodes[key].originalname = key; //expand ffastrans properties by name of processor
                 v1.ffastransobj = nodes[key];
                 v1.data = new CustomData('v1'); //TODO: fill with useful data?
+                
+                // Register the node's container prefix for later lookup in parseJobLog
+                var TABLE_ID_PREFIX = container.id + "_";
+                m_node_to_container[nodes[key]["id"].toUpperCase()] = TABLE_ID_PREFIX;
+                
                 connections.push({
                     "from": nodes[key]["id"].toUpperCase(),
                     "to": nodes[key].outbounds || []
@@ -1355,17 +1422,14 @@ async function parseJobLog(lines) {
     window.setPerformanceInfo("Parsing log...");
     // Helper function to find which container a node belongs to
     function getContainerPrefixForNode(nodeId) {
-        // First check if this node exists in the main workflow
-        if ($("#graphContainer_" + nodeId).length > 0) {
-            return "graphContainer_";
+        // First check if we have a direct mapping from buildMxGraph
+        if (m_node_to_container[nodeId]) {
+            return m_node_to_container[nodeId];
         }
         
-        // Check in each sub-workflow container
-        for (var subWfNodeId in m_subWorkflows) {
-            var containerId = subWfNodeId.toUpperCase() + "_description_container_";
-            if ($("#" + containerId + nodeId).length > 0) {
-                return containerId;
-            }
+        // Fallback to checking main graph
+        if ($("#graphContainer_" + nodeId).length > 0) {
+            return "graphContainer_";
         }
         
         // Default to main graph container
@@ -1440,6 +1504,9 @@ async function parseJobLog(lines) {
                                 buildMxGraph(_subwfdiv,sub_wf_json,false);
                                 console.timeEnd("buildMxGraph");
                                 
+                                // Draw any nested sub-workflows within this newly loaded workflow
+                                drawNestedSubWorkflows(sub_wf_json, response['workflows']);
+                                
                             }catch(ex){
                                 alert("There was a problem getting subworkflow data, contact developers");
                             }
@@ -1470,8 +1537,14 @@ async function parseJobLog(lines) {
             // Find the correct container for this node
             var containerPrefix = getContainerPrefixForNode(_proc_id);
             
-            $("#" + containerPrefix + _proc_id).removeClass("table_ffastrans_processor_disabled");
-            $("#" + containerPrefix + _proc_id).addClass("table_ffastrans_processor_enabled");
+            // Apply appropriate styling based on node type
+            if (line["node"]["type"] === "sub_wf") {
+                $("#" + containerPrefix + _proc_id).removeClass("table_ffastrans_processor_disabled");
+                $("#" + containerPrefix + _proc_id).addClass("table_ffastrans_sub_wf_enabled");
+            } else {
+                $("#" + containerPrefix + _proc_id).removeClass("table_ffastrans_processor_disabled");
+                $("#" + containerPrefix + _proc_id).addClass("table_ffastrans_processor_enabled");
+            }
             
             //check processor error state and count
             if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
