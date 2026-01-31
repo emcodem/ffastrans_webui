@@ -339,6 +339,8 @@ let m_subWorkflows = {node_id:"workflow_id"}
 let m_branchGrid;
 // Maps node IDs to their container prefixes (for nested workflows)
 let m_node_to_container = {};
+// Maps node IDs to their graph objects (for finding correct graph in nested workflows)
+let m_node_to_graph = {};
 
 
 /** Support closing the dhtmlx window in parent window, when this is loaded as iframe 
@@ -801,6 +803,7 @@ async function branchGridSelect(row,col){
     let a_branchids = branchjson.branches[0].object.path.map(o=>{return o.split});
     m_subWorkflows = [];
     m_node_to_container = {};
+    m_node_to_graph = {};
     get_job_log(getQueryVariable("job_id"),0,a_nodeids,a_branchids); 
     
 }
@@ -1085,7 +1088,13 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             if (!cell.ffastransobj.properties.workflow_id) return
             evt.consume(); //mxgraph stuff
             //we get a reference to graph object of the currently selected sub_wf this way:
-            let currentGraph = m_graphs_by_container_id[cell.ffastransobj.id.toUpperCase() + "_description_container"];
+            // For nested sub-workflows, use the graph mapping instead of container lookup
+            let currentGraph = m_node_to_graph[cell.ffastransobj.id.toUpperCase()];
+            if (!currentGraph) {
+                // Fallback to old method for compatibility
+                currentGraph = m_graphs_by_container_id[cell.ffastransobj.id.toUpperCase() + "_description_container"];
+            }
+            if (!currentGraph) return; // Graph not found
             currentGraph.fit();
             let swf_id = cell.ffastransobj.properties.workflow_id;
             
@@ -1113,7 +1122,9 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             console.log("subwf_element",subwf_element);
             
             //move sub-wf graph from processor to window
-            let original_container = document.getElementById("graphContainer_" + cell.ffastransobj.id.toUpperCase() + "_body");
+            // For nested sub-workflows, find the correct container using the node mapping
+            let containerPrefix = m_node_to_container[cell.ffastransobj.id.toUpperCase()] || "graphContainer_";
+            let original_container = document.getElementById(containerPrefix + cell.ffastransobj.id.toUpperCase() + "_body");
             let sub_wf_graph_ele = original_container.firstChild;
             let newParent = document.getElementById("window_"+swf_id);  
             newParent.appendChild(sub_wf_graph_ele); // Moves the element to the new container
@@ -1203,6 +1214,8 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 // Register the node's container prefix for later lookup in parseJobLog
                 var TABLE_ID_PREFIX = container.id + "_";
                 m_node_to_container[nodes[key]["id"].toUpperCase()] = TABLE_ID_PREFIX;
+                // Also register the graph reference for finding the correct graph in nested workflows
+                m_node_to_graph[nodes[key]["id"].toUpperCase()] = graph;
                 
                 connections.push({
                     "from": nodes[key]["id"].toUpperCase(),
