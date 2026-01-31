@@ -888,27 +888,36 @@ function drawNestedSubWorkflows(workflow_json, available_workflows) {
     // Recursively find and draw all sub-workflow nodes
     if (!workflow_json || !workflow_json.nodes) return;
     
-    // Convert available_workflows object to array if provided
-    var available_wfs = [];
+    console.log("drawNestedSubWorkflows called for workflow:", workflow_json.wf_id, "with", workflow_json.nodes.length, "nodes");
+    
+    // Convert available_workflows to a lookup object by wf_id for quick access
+    var available_wfs_by_id = {};
     if (available_workflows) {
         if (Array.isArray(available_workflows)) {
-            available_wfs = available_workflows;
-        } else {
-            for (var key in available_workflows) {
-                available_wfs.push(available_workflows[key]);
+            for (var j = 0; j < available_workflows.length; j++) {
+                if (available_workflows[j] && available_workflows[j].wf_id) {
+                    available_wfs_by_id[available_workflows[j].wf_id] = available_workflows[j];
+                }
             }
+        } else {
+            // It's already an object keyed by wf_id
+            available_wfs_by_id = available_workflows;
         }
     }
+    
+    console.log("Available workflow IDs:", Object.keys(available_wfs_by_id));
     
     for (var i = 0; i < workflow_json.nodes.length; i++) {
         var node = workflow_json.nodes[i];
         
         if (node.type === "sub_wf") {
+            console.log("Found sub_wf node:", node.id, "properties:", node.properties);
             var container_id = "graphContainer_" + node.id.toUpperCase();
             var _subwfdiv = document.getElementById(container_id);
             
             if (!_subwfdiv) {
                 var description_container = document.getElementById(node.id.toUpperCase() + "_description_container");
+                console.log("Looking for description_container:", node.id.toUpperCase() + "_description_container", "found:", !!description_container);
                 if (description_container) {
                     _subwfdiv = document.createElement("div");
                     _subwfdiv.id = container_id;
@@ -920,15 +929,36 @@ function drawNestedSubWorkflows(workflow_json, available_workflows) {
                 }
             }
             
-            // Try to find and render an available workflow in this container
-            if (_subwfdiv && _subwfdiv.children.length === 0 && available_wfs.length > 0) {
-                // Use the first available workflow that hasn't been rendered
-                var wf_to_render = available_wfs[0];
+            // Try to find and render the correct workflow for this specific node
+            if (_subwfdiv && _subwfdiv.children.length === 0) {
+                // First try to get workflow_id from the node's properties (most reliable)
+                var target_wf_id = null;
+                if (node.properties && node.properties.workflow_id) {
+                    target_wf_id = node.properties.workflow_id;
+                }
+                // Fallback to m_subWorkflows mapping (populated during log processing)
+                if (!target_wf_id) {
+                    target_wf_id = m_subWorkflows[node.id] || m_subWorkflows[node.id.toUpperCase()] || m_subWorkflows[node.id.toLowerCase()];
+                }
+                
+                console.log("Target workflow ID for node", node.id, ":", target_wf_id, "exists in available:", !!available_wfs_by_id[target_wf_id]);
+                
+                var wf_to_render = null;
+                if (target_wf_id && available_wfs_by_id[target_wf_id]) {
+                    // Found the specific workflow for this node
+                    wf_to_render = available_wfs_by_id[target_wf_id];
+                }
+                
                 if (wf_to_render && wf_to_render !== workflow_json) {
+                    console.log("Drawing nested sub-workflow for node:", node.id, "with wf_id:", target_wf_id, "nodes count:", wf_to_render.nodes ? wf_to_render.nodes.length : 0);
                     buildMxGraph(_subwfdiv, wf_to_render, false);
                     // Recursively draw nested sub-workflows within this one
-                    drawNestedSubWorkflows(wf_to_render, available_wfs);
+                    drawNestedSubWorkflows(wf_to_render, available_wfs_by_id);
+                } else {
+                    console.log("Could not render sub-workflow for node:", node.id, "wf_to_render:", !!wf_to_render, "same as parent:", wf_to_render === workflow_json);
                 }
+            } else {
+                console.log("Container not found or already has children for node:", node.id, "_subwfdiv:", !!_subwfdiv, "children:", _subwfdiv ? _subwfdiv.children.length : 'N/A');
             }
         }
     }
@@ -1502,6 +1532,7 @@ async function parseJobLog(lines) {
                         success: function (response,status,jqXHR) {
                             try{
                                 console.log("Sub wf json ready")
+                                console.log("Available workflows in response:", Object.keys(response['workflows']));
                                 var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
                                 m_workflows.push(sub_wf_json);
                                 
@@ -1521,6 +1552,7 @@ async function parseJobLog(lines) {
                                 drawNestedSubWorkflows(sub_wf_json, response['workflows']);
                                 
                             }catch(ex){
+                                console.error("Error loading subworkflow:", ex);
                                 alert("There was a problem getting subworkflow data, contact developers");
                             }
                             sub_workflow_is_loading = false;
