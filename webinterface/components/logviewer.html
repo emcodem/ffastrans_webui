@@ -1425,13 +1425,20 @@ async function parseJobLog(lines) {
                         success: function (response,status,jqXHR) {
                             try{
                                 console.log("Sub wf json ready")
-                                jqXHR["wf_id"];
                                 var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
                                 m_workflows.push(sub_wf_json);
+                                
+                                // Load all nested workflows from the response
+                                for (var wf_key in response['workflows']) {
+                                    var wf = response['workflows'][wf_key];
+                                    if (wf && !m_workflows.find(mwf => mwf && mwf.wf_id === wf.wf_id)) {
+                                        m_workflows.push(wf);
+                                    }
+                                }
+                                
                                 console.time("buildMxGraph");
                                 buildMxGraph(_subwfdiv,sub_wf_json,false);
                                 console.timeEnd("buildMxGraph");
-                                //buildMxGraph(document.getElementById("graphContainer2"),sub_wf_json,true);
                                 
                             }catch(ex){
                                 alert("There was a problem getting subworkflow data, contact developers");
@@ -1751,10 +1758,15 @@ function initNodeGrid() {
                 if (o.node.name)
                     return o.node.name;
                 else{
-                    //try finding node name in workflow 
-                    let _filt = m_workflowdata.nodes.filter(n=>{return n.id==o.node.id});
-                    if (_filt.length > 0)
-                        return _filt[0].name;
+                    //try finding node name in all workflows (main and sub-workflows)
+                    for (var _wf of m_workflows){
+                        if (!_wf || !_wf.nodes) continue;
+                        let _filt = _wf.nodes.filter(n=>{return n.id.toUpperCase()==o.node.id.toUpperCase()});
+                        if (_filt.length > 0){
+                            let nodeName = _filt[0].name;
+                            return nodeName ? nodeName : o.node.type;
+                        }
+                    }
                     
                     return o.node.type;
                 }
