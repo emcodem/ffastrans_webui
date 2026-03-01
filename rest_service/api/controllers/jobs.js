@@ -165,6 +165,7 @@ async function post(req, res) {
         "wf_id":"<workflow id>",
         "inputfile":"<full path to file>",
         "start_proc":"<processor node id>",
+        "priority": 2,//optional, default is workflow prio
         "variables": [
            {
               "name":"<s_string>",
@@ -192,6 +193,9 @@ async function post(req, res) {
         t.setSource(req.body.inputfile);
         t.variables = req.body.variables;
         t.submit.variables = req.body.variables;
+        if (req.body.priority){
+            t.priority = req.body.priority;
+        }
 
         //write to disk
         var final_tick = t;

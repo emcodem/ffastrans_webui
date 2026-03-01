@@ -945,7 +945,7 @@ function init(){
     });
     
 	//file browser events
-	m_fileBrowserGrid.attachEvent("onRowSelect", function(id,ind){
+	m_fileBrowserGrid.attachEvent("onRowDblClicked", function(id,ind){
 		//change folder 
 		if (m_fileBrowserGrid.cells(id,2).getValue() == "true"){
 			getFileList(m_fileBrowserGrid, m_fileBrowserGrid.cells(id,1).getValue())
@@ -995,12 +995,26 @@ function init(){
 		}
  
         if (id == "selectall") {
+            //count files, if no files are there, we add all folders
+            let filecount = 0;
             m_fileBrowserGrid.forEachRow(function(id){
                 if ( m_fileBrowserGrid.getRowIndex(id) != -1){
                     if (! m_fileBrowserGrid.getCellByName(id,"is_folder").getValue()){//is_folder
+                        filecount += 1;
+                        return;
+                    }
+                }
+            })
+            
+            m_fileBrowserGrid.forEachRow(function(id){
+                if ( m_fileBrowserGrid.getRowIndex(id) != -1){
+                    if ( !m_fileBrowserGrid.getCellByName(id,"is_folder").getValue() || filecount == 0){
+                        if (filecount == 0 && m_fileBrowserGrid.getRowIndex(id) == 0)
+                            return; //do not add "one up"
                         var newId = Math.random();
                         m_selectedFileGrid.addRow(newId,"");
                         var data_to_copy = m_fileBrowserGrid.getRowData(id);
+                        console.log("data to copy",data_to_copy)
                         m_selectedFileGrid.setRowData(newId,data_to_copy);
                         
                         //m_selectedFileGrid.addRow(Math.random(),["Browse",m_fileBrowserGrid.cells(id,1).getValue()]);
@@ -1240,7 +1254,7 @@ function saveLocation(){
                         if (result == 0){
                             var inputs = box.getElementsByTagName("input");
                             var newId = (new Date()).valueOf();
-                            _loc = {};
+                            let _loc = {};
                             _loc.displayname    = inputs[0].value + "&nbsp&nbsp<i style='cursor:pointer;float:right;margin-top:8px' class='fa fa-trash' aria-hidden='true' onclick=\"removeItemFromLocationMenu('"+escape(_path)+"')\" ></i>"
                             
                             _loc.path           = _path;
@@ -1250,6 +1264,8 @@ function saveLocation(){
                             storedArray.push(_loc);
                             localStorage.setItem("savedbrowselocations",JSON.stringify(storedArray))
                             m_fileBrowseGridMenu.addNewChild("locations", _loc.path,  _loc.path, _loc.displayname, false,"","");
+                            //emcodem: message it
+                            dhtmlx.message("Location saved.")
                         }
                     }
                 });
@@ -2076,9 +2092,15 @@ async function startJobs(form,selectedWorkflow){
             if (!ignore_segment_not_used_warning)
                 return
         }
-    }
-    //decide how to submit the files to the job
+    } 
 
+    //priority is a very special case, in this case, the form carried this variable
+    if (ffasvars.findIndex(x => x.name === "s_webui_job_submit_priority") != -1){
+        postBody.priority = ffasvars.find(x => x.name === "s_webui_job_submit_priority").data;
+        console.log("Found priority in form variables, setting job priority to ",postBody.priority)
+    }
+
+    //decide how to submit the files to the job
     if (selectedWorkflow["description"].indexOf("webui_stitch") != -1){
         //submit all files to single job
         postBody.inputfile = a_all_files[0];

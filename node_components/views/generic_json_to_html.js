@@ -85,10 +85,10 @@ function jsonToHtmlTable(data, filePath, hideFields = []) {
 				td {
 					padding: 2px 8px;
 					border: 1px solid #404040;
+					max-width: 600px;
 					white-space: normal;
 					word-wrap: break-word;
 					overflow-wrap: break-word;
-					word-break: break-all;
 					vertical-align: top;
 				}
 				tr {
@@ -166,10 +166,8 @@ function jsonToHtmlTable(data, filePath, hideFields = []) {
 			document.addEventListener('mousemove', (e) => {
 				if (currentHeader) {
 					const diffX = e.clientX - startX;
-					const newWidth = startWidth + diffX;
-					if (newWidth > 20) {
-						currentHeader.style.width = newWidth + 'px';
-					}
+					currentHeader.style.width = (startWidth + diffX) + 'px';
+					currentHeader.style.minWidth = (startWidth + diffX) + 'px';
 				}
 			});
 
@@ -193,48 +191,62 @@ function createTableFromArray(dataArray, hideFields = []) {
 		let html = '';
 		let currentKeys = null;
 		let currentTable = null;
+		let currentGroupItems = [];
+		let currentFirstKey = null;
+
+		const flushTable = () => {
+			if (currentGroupItems.length > 0) {
+				// Collect all unique keys from items in this group
+				const allKeysSet = new Set();
+				currentGroupItems.forEach(item => {
+					Object.keys(item).forEach(key => {
+						if (!hideFields.includes(key)) {
+							allKeysSet.add(key);
+						}
+					});
+				});
+				currentKeys = Array.from(allKeysSet);
+
+				// Create table header
+				html += '<table><tr>';
+				currentKeys.forEach(key => {
+					html += `<th>${escapeHtml(String(key))}</th>`;
+				});
+				html += '</tr>';
+
+				// Create table rows
+				currentGroupItems.forEach(item => {
+					html += '<tr>';
+					currentKeys.forEach(key => {
+						const value = item[key];
+						html += `<td>${formatValue(value, hideFields)}</td>`;
+					});
+					html += '</tr>';
+				});
+
+				html += '</table>';
+				currentGroupItems = [];
+			}
+		};
 
 		dataArray.forEach((item, index) => {
 			// Get keys for current item, excluding hidden fields
 			const itemKeys = Object.keys(item).filter(key => !hideFields.includes(key));
 			const firstKey = itemKeys.length > 0 ? itemKeys[0] : null;
-			const prevFirstKey = currentKeys && currentKeys.length > 0 ? currentKeys[0] : null;
 
 			// Check if we need to start a new table
-			if (firstKey !== prevFirstKey) {
-				// Close previous table if exists
-				if (currentTable !== null) {
-					html += currentTable + '</table>';
-				}
-
-				// Start new table
-				currentKeys = itemKeys;
-				currentTable = '<table>';
-				currentTable += '<tr>';
-				currentKeys.forEach(key => {
-					currentTable += `<th>${escapeHtml(String(key))}</th>`;
-				});
-				currentTable += '</tr>';
-
-				html += currentTable;
-				currentTable = '';
+			if (firstKey !== currentFirstKey) {
+				// Flush previous table if exists
+				flushTable();
+				currentFirstKey = firstKey;
 			}
 
-			// Add row
-			html += '<tr>';
-			currentKeys.forEach(key => {
-				const value = item[key];
-				html += `<td>${formatValue(value, hideFields)}</td>`;
-			});
-			html += '</tr>';
+			// Add item to current group
+			currentGroupItems.push(item);
 		});
 
-		// Close last table
-		if (currentTable !== null) {
-			html += currentTable + '</table>';
-		} else {
-			html += '</table>';
-		}
+		// Flush last table
+		flushTable();
 
 		return html;
 	} else {
@@ -297,8 +309,9 @@ function formatValue(value, hideFields = []) {
 		if (typeof value[0] === 'object' && value[0] !== null) {
 			return `<div class="nested-table">${createTableFromArray(value, hideFields)}</div>`;
 		}
-		// Array of primitives
-		return `<div class="nested-table">[${value.map(v => formatValue(v, hideFields)).join(', ')}]</div>`;
+		// Array of primitives - format each item on its own line
+		const items = value.map(v => `<div style="padding: 2px 0;">${formatValue(v, hideFields)}</div>`).join('');
+		return `<div class="nested-table">${items}</div>`;
 	}
 	if (typeof value === 'object') {
 		return `<div class="nested-table">${createTableFromObject(value, hideFields)}</div>`;

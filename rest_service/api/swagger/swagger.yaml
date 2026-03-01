@@ -475,7 +475,7 @@ paths:
                   type: integer
                 name:
                   type: string
-              example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
+              example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","priority":"<1-5, default workflow prio>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
       responses:
         "200":
           description: Success

@@ -173,7 +173,7 @@
                 try {
                     //translate file paths to clickable links
                     if (parentKey == "ffmpeg_stdout"){
-                        console.log("FFFMPEG DETECTED",data)
+                        //console.log("FFFMPEG DETECTED",data)
                         data = data.replace(/\\\\/g, '\\')
                         
                     }

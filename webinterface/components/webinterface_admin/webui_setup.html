@@ -78,8 +78,10 @@ function init(){
     
     <pre style="font-family:inherit"><h2>Webinterface Server Setup</h2>
     <b>Prefer Job state</b>
-        On Job Status page, Show Job state 'Success' if any Branch Succeeded or 'Error' if any Branch Errored
-
+        Defines which status and outcome to display for jobs with multiple branches.
+        'Success' if any Branch Succeeded, 'Error' if any Branch Errored, 'Main Branch' uses the branch with split_id 1-0-0 to define the job state.
+        'Main Branch' requires that one branch in your job does set the variable s_is_main_branch to 1
+        
     <b>Enable File Uploads</b>
         Global setting, on Job Submitter Page, show/hide Upload tab.
 
@@ -240,6 +242,11 @@ function init(){
                             "type": "radioButton",
                             "text": "Error",
                             "value": "Error"
+                        },
+                        {
+                            "type": "radioButton",
+                            "text": "Main Branch",
+                            "value": "main_branch"
                         }
                     ]
                 },

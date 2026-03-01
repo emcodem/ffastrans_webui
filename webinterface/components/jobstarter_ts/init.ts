@@ -50,51 +50,51 @@ async function getUserPermissions(): Promise<UserPermissions> {
     }
 }
 
-/**
- * Create tabbar with browse and upload tabs based on user permissions
- */
-export function createFileTabbar(cell: ICell): Tabbar {
+// /**
+//  * Create tabbar with browse and upload tabs based on user permissions
+//  */
+// export function createFileTabbar(cell: ICell): Tabbar {
 
-    const { show_browse, show_upload } = userPermissions.getUIFeatureVisibility();
+//     const { show_browse, show_upload } = userPermissions.getUIFeatureVisibility();
     
-    // Create views configuration for dhtmlx Tabbar
-    const views: ITabConfig[] = [];
+//     // Create views configuration for dhtmlx Tabbar
+//     const views: ITabConfig[] = [];
     
-    if (show_browse) {
-        views.push({
-            tab: "browse"
-        });
-    }
+//     if (show_browse) {
+//         views.push({
+//             tab: "browse"
+//         });
+//     }
     
-    if (show_upload) {
-        views.push({
-            tab: "upload",
-            html: "<div id='main_upload_area' style='height:100%'/>"
-        });
-    }
+//     if (show_upload) {
+//         views.push({
+//             tab: "upload",
+//             html: "<div id='main_upload_area' style='height:100%'/>"
+//         });
+//     }
     
-    if (views.length === 0) {
-        views.push({
-            tab: "noaccess"
-        });
-        console.warn("No file operations available based on permissions");
-    }
+//     if (views.length === 0) {
+//         views.push({
+//             tab: "noaccess"
+//         });
+//         console.warn("No file operations available based on permissions");
+//     }
     
-    // Create the tabbar with proper config
-    const tabbar = new dhx924.dhx.Tabbar(null, {
-        views: views
-    });
+//     // Create the tabbar with proper config
+//     const tabbar = new dhx924.dhx.Tabbar(null, {
+//         views: views
+//     });
 
-    tabbar.events.on(TabbarEvents.change, (id: string, prev: string) => {
-        console.log(`Tab changed from ${prev} to ${id}`);
-        (tabbar.getCell(id) as ICell).attachHTML("<div style='padding:10px'>Content for " + id + " tab</div>");
+//     tabbar.events.on(TabbarEvents.change, (id: string, prev: string) => {
+//         console.log(`Tab changed from ${prev} to ${id}`);
+//         (tabbar.getCell(id) as ICell).attachHTML("<div style='padding:10px'>Content for " + id + " tab</div>");
         
-        // Additional logic for tab change can be added here
-    });
+//         // Additional logic for tab change can be added here
+//     });
 
-    console.log("Tabbar created with views:", views.map(v => v.id));
-    return tabbar;
-}
+//     console.log("Tabbar created with views:", views.map(v => v.id));
+//     return tabbar;
+// }
 
 /**
  * Create a dhtmlx Layout with proper TypeScript typing
@@ -116,7 +116,6 @@ export function createLayout(containerId: string | HTMLElement): Layout {
                     {
                         id: "main_left",
                         header: "Left",
-                        
                         resizable: true,
                         collapsable: true,
                     } as ICellConfig,
@@ -165,9 +164,10 @@ export function initializeApp(): void {
             // Create file tabbar in main_left
             const mainLeftCell : ICell = layout.getCell("main_left") as ICell;
             if (mainLeftCell) {
-                let _tabbar : ICell = createFileTabbar(mainLeftCell);
-                mainLeftCell.attach(_tabbar);
-                console.log("File tabbar attached to main_left");
+
+                // let _tabbar : ICell = createFileTabbar(mainLeftCell);
+                // mainLeftCell.attach(_tabbar);
+                // console.log("File tabbar attached to main_left");
             }
 
 

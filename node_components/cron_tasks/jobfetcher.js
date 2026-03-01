@@ -122,6 +122,7 @@ async function getJobs(){
 
 	let varcols = global.config.job_viewer?.variable_columns || [];
 	let varsToFetch = new Set();
+	varsToFetch.add("s_is_main_branch");
 	const rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
 
 	// Extract all unique variable names from the variable column templates
@@ -440,10 +441,21 @@ function objectWithoutKey(key,obj){
 }
 
 function getJobstate(a_children){
+	// JOBFETCHER_AGGREGATE_BRANCH_STATE can be Error, Success or main_branch
+	// if success, then if any branch is success, the job is success
+	// if error, then if any branch is error, the job is error
+	// if main_branch, then the branch with split_id 1-0-0 defines the state
 	var state = a_children[a_children.length-1].state;
 	var preferState = global.config.JOBFETCHER_AGGREGATE_BRANCH_STATE || "Success";
+	
+	// Handle main_branch option DISABLED because we only want main job outcome, not state
+	if (preferState === "main_branch"){
+		preferState = "Error";
+	}
+	
 	for (let i=0;i<a_children.length;i++){
 		var _job = a_children[i];
+
 		if (_job.state == preferState){
 			state = preferState;
 		}
@@ -455,9 +467,30 @@ function getJobstate(a_children){
 }
 
 function getJobOutcome(a_children){
-	/* returns outcome of the last child with specified state */
+	// JOBFETCHER_AGGREGATE_BRANCH_STATE can be Error, Success or main_branch
+	// if success, then if any branch is success, the job is success
+	// if error, then if any branch is error, the job is error
+	// if main_branch, then the branch with split_id 1-0-0 defines the state
 	var outcome = a_children[a_children.length-1].outcome;
 	var preferState = global.config.JOBFETCHER_AGGREGATE_BRANCH_STATE || "Success";
+	
+	// Handle main_branch option
+	if (preferState === "main_branch"){
+
+		var mainBranchJob = a_children.find(job => {
+			var mainBranchVar = job.variables?.find(v => v.name === "s_is_main_branch");
+			var _job = job;
+			if (mainBranchVar){
+				return true;
+			}
+		});
+
+		if (mainBranchJob){
+			outcome = mainBranchJob.outcome;
+			return outcome;
+		}
+	}
+	
 	for (let i=0;i<a_children.length;i++){
 		var _job = a_children[i];
 		if (_job.state == preferState){
