@@ -17,10 +17,9 @@ function sleep(ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
     });
-  }   
+}   
 
-
-  async function get(req, res) {
+async function get(req, res) {
     const benchmarkId = `getJobs ${Math.random()}`;
     console.time(benchmarkId);
     try{
@@ -202,7 +201,7 @@ async function post(req, res) {
         var fname = await t.getFileName();
         var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
         var tick_pending_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","pending",fname);
-        console.log("Creating Job ticket: " + tick_temp_path);
+        console.log("Creating Job ticket: ", tick_temp_path, "Contents: ", final_tick);
         //write file to temp, then move to q
         await fsPromises.writeFile(tick_temp_path,JSON.stringify(final_tick));
         await fsPromises.rename(tick_temp_path,tick_pending_path);

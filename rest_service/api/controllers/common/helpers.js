@@ -185,10 +185,20 @@ async function json_files_to_array_cached(dir,cache_name = "general") {
 }
 
 //all ffastrans tickets in all directories to array
-async function ticket_files_to_array(dir,cache_name = "unsorted") {
+async function ticket_files_to_array(dir,cache_name = "unsorted", limit = 100) {
 		if (!dir){return}
 		var returnarray=[];
         var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+        if (limit > 0) {
+            // Get file stats and sort by oldest first
+            var filesWithStats = await Promise.all(allfiles.map(async (file) => {
+                var fullpath = path.join(dir, file);
+                var stat = await fsPromises.stat(fullpath);
+                return { file, birthtime: stat.birthtime };
+            }));
+            filesWithStats.sort((a, b) => a.birthtime - b.birthtime);
+            allfiles = filesWithStats.slice(0, limit).map(f => f.file);
+        }
         
         for (var _idx in allfiles){
             try{

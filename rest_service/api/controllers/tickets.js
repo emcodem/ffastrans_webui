@@ -34,9 +34,9 @@ async function get_review(){
     }
 }
 
-async function get_running(){
+async function get_running(limit=1000){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"));
+    var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"),"tickets_running",limit);
     console.log("Running tickets before filtering:",a_running.length);
     //as we dont want to show both at the same time, we ignore the running tickets from mon_folder to prevent showing the same file twice
     var keys_to_ignore = []; 
@@ -145,9 +145,9 @@ async function get_incoming(returnarray){
 
 }
 
-async function get_pending(){
+async function get_pending(limit=50){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_pending = await common.ticket_files_to_array(path.join(s_tick_path,"pending"));
+    var a_pending = await common.ticket_files_to_array(path.join(s_tick_path,"pending"),"tickets_pending",50);
     
 	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
     //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 
@@ -208,10 +208,10 @@ async function start(req, res) {
         
             //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
             //the real queued folder is more like a temp folder for tickets between pending and running
-            o_return["tickets"]["queued"] = await get_pending(); 
+            o_return["tickets"]["queued"] = await get_pending(50); 
             //o_return["tickets"]["queue"] = common.ticket_files_to_array(path.join(s_tick_path,"queue"));
             //o_return["tickets"]["incoming"] = await get_incoming(); NOTE; INCOMING DISABLED BECAUSE SINCE FFASTRANS 1407 they are useless because not contains file information
-            o_return["tickets"]["running"] = await get_running();
+            o_return["tickets"]["running"] = await get_running(500);
             o_return["tickets"]["review"] = await get_review();
             console.log("Serving ticket summary + details:",    o_return["tickets"]["running"].length,"queued count",o_return["tickets"]["queued"].length);
         }
