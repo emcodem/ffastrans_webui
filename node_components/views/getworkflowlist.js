@@ -116,10 +116,11 @@ module.exports = async function (app, passport) {
                 //ask tickets api for incoming, queued, running
 
                     if (!m_ticket_cache || !m_ticket_cache.tickets || ((Date.now() - m_ticket_cache.last_update) > 5000)) {
-                        console.time("getworkflowjobcount ticket cache refresh");
+                        let timerId = "getworkflowjobcount ticket cache refresh " + Math.random().toString(36);
+                        console.time(timerId);
                         m_ticket_cache.tickets = await global.jobfetcher.tickets();
                         m_ticket_cache.last_update = Date.now();
-                        console.timeEnd("getworkflowjobcount ticket cache refresh");
+                        console.timeEnd(timerId);
                         console.log("Refreshed tickets cache",m_ticket_cache);
                     }
                     //apply user permissions to incoming and queued
