@@ -158,8 +158,33 @@ async function put(req, res){
     }
 }
 
+async function createSingleJob(jobData) {
+    /* creates a single job ticket and writes to disk */
+    var t = new common.JobTicket();
+    await t.init_ticket(jobData.wf_id, jobData.start_proc);
+    t.setSource(jobData.inputfile);
+    t.variables = jobData.variables;
+    t.submit.variables = jobData.variables;
+    if (jobData.priority) {
+        t.priority = jobData.priority;
+    }
+
+    var fname = await t.getFileName();
+    var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"], "tickets", "temp", fname);
+    var tick_pending_path = path.join(global.api_config["s_SYS_CACHE_DIR"], "tickets", "pending", fname);
+    console.log("Creating new Job ticket: ", tick_temp_path);
+    await fsPromises.writeFile(tick_temp_path, JSON.stringify(t));
+    await fsPromises.rename(tick_temp_path, tick_pending_path);
+
+    return {
+        "uri": "/jobs/" + t.job_id,
+        "job_id": t.job_id
+    };
+}
+
 async function post(req, res) {
-    /* writes a new jobticket to disk for ffastrans to process */
+    /* writes a new jobticket to disk for ffastrans to process 
+       Accepts a single job object or an array of job objects */
     var example_body = {
         "wf_id":"<workflow id>",
         "inputfile":"<full path to file>",
@@ -181,37 +206,32 @@ async function post(req, res) {
         ]
      }
 
-    var o_req = req.body;
 	try {
-        var o_return = {};
-        //retrieve new ticket class
-        var t = new common.JobTicket();
-        //initialize with values from request
-        await t.init_ticket(req.body.wf_id,req.body.start_proc);
-        //set source and variables in ticket
-        t.setSource(req.body.inputfile);
-        t.variables = req.body.variables;
-        t.submit.variables = req.body.variables;
-        if (req.body.priority){
-            t.priority = req.body.priority;
+        // Handle array of jobs or single job
+        var jobs = Array.isArray(req.body) ? req.body : [req.body];
+        var results = [];
+
+        for (var job of jobs) {
+            try {
+                var result = await createSingleJob(job);
+                results.push(result);
+            } catch (jobErr) {
+                results.push({
+                    "error": jobErr.toString(),
+                    "inputfile": job.inputfile || "unknown"
+                });
+            }
         }
 
-        //write to disk
-        var final_tick = t;
-        var fname = await t.getFileName();
-        var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
-        var tick_pending_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","pending",fname);
-        console.log("Creating Job ticket: ", tick_temp_path, "Contents: ", final_tick);
-        //write file to temp, then move to q
-        await fsPromises.writeFile(tick_temp_path,JSON.stringify(final_tick));
-        await fsPromises.rename(tick_temp_path,tick_pending_path);
-        
-
-        var returnobj = {
-            "uri": "/jobs/" + t.job_id,
-            "job_id": t.job_id
+        // Return single object for single job, array for multiple
+        if (!Array.isArray(req.body)) {
+            if (results[0].error) {
+                return res.status(500).json({ message: results[0].error, description: results[0].error });
+            }
+            res.json(results[0]);
+        } else {
+            res.json(results);
         }
-        res.json(returnobj);
         res.end();
 	} catch(err) {
 		console.error("POST Job Error",err);
