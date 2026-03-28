@@ -463,18 +463,17 @@ paths:
   /jobs:
     x-swagger-router-controller: jobs
     post:
-      description: ""
+      description: "Creates new FFAStrans Job or array of jobs"
       operationId: jobs_post
       requestBody:
         content:
           application/json:
-            schema:      # Request body contents
-              type: object
-              properties:
-                id:
-                  type: integer
-                name:
-                  type: string
+            schema:      # Request body contents: object or array of objects
+              oneOf:
+                - type: object
+                - type: array
+                  items:
+                    type: object
               example: {"wf_id":"<workflow id>","inputfile":"<full path to file>","start_proc":"<processor node id>","priority":"<1-5, default workflow prio>","variables":[{"name":"<s_string>","data":"<string>"},{"name":"<i_string>","data":"<integer>"},{"name":"<f_string>","data":"<number>"}]}
       responses:
         "200":
