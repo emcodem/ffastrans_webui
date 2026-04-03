@@ -221,6 +221,12 @@ async function ticket_files_to_array(dir,cache_name = "unsorted", limit = 100) {
                 }
                 //push to cache
                 var fullpath = path.join(dir,allfiles[_idx]);
+                if (! ("filecache" in global)){
+                    global.filecache = {};
+                }
+                if (!global.filecache[cache_name]) {
+                    global.filecache[cache_name] = {};
+                }
                 global.filecache[cache_name][fullpath] = {};
                 global.filecache[cache_name][fullpath]["birth"] = new Date();
                 global.filecache[cache_name][fullpath]["content"] = JSON.stringify(newitem);
