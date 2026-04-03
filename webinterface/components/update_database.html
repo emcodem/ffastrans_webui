@@ -1,0 +1,16 @@
+<h1>
+    Error: Old Database detected
+</h1>
+Sorry, we updated our embedded database version since webint version 1.4.0.271 and your current <b>database/job_db</b>
+folder
+contains data from an old
+version.<br />
+We know that because we read job_db/WiredTiger file at startup as it contains version info.
+<br />
+Read the wiki to learn about your options for keeping your old data.<br />
+<a
+    href="https://ffastrans.com/wiki/doku.php?id=webinterface:webinterface">https://ffastrans.com/wiki/doku.php?id=webinterface:webinterface</a>
+<br /><br />
+Alternatively, if you are happy to start with a fresh database, just delete the database/job_db folder and
+<b>restart webinterface.</b> Your configuration is safe in the database/config file.
+<br />
