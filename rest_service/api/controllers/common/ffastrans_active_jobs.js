@@ -6,7 +6,7 @@ module.exports = {
     getActiveJobs: getActiveJobs
 };
 
-async function getActiveJobs(start=0,end=1000, jobid = '*'){
+async function getActiveJobs(start=0,end=1000, jobid = '*', return_id_only = false){
     /* scan db/monitor folder for .json files */
     let returnArray = [];
     let jobDir      = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
@@ -23,6 +23,13 @@ async function getActiveJobs(start=0,end=1000, jobid = '*'){
         let fullPath = path.join(jobDir, file);
       
         try{
+            if (return_id_only) {
+                returnArray.push({
+                    job_id: file.split("~")[0],
+                    split_id: file.split("~")[1].replace(".json","")
+                });
+                continue;
+            }
             var contents        = await fs.readFile(fullPath,"utf-8");
             contents            = JSON.parse(contents.replace(/^\uFEFF/, ''));
             contents.job_id     = file.split("~")[0];

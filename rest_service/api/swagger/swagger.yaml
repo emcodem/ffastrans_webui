@@ -523,6 +523,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: return_id_only
+          in: query
+          description: If set, saves disk I/O by only returning job identifiers parsed from filenames.
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: Success

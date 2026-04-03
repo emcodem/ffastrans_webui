@@ -11,7 +11,7 @@ let fileContentDatabase = {};
 let jobCache = {};//{job_id:[task,task]},job_id:...}
 let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
-async function getHistoryJobs(start, end, jobid = '', variablesFilter = null) {
+async function getHistoryJobs(start, end, jobid = '', variablesFilter = null, return_id_only = false) {
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
     const cacheKeys = Object.keys(jobCache);
@@ -36,6 +36,10 @@ async function getHistoryJobs(start, end, jobid = '', variablesFilter = null) {
     }
     if (subfolders.length > 10000)
         console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
+
+    if (return_id_only) {
+        return subfolders.slice(start, start + end).map(id => ({ job_id: id }));
+    }
 
     let startcount = 0;
     let jobCount = 0;
