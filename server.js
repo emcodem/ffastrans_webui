@@ -9,14 +9,14 @@ const util = require('util');
 const bodyParser = require('body-parser');
 const proxy = require('express-http-proxy');
 const cron = require("node-cron");
-const AsyncNedb  = require('@seald-io/nedb');
+const AsyncNedb = require('@seald-io/nedb');
 const Mongod = require("./node_components/mongodb_server/mongod");
 const portfinder = require("portfinder");
 const passport = require('passport');
 global.passport = passport;
 const axios = require('axios');
 
-const session      = require('express-session');
+const session = require('express-session');
 const assert = require('assert');
 const fs = require('fs-extra');
 const socket = require('socket.io');
@@ -28,10 +28,10 @@ const socket = require('socket.io');
 // };
 
 const socketwildcard = require('socketio-wildcard');
-const configmgr = require( './node_components/server_config');
+const configmgr = require('./node_components/server_config');
 const database_controller = require('./node_components/common/database_controller');
 
-const { Player } = require( './node_components/player');
+const { Player } = require('./node_components/player');
 
 const logfactory = require("./shared_modules/logger.js");
 
@@ -51,49 +51,49 @@ require('console-stamp')(console, '[HH:MM:ss.l]');  //adds HHMMss to every conso
 
 function sleep(ms) {
     return new Promise((resolve) => {
-      setTimeout(resolve, ms);
+        setTimeout(resolve, ms);
     });
-  }
+}
 
 //catch all uncaught exceptions - keeps the server running
-process.on('uncaughtException', function(err) {
-  console.trace('Global unexpected error: ' , err);
-  if (err.stack){
-      err.stackTraceLimit = Infinity;
-      console.error(err.stack);
+process.on('uncaughtException', function (err) {
+    console.trace('Global unexpected error: ', err);
+    if (err.stack) {
+        err.stackTraceLimit = Infinity;
+        console.error(err.stack);
     }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.trace('Global unexpected error: ' , reason);
+    console.trace('Global unexpected error: ', reason);
     if (reason.stack) {
         console.error(reason.stack);
     }
 })
 
 //needed for running as nexe - access to local files (database) is different 
-global.approot  = path.dirname(process.execPath);
+global.approot = path.dirname(process.execPath);
 if (fs.existsSync(path.join(global.approot, "/database/"))) {
     console.log("Running as compiled file")
-}else{
-    global.approot  = __dirname;
-    console.log("Running as node script - developer mode")  
-    if (!fs.existsSync(global.approot + "/database/")){
+} else {
+    global.approot = __dirname;
+    console.log("Running as node script - developer mode")
+    if (!fs.existsSync(global.approot + "/database/")) {
         console.error("Database does not exist, please create it:" + global.approot + "/database/config");
     }
 }
 
 //fire up logger, overrides console log
 var logger = logfactory.getLogger("webint");
-console.log = (...args)     => logger.info.call(logger, ...args);
-console.info = (...args)    => logger.info.call(logger, ...args);
-console.warn = (...args)    => logger.warn.call(logger, ...args);
-console.error = (...args)   => logger.error.call(logger, ...args);
-console.debug = (...args)   => logger.debug.call(logger, ...args);
+console.log = (...args) => logger.info.call(logger, ...args);
+console.info = (...args) => logger.info.call(logger, ...args);
+console.warn = (...args) => logger.warn.call(logger, ...args);
+console.error = (...args) => logger.error.call(logger, ...args);
+console.debug = (...args) => logger.debug.call(logger, ...args);
 
-try{
-    console.log("Version: " + fs.readFileSync(path.join(global.approot,"/webinterface/version.txt")))
-}catch(ex){}
+try {
+    console.log("Version: " + fs.readFileSync(path.join(global.approot, "/webinterface/version.txt")))
+} catch (ex) { }
 
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
@@ -102,109 +102,115 @@ global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 // var jobcontrol = require("./node_components/jobcontrol_socketio");
 
 //init DB
-console.log("Database file: ", global.approot  + "/database/config")
-global.db={};
-global.db.config = new AsyncNedb({ filename: path.join(global.approot , "database","config" )});
+console.log("Database file: ", global.approot + "/database/config")
+global.db = {};
+global.db.config = new AsyncNedb({ filename: path.join(global.approot, "database", "config") });
 
 global.db.config.loadDatabase(function (err) {    //database is vacuumed at startup
-  assert.equal(null, err);
+    assert.equal(null, err);
 });
 
 //get global config
 configmgr.get(init);
 
-async function connectDb(){
+async function connectDb() {
 
     //fire up database process
     var dbpath = path.join(global.approot, "/database/job_db");
-    
+
     let is_initial_db_setup = await (fs.exists(dbpath));
     await fs.ensureDir(dbpath);
-    console.log("Database path:",dbpath)
+    console.log("Database path:", dbpath)
 
     var dblogger = logfactory.getLogger("database");
     global.db.mongod = new Mongod(dbpath);
-    let db_config_from_file = path.join(dbpath,"..","mongo_config.json");
-    
-    if (fs.existsSync(path.join(dbpath,"..","mongo_config.json"))){
+    let db_config_from_file = path.join(dbpath, "..", "mongo_config.json");
+
+    if (fs.existsSync(path.join(dbpath, "..", "mongo_config.json"))) {
         //we have a db config file!
-        global.db.mongod.configFilePath = path.join(dbpath,"..","mongo_config.json");
-        db_config_from_file = fs.readFileSync(path.join(dbpath,"..","mongo_config.json"));
+        global.db.mongod.configFilePath = path.join(dbpath, "..", "mongo_config.json");
+        db_config_from_file = fs.readFileSync(path.join(dbpath, "..", "mongo_config.json"));
         db_config_from_file = JSON.parse(db_config_from_file);
-        
-        if (!db_config_from_file.net?.port){
-            console.log("No net.port property in config file ",db_config_from_file);
+
+        if (!db_config_from_file.net?.port) {
+            console.log("No net.port property in config file ", db_config_from_file);
             process.exit(1);
         }
 
-        if (!db_config_from_file.storage?.dbPath){
-            console.log("No storage.dbPath property in config file ",db_config_from_file);
+        if (!db_config_from_file.storage?.dbPath) {
+            console.log("No storage.dbPath property in config file ", db_config_from_file);
             process.exit(1);
-        }else{
+        } else {
             full_dbpath = db_config_from_file.storage.dbPath;
-            if (!fs.existsSync(db_config_from_file.storage.dbPath)){
+            if (!fs.existsSync(db_config_from_file.storage.dbPath)) {
                 //mongod sets cwd to database folder, if a relative path is in config, it will assume it from there
-                full_dbpath = path.join(global.approot,"database",db_config_from_file.storage.dbPath);
+                full_dbpath = path.join(global.approot, "database", db_config_from_file.storage.dbPath);
             }
-            
-            console.log("Ensure Database path exists: ",full_dbpath);
+
+            console.log("Ensure Database path exists: ", full_dbpath);
             await fs.ensureDir(full_dbpath);
-            
+
         }
 
         global.db.mongod.port = db_config_from_file.net.port;
         console.log("Port from Config file: ", global.db.mongod.port)
-        
-        ;
-        console.log("mongo_config.json contents:",db_config_from_file);
 
-    }else{
+            ;
+        console.log("mongo_config.json contents:", db_config_from_file);
+
+    } else {
         //no db config, choose random port
-        var dbPort = await portfinder.getPortPromise({port: 8010, stopPort: 8020});
+        var dbPort = await portfinder.getPortPromise({ port: 8010, stopPort: 8020 });
         console.log("Database port: " + dbPort);
         global.db.mongod.port = dbPort;
-        dblogger.info("Database port: ",dbPort);
+        dblogger.info("Database port: ", dbPort);
     }
 
-    global.db.mongod.start();
-    
-    global.db.mongod.onStdOut = function(data){
+    var db_status = await global.db.mongod.start();
+    if (db_status == 6) {
+        console.log("Database is Version 6, please delete the job_db folder and restart the application");
+        //force the webserver to display the update_database.html page
+        global.db.mongod.status = "update required";
+        return;
+    }
+
+    global.db.mongod.onStdOut = function (data) {
         dblogger.info(data.toString());
     }
 
-    global.db.mongod.onStdErr = function(data){
+    global.db.mongod.onStdErr = function (data) {
         dblogger.error(data.toString());
     }
 
-    global.db.mongod.onExit = function(data){
-        dblogger.info("database process exited, code: ",data);
+    global.db.mongod.onExit = function (data) {
+        dblogger.info("database process exited, code: ", data);
         //todo:restart DB? Anyway, we must inform clients continuously...
-		setTimeout(function(){
+        setTimeout(function () {
             dblogger.info("Initiating connect retry in 3 seconds");
             //global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
             //connectDb();
-        },3000);
+        }, 3000);
         // setInterval(function(){
-		// 	//show errormsg forever as we do not attempt to reconnect
-		// 	
-		// }, 3000);
+        // 	//show errormsg forever as we do not attempt to reconnect
+        // 	
+        // }, 3000);
     }
 
     //connect to database, store connection in global object
     var MongoClient = require('mongodb').MongoClient;
     var url = "mongodb://localhost:" + global.db.mongod.port + "/";//jobs
-    if (await(fs.exists(path.join(dbpath,"..","mongo_connection_string.txt")))){
-        url = fs.readFileSync(path.join(dbpath,"..","mongo_connection_string.txt"));
+    if (await (fs.exists(path.join(dbpath, "..", "mongo_connection_string.txt")))) {
+        url = fs.readFileSync(path.join(dbpath, "..", "mongo_connection_string.txt"));
         url = url.toString().trim();
     }
     var mongoclient;
-	try{ 
-        
-        if (db_config_from_file.replication?.replSetName && url.indexOf(",") == -1){
+    try {
+
+        if (db_config_from_file.replication?.replSetName && url.indexOf(",") == -1) {
             url += "?directConnection=true"
         }
 
-		mongoclient = await MongoClient.connect(url)
+        mongoclient = await MongoClient.connect(url)
 
         let status = await checkStatus(mongoclient);
 
@@ -222,11 +228,11 @@ async function connectDb(){
                 return "STARTUP/OTHER";
             }
         }
-        
+
 
         // Check if the replica set needs to be initialized
         let is_uninitialized_master = db_config_from_file.replication?.replSetName && url.indexOf(",") == -1;
-        if (is_uninitialized_master){
+        if (is_uninitialized_master) {
             //this is the only cluster member, if there is a client config with replication set, we must initialize it
             const adminDb = mongoclient.db("admin");
             try {
@@ -242,32 +248,32 @@ async function connectDb(){
                         }
                     });
                     dblogger.info("Replica Set Initialized!");
-                }else{
-                    dblogger.error("Unexpected error while checking replica set",e)
+                } else {
+                    dblogger.error("Unexpected error while checking replica set", e)
                 }
             }
         }
 
-	}catch(ex){
-        dblogger.error("Unexpected error connecting to DB:",ex)
-        setTimeout(function(){
+    } catch (ex) {
+        dblogger.error("Unexpected error connecting to DB:", ex)
+        setTimeout(function () {
             dblogger.error("Initiating connect retry in 3 seconds");
             global.socketio.emit("error", "Fatal Error connecting to job history database, view db logs and restart service!" + " Message: " + ex);
             connectDb();
-        },3000);
-	}
-    
+        }, 3000);
+    }
+
     const db = mongoclient.db("webinterface");
     global.db.jobs = db.collection('jobs');
     global.db.deleted_jobs = db.collection('deleted_jobs');
 
-    var old_dbpath = path.join(global.approot, "/database/jobs");
-    if (fs.existsSync(old_dbpath)){
-        //jobfetcher.importLegacyDatabase(old_dbpath);
-    }
+    // var old_dbpath = path.join(global.approot, "/database/jobs");
+    // if (fs.existsSync(old_dbpath)) {
+    //     //jobfetcher.importLegacyDatabase(old_dbpath);
+    // }
     //ensure db indexes
     //try{await global.db.jobs.createIndex({ worfklow:"text"}, { default_language: "english" });}catch(ex){};
-	//await global.db.jobs.dropIndexes();
+    //await global.db.jobs.dropIndexes();
     ensureJobsIndexes()
     db_connected_first_time();
 }
@@ -285,15 +291,15 @@ async function ensureJobsIndexes() {
         { key: { job_id: -1 }, name: "job_id_-1" }                             // for distinct() logic
     ];
 
-  // Get existing indexes
+    // Get existing indexes
     const existingIndexes = await global.db.jobs.indexes();
     console.log("Existing indexes:", existingIndexes.map(i => i.name));
-  // Filter out indexes that already exist by name
-    const indexesToCreate = desiredIndexes.filter(idx => 
-    !existingIndexes.some(e => {
-        // Compare key pattern, not just name
-        return JSON.stringify(e.key) === JSON.stringify(idx.key);
-    })
+    // Filter out indexes that already exist by name
+    const indexesToCreate = desiredIndexes.filter(idx =>
+        !existingIndexes.some(e => {
+            // Compare key pattern, not just name
+            return JSON.stringify(e.key) === JSON.stringify(idx.key);
+        })
     );
 
     if (indexesToCreate.length > 0) {
@@ -305,99 +311,111 @@ async function ensureJobsIndexes() {
     }
 }
 
-function db_connected_first_time(){
+function db_connected_first_time() {
     //these functions may depend on working database
-    
+
     start_cron();
 }
 
 
-function start_cron(){
+function start_cron() {
 
     let maintenance_funcs = require("./node_components/cron_tasks/maintenance");
-    cron.schedule("*/5 * * * * *", async function() {
-    //JOBFETCHER     
-        if (!global.dbfetcheractive){
+    cron.schedule("*/5 * * * * *", async function () {
+        //JOBFETCHER     
+        if (!global.dbfetcheractive) {
             global.dbfetcheractive = true;
-            try{
+            try {
                 await global.jobfetcher.fetchjobs();
-            }catch (ex){
+            } catch (ex) {
                 console.trace("Error, jobfetcher exception. ", ex)
             }
             global.dbfetcheractive = false;
-        }else{
+        } else {
             console.error("Jobfetcher still active, that should not happen");
         }
     })
 
-    cron.schedule("0 0 0-23 * * *", async function() {
-    //MAINTENANCE
-            try{
-                await maintenance_funcs.exec_all();
-            }catch(ex){
-                console.error("Error in automatic Maintenance: ",ex)
-            }
+    cron.schedule("0 0 0-23 * * *", async function () {
+        //MAINTENANCE
+        try {
+            await maintenance_funcs.exec_all();
+        } catch (ex) {
+            console.error("Error in automatic Maintenance: ", ex)
+        }
     })
 
     maintenance_funcs.exec_all();
 
-    cron.schedule("*/2 * * * * *", function() {
-    //SCHEDULED JOBS
-        if (!global.jobscheduleractive){
+    cron.schedule("*/2 * * * * *", function () {
+        //SCHEDULED JOBS
+        if (!global.jobscheduleractive) {
             global.jobscheduleractive = true;
-                try{
-                    jobScheduler.execute();
-                }catch (ex){
-                    //TODO: what to do when scheduler runs into error?
-                    console.trace("Error, scheduler exception. " + ex)
-                }
-                global.jobscheduleractive = false;
-        }else{
+            try {
+                jobScheduler.execute();
+            } catch (ex) {
+                //TODO: what to do when scheduler runs into error?
+                console.trace("Error, scheduler exception. " + ex)
+            }
+            global.jobscheduleractive = false;
+        } else {
             console.error("Scheduler still active, that should not happen!");
         }
-        
+
     });
-    
+
 }
 
 
-async function registerAddedFolders(newline_separated_folder_list){
+async function registerAddedFolders(newline_separated_folder_list) {
 
-    if (newline_separated_folder_list){
+    if (newline_separated_folder_list) {
         let list = newline_separated_folder_list.split("\n");
         if (list.length == 0)
             return;
-        for (let i = 0;i<list.length;i++){
-            if (await fs.exists(list[i])){
+        for (let i = 0; i < list.length; i++) {
+            if (await fs.exists(list[i])) {
                 let parts = path.parse(list[i]);
                 let lastDir = parts.name;
-                console.log("Registering additional Webserver Folder: ", list[i],"Url:","/" + lastDir);
-                app.use("/"+lastDir, express.static(list[i], {
+                console.log("Registering additional Webserver Folder: ", list[i], "Url:", "/" + lastDir);
+                app.use("/" + lastDir, express.static(list[i], {
                     index: false,
                     setHeaders: (response, file_path, file_stats) => {
                         // This function is called when “serve-static” makes a response.
                         console.log("Added folder Serving file:", file_path);
                     }
                 }));
-            }else{
+            } else {
                 console.error("Error registering additional folder, does not exist: ", list[i]);
             }
         }
     }
 }
 
-async function init(conf){
-	global.config = conf;
+async function init(conf) {
+    global.config = conf;
 
     //maybe there is a better place to initialize confidential_config but nothing comes to my head rigtht now
-    let queryresult = await global.db.config.findOne({"confidential_config":{$exists:true}}) || {};
-    if (queryresult){
+    let queryresult = await global.db.config.findOne({ "confidential_config": { $exists: true } }) || {};
+    if (queryresult) {
         global.confidential_config = queryresult.confidential_config;
-    }else{
+    } else {
         global.confidential_config = {};
     }
 
-	connectDb(); //mongodb
+    connectDb(); //mongodb
+
+    // Intercept all requests if database needs an update
+    app.use((req, res, next) => {
+        if (global.db && global.db.mongod && global.db.mongod.status === "update required") {
+            if (req.accepts('html')) {
+                return res.sendFile(path.join(global.approot, 'webinterface', 'components', 'update_database.html'));
+            } else {
+                return res.status(503).json({ error: "Database update required" });
+            }
+        }
+        next();
+    });
 
     // we need bodyparser to take care about the sent jsons except for the following cases
     // Skip body-parser for /new_proxy routes to preserve multipart data
@@ -406,11 +424,11 @@ async function init(conf){
         if (req.path.startsWith('/new_proxy') && contentType.includes('multipart/form-data')) {
             return next(); //bodyparser disabled for multipart/form-data
         }
-        try{
+        try {
             bodyParser.urlencoded({ extended: true })(req, res, next);
-        }   
-        catch(ex){
-            console.error("FATAL Error in bodyParser:",ex.stack);
+        }
+        catch (ex) {
+            console.error("FATAL Error in bodyParser:", ex.stack);
         }
     });
     app.use((req, res, next) => {
@@ -418,10 +436,10 @@ async function init(conf){
         if (req.path.startsWith('/new_proxy') && contentType.includes('multipart/form-data')) {
             return next(); //bodyparser disabled for multipart/form-data
         }
-        try{
+        try {
             bodyParser.json()(req, res, next);
-        }   catch(ex){
-            console.error("FATAL Error in bodyParser:",ex.stack);
+        } catch (ex) {
+            console.error("FATAL Error in bodyParser:", ex.stack);
         }
 
     });
@@ -433,7 +451,7 @@ async function init(conf){
 
     //Registers user configured additinal webfolders
     await registerAddedFolders(global.config.ADDITIONAL_WEBSERVER_FOLDERS_UNPROTECTED);
-    
+
     //mustache setup and login page
     app.set('views', `${__dirname}/webinterface/components`);
     //enables mustache engine when client requests file extension mustache
@@ -441,83 +459,83 @@ async function init(conf){
     delete mustacheInstance.cache;
     app.set('view engine', 'mustache');
     app.engine('mustache', mustacheInstance);
-    
+
     //enables mustache engine when client requests file extension html, used in routes.js
     app.set('view engine', 'html');
     app.engine('html', mustacheInstance);
 
-    app.use ('/webinterface/components/login.html', function(req,res){
+    app.use('/webinterface/components/login.html', function (req, res) {
         //changed from static login.html to mustache dynamically rendered
         var azure_link = "";
-        if (global.confidential_config && global.confidential_config.azure_config){
+        if (global.confidential_config && global.confidential_config.azure_config) {
             azure_link = global.confidential_config.azure_config.azure_login_link;
         }
 
-        if (fs.existsSync(path.join(global.approot,"alternate-server/login.html"))){
-            res.sendFile(path.join(global.approot,"alternate-server/login.html"));
+        if (fs.existsSync(path.join(global.approot, "alternate-server/login.html"))) {
+            res.sendFile(path.join(global.approot, "alternate-server/login.html"));
             return;
         }
-        
+
         res.render("login.mustache",
-          {
-            instanceName:global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
-            azureLink:azure_link
-          }
+            {
+                instanceName: global.config.LOGIN_WELCOME_MESSAGE || '<img class="brand_image" alt="" height="20px" src="/webinterface/images/F364x64.png" title="" width="20px" style="margin-bottom:6px;float:left">&nbsp;FFAStrans Web Interface',
+                azureLink: azure_link
+            }
         )
     });
 
     //EVERYTHING FROM HERE IS PASSWORD PROTECTED (i think)
     // required for passport
-	var farFuture = new Date(new Date().getTime() + (1000*60*60*24*365*10)); // ~10y
+    var farFuture = new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 365 * 10)); // ~10y
     app.use(session({
-                        secret:             process.env.SESSION_SECRET || 'a-fallback-secret-for-dev-only',
-                        resave:             false, // Do not save session if unmodified
-                        saveUninitialized:  false, // Do not create session until something stored
-						cookie:             { maxAge: farFuture, sameSite: 'lax' } // Add sameSite for CSRF protection
-        }));
+        secret: process.env.SESSION_SECRET || 'a-fallback-secret-for-dev-only',
+        resave: false, // Do not save session if unmodified
+        saveUninitialized: false, // Do not create session until something stored
+        cookie: { maxAge: farFuture, sameSite: 'lax' } // Add sameSite for CSRF protection
+    }));
 
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
-    
+
     require("./node_components/passport/azurelogin.js");
-    
+
     //init job fetching cron every 3 seconds - we use cron instead of setTimeout or interval because cron might be needed in future for other stuff
-	
-	console.log("Checking alternate jobfetcher",path.join(global.approot,"alternate-server/jobfetcher.js"))
-	if (fs.existsSync(path.join(global.approot,"alternate-server/jobfetcher.js"))){
 
-        
-		/* alternate server allows to disable inbuild jobfetcher - so webint can be used with another system than ffastrans*/
-		console.log("detected alternate jobfetcher module");
-		global.jobfetcher = require(path.join(global.approot,"alternate-server/jobfetcher.js"));
-		global.config["alternate-server"] = true;
-	}
-	else{
-		console.log("No alternate server detected");
-		global.jobfetcher = require("./node_components/cron_tasks/jobfetcher");
-		global.config["alternate-server"] = false;
+    console.log("Checking alternate jobfetcher", path.join(global.approot, "alternate-server/jobfetcher.js"))
+    if (fs.existsSync(path.join(global.approot, "alternate-server/jobfetcher.js"))) {
+
+
+        /* alternate server allows to disable inbuild jobfetcher - so webint can be used with another system than ffastrans*/
+        console.log("detected alternate jobfetcher module");
+        global.jobfetcher = require(path.join(global.approot, "alternate-server/jobfetcher.js"));
+        global.config["alternate-server"] = true;
     }
-    
-	if (!global.config["alternate-server"]){
-		delete global.config["ffastrans-about"]; //clean up legacy stuff
-		//NEW REST API - replaces the builtin ffastrans api, possible 
-		//var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
-		console.log("NOT running on alternate-server");
+    else {
+        console.log("No alternate server detected");
+        global.jobfetcher = require("./node_components/cron_tasks/jobfetcher");
+        global.config["alternate-server"] = false;
+    }
 
-        async function connectApi(){
+    if (!global.config["alternate-server"]) {
+        delete global.config["ffastrans-about"]; //clean up legacy stuff
+        //NEW REST API - replaces the builtin ffastrans api, possible 
+        //var about_url = ("http://" + global.config["STATIC_API_HOST"] + ":" + global.config["STATIC_API_PORT"] + "/api/json/v2/about");
+        console.log("NOT running on alternate-server");
+
+        async function connectApi() {
             //while(!got_connection){
-                try{
-                    // var res = await axios.get(about_url)
-                    restApiController.start_rest_api_thread(global.config.STATIC_API_NEW_PORT,global.config.STATIC_FFASTRANS_PATH,global.config);
-                    got_connection = true;
-                }catch(exc){
-                    console.error("Cannot start rest_api_thread");
-                    await sleep(1000);
-                }   
+            try {
+                // var res = await axios.get(about_url)
+                restApiController.start_rest_api_thread(global.config.STATIC_API_NEW_PORT, global.config.STATIC_FFASTRANS_PATH, global.config);
+                got_connection = true;
+            } catch (exc) {
+                console.error("Cannot start rest_api_thread");
+                await sleep(1000);
+            }
             //}
         }
         connectApi();
-	}
+    }
 
     //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
     //DEPRECATED, USE NEW API AND PROXY
@@ -526,8 +544,8 @@ async function init(conf){
     //         console.log(proxyReq)
     //     },
     //     parseReqBody: true,
-	// 	reqBodyEncoding: null,
-	// 	reqAsBuffer: true,
+    // 	reqBodyEncoding: null,
+    // 	reqAsBuffer: true,
     // //     proxyReqBodyDecorator: function(bodyContent, srcReq) {
     // //    //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
     // //    //we actually want the body to be forwarded unmodified
@@ -543,39 +561,39 @@ async function init(conf){
         logLevel: "info",
         proxyTimeout: global.config.STATIC_API_TIMEOUT,
         onProxyReq: function (proxyReq, req, res) {
-                                    console.log("proxying request to:",protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT,req.url) 
-                                },
+            console.log("proxying request to:", protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, req.url)
+        },
         parseReqBody: true,
         reqBodyEncoding: null,
         reqAsBuffer: true,
         proxyReqBodyDecorator: function (bodyContent, srcReq) {
             //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
             //we actually want the body to be forwarded unmodified
-            console.debug("Proxying API call, request to url: " , srcReq.method, protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + srcReq.url)
-            
+            console.debug("Proxying API call, request to url: ", srcReq.method, protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT + srcReq.url)
+
             // Don't modify multipart/form-data requests - pass through as-is
             const contentType = srcReq.headers['content-type'] || '';
             if (contentType.includes('multipart/form-data')) {
                 console.debug("Proxying multipart/form-data - passing through unchanged");
                 return bodyContent;
             }
-            
-            if (typeof(srcReq.body) == "object"){
+
+            if (typeof (srcReq.body) == "object") {
                 bodyContent = ("" + JSON.stringify(srcReq.body));
-            }else{
+            } else {
                 bodyContent = ("" + srcReq.body);
-                console.debug("Body:",srcReq.body)
+                console.debug("Body:", srcReq.body)
             }
 
             return bodyContent;
         }
     }));
 
-	
+
     //log all requests
-    app.use(function(req, res, next) {
+    app.use(function (req, res, next) {
         //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
-        if (req.url.indexOf("temp") != -1){
+        if (req.url.indexOf("temp") != -1) {
             var stop = 1;
         }
         next();
@@ -587,9 +605,9 @@ async function init(conf){
 
     require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
     require('./node_components/passport/passport')(passport); // pass passport for configuration
-    
 
-    
+
+
     // require("./upload_backend/common")(app, express);
     // require("./upload_backend/saverename")(app, express);
     // require("./upload_backend/getFullUploadPath")(app, express);
@@ -617,9 +635,9 @@ async function init(conf){
 
     require("./node_components/get_userpermissions")(app, passport);
     //require("./node_components/resumeable_backend.js.deprecated")(app, passport); //removed due to uppy and audit
-	require("./node_components/activedirectory_tester.js")(app, passport);
-	require("./node_components/admin_alert_email_tester.js")(app, passport);
-	require("./node_components/farmadmin_install_service.js")(app, passport);
+    require("./node_components/activedirectory_tester.js")(app, passport);
+    require("./node_components/admin_alert_email_tester.js")(app, passport);
+    require("./node_components/farmadmin_install_service.js")(app, passport);
     require("./node_components/databasemaintenance")(app, express);
     require("./node_components/views/databasemaintenance_views")(app, passport);
 
@@ -642,129 +660,129 @@ async function init(conf){
 
     //startup server
     console.log('\x1b[32mHello and welcome, thank you for using FFAStrans')
-	var path_to_privkey = global.approot  	+ '/cert/key.pem';
-	var path_to_cert = global.approot  		+ '/cert/cert.pem';
-    var path_to_pfx  = global.approot  		+ '/cert/cert.pfx';
+    var path_to_privkey = global.approot + '/cert/key.pem';
+    var path_to_cert = global.approot + '/cert/cert.pem';
+    var path_to_pfx = global.approot + '/cert/cert.pfx';
 
-	var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
-    try{
-        if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true'){
+    var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
+    try {
+        if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true') {
             const https = require('https');
-            if (fs.existsSync(path_to_pfx)){
+            if (fs.existsSync(path_to_pfx)) {
                 //cert is pfx
                 httpsServer = https.createServer({
                     pfx: fs.readFileSync(path_to_pfx),
                     passphrase: key_password
-                }, app);                  
-            }else{
+                }, app);
+            } else {
                 //cert is pem
                 httpsServer = https.createServer({
                     key: fs.readFileSync(path_to_privkey),
                     cert: fs.readFileSync(path_to_cert),
                     passphrase: key_password
-                }, app);      
+                }, app);
             }
-            
+
             httpsServer.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
-                console.log('HTTPS Server running on port',global.config.STATIC_WEBSERVER_LISTEN_PORT);
+                console.log('HTTPS Server running on port', global.config.STATIC_WEBSERVER_LISTEN_PORT);
                 initSocketIo(httpsServer);
             });
 
-        }else{
+        } else {
             startStandardHttpServer();
         }
-    }catch(ex){
+    } catch (ex) {
         console.error("Fatal Error starting webserver on https, using http.");
         console.error(ex);
     }
-    
+
 }
 
-function startStandardHttpServer(){
+function startStandardHttpServer() {
     const http = require('http').Server(app);
-		
+
     http.listen(global.config.STATIC_WEBSERVER_LISTEN_PORT, () => {
-        console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT);
-        initSocketIo(http);	
+        console.log('\x1b[36m%s\x1b[0m', 'Running on http://localhost:' + global.config.STATIC_WEBSERVER_LISTEN_PORT);
+        initSocketIo(http);
     }).on('error', handleListenError);
 }
 
-function handleListenError(err){
-	console.log(err)//prevents the program keeps running when port is in use
-			if (err.code == "EADDRINUSE"){
-				const { exec } = require('child_process');
-				   exec('netstat -ano |findstr '+global.config.STATIC_WEBSERVER_LISTEN_PORT, (err, stdout, stderr) => {
-					  console.log("\nError starting webserver, please check if Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+" is in use or the server is already running... " ) 
-					  if (err) {
-						console.log("was not able to start netstat, please enter it manually")
-						process.exit();
-					  }
-						console.log(`stdout: ${stdout}`);
-						
-						console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port "+global.config.STATIC_WEBSERVER_LISTEN_PORT+ " and close the process")
-						process.exit();
-				   })
-		}
+function handleListenError(err) {
+    console.log(err)//prevents the program keeps running when port is in use
+    if (err.code == "EADDRINUSE") {
+        const { exec } = require('child_process');
+        exec('netstat -ano |findstr ' + global.config.STATIC_WEBSERVER_LISTEN_PORT, (err, stdout, stderr) => {
+            console.log("\nError starting webserver, please check if Port " + global.config.STATIC_WEBSERVER_LISTEN_PORT + " is in use or the server is already running... ")
+            if (err) {
+                console.log("was not able to start netstat, please enter it manually")
+                process.exit();
+            }
+            console.log(`stdout: ${stdout}`);
+
+            console.log("\n\n Please see above what processid (rightmost number) is LISTENING to Port " + global.config.STATIC_WEBSERVER_LISTEN_PORT + " and close the process")
+            process.exit();
+        })
+    }
 }
 
-function initSocketIo(created_httpserver){
-		
-	//init live connection to clients using socket.io
-	global.socketio = socket(created_httpserver,{
+function initSocketIo(created_httpserver) {
+
+    //init live connection to clients using socket.io
+    global.socketio = socket(created_httpserver, {
         serveClient: false,     // disables serving /socket.io/socket.io.js from socket.io require, we serve it in routes
         path: "/ws"             // sets the socket.io server path to /ws instead of default /socket.io (clients must specify same path)
     });
-	var wildcard = socketwildcard();
-	global.socketio.use(wildcard);
-	//register supported functions
-	global.socketio.on('connection', function(_socket){
-      global.logged_in_users_count = Math.round(global.socketio.engine.clientsCount/2);
-	  console.log('New socket io client connected, client: ' + _socket.id);
-	  global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
-	  console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
-	  
-	  //send back the socketio id to the client
-	  _socket.emit("socketid",_socket.id);
-	  
-	  //register to all events from client
-		_socket.on('*', function(data){
-			var cmd = data.data[0];
-			var obj = data.data[1];
-            if (cmd == "echo"){
-                _socket.emit("echo",_socket.id);
-            }
-			if (cmd == "player"){
-				let thisplayer = new Player();
-				//player has it's own socket io connection, should be ok to attach event only for this socket.
-				obj = JSON.parse(obj);
-				if (obj.file){//opens file
-					thisplayer.initiate(_socket,obj);
-				}
+    var wildcard = socketwildcard();
+    global.socketio.use(wildcard);
+    //register supported functions
+    global.socketio.on('connection', function (_socket) {
+        global.logged_in_users_count = Math.round(global.socketio.engine.clientsCount / 2);
+        console.log('New socket io client connected, client: ' + _socket.id);
+        global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
+        console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
 
-				return;
-			}
-			
-			if (cmd == "deletejob"){
-				//obj is job_id array
-                try{
+        //send back the socketio id to the client
+        _socket.emit("socketid", _socket.id);
+
+        //register to all events from client
+        _socket.on('*', function (data) {
+            var cmd = data.data[0];
+            var obj = data.data[1];
+            if (cmd == "echo") {
+                _socket.emit("echo", _socket.id);
+            }
+            if (cmd == "player") {
+                let thisplayer = new Player();
+                //player has it's own socket io connection, should be ok to attach event only for this socket.
+                obj = JSON.parse(obj);
+                if (obj.file) {//opens file
+                    thisplayer.initiate(_socket, obj);
+                }
+
+                return;
+            }
+
+            if (cmd == "deletejob") {
+                //obj is job_id array
+                try {
                     obj = JSON.parse(obj);
-				    database_controller.deleteRecords(obj);
-                }catch(ex){
-                    console.log("Error deleting jobs: ",ex);
+                    database_controller.deleteRecords(obj);
+                } catch (ex) {
+                    console.log("Error deleting jobs: ", ex);
                 }
                 return;
-			}
-		})
-		
-		//client disconnected
-	  _socket.on('disconnect', function(){
-        global.logged_in_users_count = Math.round(global.socketio.engine.clientsCount/2);
-		global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
-		console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
-		console.log('client disconnected');
-		
-	  });
-	});
+            }
+        })
 
-	
+        //client disconnected
+        _socket.on('disconnect', function () {
+            global.logged_in_users_count = Math.round(global.socketio.engine.clientsCount / 2);
+            global.socketio.emit("logged_in_users_count", global.socketio.engine.clientsCount);
+            console.log("Count of concurrent connections: " + global.socketio.engine.clientsCount);
+            console.log('client disconnected');
+
+        });
+    });
+
+
 }
