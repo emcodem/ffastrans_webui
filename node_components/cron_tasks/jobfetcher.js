@@ -41,31 +41,31 @@ module.exports = {
 		return response.data.tickets;
 	},
 
-	importLegacyDatabase: async function (old_path) {
-		var all_lines = await fsPromises.readFile(old_path, "utf8");
-		all_lines.forEach(line => {
-			var jobArray = [];
-			jobArray.push(JSON.parse(line));
-			var i = 0;
-			jobArray[i]["_id"] = jobArray[i]["job_id"] + "_main";
-			delete jobArray[i]["title"];
-			jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
-			delete jobArray[i].job_start;
-			jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
-			delete jobArray[i].job_end;
-			jobArray[i].outcome = jobArray[i]["result"];
-			delete jobArray[i].result;
-			delete jobArray[i].key;
+	// importLegacyDatabase: async function (old_path) {
+	// 	var all_lines = await fsPromises.readFile(old_path, "utf8");
+	// 	all_lines.forEach(line => {
+	// 		var jobArray = [];
+	// 		jobArray.push(JSON.parse(line));
+	// 		var i = 0;
+	// 		jobArray[i]["_id"] = jobArray[i]["job_id"] + "_main";
+	// 		delete jobArray[i]["title"];
+	// 		jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
+	// 		delete jobArray[i].job_start;
+	// 		jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
+	// 		delete jobArray[i].job_end;
+	// 		jobArray[i].outcome = jobArray[i]["result"];
+	// 		delete jobArray[i].result;
+	// 		delete jobArray[i].key;
 
 
-			//filter deleted jobs from new joblist
-			if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1) {
-				non_deleted_jobs.push(jobArray[i]);
-			} else {
-				return;
-			}
-		})
-	},
+	// 		//filter deleted jobs from new joblist
+	// 		if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1) {
+	// 			non_deleted_jobs.push(jobArray[i]);
+	// 		} else {
+	// 			return;
+	// 		}
+	// 	})
+	// },
 
 	fetchjobs: async function () {
 
@@ -214,7 +214,7 @@ async function parseRunningJobs(a_running) {
 
 	// /* end of alert email */
 
-	var jobArray = a_running;;
+	var jobArray = a_running;
 
 	var all_jobs = []
 	for (i = 0; i < jobArray.length; i++) {

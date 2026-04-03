@@ -9,85 +9,80 @@ const ffastrasActiveJobHelper = require("./common/ffastrans_active_jobs.js");
 module.exports = {
     post_jobs: post,
     get: get,
-    put:put
+    put: put
 };
 
-var jobs_cache = {is_refreshing:false,born:0,data:false}
+var jobs_cache = { is_refreshing: false, born: 0, data: false }
 function sleep(ms) {
     return new Promise((resolve) => {
-      setTimeout(resolve, ms);
+        setTimeout(resolve, ms);
     });
-}   
+}
 
 async function get(req, res) {
     const benchmarkId = `getJobs ${Math.random()}`;
     console.time(benchmarkId);
-    try{
-        
-        var start,end;
-        try{
-            start   = Number(req.query.start)
-            end     = Number(req.query.count)
-            if (Number.isNaN(start) || Number.isNaN(end)){
-                throw new Error("assume defaults")
-            }
-        }catch(ex){
-            start   = 0
-            end     = 100
+    try {
+
+        let start = Number(req.query.start);
+        let end = Number(req.query.count);
+
+        if (Number.isNaN(start) || Number.isNaN(end)) {
+            start = 0;
+            end = 100;
         }
 
-
         let variablesFilter = null
-        if (req.query.vars){
-            try{
+        if (req.query.vars) {
+            try {
                 variablesFilter = req.query.vars.split("|")
-            }catch(ex){
+            } catch (ex) {
                 console.error("Error parsing variables filter:", req.query.vars)
             }
         }
-            
+
         //if start and end was set, we cannot use cache mode
-        if (start != 0 || end != 100){
-            let a_jobs    = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid, variablesFilter);
-            let a_active  = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
-            let returnobj = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+        if (start != 0 || end != 100) {
+            let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, req.query.jobid, variablesFilter);
+            let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, req.query.jobid);
+            let returnobj = { discovery: req.headers.referer, history: a_jobs, active: a_active }
             res.json(returnobj)
             console.timeEnd(benchmarkId);
             return;
         }
         /* ensure we only read the jobs from filesystem once every x seconds */
-        while (jobs_cache.is_refreshing){
+        while (jobs_cache.is_refreshing) {
             await sleep(1);
         }
 
         const currentTime = new Date();
         let maxAge = new Date(currentTime.getTime() - 3 * 1000);
-        if (jobs_cache.born < maxAge || !jobs_cache.data){
+        if (jobs_cache.born < maxAge || !jobs_cache.data) {
             jobs_cache.is_refreshing = true;
-            try{
-                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end, req.query.jobid, variablesFilter);
-                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end, req.query.jobid);
-                jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
+            try {
+                let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, req.query.jobid, variablesFilter);
+                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, req.query.jobid);
+                jobs_cache.data = { discovery: req.headers.referer, history: a_jobs, active: a_active }
 
-            }catch(ex){
-                console.error("Error refreshing jobs:",ex)
-            }finally{
+            } catch (ex) {
+                console.error("Error refreshing jobs:", ex)
+            } finally {
                 jobs_cache.is_refreshing = false;
             }
         }
         res.json(jobs_cache.data)
         console.timeEnd(benchmarkId);
 
-    }catch(ex){
+    } catch (ex) {
         console.log("return error")
         console.log(ex)
 
         console.timeEnd(benchmarkId);
-        return res.status(500).json({message:ex,description: ""});
+        return res.status(500).json({ message: ex, description: "" });
     }
 }
 
-async function put(req, res){
+async function put(req, res) {
     //Pause, resume and abort sub jobs
     //{"action": "<state>","identifier": "","split_id": ""}
 
@@ -99,9 +94,9 @@ async function put(req, res){
     //     "host" : "hostname",
     //     "extra" : {"duration":"millis"}
     // }
-    var s_action       = req.body.action;
+    var s_action = req.body.action;
     var job_id = req.body.job_id ? req.body.job_id : req.query.jobid
-    var split_id       = req.body.split_id;
+    var split_id = req.body.split_id;
     var s_extra = req.body.value ? req.body.value : '';
     if (!req.body.user) {
         req.body.user = common.getUserName()
@@ -111,26 +106,26 @@ async function put(req, res){
     }
     //var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
     var splitpart = split_id ? "~" + split_id : "";
-    
-    try{
-        if (s_action == 'pause'){
+
+    try {
+        if (s_action == 'pause') {
             await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart), req.body.user + '@' + req.body.system);
             s_extra = Number(s_extra);
-            if(s_extra){
+            if (s_extra) {
                 //auto resume
                 console.log("Pause Job with enabled auto resume in " + s_extra + " Millis")
-                setTimeout(async function(){
+                setTimeout(async function () {
                     fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart));
                 })
             }
         }
-        else if (s_action == 'abort'){
+        else if (s_action == 'abort') {
             let done = false;
             if (typeof s_extra === 'string') {
-                if (s_extra.match(/mons/)){
+                if (s_extra.match(/mons/)) {
                     //abort incoming by move from mons/i one level up
                     const destinationPath = path.join(path.dirname(s_extra), '..', path.basename(s_extra));
-                    await fsPromises.rename(s_extra,destinationPath);
+                    await fsPromises.rename(s_extra, destinationPath);
                     done = true;
                 }
             }
@@ -139,22 +134,22 @@ async function put(req, res){
                 await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".abort~" + job_id + splitpart), s_extra.toString() + ':' + req.body.user + '@' + req.body.system);
 
         }
-        else if (s_action == 'resume'){
+        else if (s_action == 'resume') {
             await fsPromises.unlink(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".pause~" + job_id + splitpart))
         }
-        else if (s_action == 'priority'){
+        else if (s_action == 'priority') {
             s_extra = Number(s_extra);
             await fsPromises.writeFile(path.join(global.api_config["s_SYS_CACHE_DIR"], "status", ".priority~" + job_id + splitpart), s_extra.toString());
         }
-        else{
-            throw new Error("Action not supported: ["+s_action + "]")
+        else {
+            throw new Error("Action not supported: [" + s_action + "]")
         }
-        res.json({success:true});
+        res.json({ success: true });
         res.end();
         return;
-    }catch(ex){
-        console.error("PUT Job error:",ex);
-		return res.status(500).json({message:ex.toString()});
+    } catch (ex) {
+        console.error("PUT Job error:", ex);
+        return res.status(500).json({ message: ex.toString() });
     }
 }
 
@@ -186,27 +181,27 @@ async function post(req, res) {
     /* writes a new jobticket to disk for ffastrans to process 
        Accepts a single job object or an array of job objects */
     var example_body = {
-        "wf_id":"<workflow id>",
-        "inputfile":"<full path to file>",
-        "start_proc":"<processor node id>",
+        "wf_id": "<workflow id>",
+        "inputfile": "<full path to file>",
+        "start_proc": "<processor node id>",
         "priority": 2,//optional, default is workflow prio
         "variables": [
-           {
-              "name":"<s_string>",
-              "data":"<string>"
-           },
-           {
-              "name":"<i_string>",
-              "data":"<integer>"
-           },
-           {
-              "name":"<f_string>",
-              "data":"<number>"
-           }
+            {
+                "name": "<s_string>",
+                "data": "<string>"
+            },
+            {
+                "name": "<i_string>",
+                "data": "<integer>"
+            },
+            {
+                "name": "<f_string>",
+                "data": "<number>"
+            }
         ]
-     }
+    }
 
-	try {
+    try {
         // Handle array of jobs or single job
         var jobs = Array.isArray(req.body) ? req.body : [req.body];
         var results = [];
@@ -233,8 +228,8 @@ async function post(req, res) {
             res.json(results);
         }
         res.end();
-	} catch(err) {
-		console.error("POST Job Error",err);
-		return res.status(500).json({message:err.toString(),description: err});
-	}
+    } catch (err) {
+        console.error("POST Job Error", err);
+        return res.status(500).json({ message: err.toString(), description: err });
+    }
 }
