@@ -16,9 +16,8 @@ var alert_sent = false;
 var error_count_running = 0;
 var m_jobStates = ["Error", "Success", "Cancelled", "Unknown"];
 var history_error_count = 0;
-process.env.UV_THREADPOOL_SIZE = 128;
-
 var executioncount = 0;
+var deep_scan_next_run = true; // True by default for the first run!
 var count_running = false;
 // blocked((time, stack) => {
 // console.log(`Blocked for ${time}ms, operation started here:`, stack)
@@ -41,33 +40,8 @@ module.exports = {
 		return response.data.tickets;
 	},
 
-	// importLegacyDatabase: async function (old_path) {
-	// 	var all_lines = await fsPromises.readFile(old_path, "utf8");
-	// 	all_lines.forEach(line => {
-	// 		var jobArray = [];
-	// 		jobArray.push(JSON.parse(line));
-	// 		var i = 0;
-	// 		jobArray[i]["_id"] = jobArray[i]["job_id"] + "_main";
-	// 		delete jobArray[i]["title"];
-	// 		jobArray[i].job_start = getDateStr(jobArray[i]["start_time"]);
-	// 		delete jobArray[i].job_start;
-	// 		jobArray[i].job_end = getDateStr(jobArray[i]["end_time"]);
-	// 		delete jobArray[i].job_end;
-	// 		jobArray[i].outcome = jobArray[i]["result"];
-	// 		delete jobArray[i].result;
-	// 		delete jobArray[i].key;
-
-
-	// 		//filter deleted jobs from new joblist
-	// 		if (deleted_ids.indexOf(jobArray[i]["job_id"]) == -1) {
-	// 			non_deleted_jobs.push(jobArray[i]);
-	// 		} else {
-	// 			return;
-	// 		}
-	// 	})
-	// },
-
 	fetchjobs: async function () {
+		executioncount++;
 
 		if (!Number.isInteger(parseInt(global.config.STATIC_API_TIMEOUT))) {
 			var txt = 'ERROR contact admin. Server setting STATIC_API_TIMEOUT is not a number: [' + global.config.STATIC_API_TIMEOUT + ']';
@@ -135,33 +109,76 @@ async function getJobs() {
 
 	let hostnames = global.config.STATIC_API_HOSTS.split(",");
 	for (let h of hostnames) {
-		let url = `/jobs/?start=0&count=100`;
-		if (varsToFetch.size > 0) {
-			url += `&vars=${Array.from(varsToFetch).join('|')}`;
-		}
-		HISTORY_URLS.push([helpers.build_new_api_url(url, h, global.config["STATIC_API_NEW_PORT"])]);
-	}
-
-	for (let _currentUrl of HISTORY_URLS) {
-		console.time("Jobfetcher duration for: " + _currentUrl);
+		console.time("Jobfetcher duration for: " + h);
 		try {
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
-			let response = await axios.get(_currentUrl, { timeout: global.config.STATIC_API_TIMEOUT });
-			response = response.data;
-			all_history_jobs.push(...response.history);
-			all_running_jobs.push(...response.active);
+
+			// 1. Fetch ALL active jobs fully populated, but NO history jobs (using status=active)
+			let varsQuery = varsToFetch.size > 0 ? `&vars=${Array.from(varsToFetch).join('|')}` : "";
+			let activeUrl = helpers.build_new_api_url(`/jobs/?status=active` + varsQuery, h, global.config["STATIC_API_NEW_PORT"]);
+			let responseActive = await axios.get(activeUrl, { timeout: global.config.STATIC_API_TIMEOUT });
+			all_running_jobs.push(...responseActive.data.active);
+
+			// 2. Fetch history job IDs ONLY (fast disk I/O skip using status=history)
+			let jobCount = deep_scan_next_run ? 100000 : 1000;
+			deep_scan_next_run = false; // Reset eagerly
+
+			let historyIdsUrl = helpers.build_new_api_url(`/jobs/?start=0&count=${jobCount}&status=history&return_id_only=true`, h, global.config["STATIC_API_NEW_PORT"]);
+			let responseHistoryIds = await axios.get(historyIdsUrl, { timeout: global.config.STATIC_API_TIMEOUT });
+			let fetched_history_ids = responseHistoryIds.data.history.map(j => j.job_id);
+
+			// 3. Find which job IDs are entirely missing from our local MongoDB tracking
+			let existing_docs = await global.db.jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
+			let existing_ids = new Set(existing_docs.map(x => x.job_id));
+			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id));
+
+			if (missing_ids.length > 0 && missing_ids.length === fetched_history_ids.length) {
+				// We missed everything! There is a huge backlog further down.
+				console.log(`Detected that all ${missing_ids.length} fetched jobs were unknown. Triggering deep scan for next run.`);
+				deep_scan_next_run = true;
+			}
+
+			if (missing_ids.length > 200) {
+				try {
+					global.socketio.emit("error", `Background process: ${existing_ids.size} jobs already imported. Fetching ${missing_ids.length} missing jobs from backlog...`);
+				} catch (e) { }
+			}
+
+			// 4. Fetch the full, unparsed details carefully for the ones we don't know yet
+			// We process them in chunks of 50 concurrently to breeze through them without locking up node
+			for (let i = 0; i < missing_ids.length; i += 50) {
+
+				// Send periodic progress updates for massive backlogs every 200 items
+				if (missing_ids.length > 200 && i > 0 && i % 200 === 0) {
+					try {
+						global.socketio.emit("error", `Background process: Fetched ${i} out of ${missing_ids.length} missing jobs... (${existing_ids.size} already in database)`);
+					} catch (e) { }
+				}
+
+				let chunk = missing_ids.slice(i, i + 50);
+				let promises = chunk.map(missing_id => {
+					let missingUrl = helpers.build_new_api_url(`/jobs/?jobid=${missing_id}` + varsQuery, h, global.config["STATIC_API_NEW_PORT"]);
+					return axios.get(missingUrl, { timeout: global.config.STATIC_API_TIMEOUT }).catch(e => null);
+				});
+				let results = await Promise.all(promises);
+				for (let missingResp of results) {
+					if (missingResp && missingResp.data && missingResp.data.history) {
+						all_history_jobs.push(...missingResp.data.history);
+					}
+				}
+			}
 
 		} catch (ex) {
 			if (ex.message) {
-				console.error("loadHistoryJobs", _currentUrl, ex.message);
+				console.error("loadHistoryJobs", h, ex.message);
 			} else if (ex.errors) {
-				console.error("loadHistoryJobs", _currentUrl, ex.errors);
+				console.error("loadHistoryJobs", h, ex.errors);
 			} else {
-				console.error("loadHistoryJobs", _currentUrl, ex);
+				console.error("loadHistoryJobs", h, ex);
 			}
 			failed_count++;
 		} finally {
-			console.timeEnd("Jobfetcher duration for: " + _currentUrl);
+			console.timeEnd("Jobfetcher duration for: " + h);
 		}
 	}
 
@@ -305,12 +322,11 @@ async function parseHistoryJobs(all_jobs) {
 	}
 	try {
 
-		var jobArray = all_jobs;
-		if (global.lasthistory == JSON.stringify(jobArray)) {
-			//console.log("History Jobs did not change since last fetch...")			
+		if (all_jobs.length === 0) {
 			return;
 		}
-		global.lasthistory = JSON.stringify(jobArray);
+
+		var jobArray = all_jobs;
 
 		//filter deleted, todo: is it really good/needed to filter deleted here or is a filter in gethistoryjobsajax_treegrid.js enough?
 		var job_id_array = jobArray.map(job => job.job_id)
@@ -346,6 +362,15 @@ async function parseHistoryJobs(all_jobs) {
 
 		}
 		jobArray = non_deleted_jobs;//go on only with non deleted jobs
+
+		// Append to global.lasthistory up to 500 elements for other components (like getjobstate) to quickly peek recent history jobs
+		let old_history = [];
+		try {
+			if (global.lasthistory) old_history = JSON.parse(global.lasthistory);
+		} catch (e) { }
+		let combined_history = [...jobArray, ...old_history];
+		if (combined_history.length > 500) combined_history = combined_history.slice(0, 500);
+		global.lasthistory = JSON.stringify(combined_history);
 
 		//get last 10k jobids from DB - child jobs need to finish within that period to be grouped correctly;-)
 		var lastTenThousand = await global.db.jobs.find({}, { sort: { job_start: -1 }, projection: { job_start: 1, job_id: 1, "children._id": 1 } }).limit(10000);

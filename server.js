@@ -1,3 +1,7 @@
+// Increases the libuv thread pool default from 4 to 128 threads.
+// Must absolutely be set BEFORE any 'require' imports trigger underlying async C++ initializations.
+process.env.UV_THREADPOOL_SIZE = 128;
+
 const express = require('express');
 
 

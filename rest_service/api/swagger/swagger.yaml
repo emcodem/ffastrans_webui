@@ -529,6 +529,12 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: status
+          in: query
+          description: Filter jobs by status. Can be 'active', 'history', or 'all' to get both.
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Success

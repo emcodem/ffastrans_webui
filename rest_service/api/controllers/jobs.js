@@ -42,11 +42,15 @@ async function get(req, res) {
         }
 
         let return_id_only = req.query.return_id_only ? true : false;
+        let statusFilter = req.query.status;
 
-        //if start and end was set, we cannot use cache mode
-        if (start != 0 || end != 100 || return_id_only) {
-            let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, req.query.jobid, variablesFilter, return_id_only);
-            let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, req.query.jobid, return_id_only);
+        //if start and end was set or params bypass cache, we cannot use cache mode
+        if (start != 0 || end != 100 || return_id_only || statusFilter) {
+            let a_jobs = (!statusFilter || statusFilter === 'history' || statusFilter === 'all')
+                ? await ffastrasHistoryHelper.getHistoryJobs(start, end, req.query.jobid, variablesFilter, return_id_only) : [];
+            let a_active = (!statusFilter || statusFilter === 'active' || statusFilter === 'all')
+                ? await ffastrasActiveJobHelper.getActiveJobs(start, end, req.query.jobid, return_id_only) : [];
+                
             let returnobj = { discovery: req.headers.referer, history: a_jobs, active: a_active }
             res.json(returnobj)
             console.timeEnd(benchmarkId);
