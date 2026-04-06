@@ -6,6 +6,8 @@ const moment = require('moment');
 const path = require("path");
 var smptMail = require("../common/send_smpt_email");
 var helpers = require("../common/helpers")
+var logfactory = require("../../shared_modules/logger.js");
+var backlog_logger = logfactory.getLogger("backlog_import");
 // const blocked = require("blocked-at") //use this cool module to find out if your code is blocking anywhere
 
 //NOTE the rest of the code uses global.lasthistory and global.lastactive to access the joblists.
@@ -199,11 +201,11 @@ async function getJobs() {
  */
 async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 	if (backlog_import_running) {
-		console.log(`Backlog import already running, skipping ${missing_ids.length} jobs for now`);
+		backlog_logger.info(`Backlog import already running, skipping ${missing_ids.length} jobs for now`);
 		return;
 	}
 	backlog_import_running = true;
-	console.log(`Starting background backlog import of ${missing_ids.length} jobs...`);
+	backlog_logger.info(`Starting background backlog import of ${missing_ids.length} jobs from host ${host}...`);
 	try {
 		global.socketio.emit("error", `Background process: ${existingCount} jobs already imported. Fetching ${missing_ids.length} missing jobs from backlog...`);
 	} catch (e) { }
@@ -211,10 +213,12 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 	try {
 		let backlog_history_jobs = [];
 		let batchSize = missing_ids.length > 10000 ? 500 : 300;
+		backlog_logger.info(`Using batch size ${batchSize} for ${missing_ids.length} missing jobs`);
 
 		for (let i = 0; i < missing_ids.length; i += batchSize) {
 
 			if (i > 0 && i % 1000 === 0) {
+				backlog_logger.info(`Fetched ${i} of ${missing_ids.length} missing jobs... (${existingCount} already in database)`);
 				try {
 					global.socketio.emit("error", `Background import: Fetched ${i} of ${missing_ids.length} missing jobs...`);
 				} catch (e) { }
@@ -228,12 +232,12 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 					backlog_history_jobs.push(...batchResponse.data.history);
 				}
 			} catch (e) {
-				console.error(`Error fetching backlog batch of ${batch.length} jobs:`, e.message);
+				backlog_logger.error(`Error fetching backlog batch of ${batch.length} jobs: ${e.message}`);
 			}
 
 			// Parse incrementally every 2000 jobs to free memory and show progress sooner
 			if (backlog_history_jobs.length >= 2000) {
-				console.log(`Background import: parsing intermediate batch of ${backlog_history_jobs.length} jobs...`);
+				backlog_logger.info(`Parsing intermediate batch of ${backlog_history_jobs.length} jobs...`);
 				await parseHistoryJobs(backlog_history_jobs);
 				backlog_history_jobs = []; // Free memory
 			}
@@ -241,16 +245,18 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 
 		// Parse any remaining jobs
 		if (backlog_history_jobs.length > 0) {
+			backlog_logger.info(`Parsing final batch of ${backlog_history_jobs.length} jobs...`);
 			await parseHistoryJobs(backlog_history_jobs);
 		}
 
 		try {
 			global.socketio.emit("error", `Background import: Completed importing ${missing_ids.length} jobs.`);
 		} catch (e) { }
-		console.log(`Background backlog import finished: ${missing_ids.length} jobs processed.`);
+		backlog_logger.info(`Background backlog import finished: ${missing_ids.length} jobs processed.`);
 
 	} catch (ex) {
-		console.error("Background backlog import error:", ex.message || ex);
+		backlog_logger.error(`Background backlog import error: ${ex.message || ex}`);
+		if (ex.stack) backlog_logger.error(ex.stack);
 	} finally {
 		backlog_import_running = false;
 	}
