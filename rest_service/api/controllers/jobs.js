@@ -8,6 +8,7 @@ const ffastrasActiveJobHelper = require("./common/ffastrans_active_jobs.js");
 
 module.exports = {
     post_jobs: post,
+    job_info_post: postJobInfo,
     get: get,
     put: put
 };
@@ -43,13 +44,21 @@ async function get(req, res) {
 
         let return_id_only = req.query.return_id_only ? true : false;
         let statusFilter = req.query.status;
+        
+        // Support both single jobid and multiple jobids (comma-separated)
+        let jobids = [];
+        if (req.query.jobids) {
+            jobids = req.query.jobids.split(',').map(id => id.trim());
+        } else if (req.query.jobid) {
+            jobids = [req.query.jobid];
+        }
 
         //if start and end was set or params bypass cache, we cannot use cache mode
-        if (start != 0 || end != 100 || return_id_only || statusFilter) {
+        if (start != 0 || end != 100 || return_id_only || statusFilter || jobids.length > 0) {
             let a_jobs = (!statusFilter || statusFilter === 'history' || statusFilter === 'all')
-                ? await ffastrasHistoryHelper.getHistoryJobs(start, end, req.query.jobid, variablesFilter, return_id_only) : [];
+                ? await ffastrasHistoryHelper.getHistoryJobs(start, end, jobids, variablesFilter, return_id_only) : [];
             let a_active = (!statusFilter || statusFilter === 'active' || statusFilter === 'all')
-                ? await ffastrasActiveJobHelper.getActiveJobs(start, end, req.query.jobid, return_id_only) : [];
+                ? await ffastrasActiveJobHelper.getActiveJobs(start, end, jobids, return_id_only) : [];
                 
             let returnobj = { discovery: req.headers.referer, history: a_jobs, active: a_active }
             res.json(returnobj)
@@ -66,8 +75,8 @@ async function get(req, res) {
         if (jobs_cache.born < maxAge || !jobs_cache.data) {
             jobs_cache.is_refreshing = true;
             try {
-                let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, req.query.jobid, variablesFilter);
-                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, req.query.jobid);
+                let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, [], variablesFilter);
+                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, []);
                 jobs_cache.data = { discovery: req.headers.referer, history: a_jobs, active: a_active }
 
             } catch (ex) {
@@ -101,7 +110,7 @@ async function put(req, res) {
     //     "extra" : {"duration":"millis"}
     // }
     var s_action = req.body.action;
-    var job_id = req.body.job_id ? req.body.job_id : req.query.jobid
+    var job_id = req.body.job_id ? req.body.job_id : (req.query.jobid || req.query.jobids?.split(',')[0])
     var split_id = req.body.split_id;
     var s_extra = req.body.value ? req.body.value : '';
     if (!req.body.user) {
@@ -184,30 +193,12 @@ async function createSingleJob(jobData) {
 }
 
 async function post(req, res) {
-    /* writes a new jobticket to disk for ffastrans to process 
-       Accepts a single job object or an array of job objects */
-    var example_body = {
-        "wf_id": "<workflow id>",
-        "inputfile": "<full path to file>",
-        "start_proc": "<processor node id>",
-        "priority": 2,//optional, default is workflow prio
-        "variables": [
-            {
-                "name": "<s_string>",
-                "data": "<string>"
-            },
-            {
-                "name": "<i_string>",
-                "data": "<integer>"
-            },
-            {
-                "name": "<f_string>",
-                "data": "<number>"
-            }
-        ]
-    }
-
+    const benchmarkId = `postJobs ${Math.random()}`;
+    console.time(benchmarkId);
     try {
+        /* writes a new jobticket to disk for ffastrans to process 
+           Accepts a single job object or an array of job objects */
+        
         // Handle array of jobs or single job
         var jobs = Array.isArray(req.body) ? req.body : [req.body];
         var results = [];
@@ -234,8 +225,40 @@ async function post(req, res) {
             res.json(results);
         }
         res.end();
+        console.timeEnd(benchmarkId);
     } catch (err) {
         console.error("POST Job Error", err);
+        console.timeEnd(benchmarkId);
+        return res.status(500).json({ message: err.toString(), description: err });
+    }
+}
+
+async function postJobInfo(req, res) {
+    const benchmarkId = `postJobInfo ${Math.random()}`;
+    console.time(benchmarkId);
+    try {
+        // Batch fetch request: fetch multiple job details efficiently
+        // Body should contain: { jobids: [...], status: 'active|history|all', vars: [...] }
+        if (!req.body.jobids || !Array.isArray(req.body.jobids)) {
+            console.timeEnd(benchmarkId);
+            return res.status(400).json({ message: "Missing or invalid jobids array in request body" });
+        }
+        
+        let jobids = req.body.jobids;
+        let variablesFilter = req.body.vars ? (Array.isArray(req.body.vars) ? req.body.vars : req.body.vars.split("|")) : null;
+        let statusFilter = req.body.status || null;
+        
+        let a_jobs = (!statusFilter || statusFilter === 'history' || statusFilter === 'all')
+            ? await ffastrasHistoryHelper.getHistoryJobs(0, jobids.length, jobids, variablesFilter, false) : [];
+        let a_active = (!statusFilter || statusFilter === 'active' || statusFilter === 'all')
+            ? await ffastrasActiveJobHelper.getActiveJobs(0, jobids.length, jobids, false) : [];
+        
+        let returnobj = { history: a_jobs, active: a_active };
+        res.json(returnobj);
+        console.timeEnd(benchmarkId);
+    } catch (err) {
+        console.error("POST Job Info Error", err);
+        console.timeEnd(benchmarkId);
         return res.status(500).json({ message: err.toString(), description: err });
     }
 }

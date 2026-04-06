@@ -246,6 +246,7 @@ async function start_server( _listenport,globalconf){
       jobs_post :         require( "./api/controllers/jobs.js").post_jobs,
       jobs_put :          require( "./api/controllers/jobs.js").put,
       jobs_get:           require( "./api/controllers/jobs.js").get,
+      job_info_post:      require( "./api/controllers/jobs.js").job_info_post,
       jobvars:            require( "./api/controllers/jobvars.js").get,
       jobs_v2:            require( "./api/controllers/jobs.js").get,
       presets:            require( "./api/controllers/presets.js").get,

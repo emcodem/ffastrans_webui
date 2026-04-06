@@ -523,6 +523,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: jobids
+          in: query
+          description: Comma-separated list of Job IDs for batch fetching. Allows retrieving multiple jobs in a single request for improved performance. Example - jobids=id1,id2,id3
+          required: false
+          schema:
+            type: string
         - name: return_id_only
           in: query
           description: If set, saves disk I/O by only returning job identifiers parsed from filenames.
@@ -540,6 +546,53 @@ paths:
           description: Success
         default:
           description: Error 
+  /job_info:
+    x-swagger-router-controller: jobs
+    post:
+      description: "Fetch details for multiple jobs efficiently in a single request. Optimized for batch retrieval with many job IDs without URL length limitations."
+      operationId: job_info_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jobids
+              properties:
+                jobids:
+                  type: array
+                  items:
+                    type: string
+                  description: "Array of job IDs to fetch (required)"
+                status:
+                  type: string
+                  enum: ["active", "history", "all"]
+                  description: "Filter by job status. Defaults to 'all' if not specified"
+                vars:
+                  type: array
+                  items:
+                    type: string
+                  description: "Array of variable names to include in response (e.g., 's_is_main_branch')"
+              example: {"jobids":["job-id-1","job-id-2","job-id-3"],"status":"all","vars":["s_is_main_branch"]}
+      responses:
+        "200":
+          description: Success. Returns object with 'history' and 'active' arrays containing job details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    description: "Array of finished/history jobs matching the request"
+                  active:
+                    type: array
+                    description: "Array of currently active/running jobs matching the request"
+        "400":
+          description: Bad request - missing or invalid jobids
+        default:
+          description: Error
   /api/json/v2/jobs:
     x-swagger-router-controller: jobs_v2
     get:

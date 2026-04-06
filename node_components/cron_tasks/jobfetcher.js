@@ -19,6 +19,9 @@ var history_error_count = 0;
 var executioncount = 0;
 var deep_scan_next_run = true; // True by default for the first run!
 var count_running = false;
+var backlog_detection_run = false; // Prevent repeated deep scans on same backlog
+var last_backlog_size = 0; // Track last detected backlog
+var backlog_import_running = false; // Prevent concurrent backlog imports
 // blocked((time, stack) => {
 // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
@@ -87,12 +90,10 @@ async function getQueuedJobs() {
 
 async function getJobs() {
 
-	//gets history and active jobs. Todo: add queued jobs to jobs api so we have only a single call here?
-	let HISTORY_URLS = [];
+	//gets history and active jobs, decoupled into parallel fetches
 	let all_history_jobs = [];
 	let all_running_jobs = [];
 	let failed_count = 0;
-
 
 	let varcols = global.config.job_viewer?.variable_columns || [];
 	let varsToFetch = new Set();
@@ -112,60 +113,55 @@ async function getJobs() {
 		console.time("Jobfetcher duration for: " + h);
 		try {
 			axios.defaults.timeout = global.config.STATIC_API_TIMEOUT;
-
-			// 1. Fetch ALL active jobs fully populated, but NO history jobs (using status=active)
 			let varsQuery = varsToFetch.size > 0 ? `&vars=${Array.from(varsToFetch).join('|')}` : "";
-			let activeUrl = helpers.build_new_api_url(`/jobs/?status=active` + varsQuery, h, global.config["STATIC_API_NEW_PORT"]);
-			let responseActive = await axios.get(activeUrl, { timeout: global.config.STATIC_API_TIMEOUT });
-			all_running_jobs.push(...responseActive.data.active);
 
-			// 2. Fetch history job IDs ONLY (fast disk I/O skip using status=history)
-			let jobCount = deep_scan_next_run ? 100000 : 1000;
+			// --- PARALLEL FETCH: active jobs + history IDs at the same time ---
+			let jobCount = deep_scan_next_run ? 100000 : 10000;
 			deep_scan_next_run = false; // Reset eagerly
+			backlog_detection_run = false;
 
+			let activeUrl = helpers.build_new_api_url(`/jobs/?status=active` + varsQuery, h, global.config["STATIC_API_NEW_PORT"]);
 			let historyIdsUrl = helpers.build_new_api_url(`/jobs/?start=0&count=${jobCount}&status=history&return_id_only=true`, h, global.config["STATIC_API_NEW_PORT"]);
-			let responseHistoryIds = await axios.get(historyIdsUrl, { timeout: global.config.STATIC_API_TIMEOUT });
+
+			let [responseActive, responseHistoryIds] = await Promise.all([
+				axios.get(activeUrl, { timeout: global.config.STATIC_API_TIMEOUT }),
+				axios.get(historyIdsUrl, { timeout: global.config.STATIC_API_TIMEOUT })
+			]);
+
+			all_running_jobs.push(...responseActive.data.active);
 			let fetched_history_ids = responseHistoryIds.data.history.map(j => j.job_id);
 
-			// 3. Find which job IDs are entirely missing from our local MongoDB tracking
+			// --- DIFF: find which job IDs are missing from MongoDB ---
 			let existing_docs = await global.db.jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
 			let existing_ids = new Set(existing_docs.map(x => x.job_id));
 			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id));
 
-			if (missing_ids.length > 0 && missing_ids.length === fetched_history_ids.length) {
-				// We missed everything! There is a huge backlog further down.
-				console.log(`Detected that all ${missing_ids.length} fetched jobs were unknown. Triggering deep scan for next run.`);
-				deep_scan_next_run = true;
+			if (missing_ids.length > 0 && missing_ids.length === fetched_history_ids.length && !backlog_detection_run) {
+				if (missing_ids.length > 500) {
+					console.log(`Detected that all ${missing_ids.length} fetched jobs were unknown. Triggering deep scan for next run.`);
+					deep_scan_next_run = true;
+					backlog_detection_run = true;
+					last_backlog_size = missing_ids.length;
+				}
 			}
 
-			if (missing_ids.length > 200) {
+			// --- DECOUPLED BACKLOG IMPORT ---
+			// For small numbers of missing jobs (normal operation), fetch inline so they show up immediately
+			// For large backlogs, kick off a background import that doesn't block active job updates
+			if (missing_ids.length > 0 && missing_ids.length <= 300) {
+				// Small batch: fetch inline, fast enough not to block
+				let jobInfoUrl = helpers.build_new_api_url(`/job_info`, h, global.config["STATIC_API_NEW_PORT"]);
 				try {
-					global.socketio.emit("error", `Background process: ${existing_ids.size} jobs already imported. Fetching ${missing_ids.length} missing jobs from backlog...`);
-				} catch (e) { }
-			}
-
-			// 4. Fetch the full, unparsed details carefully for the ones we don't know yet
-			// We process them in chunks of 50 concurrently to breeze through them without locking up node
-			for (let i = 0; i < missing_ids.length; i += 50) {
-
-				// Send periodic progress updates for massive backlogs every 200 items
-				if (missing_ids.length > 200 && i > 0 && i % 200 === 0) {
-					try {
-						global.socketio.emit("error", `Background process: Fetched ${i} out of ${missing_ids.length} missing jobs... (${existing_ids.size} already in database)`);
-					} catch (e) { }
-				}
-
-				let chunk = missing_ids.slice(i, i + 50);
-				let promises = chunk.map(missing_id => {
-					let missingUrl = helpers.build_new_api_url(`/jobs/?jobid=${missing_id}` + varsQuery, h, global.config["STATIC_API_NEW_PORT"]);
-					return axios.get(missingUrl, { timeout: global.config.STATIC_API_TIMEOUT }).catch(e => null);
-				});
-				let results = await Promise.all(promises);
-				for (let missingResp of results) {
-					if (missingResp && missingResp.data && missingResp.data.history) {
-						all_history_jobs.push(...missingResp.data.history);
+					let batchResponse = await axios.post(jobInfoUrl, { jobids: missing_ids, vars: Array.from(varsToFetch) }, { timeout: global.config.STATIC_API_TIMEOUT });
+					if (batchResponse && batchResponse.data && batchResponse.data.history) {
+						all_history_jobs.push(...batchResponse.data.history);
 					}
+				} catch (e) {
+					console.error(`Error fetching batch of ${missing_ids.length} jobs:`, e.message);
 				}
+			} else if (missing_ids.length > 300) {
+				// Large backlog: import in background so active jobs keep updating
+				importBacklogJobs(missing_ids, Array.from(varsToFetch), h, existing_ids.size);
 			}
 
 		} catch (ex) {
@@ -182,14 +178,82 @@ async function getJobs() {
 		}
 	}
 
-	if (failed_count >= HISTORY_URLS.length) {
+	if (failed_count >= hostnames.length) {
 		history_error_count++;
 		if (history_error_count % 10 == 0)
 			global.socketio.emit("error", 'Error retrieving finished jobs, webserver lost connection to ffastrans server. Is FFAStrans API online? ');
 		history_error_count = 0;
 	}
-	await parseHistoryJobs(all_history_jobs);
-	await parseRunningJobs(all_running_jobs);
+
+	// Run parse steps in parallel - they are independent of each other
+	await Promise.all([
+		parseHistoryJobs(all_history_jobs),
+		parseRunningJobs(all_running_jobs)
+	]);
+}
+
+/**
+ * Background backlog import - runs independently from the main fetch cycle.
+ * Fetches and parses large numbers of missing history jobs without blocking 
+ * active job updates. Only one backlog import runs at a time.
+ */
+async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
+	if (backlog_import_running) {
+		console.log(`Backlog import already running, skipping ${missing_ids.length} jobs for now`);
+		return;
+	}
+	backlog_import_running = true;
+	console.log(`Starting background backlog import of ${missing_ids.length} jobs...`);
+	try {
+		global.socketio.emit("error", `Background process: ${existingCount} jobs already imported. Fetching ${missing_ids.length} missing jobs from backlog...`);
+	} catch (e) { }
+
+	try {
+		let backlog_history_jobs = [];
+		let batchSize = missing_ids.length > 10000 ? 500 : 300;
+
+		for (let i = 0; i < missing_ids.length; i += batchSize) {
+
+			if (i > 0 && i % 1000 === 0) {
+				try {
+					global.socketio.emit("error", `Background import: Fetched ${i} of ${missing_ids.length} missing jobs...`);
+				} catch (e) { }
+			}
+
+			let batch = missing_ids.slice(i, i + batchSize);
+			let jobInfoUrl = helpers.build_new_api_url(`/job_info`, host, global.config["STATIC_API_NEW_PORT"]);
+			try {
+				let batchResponse = await axios.post(jobInfoUrl, { jobids: batch, vars: varsArray }, { timeout: global.config.STATIC_API_TIMEOUT });
+				if (batchResponse && batchResponse.data && batchResponse.data.history) {
+					backlog_history_jobs.push(...batchResponse.data.history);
+				}
+			} catch (e) {
+				console.error(`Error fetching backlog batch of ${batch.length} jobs:`, e.message);
+			}
+
+			// Parse incrementally every 2000 jobs to free memory and show progress sooner
+			if (backlog_history_jobs.length >= 2000) {
+				console.log(`Background import: parsing intermediate batch of ${backlog_history_jobs.length} jobs...`);
+				await parseHistoryJobs(backlog_history_jobs);
+				backlog_history_jobs = []; // Free memory
+			}
+		}
+
+		// Parse any remaining jobs
+		if (backlog_history_jobs.length > 0) {
+			await parseHistoryJobs(backlog_history_jobs);
+		}
+
+		try {
+			global.socketio.emit("error", `Background import: Completed importing ${missing_ids.length} jobs.`);
+		} catch (e) { }
+		console.log(`Background backlog import finished: ${missing_ids.length} jobs processed.`);
+
+	} catch (ex) {
+		console.error("Background backlog import error:", ex.message || ex);
+	} finally {
+		backlog_import_running = false;
+	}
 }
 
 

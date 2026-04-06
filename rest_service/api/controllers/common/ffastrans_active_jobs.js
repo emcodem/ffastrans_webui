@@ -6,7 +6,7 @@ module.exports = {
     getActiveJobs: getActiveJobs
 };
 
-async function getActiveJobs(start=0,end=1000, jobid = '*', return_id_only = false){
+async function getActiveJobs(start=0,end=1000, jobids = [], return_id_only = false){
     /* scan db/monitor folder for .json files */
     let returnArray = [];
     let jobDir      = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
@@ -18,7 +18,9 @@ async function getActiveJobs(start=0,end=1000, jobid = '*', return_id_only = fal
         listDir = jobDir
     }
 
-    const allFiles = await helpers._fileList(listDir, jobid + '*.json', 0, 0, 'files');
+    // Support multiple jobids or default wildcard
+    let jobPattern = Array.isArray(jobids) && jobids.length > 0 ? jobids[0] : '*';
+    const allFiles = await helpers._fileList(listDir, jobPattern + '*.json', 0, 0, 'files');
     for (let file of allFiles){
         let fullPath = path.join(jobDir, file);
       

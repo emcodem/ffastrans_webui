@@ -11,29 +11,32 @@ let fileContentDatabase = {};
 let jobCache = {};//{job_id:[task,task]},job_id:...}
 let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
 
-async function getHistoryJobs(start, end, jobid = '', variablesFilter = null, return_id_only = false) {
+async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, return_id_only = false) {
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
     let taskArray = [];
     const cacheKeys = Object.keys(jobCache);
     if (cacheKeys.length > 1000) { //housekeeping
         jobCache = Object.fromEntries(Object.entries(jobCache).slice(-1000));
     }
-    let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"], "jobs", jobid);
+    
     let perf_start = Date.now();
     const getDirectories = async source =>
         (await fs.readdir(source, { withFileTypes: true }))
             .filter(dirent => dirent.isDirectory())
             .map(dirent => dirent.name)
 
-    let subfolders = await getDirectories(jobDir);
-    console.debug(`Performance Dirlist ${jobDir}: ${Date.now() - perf_start}ms`);
-    perf_start = Date.now();
-    if (jobid) {
-        subfolders = [jobid]
-        jobDir = path.resolve(jobDir, '..');
+    let jobDir = path.join(global.api_config["s_SYS_CACHE_DIR"], "jobs");
+    let subfolders = [];
+    
+    // Handle multiple jobids or single jobid
+    if (Array.isArray(jobids) && jobids.length > 0) {
+        subfolders = jobids;
     } else {
-        subfolders = subfolders.sort().reverse()
+        subfolders = await getDirectories(jobDir);
+        console.debug(`Performance Dirlist ${jobDir}: ${Date.now() - perf_start}ms`);
+        subfolders = subfolders.sort().reverse();
     }
+    perf_start = Date.now();
     if (subfolders.length > 10000)
         console.warn("Found more than 10.000 jobs in cache/jobs folder, consider automatic deletion.")
 
