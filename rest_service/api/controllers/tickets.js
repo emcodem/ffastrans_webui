@@ -200,7 +200,7 @@ async function get_pending(limit=50){
 
 async function start(req, res) {
 	try {
-        if ("nodetails" in req.query) {
+        if ("nodetails" in req.query && req.query.nodetails !== "false" && req.query.nodetails !== "0") {
             // Dedup-only: no caching, always fresh, but concurrent requests share one readdir
             if (!tickets_light_promise) {
                 tickets_light_promise = (async () => {
