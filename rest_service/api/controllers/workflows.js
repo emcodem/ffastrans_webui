@@ -137,7 +137,7 @@ async function updateWorkflowField(wf_id,new_data){
     if (fs.existsSync(wf_file)){
         await backupWorkflow(wf_id,wf_file,archive_path);
         var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
-        var wf_contents = await  helpers.readfile_cached(wf_file);
+        var wf_contents = await  helpers.readFile(wf_file);
         wf_contents = JSON.parse(wf_contents);
         deepMerge(wf_contents, new_data);
         await fs.writeFile(wf_file,JSON.stringify(wf_contents,null,3));
@@ -239,7 +239,7 @@ async function getWorkflows_Ex(req, res) {
         var o_return = {discovery:req.headers.referer,workflows:[]};
         //read all workflows 
         var s_wf_path = path.join(path.join(global.api_config["s_SYS_CONFIGS_DIR"],"workflows"),"");
-        o_return.workflows = await helpers.json_files_to_array_cached(s_wf_path,s_wf_path);
+        o_return.workflows = await helpers.json_files_to_array(s_wf_path);
         console.timeEnd("getWorkflows full api call " + callId);
         if (!req.query.nodetails){
             await add_user_vars (o_return);
@@ -288,7 +288,7 @@ async function add_user_vars(o_return){
     console.time("add_user_vars "+callId)
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
      
-    var all_vars_readout = await helpers.readfile_cached(s_user_vars_file);//fsPromises.readFile(s_user_vars_file, 'utf8');//uncached!
+    var all_vars_readout = await helpers.readFile(s_user_vars_file);
     all_vars_readout = all_vars_readout.replace(/^\uFEFF/, '');
     var all_vars = JSON.parse(all_vars_readout);
     all_vars = [...all_vars.variables,...all_vars.statics];

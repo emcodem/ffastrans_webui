@@ -16,7 +16,7 @@ async function get(req, res) {
 	try {
 	    var o_return = {};
         var machines_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/hosts/");
-        o_return["machines"] = await common.json_files_to_array_cached(machines_folder);
+        o_return["machines"] = await common.json_files_to_array(machines_folder);
         o_return["machines"] = o_return["machines"].filter(o=>{
             return (o && o.last_heartbeat && o.last_heartbeat !== "");//excludes machines that only opened status monitor or have null/undefined/empty last_heartbeat
          });

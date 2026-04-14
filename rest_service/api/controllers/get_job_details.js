@@ -33,7 +33,7 @@ async function start(req, res) {
             }
             if (await fs.promises.exists(job_description_path)) {
                 //console.debug("File exists, reading contents");
-                var job_file_contents = await common.readfile_cached(job_description_path, false);
+                var job_file_contents = await common.readFile(job_description_path);
                 //remove UTF8 BOM
                 if (job_file_contents.charCodeAt(0) === 0xFEFF) {
                     job_file_contents = job_file_contents.substr(1);
@@ -70,7 +70,7 @@ async function start(req, res) {
                     var allfiles = await fsPromises.readdir(global.api_config["s_SYS_JOB_DIR"] + jobid + "/workflows", { withFileTypes: false });
                     for (var _idx in allfiles){
                         try{
-                            var newitem = await common.readfile_cached(path.join(dir,allfiles[_idx]), true)//removes BOM	;
+                            var newitem = await common.readJsonFile(path.join(dir,allfiles[_idx]))//removes BOM	;
                             if (newitem["wf_id"] == o_job["workflow"]["id"]){
                                 //this is the mother workflow
 								console.log("Main Workflow detected: ", o_job["workflow"]["id"]);

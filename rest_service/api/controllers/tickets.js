@@ -36,7 +36,7 @@ async function get_review(){
 
 async function get_running(limit=1000){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"),"tickets_running",limit);
+    var a_running = await common.ticket_files_to_array(path.join(s_tick_path,"running"),limit);
     console.log("Running tickets before filtering:",a_running.length);
     //as we dont want to show both at the same time, we ignore the running tickets from mon_folder to prevent showing the same file twice
     var keys_to_ignore = []; 
@@ -109,7 +109,7 @@ async function get_incoming(returnarray){
                                 
                                 var newitem = {};
                                 //read the incoming json to get details about watched file
-                                var f_contents = await common.readfile_cached(ticket_path,true);
+                                var f_contents = await common.readJsonFile(ticket_path);
                                 var _readout = f_contents//removes BOM	;
                                 newitem["host"] = _readout["host"]
                                 var _realfile = _readout["source"];
@@ -125,7 +125,7 @@ async function get_incoming(returnarray){
                                 found_incoming.push(newitem);
                             }catch(ex){
                                 console.log("If this error occurs only once, its OK but just for info: could not parse" + _mons + "\\" +_proc_guids[_proc].name + "\\i\\" + _incoming_files[i]  , ex);
-                                console.log("contents",common.readfile_cached(ticket_path))
+                                console.log("contents",common.readFile(ticket_path))
                             }
                             if (i > 98){
                                 console.warn("Incoming files is more than 100, your watchfolder is huge..." + _mons + "\\" +_proc_guids[_proc].name);
@@ -147,7 +147,7 @@ async function get_incoming(returnarray){
 
 async function get_pending(limit=50){
 	var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-    var a_pending = await common.ticket_files_to_array(path.join(s_tick_path,"pending"),"tickets_pending",50);
+    var a_pending = await common.ticket_files_to_array(path.join(s_tick_path,"pending"),50);
     
 	//TODO this is a dirty workaround: mon_folder tickets that are pending currently dont carry any hint about which source file 
     //also, when mon_folder has something in \i\folder, we show a pending and an incoming job because for whatever reason, mon_folder keeps both alive. 

@@ -28,7 +28,7 @@ async function jobvars(req, res) {
             file = path.basename(fullpath);
             file = file.split('.')
             let hit = {split_id: file[0], variables: []}
-            item = await common.readfile_cached(fullpath, true)//removes BOM;
+            item = await common.readJsonFile(fullpath)//removes BOM;
             if (req.query.vars) {
                 regex = new RegExp(req.query.vars, 'g')
             } else {

@@ -21,7 +21,7 @@ async function get(req, res) {
         var flist = await common._fileList(presets_folder, '*.json', true, false, 'all');
         for (fullpath of flist) {
             try{
-                var newitem = await common.readfile_cached(fullpath, true)//removes BOM;
+                var newitem = await common.readJsonFile(fullpath)//removes BOM;
                 o_return["presets"].push(newitem)
             }catch(ex){
                 console.log("Could not parse Json from file:",fullpath,ex)

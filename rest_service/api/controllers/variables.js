@@ -109,7 +109,7 @@ function writeVarsFile(o_vars){
 
 async function readVarsFile(){
     var s_user_vars_file = path.join(global.api_config["s_SYS_CONFIGS_DIR"],"user_variables.json");
-    var all_vars_readout = await common.readfile_cached(s_user_vars_file,true);
+    var all_vars_readout = await common.readJsonFile(s_user_vars_file);
     
     return all_vars_readout;
 }

@@ -24,7 +24,7 @@ async function get(req, res) {
             try{
                 if (actual_count > max_count)
                   continue;
-                var contents = await common.readfile_cached(path.join(s_path,allfiles[_idx]), true);
+                var contents = await common.readJsonFile(path.join(s_path,allfiles[_idx]));
                 
                 var _j = contents;
                 _j["review_file"] = allfiles[_idx];

@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs-extra");
-const { readfile_cached } = require("./helpers");
+const { readFile } = require("./helpers");
 
 
 module.exports = {
