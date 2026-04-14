@@ -22,25 +22,25 @@ module.exports = async function(app, passport){
 
 
             for (j of all){
-                //if j has progress its active, if it has result it is finished. state 1 is success
-                //status or result is the "message"
+                //if j has progress its active, if it has outcome it is finished. state 1 is success
+                //status or outcome is the "message"
                 if (j.job_id == search_for_id){
                     found.push(j);
-                    //running jobs have a status field, finished jobs result instead
-                    if (j.result && j.state != 1 && j.state != -1){//only finished jobs have result
+                    //running jobs have a status field, finished jobs outcome instead
+                    if (j.outcome && j.state != "Success" && j.state != "Cancelled"){//only finished jobs have outcome
                         failed_count ++;
-                        bad_messages += "result" in j ?  " " + j.result : ", " + j.status; 
+                        bad_messages += "outcome" in j ?  " " + j.outcome : ", " + j.status; 
                     }else{
-                        if (good_messages == " Success" && j.result == "Success"){ //try showing success only once if all succeed, very dirty hack
+                        if (good_messages == " Success" && j.outcome == "Success"){ //try showing success only once if all succeed, very dirty hack
                             finished_count++;
                             continue;
                         }
-                        good_messages += "result" in j ?  " " + j.result : " " + j.status; 
+                        good_messages += "outcome" in j ?  " " + j.outcome : " " + j.status; 
                     }
 
-                    all_messages += "result" in j ?  " " + j.result : " " + j.status; 
+                    all_messages += "outcome" in j ?  " " + j.outcome : " " + j.status; 
 
-                    "result" in j ? finished_count++ : false; //only finished jobs have result filed
+                    "outcome" in j ? finished_count++ : false; //only finished jobs have outcome field
                     
                 }
             }
