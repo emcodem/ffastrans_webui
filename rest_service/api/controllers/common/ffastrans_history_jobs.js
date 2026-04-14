@@ -4,12 +4,35 @@ const { readFile } = require("./helpers");
 
 
 module.exports = {
-    getHistoryJobs: getHistoryJobs
+    getHistoryJobs: getHistoryJobs,
+    _getCacheDiagnostics: _getCacheDiagnostics,
+    _clearCaches: _clearCaches
 };
 
-let fileContentDatabase = {};
+let fileContentDatabase = {}; // currently unused — kept for diagnostics only
 let jobCache = {};//{job_id:[task,task]},job_id:...}
 let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
+
+function roughSizeOf(obj) {
+    try { return Buffer.byteLength(JSON.stringify(obj), 'utf8'); } catch { return -1; }
+}
+
+function _getCacheDiagnostics() {
+    return {
+        jobCacheSize: Object.keys(jobCache).length,
+        jobCacheBytes: roughSizeOf(jobCache),
+        dispelDbSize: Object.keys(workaround_dispel_database).length,
+        dispelDbBytes: roughSizeOf(workaround_dispel_database),
+        fileContentDbSize: Object.keys(fileContentDatabase).length,
+        fileContentDbBytes: roughSizeOf(fileContentDatabase)
+    };
+}
+
+function _clearCaches() {
+    jobCache = {};
+    workaround_dispel_database = {};
+    fileContentDatabase = {};
+}
 
 async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, return_id_only = false) {
     /* returns "splits" instead of "jobs", this is problematic for caching because we want to cache jobs in order to prevent having to constantly list all split files */
@@ -17,6 +40,10 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
     const cacheKeys = Object.keys(jobCache);
     if (cacheKeys.length > 1000) { //housekeeping
         jobCache = Object.fromEntries(Object.entries(jobCache).slice(-1000));
+    }
+    const dispelKeys = Object.keys(workaround_dispel_database);
+    if (dispelKeys.length > 5000) { //housekeeping — was previously unbounded
+        workaround_dispel_database = Object.fromEntries(Object.entries(workaround_dispel_database).slice(-5000));
     }
     
     let perf_start = Date.now();
@@ -202,20 +229,4 @@ async function readEndOfFile(filepath, how_much = 1000) {
     } finally {
         _fh?.close();
     }
-}
-
-async function readJsonFileCached(fname) {
-    const dbKeys = Object.keys(fileContentDatabase);
-    if (dbKeys.length > 1000) { //housekeeping
-        fileContentDatabase = Object.fromEntries(Object.entries(fileContentDatabase).slice(-1000));
-    }
-
-    if (fileContentDatabase.hasOwnProperty(fname)) {
-        return fileContentDatabase[fname]
-    }
-    let content = await fs.readFile(fname, 'utf8')
-    content = content.replace(/^\uFEFF/, '');
-    content = JSON.parse(content)
-    fileContentDatabase[fname] = content
-    return content;
 }

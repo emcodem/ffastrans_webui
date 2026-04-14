@@ -6,13 +6,6 @@ module.exports = {
     get: jobvars
 };
 
-var jobs_cache = {is_refreshing:false,born:0,data:false}
-function sleep(ms) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-  }   
-
 
 async function jobvars(req, res) {
     try {

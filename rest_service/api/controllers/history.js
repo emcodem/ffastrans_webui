@@ -12,12 +12,7 @@ module.exports = {
     put:put
 };
 
-var jobs_cache = {is_refreshing:false,born:0,data:false}
-function sleep(ms) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-  }   
+var jobs_cache = { born: 0, data: false, _refreshPromise: null }
 
 async function get(req, res) {
     try{
@@ -44,25 +39,28 @@ async function get(req, res) {
             return;
         }
         /* ensure we only read the jobs from filesystem once every x seconds */
-        while (jobs_cache.is_refreshing){
-            await sleep(1);
-        }
-
         const currentTime = new Date();
         let maxAge = new Date(currentTime.getTime() - 3 * 1000);
-        if (jobs_cache.born < maxAge || !jobs_cache.data){
-            jobs_cache.is_refreshing = true;
-            try{
-                let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
-                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
-                jobs_cache.data   = {discovery:req.headers.referer,history:a_jobs,active:a_active}
-            }catch(ex){
-                console.error("Error refreshing jobs:",ex)
-            }finally{
-                jobs_cache.is_refreshing = false;
+        if (jobs_cache.born < maxAge || !jobs_cache.data) {
+            // If no refresh is in flight, start one; otherwise reuse the existing promise
+            if (!jobs_cache._refreshPromise) {
+                jobs_cache._refreshPromise = (async () => {
+                    try {
+                        let a_jobs   = await ffastrasHistoryHelper.getHistoryJobs(start,end);
+                        let a_active = await ffastrasActiveJobHelper.getActiveJobs(start,end);
+                        jobs_cache.data = {history:a_jobs,active:a_active};
+                        jobs_cache.born = new Date();
+                    } catch(ex) {
+                        console.error("Error refreshing history jobs:", ex);
+                    } finally {
+                        jobs_cache._refreshPromise = null;
+                    }
+                })();
             }
+            await jobs_cache._refreshPromise;
         }
-        res.json(jobs_cache.data)
+        // Spread per-request discovery header outside cached data
+        res.json({ discovery: req.headers.referer, ...jobs_cache.data });
         res.end();
 
     }catch(ex){

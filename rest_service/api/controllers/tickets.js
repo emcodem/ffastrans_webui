@@ -13,6 +13,13 @@ const common = require("./common/helpers.js");
 module.exports = {
     get: start
 };
+
+// Response-level cache with promise-based dedup (same pattern as jobs.js)
+var tickets_cache = { born: 0, data: false, _refreshPromise: null };
+const TICKETS_MAX_AGE_MS = 3000; // 3 seconds
+// nodetails: dedup only (no caching) — fast enough to always read fresh
+var tickets_light_promise = null;
+
 //HELPERS
 
 async function get_review(){
@@ -192,41 +199,62 @@ async function get_pending(limit=50){
 }
 
 async function start(req, res) {
-    
 	try {
-        var o_return = {};
-        o_return["tickets"] = {};
-
-        // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-        if ("nodetails" in req.query){
-
-            var s_tick_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets"),"");
-            o_return["tickets"]["running"] = await fsPromises.readdir(path.join(s_tick_path,"running"), { withFileTypes: false });
-            o_return["tickets"]["queued"] = await fsPromises.readdir(path.join(s_tick_path,"pending"), { withFileTypes: false });
-            console.log("Serving ticket summary without details:",    o_return["tickets"]["running"].length,"queued count",o_return["tickets"]["queued"].length);
-        }else{
-        
-            //pending means actually queued. The actual queue folder of ffastrans will basically never contain any long living files
-            //the real queued folder is more like a temp folder for tickets between pending and running
-            o_return["tickets"]["queued"] = await get_pending(50); 
-            //o_return["tickets"]["queue"] = common.ticket_files_to_array(path.join(s_tick_path,"queue"));
-            //o_return["tickets"]["incoming"] = await get_incoming(); NOTE; INCOMING DISABLED BECAUSE SINCE FFASTRANS 1407 they are useless because not contains file information
-            o_return["tickets"]["running"] = await get_running(500);
-            o_return["tickets"]["review"] = await get_review();
-            console.log("Serving ticket summary + details:",    o_return["tickets"]["running"].length,"queued count",o_return["tickets"]["queued"].length);
+        if ("nodetails" in req.query) {
+            // Dedup-only: no caching, always fresh, but concurrent requests share one readdir
+            if (!tickets_light_promise) {
+                tickets_light_promise = (async () => {
+                    try {
+                        var s_tick_path = path.join(global.api_config["s_SYS_CACHE_DIR"], "tickets");
+                        var running = await fsPromises.readdir(path.join(s_tick_path, "running"), { withFileTypes: false }).catch(e => []);
+                        var queued  = await fsPromises.readdir(path.join(s_tick_path, "pending"), { withFileTypes: false }).catch(e => []);
+                        console.log("Serving ticket summary without details:", running.length, "queued count", queued.length);
+                        return { tickets: { running, queued } };
+                    } finally {
+                        tickets_light_promise = null;
+                    }
+                })();
+            }
+            var lightResult = await tickets_light_promise;
+            res.json(lightResult);
+            res.end();
+            return;
         }
+
+        // Full tickets: cache with 3s TTL + dedup
+        const now    = Date.now();
+        const maxAge = now - TICKETS_MAX_AGE_MS;
+        if (tickets_cache.born < maxAge || !tickets_cache.data) {
+            if (!tickets_cache._refreshPromise) {
+                tickets_cache._refreshPromise = (async () => {
+                    try {
+                        var o_return = { tickets: {} };
+                        o_return["tickets"]["queued"]  = await get_pending(50);
+                        o_return["tickets"]["running"] = await get_running(500);
+                        o_return["tickets"]["review"]  = await get_review();
+                        console.log("Serving ticket summary + details:", o_return["tickets"]["running"].length, "queued count", o_return["tickets"]["queued"].length);
+                        tickets_cache.data = o_return;
+                        tickets_cache.born = Date.now();
+                    } catch (ex) {
+                        console.error("Error refreshing tickets cache:", ex);
+                    } finally {
+                        tickets_cache._refreshPromise = null;
+                    }
+                })();
+            }
+            await tickets_cache._refreshPromise;
+        }
+
+        if (!tickets_cache.data) {
+            return res.status(500).json({ description: "Failed to load tickets" });
+        }
+        res.json(tickets_cache.data);
+        res.end();
 
 	} catch(err) {
-        if (err.code == "ENOENT"){
-            return res.status(404).json({description:err});
-        }
 		console.debug(err);
 		return res.status(500).json({description: err});
 	}
-    
-    res.json(o_return);
-    res.end();
-    
 }
 
 

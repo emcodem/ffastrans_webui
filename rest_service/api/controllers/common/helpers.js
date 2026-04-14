@@ -145,7 +145,13 @@ async function get_wf_name(wf_id){
 async function json_files_to_array(dir) {
     if (!dir){return []}
     var a_results = [];
-    var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+    var allfiles;
+    try {
+        allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+    } catch (ex) {
+        if (ex.code === 'ENOENT') return []; // directory doesn't exist yet
+        throw ex;
+    }
         
     const pool = await PromisePool
     .for(allfiles)
@@ -166,14 +172,29 @@ async function json_files_to_array(dir) {
 async function ticket_files_to_array(dir, limit = 100) {
 		if (!dir){return []}
 		var returnarray=[];
-        var allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+        var allfiles;
+        try {
+            allfiles = await fsPromises.readdir(dir, { withFileTypes: false });
+        } catch (ex) {
+            if (ex.code === 'ENOENT') return []; // directory doesn't exist yet
+            throw ex;
+        }
         if (limit > 0) {
-            // Get file stats and sort by oldest first
-            var filesWithStats = await Promise.all(allfiles.map(async (file) => {
-                var fullpath = path.join(dir, file);
-                var stat = await fsPromises.stat(fullpath);
-                return { file, birthtime: stat.birthtime };
-            }));
+            // Get file stats and sort by oldest first, skip files that vanished
+            var filesWithStats = [];
+            await PromisePool
+                .for(allfiles)
+                .withConcurrency(50)
+                .process(async (file) => {
+                    try {
+                        var fullpath = path.join(dir, file);
+                        var stat = await fsPromises.stat(fullpath);
+                        filesWithStats.push({ file, birthtime: stat.birthtime });
+                    } catch (ex) {
+                        if (ex.code === 'ENOENT') return; // file vanished between readdir and stat
+                        throw ex;
+                    }
+                });
             filesWithStats.sort((a, b) => a.birthtime - b.birthtime);
             allfiles = filesWithStats.slice(0, limit).map(f => f.file);
         }
@@ -200,6 +221,9 @@ async function ticket_files_to_array(dir, limit = 100) {
                 }
                 returnarray.push(newitem)
             }catch(ex){
+                // Ticket files are transient — ffastrans moves/deletes them as jobs change state.
+                // ENOENT and JSON parse errors are expected races, not real errors.
+                if (ex.code === 'ENOENT' || ex instanceof SyntaxError) continue;
                 console.error("Could not parse Json from file:",path.join(dir,allfiles[_idx]),ex)
             }
         }

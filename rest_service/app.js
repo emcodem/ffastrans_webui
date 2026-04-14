@@ -296,6 +296,12 @@ async function start_server( _listenport,globalconf){
 
   initialize(swag_config);
 
+  // ── Debug / memory diagnostic routes (not part of swagger API) ──
+  const debugMemory = require("./api/controllers/debug_memory.js");
+  app.get('/debug/memory', debugMemory.getMemory);
+  app.post('/debug/memory/gc', debugMemory.forceGC);
+  app.post('/debug/memory/trim', debugMemory.trimCaches);
+
   // Add error handler middleware to catch and properly format errors
   app.use((err, req, res, next) => {
     console.error('Express error handler caught:', err);

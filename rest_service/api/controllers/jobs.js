@@ -13,12 +13,17 @@ module.exports = {
     put: put
 };
 
-var jobs_cache = { is_refreshing: false, born: 0, data: false }
-function sleep(ms) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
+var jobs_cache = { born: 0, data: false, _refreshPromise: null }
+// Dedup map for bypass-cache requests: key → { born, data, _refreshPromise }
+var jobs_bypass_dedup = new Map();
+const BYPASS_DEDUP_MAX_AGE_MS = 3000; // reuse identical bypass results for 3s
+// Housekeeping: prevent the dedup map from growing unbounded
+setInterval(() => {
+    const cutoff = Date.now() - BYPASS_DEDUP_MAX_AGE_MS * 2;
+    for (const [key, entry] of jobs_bypass_dedup) {
+        if (entry.born < cutoff && !entry._refreshPromise) jobs_bypass_dedup.delete(key);
+    }
+}, 10000);
 
 async function get(req, res) {
     const benchmarkId = `getJobs ${Math.random()}`;
@@ -55,37 +60,59 @@ async function get(req, res) {
 
         //if start and end was set or params bypass cache, we cannot use cache mode
         if (start != 0 || end != 100 || return_id_only || statusFilter || jobids.length > 0) {
-            let a_jobs = (!statusFilter || statusFilter === 'history' || statusFilter === 'all')
-                ? await ffastrasHistoryHelper.getHistoryJobs(start, end, jobids, variablesFilter, return_id_only) : [];
-            let a_active = (!statusFilter || statusFilter === 'active' || statusFilter === 'all')
-                ? await ffastrasActiveJobHelper.getActiveJobs(start, end, jobids, return_id_only) : [];
-                
-            let returnobj = { discovery: req.headers.referer, history: a_jobs, active: a_active }
-            res.json(returnobj)
+            // Dedup identical bypass requests via serialized key
+            const dedupKey = JSON.stringify([start, end, jobids, variablesFilter, return_id_only, statusFilter]);
+            let entry = jobs_bypass_dedup.get(dedupKey);
+            const now = Date.now();
+            if (!entry || (entry.born < now - BYPASS_DEDUP_MAX_AGE_MS && !entry._refreshPromise)) {
+                entry = { born: 0, data: null, _refreshPromise: null };
+                jobs_bypass_dedup.set(dedupKey, entry);
+            }
+            if (entry.born < now - BYPASS_DEDUP_MAX_AGE_MS || !entry.data) {
+                if (!entry._refreshPromise) {
+                    entry._refreshPromise = (async () => {
+                        try {
+                            let a_jobs = (!statusFilter || statusFilter === 'history' || statusFilter === 'all')
+                                ? await ffastrasHistoryHelper.getHistoryJobs(start, end, jobids, variablesFilter, return_id_only) : [];
+                            let a_active = (!statusFilter || statusFilter === 'active' || statusFilter === 'all')
+                                ? await ffastrasActiveJobHelper.getActiveJobs(start, end, jobids, return_id_only) : [];
+                            entry.data = { history: a_jobs, active: a_active };
+                            entry.born = Date.now();
+                        } catch (ex) {
+                            console.error("Error in jobs bypass dedup:", ex);
+                        } finally {
+                            entry._refreshPromise = null;
+                        }
+                    })();
+                }
+                await entry._refreshPromise;
+            }
+            res.json({ discovery: req.headers.referer, ...entry.data });
             console.timeEnd(benchmarkId);
             return;
         }
         /* ensure we only read the jobs from filesystem once every x seconds */
-        while (jobs_cache.is_refreshing) {
-            await sleep(1);
-        }
-
         const currentTime = new Date();
         let maxAge = new Date(currentTime.getTime() - 3 * 1000);
         if (jobs_cache.born < maxAge || !jobs_cache.data) {
-            jobs_cache.is_refreshing = true;
-            try {
-                let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, [], variablesFilter);
-                let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, []);
-                jobs_cache.data = { discovery: req.headers.referer, history: a_jobs, active: a_active }
-
-            } catch (ex) {
-                console.error("Error refreshing jobs:", ex)
-            } finally {
-                jobs_cache.is_refreshing = false;
+            // If no refresh is in flight, start one; otherwise reuse the existing promise
+            if (!jobs_cache._refreshPromise) {
+                jobs_cache._refreshPromise = (async () => {
+                    try {
+                        let a_jobs = await ffastrasHistoryHelper.getHistoryJobs(start, end, [], variablesFilter);
+                        let a_active = await ffastrasActiveJobHelper.getActiveJobs(start, end, []);
+                        jobs_cache.data = { history: a_jobs, active: a_active };
+                        jobs_cache.born = new Date();
+                    } catch (ex) {
+                        console.error("Error refreshing jobs:", ex);
+                    } finally {
+                        jobs_cache._refreshPromise = null;
+                    }
+                })();
             }
+            await jobs_cache._refreshPromise;
         }
-        res.json(jobs_cache.data)
+        res.json({ discovery: req.headers.referer, ...jobs_cache.data });
         console.timeEnd(benchmarkId);
 
     } catch (ex) {
