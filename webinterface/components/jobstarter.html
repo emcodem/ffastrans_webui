@@ -2178,15 +2178,20 @@ function waitForJobToFinish(rowId, jobId){
                 return;
 
             var statusValue = "Running";
-            if (response.all_finished)
+            var isFinished = false;
+            if (response.all_finished) {
                 statusValue = "Success";
-            if (response.all_failed)
+                isFinished = true;
+            }
+            if (response.all_failed) {
                 statusValue = "Error";
+                isFinished = true;
+            }
 
             var statusText = "";
             if (response.jobs.length > 0) {
                 statusText = response.all_messages;
-                if (response.progress)
+                if (response.progress && !isFinished)
                     statusText = response.progress + "% " + statusText;
             }
 
@@ -2195,8 +2200,22 @@ function waitForJobToFinish(rowId, jobId){
                 try {
                     var rid = poller.rowIds[i];
                     m_selectedFileGrid.getCellByName(rid, "Status").setValue(statusValue);
-                    if (statusText != "" && statusText != " ")
+                    
+                    if (isFinished) {
+                        // When job is finished, always set outcome with best available info
+                        var outcomeMsg = "";
+                        if (response.jobs.length > 0 && response.jobs[0].outcome) {
+                            outcomeMsg = response.jobs[0].outcome;
+                        } else if (statusText && statusText.trim() != "") {
+                            outcomeMsg = statusText;
+                        } else {
+                            outcomeMsg = statusValue; // Use status as fallback
+                        }
+                        m_selectedFileGrid.getCellByName(rid, "Outcome").setValue(decodeEntities(outcomeMsg));
+                    } else if (statusText != "" && statusText != " ") {
+                        // While running, only update if we have meaningful progress info
                         m_selectedFileGrid.getCellByName(rid, "Outcome").setValue(decodeEntities(statusText));
+                    }
                 } catch(rowEx) {
                     // row may have been removed from grid
                 }
@@ -2204,7 +2223,7 @@ function waitForJobToFinish(rowId, jobId){
 
             console.log("statustext", statusText, "rows:", poller.rowIds.length);
             // Stop polling if all splits are finished
-            if (response.all_finished || response.all_failed) {
+            if (isFinished) {
                 window.clearInterval(poller.interval);
                 delete _jobPollers[jobId];
             }
