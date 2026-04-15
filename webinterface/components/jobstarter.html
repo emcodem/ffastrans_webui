@@ -2109,10 +2109,18 @@ async function startJobs(form,selectedWorkflow){
         console.log("submitting job",postBody);
         var jobid = await startJobApiCall(postBody);
         
-        for (let j=0;j<a_all_files.length;j++){
-            waitForJobToFinish(a_row_ids[j],jobid);
-            m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Starting");
-            m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
+        if (!jobid) {
+            dhx8.dhx.message({ expire: 3000, text: "Failed to start job", "node": "form_wf_form"});
+            for (let j=0;j<a_all_files.length;j++){
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Error");
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Job start failed");
+            }
+        } else {
+            for (let j=0;j<a_all_files.length;j++){
+                waitForJobToFinish(a_row_ids[j],jobid);
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Starting");
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
+            }
         }
     }else{
         //submit one job per file
@@ -2124,47 +2132,84 @@ async function startJobs(form,selectedWorkflow){
             postBody.variables.push({name:"webui_o_source",data:JSON.stringify([o_all_files[j]])});
             console.log("submitting job",postBody)
             var jobid = await startJobApiCall(postBody);
-            waitForJobToFinish(a_row_ids[j],jobid);
-            m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Starting");
-            m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
+            if (jobid) {
+                waitForJobToFinish(a_row_ids[j],jobid);
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Starting");
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Created");
+            } else {
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Status").setValue("Error");
+                m_selectedFileGrid.getCellByName(a_row_ids[j],"Outcome").setValue("Job start failed");
+            }
         }
     }
     dhx8.dhx.message({ expire: 3000, text: "Submitted.", "node": "form_wf_form"});
 
 }
 
-async function waitForJobToFinish(rowId,jobId){
-    /* waits until ffastrans job is finished, updates job status */
-    console.log("waiting for finish",jobId)
-    //m_selectedFileGrid.setUserData(rId,"fullpath",));
-    var this_interval = window.setInterval(async function(){
+// Tracks which jobIds are already being polled and their associated row IDs
+var _jobPollers = {}; // { jobId: { rowIds: [rowId, ...], interval: intervalId } }
+
+function waitForJobToFinish(rowId, jobId){
+    /* waits until ffastrans job is finished, updates job status for all rows sharing the same jobId */
+    if (!jobId) {
+        console.error("waitForJobToFinish: Invalid jobId", jobId, "for row", rowId);
+        m_selectedFileGrid.getCellByName(rowId, "Status").setValue("Error");
+        m_selectedFileGrid.getCellByName(rowId, "Outcome").setValue("Failed to start job");
+        return;
+    }
+    
+    if (_jobPollers[jobId]) {
+        // Already polling this jobId — just register the additional row
+        if (_jobPollers[jobId].rowIds.indexOf(rowId) === -1) {
+            _jobPollers[jobId].rowIds.push(rowId);
+        }
+        console.log("waitForJobToFinish: added row", rowId, "to existing poller for", jobId, "(" + _jobPollers[jobId].rowIds.length + " rows)");
+        return;
+    }
+
+    console.log("waitForJobToFinish: starting poller for", jobId, "row", rowId);
+    var poller = { rowIds: [rowId], interval: null };
+    _jobPollers[jobId] = poller;
+
+    poller.interval = window.setInterval(async function(){
         try{
-            var response =  await $.ajax({url:  "/getjobstate?id=" + jobId});
+            var response = await $.ajax({url: "/getjobstate?id=" + jobId});
             if (!("jobs" in response))
                 return;
 
-            var statefield = m_selectedFileGrid.getCellByName(rowId,"Status");
-            statefield.setValue("Running");
+            var statusValue = "Running";
             if (response.all_finished)
-                statefield.setValue("Success");
+                statusValue = "Success";
             if (response.all_failed)
-                statefield.setValue("Error");
+                statusValue = "Error";
 
-            if (response.jobs.length == 0)
-                return;
-            var statusText = response.all_messages;
-            if (response.progress)
-                statusText = response.progress+"% " + statusText; 
-            
-            if(statusText != "" && statusText != " ")
-                m_selectedFileGrid.getCellByName(rowId,"Outcome").setValue(decodeEntities(statusText));
+            var statusText = "";
+            if (response.jobs.length > 0) {
+                statusText = response.all_messages;
+                if (response.progress)
+                    statusText = response.progress + "% " + statusText;
+            }
 
-            console.log("statustext",statusText)
-            //stop job polling if all are finished
-            if (response.all_finished)
-                window.clearInterval(this_interval)
+            // Update all rows that belong to this jobId
+            for (var i = 0; i < poller.rowIds.length; i++) {
+                try {
+                    var rid = poller.rowIds[i];
+                    m_selectedFileGrid.getCellByName(rid, "Status").setValue(statusValue);
+                    if (statusText != "" && statusText != " ")
+                        m_selectedFileGrid.getCellByName(rid, "Outcome").setValue(decodeEntities(statusText));
+                } catch(rowEx) {
+                    // row may have been removed from grid
+                }
+            }
+
+            console.log("statustext", statusText, "rows:", poller.rowIds.length);
+            // Stop polling if all splits are finished
+            if (response.all_finished || response.all_failed) {
+                window.clearInterval(poller.interval);
+                delete _jobPollers[jobId];
+            }
         }catch(ex){}
-    },3000);
+    }, 3000);
 }
 
 function addSegmentRow(fullpath,inpoint,outpoint,in_frame,out_frame){ //for ffconcat, called from player
@@ -2240,6 +2285,7 @@ async function startJobApiCall(postBody){
     }catch(ex){
         dhtmlx.message("Error, Job Could not be started, check console logs")
         console.log("Error starting job",ex)
+        return null;
     }
 }
 
