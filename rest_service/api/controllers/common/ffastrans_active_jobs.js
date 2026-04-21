@@ -10,13 +10,16 @@ async function getActiveJobs(start=0,end=1000, jobids = [], return_id_only = fal
     /* scan db/monitor folder for .json files */
     let returnArray = [];
     let jobDir      = path.join(global.api_config["s_SYS_CACHE_DIR"],"monitor");
-    let ticketDir   = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","running");
+    let ticketDirRunning   = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","running");
+    
     let listDir     = path.join(jobDir, ".list"); //ffastrans > 1.4.0.7 wants the jsons to be read from .list folder in order to mitigate locked files issue
     try {
         await fs.access(listDir);
     } catch (error) {
         listDir = jobDir
     }
+
+    //TODO: if .list folder and queue folder has the jobid_splitid file, its actually a queued job, we must exclude it in this case
 
     // Support multiple jobids or default wildcard
     let jobPattern = Array.isArray(jobids) && jobids.length > 0 ? jobids[0] : '*';
@@ -45,7 +48,7 @@ async function getActiveJobs(start=0,end=1000, jobids = [], return_id_only = fal
             if (!contents.priority){
                 //read prio from ticket if any
                 try{
-                    let tickets = await helpers._fileList(ticketDir, "*" + jobid + "*" + contents.split_id +  '*.json', 0, 0, 'files');
+                    let tickets = await helpers._fileList(ticketDirRunning, "*" + jobid + "*" + contents.split_id +  '*.json', 0, 0, 'files');
                     if (tickets.length == 1){
                         contents.priority = path.parse(tickets[0]).name.split("~")[0];
                     }
