@@ -18,15 +18,25 @@ module.exports =  function(app, passport){
 	
 	app.get('/metrics_control', async(req, res) => {
 		var currentDays = 15;
+		var prometheusError = null;
 		
 		try{
 			//try finding current retention days from service
-				var prom_url = "http://" + global.config["STATIC_METRICS_METRICS_HOST"] + ":9090/api/v1/targets";
-				//console.log("Asking prometheus for active targets " + prom_url);
-				var targets = await (axios.get(prom_url));
-				var responsejson = targets["data"];
-				
-				try{
+			var prom_url = "http://" + global.config["STATIC_METRICS_METRICS_HOST"] + ":9090/api/v1/targets";
+			//console.log("Asking prometheus for active targets " + prom_url);
+			
+			var targets;
+			try {
+				targets = await (axios.get(prom_url));
+			} catch (promError) {
+				console.log("ERROR: Failed to connect to Prometheus: " + promError.message);
+				prometheusError = "Failed to connect to Prometheus: " + promError.message;
+				targets = { data: {} };
+			}
+			
+			var prometheusData = targets["data"];
+			
+			try{
 				var nssmPath = path.join(global.approot + "/tools/nssm.exe");
 				var getCmd =  '"' +nssmPath + '" get "FFAStrans Metrics Collector" AppParameters';
 				var getCmdResult = "15"; //Default 15 d
@@ -53,12 +63,75 @@ module.exports =  function(app, passport){
 				console.error(ex)
 			}
 			
-			responsejson["prometheus_data_retention"] = currentDays;
-				
-            //console.log("Response from prometheus:",targets["data"]);
-            res.send(responsejson);
-            res.status(200);//Send error response here
-            res.end();  
+			// Get configured targets and enrich with health status from prometheus
+			var configuredTargets = global.config["prometheus_targets"]?.[0]?.["targets"] || [];
+			var activeTargets = prometheusData?.data?.activeTargets || [];
+			
+			var enrichedTargets;
+			try {
+				enrichedTargets = configuredTargets.map(targetStr => {
+					// If there was an error connecting to prometheus, return error status for all targets
+					if (prometheusError) {
+						return {
+							target: targetStr,
+							health: "error",
+							lastScrape: null,
+							lastScrapeDuration: null,
+							lastError: prometheusError
+						};
+					}
+					
+					// Find matching prometheus target by checking if scrapeUrl contains the target string
+					var prometheusTarget = activeTargets.find(pt => 
+						pt.scrapeUrl.includes(targetStr)
+					);
+					
+					if (prometheusTarget) {
+						return {
+							target: targetStr,
+							health: prometheusTarget.health,
+							lastScrape: prometheusTarget.lastScrape,
+							lastScrapeDuration: prometheusTarget.lastScrapeDuration,
+							lastError: prometheusTarget.lastError,
+							labels: prometheusTarget.labels
+						};
+					} else {
+						return {
+							target: targetStr,
+							health: "unknown",
+							lastScrape: null,
+							lastScrapeDuration: null,
+							lastError: "Target not found in Prometheus"
+						};
+					}
+				});
+			} catch (mapError) {
+				console.log("ERROR: Unexpected Prometheus response structure: " + mapError.message);
+				prometheusError = "Unexpected Prometheus response format: " + mapError.message;
+				enrichedTargets = configuredTargets.map(targetStr => ({
+					target: targetStr,
+					health: "error",
+					lastScrape: null,
+					lastScrapeDuration: null,
+					lastError: prometheusError
+				}));
+			}
+			
+			var responsejson = {
+				status: "success",
+				data: {
+					targets: enrichedTargets
+				},
+				prometheus_data_retention: currentDays
+			};
+			
+			if (prometheusError) {
+				responsejson.prometheus_error = prometheusError;
+			}
+			
+            res.setHeader('Content-Type', 'application/json');
+            res.status(200);
+            res.json(responsejson);  
 
         }
 		catch (ex){
@@ -87,11 +160,7 @@ module.exports =  function(app, passport){
                 configmgr.save(global.config);
             }
         
-           // res.writeHead(200,{"Content-Type":"application/json"});
             res.json(global.config["prometheus_targets"]);
-            
-            //res.end(); 
-    
     })
     
 	
@@ -110,7 +179,7 @@ module.exports =  function(app, passport){
                   ];
             }
             
-            console.log("Savinc prometheus_targets config",data);
+            console.log("Saving prometheus_targets config",data);
             global.config["prometheus_targets"][0]["targets"] = data;
             configmgr.save(global.config,function(){
                 res.status(200);//Send error response here

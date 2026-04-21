@@ -52,7 +52,7 @@ async function init(){
                         id: "С1",
                         padding:20,
                         height:"content",
-                        html: `Prometheus Targets are retrieved directly from prometheus server.
+                        html: `This is a list of stored Prometheus targets in webinterface, enriched with Health data from Prometheus API.
                         <br><br>
                         This only works if 
                         <li> Prometheus is installed on the same host as webinterface. 
@@ -232,10 +232,18 @@ async function loadGridData(){
     }
 
     let resdata = await response.json();
-    let instances = resdata.data.activeTargets.map(promTarget=>{
-        //this data comes from prom directly
+    
+    // Check for prometheus errors
+    if (resdata.prometheus_error) {
+        m_mainLayout.getCell("button_cell").attachHTML(template_prom_error.innerHTML);
+        console.error("Prometheus error:", resdata.prometheus_error);
+        return;
+    }
+    
+    let instances = resdata.data.targets.map(promTarget=>{
+        //this data comes from new metrics_control endpoint with target enrichment
         return {
-            instance:promTarget.labels.instance,
+            instance:promTarget.target,
             health:promTarget.health
         }
     })
