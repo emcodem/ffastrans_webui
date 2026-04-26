@@ -10,6 +10,9 @@ Safely style FFAStrans webinterface by ONLY modifying `override.css` for non-tec
 - ⚠️ **ALWAYS TEST**: Changes must work in BOTH light and dark modes
 
 ## 🏗️ System Architecture
+**Source Code**: https://github.com/emcodem/ffastrans_webui
+**Purpose**: Access source code for page identification and styling analysis
+
 ```
 CSS Loading Priority:
 1. dhtmlx framework CSS
@@ -47,6 +50,33 @@ CSS Loading Priority:
 ```css
 .dhx_window           /* Popup windows */
 .dhx_window-header    /* Window title bar */
+```
+
+### Job Viewer (Content vs Styling)
+**CRITICAL**: Job content is populated by FFAStrans workflow, NOT CSS
+
+**What CSS CAN Style:**
+```css
+.dhx_grid              /* Job list structure */
+.dhx_grid-row         /* Row appearance */
+.dhx_grid-header      /* Header styling */
+```
+
+**What CSS CANNOT Control:**
+- Job result content (images, links, text)
+- Job status information
+- HTML content in cells
+
+**For Custom Job Content:**
+- Configure in FFAStrans workflow
+- Use builtin variables: `s_success` or `s_error`
+- Example: `Set s_success = "<img src='/folder/image.jpg'> Done"`
+- Add folders in WebUI Admin → Added Folders
+
+**User Request Pattern:**
+```
+"Add image to job result" → Configure in FFAStrans workflow (NOT CSS)
+"Style job list colors" → Use CSS styling ✅
 ```
 
 ## 📝 Common User Request Patterns

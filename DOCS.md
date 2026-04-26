@@ -72,6 +72,11 @@ The FFAStrans webinterface includes a complete AI-powered styling system that al
 - **Follow** safety protocols strictly
 - **Ask** for clarification if user request is unclear
 
+### Source Code Access
+- **GitHub Repository**: https://github.com/emcodem/ffastrans_webui
+- **Purpose**: Access source code for page identification and styling analysis
+- **Note**: Users run FFAStrans as EXE, but agents can reference GitHub for accurate styling
+
 ## 🔮 Future Documentation Topics
 
 This documentation structure will expand to include:

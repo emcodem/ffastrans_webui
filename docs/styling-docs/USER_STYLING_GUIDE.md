@@ -159,6 +159,44 @@ The AI will make sure your changes work in **both modes**. You can switch betwee
 - Changes that only work in one theme
 - Anything that makes the interface unusable
 
+### 🔄 Content vs Styling (Important!)
+
+**Some things are NOT styling - they're content from your FFAStrans workflow:**
+
+**Job Viewer (Job Monitor) Content:**
+- Job results, status messages, outcomes
+- Images, links, or custom HTML in job results
+- Data displayed in job rows
+
+**To Add Custom Content to Job Results:**
+1. Configure this in your FFAStrans workflow (not CSS)
+2. Use FFAStrans builtin variables: `s_success` or `s_error`
+3. Add your HTML: e.g., `<img src="/folder/image.jpg">`
+4. Make sure folders are added in WebUI Admin → Added Folders
+
+**Example:**
+```ffastrans
+# In your FFAStrans job:
+Set s_success = "<img src='/myfiles/thumbnail.jpg'> Job completed!"
+```
+
+**What the AI CAN Style:**
+- How the job list looks (colors, fonts, spacing)
+- Grid layout and structure
+- Row and column appearance
+- Header styling
+
+**What the AI CANNOT Style:**
+- What content appears in job results
+- Images or links in results (configure in workflow)
+- Job status information
+- Data displayed in cells
+
+**Quick Test:**
+- "Make it look different" → ✅ Styling (AI can help)
+- "Show different information" → ❌ Content (configure in FFAStrans workflow)
+- "Add an image to the result" → ❌ Content (configure in FFAStrans workflow)
+
 ## 🔧 How to Undo Changes
 
 If you don't like a change:
@@ -169,6 +207,11 @@ If you don't like a change:
 5. Refresh your browser
 
 ## 🆘 Getting Help
+
+### Source Code Reference
+- **GitHub Repository**: https://github.com/emcodem/ffastrans_webui
+- **Purpose**: AI agents can access source code to understand page structure and provide accurate styling
+- **Note**: You run FFAStrans as an EXE, but agents can reference GitHub for precise styling solutions
 
 ### If Something Looks Wrong
 1. **Tell the AI what's wrong**: "The buttons disappeared" or "The text is hard to read"
