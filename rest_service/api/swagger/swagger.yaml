@@ -541,9 +541,15 @@ paths:
           required: false
           schema:
             type: string
+        - name: check_finished
+          in: query
+          description: "When set to true, performs a lightweight poll to check job completion status. Requires either 'jobid' or 'jobids' parameter. A job is considered finished when full_log.json exists in its cache/jobs/{jobid} directory and existing when the job folder exists."
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
-          description: Success
+          description: Success. When check_finished=true, returns either a single object (for single jobid) or an array of objects (for multiple jobids) with fields {jobid, finished, exists}
         default:
           description: Error 
   /job_info:

@@ -58,6 +58,64 @@ async function get(req, res) {
             jobids = [req.query.jobid];
         }
 
+        // Handle check_finished mode - lightweight job status polling
+        let check_finished = req.query.check_finished ? true : false;
+        if (check_finished) {
+            if (jobids.length === 0) {
+                console.timeEnd(benchmarkId);
+                return res.status(400).json({ error: "check_finished requires either jobid or jobids parameter" });
+            }
+
+            const jobPath_dir = path.join(global.api_config["s_SYS_CACHE_DIR"], "jobs");
+            const results = [];
+
+            for (const jobid of jobids) {
+                const jobPath = path.join(jobPath_dir, jobid);
+                const fullLogPath = path.join(jobPath, "full_log.json");
+                
+                try {
+                    // Check if job folder exists
+                    let jobExists = false;
+                    try {
+                        await fsPromises.access(jobPath);
+                        jobExists = true;
+                    } catch {
+                        jobExists = false;
+                    }
+
+                    // Check if job is finished (full_log.json exists)
+                    let finished = false;
+                    if (jobExists) {
+                        try {
+                            await fsPromises.access(fullLogPath);
+                            finished = true;
+                        } catch {
+                            finished = false;
+                        }
+                    }
+                    
+                    results.push({
+                        jobid: jobid,
+                        finished: finished,
+                        exists: jobExists
+                    });
+                } catch (ex) {
+                    console.error(`Error checking job status for ${jobid}:`, ex);
+                    results.push({
+                        jobid: jobid,
+                        finished: false,
+                        exists: false
+                    });
+                }
+            }
+
+            // Return single object if single jobid, array if multiple
+            const responseData = jobids.length === 1 ? results[0] : results;
+            res.json(responseData);
+            console.timeEnd(benchmarkId);
+            return;
+        }
+
         //if start and end was set or params bypass cache, we cannot use cache mode
         if (start != 0 || end != 100 || return_id_only || statusFilter || jobids.length > 0) {
             // Dedup identical bypass requests via serialized key
