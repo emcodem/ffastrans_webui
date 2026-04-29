@@ -24,6 +24,8 @@ var count_running = false;
 var backlog_detection_run = false; // Prevent repeated deep scans on same backlog
 var last_backlog_size = 0; // Track last detected backlog
 var backlog_import_running = false; // Prevent concurrent backlog imports
+var backlog_total_to_import = 0;   // Total jobs to import in current backlog run
+var backlog_total_imported = 0;    // Jobs successfully imported so far
 // blocked((time, stack) => {
 // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
@@ -139,7 +141,7 @@ async function getJobs() {
 			let existing_ids = new Set(existing_docs.map(x => x.job_id));
 			
 			// Also exclude jobs that have been deleted
-			let deleted_docs = [] //await global.db.deleted_jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
+			let deleted_docs = await global.db.deleted_jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
 			let deleted_ids = new Set(deleted_docs.map(x => x.job_id));
 			
 			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id) && !deleted_ids.has(id));
@@ -211,6 +213,8 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 		return;
 	}
 	backlog_import_running = true;
+	backlog_total_to_import = missing_ids.length;
+	backlog_total_imported = 0;
 	backlog_logger.info(`Starting background backlog import of ${missing_ids.length} jobs from host ${host}...`);
 	try {
 		global.socketio.emit("error", `Background process: ${existingCount} jobs already imported. Fetching ${missing_ids.length} missing jobs from backlog...`);
@@ -218,34 +222,55 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 
 	try {
 		let backlog_history_jobs = [];
-		let batchSize = missing_ids.length > 10000 ? 500 : 300;
-		backlog_logger.info(`Using batch size ${batchSize} for ${missing_ids.length} missing jobs`);
+		const MIN_BATCH_SIZE = 25;
+		const INITIAL_BATCH_SIZE = 100;
+		const BACKLOG_TIMEOUT = 60000; // 60s — generous timeout for bulk backlog fetches
+		let imported = 0;
+		let skipped = 0;
 
-		for (let i = 0; i < missing_ids.length; i += batchSize) {
+		// Build initial queue of batches
+		let pending = [];
+		for (let i = 0; i < missing_ids.length; i += INITIAL_BATCH_SIZE) {
+			pending.push(missing_ids.slice(i, i + INITIAL_BATCH_SIZE));
+		}
+		backlog_logger.info(`Starting with batch size ${INITIAL_BATCH_SIZE}, ${pending.length} batches queued for ${missing_ids.length} jobs`);
 
-			if (i > 0 && i % 1000 === 0) {
-				backlog_logger.info(`Fetched ${i} of ${missing_ids.length} missing jobs... (${existingCount} already in database)`);
-				try {
-					global.socketio.emit("error", `Background import: Fetched ${i} of ${missing_ids.length} missing jobs...`);
-				} catch (e) { }
-			}
-
-			let batch = missing_ids.slice(i, i + batchSize);
+		while (pending.length > 0) {
+			let batch = pending.shift();
 			let jobInfoUrl = helpers.build_new_api_url(`/job_info`, host, global.config["STATIC_API_NEW_PORT"]);
 			try {
-				let batchResponse = await axios.post(jobInfoUrl, { jobids: batch, vars: varsArray }, { timeout: global.config.STATIC_API_TIMEOUT });
+				let batchResponse = await axios.post(jobInfoUrl, { jobids: batch, vars: varsArray }, { timeout: BACKLOG_TIMEOUT });
 				if (batchResponse && batchResponse.data && batchResponse.data.history) {
 					backlog_history_jobs.push(...batchResponse.data.history);
 				}
+				imported += batch.length;
+				backlog_total_imported += batch.length;
 			} catch (e) {
-				backlog_logger.error(`Error fetching backlog batch of ${batch.length} jobs: ${e.message}`);
+				const isTimeout = e.code === 'ECONNABORTED' || (e.message && e.message.includes('timeout'));
+				if (isTimeout && batch.length > MIN_BATCH_SIZE) {
+					// Split in half and re-queue — adapt to whatever speed the API can handle
+					let half = Math.floor(batch.length / 2);
+					backlog_logger.warn(`Batch of ${batch.length} timed out, splitting into two batches of ${half} and ${batch.length - half}`);
+					pending.unshift(batch.slice(half));
+					pending.unshift(batch.slice(0, half));
+				} else {
+					// Too small to split further, or non-timeout error — skip this batch
+					backlog_logger.error(`Skipping ${batch.length} jobs after unrecoverable error: ${e.message}`);
+					skipped += batch.length;
+				}
+			}
+
+			// Progress update every 1000 imported jobs
+			if (imported > 0 && imported % 1000 === 0) {
+				backlog_logger.info(`Progress: ${backlog_total_imported} imported, ${skipped} skipped of ${backlog_total_to_import} total (${pending.length} batches remaining)`);
+				try { global.socketio.emit("error", `Background import: ${backlog_total_imported} of ${backlog_total_to_import} jobs imported...`); } catch (e) { }
 			}
 
 			// Parse incrementally every 2000 jobs to free memory and show progress sooner
 			if (backlog_history_jobs.length >= 2000) {
 				backlog_logger.info(`Parsing intermediate batch of ${backlog_history_jobs.length} jobs...`);
 				await parseHistoryJobs(backlog_history_jobs);
-				backlog_history_jobs = []; // Free memory
+				backlog_history_jobs = [];
 			}
 		}
 
@@ -255,10 +280,8 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 			await parseHistoryJobs(backlog_history_jobs);
 		}
 
-		try {
-			global.socketio.emit("error", `Background import: Completed importing ${missing_ids.length} jobs.`);
-		} catch (e) { }
-		backlog_logger.info(`Background backlog import finished: ${missing_ids.length} jobs processed.`);
+		backlog_logger.info(`Background backlog import finished: ${backlog_total_imported} imported, ${skipped} skipped of ${backlog_total_to_import} total.`);
+		try { global.socketio.emit("error", `Background import: Completed. ${backlog_total_imported} of ${backlog_total_to_import} jobs imported${skipped > 0 ? `, ${skipped} skipped` : ''}.`); } catch (e) { }
 
 	} catch (ex) {
 		backlog_logger.error(`Background backlog import error: ${ex.message || ex}`);
