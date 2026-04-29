@@ -399,7 +399,12 @@ function updateJobCount(){
             }       
         },
         error: function (xhr, status) {
-            console.log("Error updateing jobcount");
+            if (xhr.status === 401) {
+                console.log("Unauthorized (401) - redirecting to login");
+                window.location.href = "/logout";
+            } else {
+                console.log("Error updateing jobcount");
+            }
         }
     });
 }
