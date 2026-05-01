@@ -8763,15 +8763,6 @@ input{
 .fa-save::before{
 	color:#FFF !important;
 }
-#savelocation{
-  background-color: #00000000;
-  border: 1px solid black;
-  cursor:pointer;
-}
-#savelocation:hover{
-  background-color: #FFFFFF30;
-  border: 1px solid black;
-}
 
 /* options window */
 .dhxform_obj_dhx_skyblue .dhxform_textarea {
