@@ -26,6 +26,9 @@ module.exports = function(app, passport) {
          res.sendFile(global.approot + req.originalUrl);
     });
 
+    app.post('/api/ticket_events', require('./ticket_event_handler'));
+
+
     //override.css is used on every page but usually does not exist, this prevents 404 errors
     app.get ('/alternate-server/css/override.css', async function(req,res){
         if (await fs.promises.exists(path.join(global.approot,"/alternate-server/css/override.css"))){

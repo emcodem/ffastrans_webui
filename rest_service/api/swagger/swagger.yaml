@@ -641,6 +641,26 @@ paths:
         default:
           description: Error
 
+  /events:
+    x-swagger-router-controller: events
+    post:
+      description: "Registers a callback URL to receive filesystem events for the tickets folder"
+      operationId: events_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+              example: {"url": "http://localhost:3002/api/ticket_events"}
+      responses:
+        "200":
+          description: Success
+        default:
+          description: Error
+
   /swagger:
     x-swagger-pipe: swagger_raw
 

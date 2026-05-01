@@ -123,7 +123,7 @@ async function getJobs() {
 			let jobCount = deep_scan_next_run ? 100000 : 10000;
 			deep_scan_next_run = false; // Reset eagerly
 			backlog_detection_run = false;
-			
+
 
 			let activeUrl = helpers.build_new_api_url(`/jobs/?status=active` + varsQuery, h, global.config["STATIC_API_NEW_PORT"]);
 			let historyIdsUrl = helpers.build_new_api_url(`/jobs/?start=0&count=${jobCount}&status=history&return_id_only=true`, h, global.config["STATIC_API_NEW_PORT"]);
@@ -139,11 +139,11 @@ async function getJobs() {
 			// --- DIFF: find which job IDs are missing from MongoDB ---
 			let existing_docs = await global.db.jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
 			let existing_ids = new Set(existing_docs.map(x => x.job_id));
-			
+
 			// Also exclude jobs that have been deleted
 			let deleted_docs = await global.db.deleted_jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
 			let deleted_ids = new Set(deleted_docs.map(x => x.job_id));
-			
+
 			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id) && !deleted_ids.has(id));
 
 			if (missing_ids.length > 0 && missing_ids.length === fetched_history_ids.length && !backlog_detection_run) {
@@ -353,6 +353,7 @@ async function parseRunningJobs(a_running) {
 	*/
 
 	try {
+		console.log("sending activejobs event with count: ", all_jobs.length)
 		global.socketio.emit("activejobs", all_jobs.length);
 	} catch (exc) {
 		console.error("Error occured while sending activejobs to clients: " + exc + body)

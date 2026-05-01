@@ -102,9 +102,6 @@ try {
 //job scheduler - TODO: reset isactive state at program start
 global.jobScheduler = require("./node_components/cron_tasks/scheduled_jobs.js");
 
-//Before DB init, we need socket.io
-// var jobcontrol = require("./node_components/jobcontrol_socketio");
-
 //init DB
 console.log("Database file: ", global.approot + "/database/config")
 global.db = {};
@@ -191,13 +188,9 @@ async function connectDb() {
         //todo:restart DB? Anyway, we must inform clients continuously...
         setTimeout(function () {
             dblogger.info("Initiating connect retry in 3 seconds");
-            //global.socketio.emit("databaseerror", "Job Database process exited, please restart webinterface service and read log files");
-            //connectDb();
+
         }, 3000);
-        // setInterval(function(){
-        // 	//show errormsg forever as we do not attempt to reconnect
-        // 	
-        // }, 3000);
+
     }
 
     //connect to database, store connection in global object
@@ -532,6 +525,19 @@ async function init(conf) {
                 // var res = await axios.get(about_url)
                 restApiController.start_rest_api_thread(global.config.STATIC_API_NEW_PORT, global.config.STATIC_FFASTRANS_PATH, global.config);
                 got_connection = true;
+
+                // Register callback for ticket events
+                setTimeout(async () => {
+                    try {
+                        const callbackUrl = `http://127.0.0.1:${global.config.STATIC_WEBSERVER_LISTEN_PORT}/api/ticket_events`;
+                        const registerUrl = `http://127.0.0.1:${global.config.STATIC_API_NEW_PORT}/events`;
+                        console.log("Registering ticket event callback:", callbackUrl, "at", registerUrl);
+                        await axios.post(registerUrl, { url: callbackUrl });
+                    } catch (ex) {
+                        console.error("Failed to register ticket event callback:", ex.message);
+                    }
+                }, 3000); // Give the rest_service a few seconds to start up
+
             } catch (exc) {
                 console.error("Cannot start rest_api_thread");
                 await sleep(1000);
@@ -540,23 +546,6 @@ async function init(conf) {
         }
         connectApi();
     }
-
-    //PROXY, forward requests to ffastrans # export variable for debugging: set DEBUG=express-http-proxy (onwindows)
-    //DEPRECATED, USE NEW API AND PROXY
-    // app.use('/proxy', proxy("http://"+global.config.STATIC_API_HOST+":"+global.config.STATIC_API_PORT,{
-    //     onProxyReq: function (proxyReq, req, res) {
-    //         console.log(proxyReq)
-    //     },
-    //     parseReqBody: true,
-    // 	reqBodyEncoding: null,
-    // 	reqAsBuffer: true,
-    // //     proxyReqBodyDecorator: function(bodyContent, srcReq) {
-    // //    //the "" is important here, it works around that node adds strange bytes to the request body, looks like BOM but isn't
-    // //    //we actually want the body to be forwarded unmodified
-    // //     bodyContent=(""+srcReq.body) 
-    // //     return bodyContent;
-    // //   }
-    // }));
 
     //PROXY, forward to new api, port 3003 default
     var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
@@ -610,21 +599,12 @@ async function init(conf) {
     require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
     require('./node_components/passport/passport')(passport); // pass passport for configuration
 
-
-
-    // require("./upload_backend/common")(app, express);
-    // require("./upload_backend/saverename")(app, express);
-    // require("./upload_backend/getFullUploadPath")(app, express);
     require("./node_components/filebrowser")(app, express);
     require("./node_components/getserverconfig")(app, express);
-    //require("./node_components/logparser")(app, express); //removed due to audit and change to new api
-
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobs_dhx")(app, express);
     require("./node_components/views/get_jobviewercolumns")(app, express);
     require("./node_components/views/generic_json_to_html")(app, express);
-
-    // require("./node_components/views/gethistoryjobsajax_treegrid")(app, express);
     require("./node_components/views/getactivejobs_dhx")(app, express);
     require("./node_components/views/userlist")(app, express);
     require("./node_components/views/usergrouplist")(app, express);
@@ -638,7 +618,6 @@ async function init(conf) {
     require("./node_components/views/localdrives")(app, express);
 
     require("./node_components/get_userpermissions")(app, passport);
-    //require("./node_components/resumeable_backend.js.deprecated")(app, passport); //removed due to uppy and audit
     require("./node_components/activedirectory_tester.js")(app, passport);
     require("./node_components/admin_alert_email_tester.js")(app, passport);
     require("./node_components/farmadmin_install_service.js")(app, passport);
@@ -650,10 +629,6 @@ async function init(conf) {
 
     //uppy overrides "all other urls" for receiving the upload using tus so it should be the last thing to load
     require("./node_components/uppy")(app, passport);
-
-
-    //upload backend
-
 
     //favicon
     app.use('/favicon.ico', express.static('./webinterface/images/favicon.ico'));

@@ -259,7 +259,8 @@ async function start_server( _listenport,globalconf){
       workflows_status :  require( "./api/controllers/workflows_status.js").get,
       variables :         require( "./api/controllers/variables.js").get,
       variables_post :    require( "./api/controllers/variables.js").post,
-      variables_delete :  require( "./api/controllers/variables.js").delete
+      variables_delete :  require( "./api/controllers/variables.js").delete,
+      events_post:        require( "./api/controllers/events.js").post
   }
 
   let swaggerDocument; 
