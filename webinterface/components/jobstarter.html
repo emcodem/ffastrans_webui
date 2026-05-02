@@ -1431,7 +1431,8 @@
 
         window.onPathClick = onPathClick; //this func is used directly in html tags
         function onPathClick(event, where) {
-            event.stopPropagation();
+            if (event)
+                event.stopPropagation();
             getFileList(m_fileBrowserGrid, where, true)
         }
 
