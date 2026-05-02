@@ -11,6 +11,7 @@
 <script>
     //theme changeer
     if (localStorage.global_skin_dark == "1"){
+        document.documentElement.classList.add("dark-mode");
         try{
             document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
         }catch(ex){}
