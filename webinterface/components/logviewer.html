@@ -41,61 +41,80 @@
 <script src="../dependencies/dhtmlx/dhtmlx.js"></script>
 <link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
 
-<script src="../dependencies/dhtmlx/8.4.5/suite.umd.js"></script>
-<link rel="stylesheet" href="../dependencies/dhtmlx/8.4.5/suite.min.css" type="text/css"></link>
+<script src="../dependencies/dhtmlx/9.0.1/suite.umd.js"></script>
+<link rel="stylesheet" href="../dependencies/dhtmlx/9.0.1/suite.min.css" type="text/css"></link>
 
 
 
 <style type="text/css" id="customstyle">
-    /* it's important to set width/height to 100% for full-screen init */
+    :root {
+        --canvas-font-size-processor: 4em;
+        --canvas-font-size-sub-wf-ctrl: 20px;
+        --primary-color: #2196f3;
+        --accent-color: #ff4081;
+        --bg-dark: #1e1e1e;
+        --bg-light: #ffffff;
+        --text-primary: #333;
+        --text-secondary: #666;
+        --border-color: #ddd;
+        --row-even: #f9f9f9;
+        --row-hover: #e3f2fd;
+        --status-success: #4caf50;
+        --status-error: #f44336;
+        --status-running: #2196f3;
+        --btn-bg: #eee;
+        --btn-border: #ccc;
+        --btn-text: #333;
+        --log-event-success-bg: #e8f5e9;
+        --log-event-success-color: #2e7d32;
+        --log-event-error-bg: #ffebee;
+        --log-event-error-color: #c62828;
+        --log-event-info-bg: #e3f2fd;
+        --log-event-info-color: #1565c0;
+    }
+
+    [data-theme="dark"] {
+        --primary-color: #64b5f6;
+        --bg-dark: #121212;
+        --bg-light: #1e1e1e;
+        --text-primary: #e0e0e0;
+        --text-secondary: #aaaaaa;
+        --border-color: #444;
+        --row-even: #252525;
+        --row-hover: #323232;
+        --btn-bg: #333;
+        --btn-border: #555;
+        --btn-text: #e0e0e0;
+        --jh-key: #aaa;
+        --jh-type-string: #81c784;
+        --jh-type-number: #64b5f6;
+        --log-event-success-bg: #24422f;
+        --log-event-success-color: #b8f2b2;
+        --log-event-error-bg: #4d211f;
+        --log-event-error-color: #ffb4b4;
+        --log-event-info-bg: #1c2d3f;
+        --log-event-info-color: #b3d7ff;
+    }
+
     html, body {
         width: 100%;
         height: 100%;
         margin: 0px;
         overflow: hidden;
-        color: #333;
-        font: 14px;
-        font-family: var(--dhx-font-family);
-        line-height: 18px;
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
     }
 
-    th{
+    th {
         font-weight: normal;
     }
 
-    #graphContainer {
-        /*background: url('../images/canvas_background.png');*/
-        position: absolute;
-        white-space: nowrap;
-        font-family: Arial;
-        font-size: 8pt;
-        display: block;
-        width: 100%;
-        height: 100%;
-        background-color:#E7E7E7;
-    }
-
-    /* svg {
-            min-width: unset !important;
-            min-height: unset !important;
-    } */
-        
-    .exec_count {
-        background: #555555;
-        border-radius: 0.9em;
-        -moz-border-radius: 0.9em;
-        -webkit-border-radius: 0.9em;
-        color: #FFFFEE;
-        display: inline-block;
-        line-height: 1.7em;
-        position: absolute;
-        left: -30px;
-        top: -30px;
-        text-align: center;
-        width: 1.7em;
-    }
-
-    table, th, td {
+    /* Scope canvas-specific table styles to graph container only */
+    #graphContainer table, 
+    #graphContainer th, 
+    #graphContainer td {
         border: 1px solid black;
         table-layout:fixed;
         white-space:nowrap;
@@ -103,23 +122,121 @@
         overflow:hidden;
     }
 
-    #treetable_log {
-        overflow:unset!important;
-        table-layout:fixed;
-        white-space:nowrap;
-        vertical-align: top;
-        border-collapse: separate !important; /* Don't collapse */
-        border-spacing: 0;
+    /* Modern Scrollbars scoped to new components */
+    .dhx_grid ::-webkit-scrollbar, .detail-content::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .dhx_grid ::-webkit-scrollbar-track, .detail-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .dhx_grid ::-webkit-scrollbar-thumb, .detail-content::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+    .dhx_grid ::-webkit-scrollbar-thumb:hover, .detail-content::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
     }
 
-    :root {
-        --canvas-font-size-processor: 4em;
-        --canvas-font-size-sub-wf-ctrl: 20px;
+    #graphContainer {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: #E7E7E7;
+        white-space: nowrap;
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
     }
 
+    .exec_count {
+        background: rgb(68,68,68);
+        border-radius: 50%;
+        color: #fff;
+        display: inline-block;
+        line-height: 1.7em;
+        height: 1.7em;
+        width: 1.7em;
+        position: absolute;
+        left: -30px;
+        top: -30px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+
+    .div_ffastrans_processor_container {
+        overflow: hidden;
+    }
+
+    .sub_wf_ctrl_icons {
+        display: inline-flex;
+        float: right;
+        gap: 4px;
+    }
+
+    .sub_wf_ctrl_icons .mdi {
+        cursor: pointer;
+        transition: transform 0.2s;
+        padding: 2px;
+    }
+
+    .sub_wf_ctrl_icons .mdi:hover {
+        transform: scale(1.2);
+        color: var(--primary-color);
+    }
+
+    .icon-logviewer-menu {
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-right: 5px;
+        color: inherit;
+        font-size: 16px;
+        transition: color 0.2s;
+    }
+
+    .icon-logviewer-menu:hover {
+        color: var(--primary-color);
+    }
+
+    .btn {
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        color: var(--btn-text);
+        border-radius: 4px;
+        padding: 2px 8px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    .btn:hover {
+        filter: brightness(1.1);
+        border-color: var(--primary-color);
+    }
+
+    .log-filter-input {
+        background: var(--bg-light);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0 8px;
+        font-family: inherit;
+        font-size: 12px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .log-filter-input:focus {
+        border-color: var(--primary-color);
+    }
+
+    /* RESTORED CANVAS STYLES */
     .table_ffastrans_processor_enabled {
         overflow: hidden;
-        font-size: var(--canvas-font-size-processor); /*wf description as font size 8, header has 15*/
+        font-size: var(--canvas-font-size-processor);
         font-family: Calibri;
         border: 3px rgb(85,85,85);
         background-color: rgb(184,184,184);
@@ -131,7 +248,7 @@
         font-family: Calibri;
         border: 3px rgb(85,85,85);
         background-color: rgb(184,184,184);
-        opacity: .4
+        opacity: .4;
     }
 
     .table_ffastrans_sub_wf_enabled {
@@ -142,127 +259,45 @@
         background-color: white;
     }
 
-    .sub_wf_ctrl_icons{
-        display:inline-flex;
-        float:right;
-        /* position:absolute;
-        float:right;
-        margin-right:var(--canvas-font-size-sub-wf-ctrl); */
-        font-size: var(--canvas-font-size-sub-wf-ctrl);
-    }
-
-    .sub_wf_ctrl_icons > span{
-        border:1px solid;
-        margin:2px;
-    }
-
-    .sub_wf_ctrl_icons .mdi:hover {
-        display:inline-block;
-        transform: scale(1.1);
-        cursor:pointer;
-    }
-
-    .overflow_auto{
-        overflow:auto;
-    }
-    .overflow_hidden{
-        overflow:hidden;
-    }
-
-    .tr_ffastrans_processor_desc{
-        font-size: 4em;
-        
-    }
     .tr_ffastrans_processor_top {
         background-color: rgb(119,119,119);
         height: 30%;
         color: white;
+        font-weight: bold;
     }
 
-    .jh-key, .jh-value {
-        margin: 0;
-        padding: 0 5px 0 5px !important;
-        /* padding: 0.2em;*/
-        font-weight: lighter;
-        font-size: var(--dhx-font-size-normal);
+    .tr_ffastrans_processor_desc {
+        font-size: 4em;
     }
 
-    div.gridbox {
-        overflow: initial;
-        
-    }
-    div.gridbox table.obj td{
-        user-select: text !important;
-    }
-
-    .dhx_cell_cont_wins {
-        overflow: scroll !important;
-    }
-
-    .dhx_grid-selected-row{
-        background:  rgba(0, 128, 255, 0.250)
-    }  
-
-    .dhx_grid-cell__content{
-        z-index:100;
-    }
-
-    /*three dots on text overflow*/
-    .celltext {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        user-select: text;
-        margin-left: 6px;
-        font-size: var(--dhx-font-size-normal);
-        color: var(--dhx-font-color-primary);
-        font-family: var(--dhx-font-family);
+    .div_ffastrans_processor_desc {
+        font-family: Calibri;
     }
 
     .blinking-progress {
-        /* NAME | TIME | ITERATION */
         -webkit-animation: changeShadowProgress 0.5s infinite alternate;
         -moz-animation: changeShadowProgress 0.5s infinite alternate;
         animation: changeShadowProgress 0.5s infinite alternate;
     }
 
     .blinking-selected {
-        /* border-bottom: calc(var(--canvas-font-size-processor)/2) solid #0000ff78 */
-        box-shadow:  0 0 100px 50px #fff900ad;
+        box-shadow: 0 0 100px 50px #fff900ad !important;
     }
-    
-    /* todo: we could use a variable for the sizes in order to support changing the base resolution of the graph (the real processor pixel width) 
-        but as the real processor pixel width is not changed dynamically, we can leave it hardcoded.
-    */
+
     @keyframes changeShadowProgress {
-        from {
-            box-shadow: 0 0 50px 10px #93ce99;
-        }
-        to {
-            box-shadow: 0 0 50px 10px #269922;
-        }
+        from { box-shadow: 0 0 50px 10px #93ce99; }
+        to { box-shadow: 0 0 50px 10px #269922; }
     }
 
     .blinking-error {
-        /* NAME | TIME | ITERATION */
         -webkit-animation: changeShadowError 0.5s infinite alternate;
         -moz-animation: changeShadowError 0.5s infinite alternate;
         animation: changeShadowError 0.5s infinite alternate;
     }
 
     @keyframes changeShadowError {
-        from {
-            box-shadow: 0 0 50px 10px #a21a1a;
-        }
-
-        to {
-            box-shadow: 0 0 50px 10px #a21a1a;
-        }
-    }
-
-    .sticky{
-        position:sticky;
-        top:0;
+        from { box-shadow: 0 0 50px 10px #a21a1a; }
+        to { box-shadow: 0 0 50px 10px #a21a1a; }
     }
 
     /* Fix blurry mxGraph rendering */
@@ -279,25 +314,104 @@
         image-rendering: crisp-edges;
     }
 
-    /* Loader spinner */
+    /* Grid Customizations */
+    .dhx_grid {
+        --dhx-font-family: 'Inter', sans-serif;
+    }
+
+    /*
+    .dhx_grid-header-cell {
+        background-color: var(--bg-light) !important;
+        z-index: 2 !important;
+    }*/
+
+    .dhx_grid-row:hover {
+        background-color: var(--row-hover) !important;
+    }
+
+    .log-event-badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        
+        border: 1px solid transparent;
+    }
+
+    .log-event-success { background: var(--log-event-success-bg); color: var(--log-event-success-color); }
+    .log-event-error { background: var(--log-event-error-bg); color: var(--log-event-error-color); }
+    .log-event-info { background: var(--log-event-info-bg); color: var(--log-event-info-color); }
+
+    [data-theme="dark"] .log-event-badge {
+        border-color: rgba(255,255,255,0.12);
+    }
+
+    /* JSON Human Overrides */
+    .jh-root {
+        font-family: 'Fira Code', monospace;
+        font-size: 12px;
+    }
+
+    .jh-type-string { color: var(--jh-type-string, #2e7d32); }
+    .jh-type-number { color: var(--jh-type-number, #1565c0); }
+    .jh-key { color: var(--jh-key, #888); font-weight: bold; }
+
     .loader {
-        border: 8px solid #f3f3f3;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
         border-radius: 50%;
-        border-top: 8px solid #3498db;
-        -webkit-animation: spin 2s linear infinite;
-        /* position absolute so centering is relative to the positioned parent element */
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
         position: absolute;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 30px;
-        height: 30px;
-        z-index: 100;
-        /* center within parent */
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
-        visibility: hidden;
+        margin: -20px 0 0 -20px;
+        z-index: 1000;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Floating Detail Pane */
+    #log_detail_pane {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 450px;
+        background: #fff;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        border-left: 1px solid var(--border-color);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .detail-header {
+        padding: 12px;
+        background: #f5f5f5;
+        border-bottom: 1px solid var(--border-color);
+        
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+    }
+
+    .detail-content {
+       
+        padding: 15px;
+
+    }
+
+    /* prevent white rectangle bottom right where scrollbars meet */
+    ::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    /* using dhtmlx5 and 8 at the same time on the page causes odd behaviour with grid rows,  this one mitigates row text shown over search header */
+    .dhx_grid-cell__content{
+        z-index: unset !important;
     }
 
 </style>
@@ -305,6 +419,7 @@
 <script>
     //theme changeer disabled for jobviewer
     if (localStorage.global_skin_dark == "1"){
+        document.documentElement.setAttribute("data-theme", "dark");
         try{
             document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css","dhtmlx_benjamin.css")
         }catch(ex){}
@@ -337,10 +452,13 @@ var m_timelineobject =  [];
 var m_userpermissions;
 let m_subWorkflows = {node_id:"workflow_id"}
 let m_branchGrid;
+let m_logGrid; // New virtualized log grid
+let m_logSubLayout; // Sub-layout for grid and details
 // Maps node IDs to their container prefixes (for nested workflows)
 let m_node_to_container = {};
 // Maps node IDs to their graph objects (for finding correct graph in nested workflows)
 let m_node_to_graph = {};
+
 
 
 /** Support closing the dhtmlx window in parent window, when this is loaded as iframe 
@@ -427,8 +545,10 @@ function init() {
     */
     buildMainLayout();
 
-    buildLogGridGrid();
+    initLogGrid();
     initNodeGrid();
+
+
     console.log("Getting Job Details of " + getQueryVariable("job_id"))
     get_all_job_details(getQueryVariable("job_id"));
 
@@ -613,17 +733,32 @@ function buildMainLayout() {
                         <button class="btn icon-logviewer-menu" name="b_zoomout" onclick="m_graph.zoomOut()"><span class="mdi mdi-minus"></span></button> \
                         <button class="btn icon-logviewer-menu" name="b_fit" onclick="m_graph.fit()" title="Center"><span class="mdi mdi-arrow-collapse-all"></span></button> \
                         <button class="btn icon-logviewer-menu"  name="b_image" onclick="export_StyledSVG()" title="Download"><span class="mdi mdi-download"></button> ');
+    mainLayout.cells("c").hideHeader();
+    
+    // Create a sub-layout in Cell C for Grid + Detail
+    m_logSubLayout = mainLayout.cells("c").attachLayout("2E");
+    m_logSubLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
+                        <input placeholder="Filter" class="log-filter-input" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
+                        <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()" class="icon-logviewer-menu"><span class="mdi mdi-history"></span></button>\
+                        <button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleLogViewerDock()"><span class="mdi mdi-eject"></span></button> \
+                        ');
+// removed                         <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
+
+                        m_logSubLayout.cells("b").setText("Entry Detail");
+    //m_logSubLayout.cells("b").setHeight(250);
+    m_logSubLayout.cells("b").collapse(); // Keep it collapsed initially
+    
+    // Attach the containers
+    m_logSubLayout.cells("a").attachObject("log_grid_container");
+    m_logSubLayout.cells("b").attachObject("log_detail_pane_container");
+
+    // Ensure the DHTMLX-attached parent cell is scrollable once the object is attached
+    m_logSubLayout.cells("b").showInnerScroll();
+    
     mainLayout.cells("b").attachHTMLString('<div id="graphContainer" style="position:relative;overflow:hidden;cursor:default;float:left"></div>'
     //+'<div id="graphContainer2" style="position:relative;overflow:hidden;cursor:default;background-color:#E7E7E7"></div>'
     );
-    mainLayout.cells("c").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
-                        <input placeholder="Filter" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
-                        <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()" class="icon-logviewer-menu"><span class="mdi mdi-history"></span></button>\
-                        <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
-                        <button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleLogViewerDock()"><span class="mdi mdi-eject"></span></button> \
-                        ');
     //mainLayout.cells("c").showInnerScroll();
-    mainLayout.cells("c").attachObject("log_div"); //for json_to_table
     //todo: on btnclick, hide minfo und ffprobe: set height 10px und display:inline-block
     mainLayout.cells("a").setWidth(400);
     mainLayout.cells("a").setText('Info');
@@ -643,13 +778,14 @@ function buildMainLayout() {
         if (window._undockedWin){
                 delete window._undockedWin;
                 mainLayout.cells('c').dock();
-                document.getElementById("log_div").style.overflow = "scroll";
+                //document.getElementById("log_grid_container").style.overflow = "auto";
                 return;
         }
-        mainLayout.cells("c").undock();
+        window._undockedWin = mainLayout.cells('c').undock(50,50,800,600);
+        document.getElementById("log_grid_container").style.overflow = "auto";
     }
     mainLayout.attachEvent("onUndock", function (name) {
-        document.getElementById("log_div").style.overflow = "unset"; //logdiv needs scroll when docked but not when undocked
+        document.getElementById("log_grid_container").style.overflow = "auto"; //logdiv needs scroll when docked but not when undocked
         window._undockedWin = mainLayout.dhxWins.window(name);
         _undockedWin.setDimension($(document).width() / 1.2, $(document).height() / 1.2);
         _undockedWin.center();
@@ -964,14 +1100,14 @@ function drawNestedSubWorkflows(workflow_json, available_workflows) {
     }
 }
 
-function toggle_hide_all(chkbox){
-//show/hide content of log entry
-    if (chkbox.checked){
-        $( ".togglecontentvisible" ).prop("checked", true).trigger("change");
-    }else{
-        $( ".togglecontentvisible" ).prop("checked", false).trigger("change");
-    }
-}
+// function toggle_hide_all(chkbox){
+// //show/hide content of log entry
+//     if (chkbox.checked){
+//         $( ".togglecontentvisible" ).prop("checked", true).trigger("change");
+//     }else{
+//         $( ".togglecontentvisible" ).prop("checked", false).trigger("change");
+//     }
+// }
 
 function buildMxGraph(container,workflow_json,panning = true) { //panning allows dragging/moving the graph
     console.log("Graph conatiner id:",container.id)
@@ -1093,11 +1229,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                                 
                                     //here goes the sub-workflow canvas svg(or processor desc)
                                 
-                            '</th></tr>' 
-                            
-                            
-
-                            
+                            '</th></tr>' +
                             '</table></div>';
                     
                 return tbl;
@@ -1311,27 +1443,10 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 // prevent zooming the outer graph when scrolling a sub-graph
                 // Find the nearest ancestor element of the event target that corresponds to a registered graph container
                 try {
-                    var node = evt.target;
-                    var nearestGraphContainer = null;
-                    while (node) {
-                        if (node.id && window.m_graphs_by_container_id && m_graphs_by_container_id[node.id]) {
-                            nearestGraphContainer = node;
-                            break;
-                        }
-                        node = node.parentNode;
-                        if (!node || node === document) break;
+                    if (this.container && !this.container.contains(evt.target)){ //if ! graph container contains a child scroll matching event target
+                        return
                     }
-                    // If the nearest graph container is present and it's not this graph's container, skip handling here.
-                    if (nearestGraphContainer && nearestGraphContainer !== this.container) {
-                        return;
-                    }
-                } catch (e) {
-                    // fallback to original containment check on error
-                }
-
-                if (this.container && !this.container.contains(evt.target)){ //if ! graph container contains a child scroll matching event target
-                    return
-                }
+                } catch(e) {}
 
                 if (mxEvent.isConsumed(evt)) {
                     return;
@@ -1353,23 +1468,6 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 view.setTranslate(view.translate.x + deltaX, view.translate.y + deltaY);
                 graph.gridEnabled = false;
                 console.log("over and out")
-
-                try {
-                    for (const id in m_graphs_by_container_id) {
-                        const g = m_graphs_by_container_id[id];
-                        console.log('Graph container:', id, 'graph:', g);
-
-                        if (g?.view?.validate instanceof Function) {
-                            try {
-                                g.view.validate();
-                            } catch (e) {
-                                console.warn('validate failed for', id, e);
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.warn('validateAllGraphs iteration failed', e);
-                }
             }))
         }
         console.log("tryin")
@@ -1382,53 +1480,127 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
 function filterLogByNodeId(nodeId, branch){
     /* visually filters log  */
-    var tree = $("#treetable_log").fancytree('getTree');
     toggleNodeSelected(nodeId);
 
     if (!nodeId){
-        tree.clearFilter();
+        m_logGrid.data.filter();
         return;
     }
 
-    var matchCount = 0;
-    tree.filterNodes(function (node) {
-        if (node["data"]["node"]["id"]){
-            if (node["data"]["node"]["id"].toUpperCase().match(nodeId)) {
-                if (branch){
-                    if (node["data"]["split_id"] == branch){
-                        console.log("branch filter matched")
-                        matchCount++;
-                        return true;//branch and node matched
-                    }else{
-                        return false;//branch filter active but not matched
-                    }
-                }else{
-                    matchCount++;
-                    return true;//branch filter inactive and node matched
-                }
-            }else{
-                return false; //no node id
-            }
+    m_logGrid.data.filter(function(item) {
+        if (!item.node || !item.node.id) return false;
+        
+        let match = item.node.id.toUpperCase() === nodeId.toUpperCase();
+        if (branch) {
+            match = match && (item.split_id == branch);
         }
-    }, {
-        mode: "hide"
+        return match;
     });
-
-    // Auto-show all log content if filtered log lines are less than 10k
-    console.log("filterLogByNodeId matchCount:", matchCount);
-    if (matchCount > 0 && matchCount < 10000) {
-        setTimeout(function() {
-            // Directly show all content by checking all visible togglecontentvisible checkboxes
-            $(".togglecontentvisible").prop("checked", true).trigger("change");
-            // Also ensure the "All" checkbox reflects this state
-            var allCheckbox = document.querySelector("input[name='toggle_hide_all']");
-            if (allCheckbox) {
-                allCheckbox.checked = true;
-            }
-            console.log("Auto-expanded all log content for", matchCount, "entries");
-        }, 100);
+    
+    // If we have matches, auto-show detail for the first one if only a few items
+    if (m_logGrid.data.getLength() > 0 && m_logGrid.data.getLength() < 50) {
+        let firstId = m_logGrid.data.getItem(m_logGrid.data.getIndex(0)).id;
+        m_logGrid.selection.setCell(firstId);
     }
 }
+            
+
+function initLogGrid() {
+    const columns = [
+        { 
+            id: "node_name", 
+            header: [{ text: "Node" }, { content: "inputFilter" }], 
+            width: 150,
+            template: function(val, item) {
+                return `<div class="celltext" title="${val}">${val}</div>`;
+            }
+        },
+        { 
+            id: "created_fmt", 
+            header: [{ text: "Time" }, { content: "inputFilter" }], 
+            width: 160 
+        },
+        { 
+            id: "host", 
+            header: [{ text: "Host" }, { content: "selectFilter" }], 
+            width: 120 
+        },
+        { 
+            id: "split_id", 
+            header: [{ text: "Branch" }, { content: "inputFilter" }], 
+            width: 80 
+        },
+        { 
+            id: "event", 
+            header: [{ text: "Event" }, { content: "selectFilter" }], 
+            width: 150,
+            template: function(val) {
+                let css = "log-event-info";
+                if (val.toLowerCase().includes("error") || val.toLowerCase().includes("fail")) css = "log-event-error";
+                if (val.toLowerCase().includes("success") || val.toLowerCase().includes("end")) css = "log-event-success";
+                return `<span class="log-event-badge ${css}">${val}</span>`;
+            }
+        },
+        { 
+            id: "data_preview", 
+            header: [{ text: "Data Preview" }, { content: "inputFilter" }], 
+            flex: 1,
+            template: function(val) {
+                return `<div class="celltext" style="color:var(--text-secondary); font-style:italic">${val}</div>`;
+            }
+        }
+    ];
+
+    m_logGrid = new dhx8.dhx.Grid("log_grid_container", {
+        columns,
+        autoWidth: true,
+        resizable: true,
+        selection: "row",
+        rowHeight: 30,
+        headerRowHeight: 30,
+        editable: false,
+        keyNavigation: true,
+        
+        htmlEnable: true
+    });
+
+    m_logGrid.events.on("afterSelect", function(row, col) {
+        const item = m_logGrid.data.getItem(row.id);
+        if (item) showLogDetail(item);
+    });
+
+    // Global filter from the search input
+    document.querySelector("input[name='log_filter']").addEventListener("input", function(e) {
+        const val = e.target.value.toLowerCase();
+        if (!val) {
+            m_logGrid.data.filter();
+            return;
+        }
+        m_logGrid.data.filter(function(item) {
+            return JSON.stringify(item).toLowerCase().includes(val);
+        });
+    });
+}
+
+function showLogDetail(item) {
+    const detailContent = document.getElementById("log_detail_content");
+    
+    // Attempt to expand the detail cell if it's collapsed
+    try {
+        if (m_logSubLayout) {
+            m_logSubLayout.cells("b").expand();
+        }
+    } catch(e) {}
+
+    detailContent.innerHTML = "";
+    const table = JsonHuman.format(item.data || item._data);
+    detailContent.appendChild(table);
+}
+
+function closeLogDetail() {
+    document.getElementById("log_detail_pane").style.display = "none";
+}
+
             
 
 function CustomData(value) {
@@ -1656,183 +1828,7 @@ async function parseJobLog(lines) {
     console.timeEnd("parseJobLog");
 }
 
-function buildLogGridGrid() {
 
-    $("#treetable_log").fancytree({
-        extensions: [ "filter","table",  "gridnav", "multi"],
-        quicksearch: true,
-        filter: {
-            autoExpand: true, // Expand all branches that contain matches while filtered
-            fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
-            hideExpandedCounter: true,  // Hide counter badge if parent is expanded
-            hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
-            highlight: true,   // Highlight matches by wrapping inside <mark> tags
-            leavesOnly: false, // Match end nodes only
-            nodata: true,      // Display a 'no data' status node if result is empty
-            mode: "dimm"       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
-        },
-        icon: false,
-        checkbox: false,
-        titlesTabbable: true, // Add all node titles to TAB chain
-        quicksearch: true,
-        focusOnSelect: false,
-        autoScroll: false,
-        autoActivate: false,
-        unselectable: true,
-        activeVisible: false,
-        multi: { //multiselct
-            mode: "",
-        },
-        init: function (event, data) {
-            $("input[name=log_filter]").keyup(function (e) {
-                var n, tree = $("#treetable_log").fancytree('getTree');
-                var match = $(this).val();
-                n = tree.filterNodes(match, { mode: "hide" });
-                opts = {}, filterFunc = tree.filterNodes;
-                if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === "") {
-                    tree.clearFilter();
-                    return;
-                }
-                // Pass a string to perform case insensitive matching
-                n = filterFunc.call(tree, match, opts);
-            })
-            //ENABLE RESIZE COLUMNS
-            /*
-            $("#treetable_log").colResizable({
-                resizeMode: 'fit',
-                hoverCursor: "col-resize",
-                dragCursor: "col-resize",
-                postbackSafe: true,
-                useLocalStorage: true,
-                minWidth: 10,
-                liveDrag: true,
-            });*/
-        },
-        modifyChild: function (event, data) {
-            //reset all odd even row colors
-            var rootNode = $("#treetable_log").fancytree("getRootNode");
-            var oldnodes = rootNode.children;
-            for (let i = 0; i < oldnodes.length; i++) {
-                if (i % 2 == 0) {
-                    oldnodes[i].toggleClass("ev_dhx_skyblue", true)
-                    oldnodes[i].toggleClass("odd_dhx_skyblue", false)
-                } else {
-                    oldnodes[i].toggleClass("odd_dhx_skyblue", true)
-                    oldnodes[i].toggleClass("ev_dhx_skyblue", false)
-                }
-            }
-        },
-        renderColumns: function (event, data) {
-            
-            var node = data.node;
-
-            //style
-            if (data.node.getIndex() % 2 == 0) {
-                node.removeClass("odd_dhx_skyblue"); //apply dthmlx style to node
-                node.addClass("ev_dhx_skyblue"); //apply dthmlx style to node
-            } else {
-                node.removeClass("ev_dhx_skyblue"); //apply dthmlx style to node
-                node.addClass("odd_dhx_skyblue"); //apply dthmlx style to node
-            }
-            
-            if ("node" in node["data"] == false){
-                node["data"]["node"] = {}
-                node["data"]["node"]["id"] = node["data"]["context"];
-                
-            }
-            if (! "id" in node.data["node"]){
-                return false;
-            }
-
-            var nodeid = node.data["node"]["id"];
-            
-            var nodename = getNodeNameById(nodeid);
-            var created = node.data["created"];
-            created = moment.parseZone(created.replace(/.00$/, ":00"))
-            created = created.format("YYYY-MM-DD HH:mm:ss");
-
-            $tdList = $(node.tr).find(">td");
-            $tdList.eq(0).html("<div class='celltext'>" + nodename + "</div>");
-            $tdList.eq(1).html("<div class='celltext'>" + created + "</div>");
-            $tdList.eq(2).html("<div class='celltext'>" + node.data["host"] + "</div>");
-            $tdList.eq(3).html("<div class='celltext'>" + node.data["split_id"] + "</div>");
-            var evt_id = Math.random(1000000000);
-            if (node.data["event"] == "_IPS_SRV_FFMon"){
-                $tdList.eq(4).html("<div class='celltext' id='"+evt_id+"'><b>" + node.data["event"] + "</b></div>");
-            }else{
-                $tdList.eq(4).html("<div class='celltext' id='"+evt_id+"'>" + node.data["event"] + "</div>");
-            }
-            
-            var table = (JsonHuman.format(data.node.data["_data"]));
-            table.name = "bla"
-            $tdList.eq(5).html(table);
-            
-            //create show/hide checkbox
-            var xid = Math.random(100000000);
-            var x = document.createElement("INPUT");
-            x.setAttribute("type", "checkbox");
-            x.checked = true;
-            x.setAttribute("class", "togglecontentvisible");
-            x.style.float = "left";
-            x.id = xid;
-            x.name = node.data["event"];
-            document.getElementById(evt_id).parentElement.insertBefore(x,document.getElementById(evt_id));
-            
-            // Uncheck by default for mediainfo, exiftool, ffprobe events
-            var eventLower = node.data["event"].toLowerCase();
-            if (eventLower === "mediainfo" || eventLower === "exiftool" || eventLower === "ffprobe") {
-                x.checked = false;
-                x.parentElement.nextElementSibling.style.display = "none";
-            }
-            
-            if (data.node.getIndex() > 1000){
-                //too many items visible lead to bad performance on page
-                x.checked = false;
-                x.parentElement.nextElementSibling.style.display = "none"
-            }
-            x.onchange = function () { 
-                            if (this.checked){
-                                this.parentElement.nextElementSibling.style.display = ""
-                            }else{
-                                this.parentElement.nextElementSibling.style.display = "none"
-                            }
-                        
-                        };
-        },
-        gridnav: {
-            autofocusInput: false,
-            handleCursorKeys: true
-        },
-        beforeSelect: function (event, data) { },
-
-    });
-
-    //search
-    $("input[name=search]").on("change search", function (e) {
-        if (e.type === "change" && e.target.onsearch !== undefined) {
-            // We fall back to handling the change event only if the search event is not supported.
-            return;
-        }
-        var n;
-        var tree = $("#treetable_log").fancytree('getTree');
-        match = $.trim($(this).val());
-        // Pass a string to perform case insensitive matching
-        var re = new RegExp(match, "i");
-
-        tree.filterNodes(function (node) {
-            if (JSON.stringify((node["data"]["_data"])).match(re)) {
-                node.titleWithHighlight = "<mark>" + node.title + "</mark>";
-                return true;
-            }
-        }, {
-            mode: "hide"
-        });
-        // This will adjust the start value in case the filtered row set
-        // is not inside the current viewport
-        // tree.setViewport();
-    });
-
-}
 
 function toggleNodeSelected(nodeid){
     //there can be only one node selected at a time. 
@@ -1967,9 +1963,25 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
         success: async function (response,status,request) {
         
             //PARSE JOB LOG
-
             for (var a in response) {
-                response[a]["_data"] = response[a]["data"];
+                let item = response[a];
+                item["_data"] = item["data"];
+                item["node_name"] = getNodeNameById(item.node?.id);
+                
+                try {
+                    let created = moment.parseZone(item["created"].replace(/.00$/, ":00"));
+                    item["created_fmt"] = created.format("YYYY-MM-DD HH:mm:ss");
+                } catch(e) {
+                    item["created_fmt"] = item["created"];
+                }
+                
+                // Create a string preview of the data
+                try {
+                    let dataStr = JSON.stringify(item.data || {});
+                    item["data_preview"] = dataStr.substring(0, 200) + (dataStr.length > 200 ? "..." : "");
+                } catch(e) {
+                    item["data_preview"] = "";
+                }
             }
 
             if (a_nodeid_filter){
@@ -1981,41 +1993,27 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 response = response.filter(logline => a_branchid_filter.indexOf(logline.split_id) != -1);
             }
             await parseJobLog(response);
-            console.log("<<<parseJobLog")
             
             var type = request.getResponseHeader('ffastrans_log_type');
             if (type == "partial") {
-                //if partial, set up another get_job_log call
                 var _start = request.getResponseHeader('ffastrans_log_last_endpos');
-                
                 console.log("Job still running, getting next log lines from start: " + _start);
                 window.setTimeout(function () { get_job_log(job_id, _start)}, 3000);
-                var rootNode = $("#treetable_log").fancytree("getRootNode");
-                rootNode.addChildren(response);
-                $("#log_div").css("visibility", "visible");
+                
+                m_logGrid.data.parse(response);
             } else {
-                //full log received
-                $("#treetable_log").css("visibility", "hidden");
-                var rootNode = $("#treetable_log").fancytree("getRootNode");
                 window.setPerformanceInfo("Rendering log...");
-                //mainLayout.cells("c").progressOn();
                 showLoading()
                 try{
-                    await asyncsleep(10); //yield to UI thread
-                    rootNode.removeChildren();
-                    rootNode.addChildren(response); //code blocks here until tree is rendered. m_unique_nodes is filled by rendercolumns method of tree
-                    
+                    await asyncsleep(10);
+                    m_logGrid.data.parse(response);
                     window.setPerformanceInfo("Rendering log done.");
                 }catch(ex){}
                 finally{
                     hideLoading()
-                    //mainLayout.cells("c").progressOff();
                 }
-
-                //console.log("full log",response);
-                $("#treetable_log").css("visibility", "visible");
-                $("#log_div").css("visibility", "visible");
             }
+
 
             //load data into node grid
             //turn m_unique_nodes to array
@@ -2198,29 +2196,15 @@ function hideLoading(){
 <!-- <div style="height:20px;width:20px" id="deleteme"/> -->
 </div>
     <!-- THIS DIV Is just a template for log table design, it will be attached to dhtmlx layout at runtime -->
-    <div id="log_div" style="visibility:visible;height:100%;overflow:scroll" class="gridbox_dhx_skyblue gridbox">
-        <div id="spinner" class="loader"></div>
-        <table id="treetable_log"  class="obj">
-            <colgroup>
-                <col width="7%"></col>
-                <col width="10%"></col>
-                <col width="10%"></col>
-                <col width="10%"></col>
-                <col width="15%"></col>
-                <col width="50%"></col>
-            </colgroup>
-            <thead class="sticky " style="border:none">
-                <tr class="">
-                    <th class="sticky" style="font-weight:normal">Node</th>
-                    <th class="sticky" style="font-weight:normal">Time</th>
-                    <th class="sticky" style="font-weight:normal">Host</th>
-                    <th class="sticky" style="font-weight:normal">Branch</th>
-                    <th class="sticky" style="font-weight:normal">Event</th>
-                    <th class="sticky" style="font-weight:normal">Data</th>
-                </tr>
-            </thead>
-        </table>
+    <div id="log_grid_container" style="height:100%;width:100%;"></div>
+    
+    <div id="log_detail_pane_container" style="background:var(--bg-light);position:relative;">
+        <div id="spinner" class="loader" style="visibility:hidden"></div>
+        <div class="detail-content" id="log_detail_content" style="padding:10px;">
+            <div style="color:#888;font-style:italic;text-align:center;margin-top:20px;">Select a log entry to view details</div>
+        </div>
     </div>
+
 
     <div id="node_div" style="border:none !important" class="gridbox_dhx_skyblue gridbox">
         <!-- <table id="treetable_nodes" class="obj">

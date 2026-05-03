@@ -84,10 +84,10 @@ th.jh-key{
 .jh-type-object > tbody > tr:last-child, .jh-type-array > tbody > tr:last-child{
  border-bottom: 1px solid #ddd;
 }
-
+/* we do not want orange border
 .jh-type-object > tbody > tr:hover, .jh-type-array > tbody > tr:hover{
  border: 1px solid #F99927;
-}
+} */
 
 .jh-empty{
  font-style: italic;
