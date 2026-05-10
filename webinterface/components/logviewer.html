@@ -2269,7 +2269,7 @@ function get_all_job_details(job_id) {
                 
                 //populate top left data
                 renderGeneralInfo(response);
-                $("#general_text").text("General [" + response["workflow"]["name"] + "]");
+                //$("#general_text").text("General [" + response["workflow"]["name"] + "]");
                 
                 //populate workflow canvas
                 buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,false);//disable panning because we cannot determine if the drag happened outer or inner graph
@@ -2285,7 +2285,7 @@ function get_all_job_details(job_id) {
 
 /* SECTION HELPERS */
 let m_generalGrid;
-function initGeneralGrid() {
+async function initGeneralGrid() {
     const columns = [
         { id: "key", header: [{ text: "Property" }], width: 130, sortable: false },
         { id: "value", header: [{ text: "Value" }], gravity: 1, sortable: false, htmlEnable: true }
@@ -2299,9 +2299,12 @@ function initGeneralGrid() {
         adjust: true,
         selection: "row",
         rowHeight: 28,
-        headerRowHeight: 30,
+        headerRowHeight: 0,
         htmlEnable: true
     });
+    //setting rowheight alone does not hide header, so we set display none manually.
+    await dhx8.dhx.awaitRedraw();
+    document.querySelector("#general_grid_container .dhx_grid-header").style.display = "none";
 }
 
 function renderGeneralInfo(response) {
