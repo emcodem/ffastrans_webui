@@ -217,6 +217,56 @@
         border-color: var(--primary-color);
     }
 
+    /* Plain HTML toolbar that replaces dhtmlx attachMenu */
+    .lv-toolbar {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 2px 4px;
+    }
+
+    .btn.logviewer_menu {
+        white-space: nowrap;
+        padding: 3px 10px;
+        font-size: 11px;
+        background: #f0f0f0;
+        color: #333;
+        border: 1px solid #bbb;
+        border-radius: 4px;
+        transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .btn.logviewer_menu:hover {
+        background: #e0e0e0;
+        border-color: #1976d2;
+        box-shadow: 0 0 0 1px #1976d244;
+        filter: none;
+    }
+
+    .btn.logviewer_menu:active {
+        background: #d0d0d0;
+        border-color: #1976d2;
+    }
+
+    /* Dark mode overrides — data-theme is on <html> so this cascades correctly */
+    [data-theme="dark"] .btn.logviewer_menu {
+        background: #2d2d2d;
+        color: #e0e0e0;
+        border-color: #555;
+    }
+
+    [data-theme="dark"] .btn.logviewer_menu:hover {
+        background: #3d3d3d;
+        border-color: #64b5f6;
+        box-shadow: 0 0 0 1px #64b5f644;
+    }
+
+    [data-theme="dark"] .btn.logviewer_menu:active {
+        background: #1a1a1a;
+        border-color: #64b5f6;
+    }
+
     .log-filter-input {
         background: var(--bg-light);
         color: var(--text-primary);
@@ -636,172 +686,108 @@ function buildMainLayout() {
         pattern: "3L"
     });
 
-    mainMenu = mainLayout.attachMenu();
-    
-    var menuButtonLabels = [
-                            "Close",
-                            "Upload",
-                            "Download",
-                            "New Tab",
-                            "Load latest Job",
-                            "Resubmit Job",
-                            "Refresh this page", 
-                        ];
-    var menuButtonHtml = [  
-                            '<button                    class="btn logviewer_menu" style="float:left"><span class="mdi mdi-close"></span> Close</button>',
-                            '<button title="Upload"     class="btn logviewer_menu"><span class="mdi mdi-upload"></span> Upload</button>',
-                            '<button title="Download"   class="btn logviewer_menu"><span class="mdi mdi-download"></span> Download</button>',
-                            
-                            '<button                    class="btn logviewer_menu"><span class="mdi mdi-open-in-new"></span> New Tab</button>',
-                            '<button title="Load log from latest Finished Job" class="btn logviewer_menu"><span class="mdi mdi-rss"></span> Latest Finished Job</button>',
-                            '<button                    class="btn logviewer_menu"><span class="mdi mdi-repeat"></span> Resubmit Job</button>',
-
-                            '<button                    class="btn logviewer_menu"><span class="mdi mdi-refresh"></span> Refresh this page</button>',
-                            ];
-                            
-    var _filter = _getObjectByValue(m_userpermissions,"FILTER_JOBSTATUS_BUTTONS");
-    if (_filter.length > 0){
-        
-        var regex = new RegExp( _filter[0]["value"]["filter"], 'gi' );
-        console.log("Displaying filtered list of buttons, regex: ", regex);
-        
-        //add filtered btns to Running jobgrid
-        for (let _id=0;_id<menuButtonLabels.length;_id++){
-            if (menuButtonLabels[_id].match(regex)){
-                _appendtext(menuButtonLabels[_id],menuButtonHtml[_id])
-            }
-        }
-        
-    }else{
-        //just render all btns
-        console.log("Displaying unfiltered list of menu buttons" )
-        for (let _id=0;_id<menuButtonLabels.length;_id++){
-            _appendtext(menuButtonLabels[_id],menuButtonHtml[_id])
-        }
-    }
-    
-    function _appendtext (label, html){//helper
-        mainMenu.addNewSibling(null, label, html);
-    }
-
-    mainMenu.attachEvent("onClick", function (id) {
-            if (id == "Upload"){
-                // Create file input element
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.zip';
-                
-                fileInput.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    try {
-                        dhtmlx.message("Uploading " + file.name + "...");
-                        const response = await fetch(build_new_api_url('/getjoblog'), {
-                            method: 'POST',
-                            body: formData
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            dhtmlx.message("Success! Extracted to: " + result.extractPath);
-                            window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + result.job_id;
-                        } else {
-                            dhtmlx.alert("Upload failed: " + result.error);
-                        }
-                    } catch (error) {
-                        dhtmlx.alert("Error uploading file: " + error.message);
-                    }
-                };
-                
-                fileInput.click();
-            }
-            if (id == "Download"){
-                const jobId = getQueryVariable("job_id");
-                if (!jobId) {
-                    dhtmlx.alert("No job ID found");
-                    return;
+    /* ── Toolbar action handlers (no dhtmlx menu dependency) ── */
+    window.menuAction_Close = function() { m_closefunc(); };
+    window.menuAction_Upload = function() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.zip';
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                dhtmlx.message("Uploading " + file.name + "...");
+                const response = await fetch(build_new_api_url('/getjoblog'), { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    dhtmlx.message("Success! Extracted to: " + result.extractPath);
+                    window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + result.job_id;
+                } else {
+                    dhtmlx.alert("Upload failed: " + result.error);
                 }
-                const downloadUrl = build_new_api_url(`/getjoblog?jobid=${jobId}&download=true`);
-                window.open(downloadUrl, '_blank');
+            } catch (error) {
+                dhtmlx.alert("Error uploading file: " + error.message);
             }
-            if (id == "Close"){
-                m_closefunc();
-            }
-            if (id == "New Tab"){
-                window.open(window.location.href,'_blank');
-            }
-            if (id == "Refresh this page"){
-                window.location.href = window.location.href;
-            }
-            if (id == "Load latest Job") {
-            var url = "/gethistoryjobsajax_treegrid?count=1"
-                $.ajax({
-                    url: url,
-                    type: "GET",
-                    crossDomain: true,
-                    dataType: "json",
-                    success: function (response) {
-                        if (response["data"]) {
-                            var jid = response["data"][0]["job_id"];
-                            window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
-                        }
-                    },
-                    error: function (xhr, status) {
-                        alert("ERROR getting latest job please check FFAStrans Path in Admin settings on the left.. ");
+        };
+        fileInput.click();
+    };
+    window.menuAction_Download = function() {
+        const jobId = getQueryVariable("job_id");
+        if (!jobId) { dhtmlx.alert("No job ID found"); return; }
+        window.open(build_new_api_url(`/getjoblog?jobid=${jobId}&download=true`), '_blank');
+    };
+    window.menuAction_NewTab    = function() { window.open(window.location.href, '_blank'); };
+    window.menuAction_Refresh   = function() { window.location.href = window.location.href; };
+    window.menuAction_LatestJob = function() {
+        $.ajax({
+            url: "/gethistoryjobsajax_treegrid?count=1", type: "GET", crossDomain: true, dataType: "json",
+            success: function(response) {
+                if (response["data"]) {
+                    var jid = response["data"][0]["job_id"];
+                    window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + jid;
+                }
+            },
+            error: function() { alert("ERROR getting latest job, please check FFAStrans Path in Admin settings on the left.."); }
+        });
+    };
+    window.menuAction_ResubmitJob = function() {
+        console.log("resubmitting job", m_jobobject);
+        var postBody = {};
+        postBody.start_proc = "";
+        postBody.wf_id      = m_jobobject["workflow"]["id"];
+        postBody.inputfile  = m_jobobject["sources"]["original_file"];
+        postBody.variables  = m_jobobject["variables"];
+        postBody.system     = "FFAStrans Web Interface";
+        $.ajax({
+            url: build_new_api_url("/jobs"), type: "POST",
+            contentType: 'application/json;charset=UTF-8', crossDomain: true,
+            data: JSON.stringify(postBody),
+            success: function(response) {
+                console.log("Job Resubmit response:", response);
+                try {
+                    if (["job_id"] in response) {
+                        dhtmlx.alert({ type:"confirm", text:"Success, Window will reload to display the resubmitted job in 3 seconds, you cannot prevent this anymore", title:"Reload Pending!", ok:"OK" });
+                        window.setTimeout(function() {
+                            window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + response["job_id"];
+                        }, 3000);
                     }
-                });
-            }
-        
-            if (id == "Resubmit Job"){
-                console.log("resubmitting job", m_jobobject)
-                
-                var postBody = {};
-                postBody.start_proc = "";
-                postBody.wf_id = m_jobobject["workflow"]["id"];
-                postBody.inputfile = m_jobobject["sources"]["original_file"];
-                postBody.variables = m_jobobject["variables"];
-                postBody.system = "FFAStrans Web Interface";
-                    $.ajax({
-                    url: build_new_api_url("/jobs"),
-                    type: "POST",
-                    contentType: 'application/json;charset=UTF-8',
-                    crossDomain: true,
-                    data: JSON.stringify(postBody),
-                    success: function(response) {
-                        console.log("Job Resubmit response:",response);
-                        try{
-                            if (["job_id"] in response){
-                                dhtmlx.alert({
-                                        type:"confirm",
-                                        text:"Success, Window will reload to display the resubmitted job in 3 seconds, you cannot prevent this anymore",
-                                        title:"Reload Pending!",
-                                        ok:"OK"
-                                });
-                                window.setTimeout(function(){
-                                    window.location.href = window.location.href.replace(/[\?#].*|$/, "?job_id=") + response["job_id"];
-                                },3000);
-                            }else{
-                                
-                            }
-                        }catch(ex){
-                            console.log(ex)
-                            alert("Error resubmitting job, contact developer\n\n" + ex)
-                        }
-                    },
-                    error: function(xhr, status) {
-                        dhtmlx.alert("Error submitting job: " + xhr.responseText);
-                    }
-                });
-            }
+                } catch(ex) {
+                    console.log(ex);
+                    alert("Error resubmitting job, contact developer\n\n" + ex);
+                }
+            },
+            error: function(xhr) { dhtmlx.alert("Error submitting job: " + xhr.responseText); }
+        });
+    };
 
+    /* ── Build toolbar HTML, respecting permission filter ── */
+    var allButtons = [
+        { label: "Close",             html: '<button class="btn logviewer_menu" title="Close"                   onclick="menuAction_Close()"><span class="mdi mdi-close"></span> Close</button>' },
+        { label: "Upload",            html: '<button class="btn logviewer_menu" title="Upload"                  onclick="menuAction_Upload()"><span class="mdi mdi-upload"></span> Upload</button>' },
+        { label: "Download",          html: '<button class="btn logviewer_menu" title="Download"                onclick="menuAction_Download()"><span class="mdi mdi-download"></span> Download</button>' },
+        { label: "New Tab",           html: '<button class="btn logviewer_menu" title="New Tab"                 onclick="menuAction_NewTab()"><span class="mdi mdi-open-in-new"></span> New Tab</button>' },
+        { label: "Load latest Job",   html: '<button class="btn logviewer_menu" title="Load latest Finished Job" onclick="menuAction_LatestJob()"><span class="mdi mdi-rss"></span> Latest Finished Job</button>' },
+        { label: "Resubmit Job",      html: '<button class="btn logviewer_menu" title="Resubmit Job"            onclick="menuAction_ResubmitJob()"><span class="mdi mdi-repeat"></span> Resubmit Job</button>' },
+        { label: "Refresh this page", html: '<button class="btn logviewer_menu" title="Refresh this page"      onclick="menuAction_Refresh()"><span class="mdi mdi-refresh"></span> Refresh this page</button>' },
+    ];
+    var _filter = _getObjectByValue(m_userpermissions, "FILTER_JOBSTATUS_BUTTONS");
+    var visibleButtons = allButtons;
+    if (_filter.length > 0) {
+        var regex = new RegExp(_filter[0]["value"]["filter"], 'gi');
+        console.log("Displaying filtered list of buttons, regex: ", regex);
+        visibleButtons = allButtons.filter(b => b.label.match(regex));
+    } else {
+        console.log("Displaying unfiltered list of menu buttons");
+    }
+    var toolbarHtml = '<div class="lv-toolbar">' + visibleButtons.map(b => b.html).join('') + '</div>';
 
-    });
-
+    // Use attachMenu() to let dhtmlx create and position the top bar, then
+    // immediately replace the menu container's contents with our plain HTML toolbar.
+    // This avoids addNewSibling() and all dhtmlx menu-item wrapper styles.
+    var _menuBar = mainLayout.attachMenu();
+    mainLayout.dataNodes.menuObj.innerHTML = toolbarHtml;
 
     mainLayout.cells("b").setText('<span style="margin-right:15px;font-size:13px" >Canvas</span> \
                         <button class="btn icon-logviewer-menu" name="b_zoomin" onclick="m_graph.zoomIn()"><span class="mdi mdi-plus"></span></button> \
@@ -837,7 +823,7 @@ function buildMainLayout() {
     //mainLayout.cells("c").showInnerScroll();
     //todo: on btnclick, hide minfo und ffprobe: set height 10px und display:inline-block
     mainLayout.cells("a").setWidth(400);
-    mainLayout.cells("a").setText('Info');
+    mainLayout.cells("a").setText('Info'); // plain text header for the info panel
 
     //SIZES
     mainLayout.cells("b").setWidth($(document).width() / 3 * 2.2);
