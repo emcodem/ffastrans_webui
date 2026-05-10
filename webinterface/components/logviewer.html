@@ -233,6 +233,39 @@
         border-color: var(--primary-color);
     }
 
+    .grid-copy-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 100%;
+    }
+
+    .copy-icon {
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--text-secondary);
+        transition: color 0.2s, transform 0.1s;
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+    }
+
+    .copy-icon:hover {
+        color: var(--primary-color);
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .copy-icon:active {
+        transform: scale(0.9);
+    }
+
+    .grid-value-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     /* RESTORED CANVAS STYLES */
     .table_ffastrans_processor_enabled {
         overflow: hidden;
@@ -2288,7 +2321,21 @@ let m_generalGrid;
 async function initGeneralGrid() {
     const columns = [
         { id: "key", header: [{ text: "Property" }], width: 130, sortable: false },
-        { id: "value", header: [{ text: "Value" }], gravity: 1, sortable: false, htmlEnable: true }
+        { 
+            id: "value", 
+            header: [{ text: "Value" }], 
+            gravity: 1, 
+            sortable: false, 
+            htmlEnable: true,
+            template: function(val) {
+                return `
+                    <div class="grid-copy-container">
+                        <span class="mdi mdi-content-copy copy-icon" title="Copy to clipboard"></span>
+                        <span class="grid-value-text">${val}</span>
+                    </div>
+                `;
+            }
+        }
     ];
 
     m_generalGrid = new dhx8.dhx.Grid("general_grid_container", {
@@ -2300,11 +2347,45 @@ async function initGeneralGrid() {
         selection: "row",
         rowHeight: 28,
         headerRowHeight: 0,
-        htmlEnable: true
+        htmlEnable: true,
+        eventHandlers: {
+            onclick: {
+                "copy-icon": function(event, data) {
+                    const value = data.row.value;
+                    if (value) {
+                        copyToClipboard(value);
+                        // Optional: show a small feedback
+                        const icon = event.target;
+                        const originalClass = icon.className;
+                        icon.className = "mdi mdi-check copy-icon";
+                        icon.style.color = "var(--status-success)";
+                        setTimeout(() => {
+                            icon.className = originalClass;
+                            icon.style.color = "";
+                        }, 1000);
+                    }
+                }
+            }
+        }
     });
     //setting rowheight alone does not hide header, so we set display none manually.
     await dhx8.dhx.awaitRedraw();
     document.querySelector("#general_grid_container .dhx_grid-header").style.display = "none";
+}
+
+function copyToClipboard(text) {
+    if (!navigator.clipboard) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {}
+        document.body.removeChild(textArea);
+        return;
+    }
+    navigator.clipboard.writeText(text).catch(err => console.error(err));
 }
 
 function renderGeneralInfo(response) {
@@ -2322,7 +2403,8 @@ function renderGeneralInfo(response) {
         { key: "Original File", value: sources.original_file },
         { key: "Start Time", value: response.start_time ? moment(response.start_time).format("YYYY-MM-DD HH:mm:ss") : "" },
         { key: "End Time", value: response.end_time ? moment(response.end_time).format("YYYY-MM-DD HH:mm:ss") : "" },
-        { key: "Work Dir", value: response.work_dir }
+        { key: "Work Dir", value: response.work_dir },
+        { key: "Log Dir", value: (workflow.path || "").replace(/[\\\/][^\\\/]+[\\\/][^\\\/]+$/, "") }
     ].filter(f => f.value);
 
     if (m_generalGrid) {
