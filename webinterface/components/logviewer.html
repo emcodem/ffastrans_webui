@@ -65,11 +65,11 @@
         --btn-bg: #eee;
         --btn-border: #ccc;
         --btn-text: #333;
-        --log-event-success-bg: #e8f5e9;
+        --log-event-success-bg: hsla(120, 36%, 90%, 0.5);
         --log-event-success-color: #2e7d32;
-        --log-event-error-bg: #ffebee;
+        --log-event-error-bg: hsla(0, 100%, 92%, 0.5);
         --log-event-error-color: #c62828;
-        --log-event-info-bg: #e3f2fd;
+        --log-event-info-bg: hsla(208, 90%, 92%, 0.5);
         --log-event-info-color: #1565c0;
     }
 
@@ -88,11 +88,11 @@
         --jh-key: #aaa;
         --jh-type-string: #81c784;
         --jh-type-number: #64b5f6;
-        --log-event-success-bg: #24422f;
+        --log-event-success-bg: hsla(120, 40%, 15%, 0.4);
         --log-event-success-color: #b8f2b2;
-        --log-event-error-bg: #4d211f;
+        --log-event-error-bg: hsla(0, 40%, 15%, 0.4);
         --log-event-error-color: #ffb4b4;
-        --log-event-info-bg: #1c2d3f;
+        --log-event-info-bg: hsla(208, 40%, 15%, 0.4);
         --log-event-info-color: #b3d7ff;
     }
 
@@ -1556,7 +1556,29 @@ function initLogGrid() {
         { 
             id: "host", 
             header: [{ text: "Host" }, { content: "selectFilter" }], 
-            width: 120 
+            width: 120,
+            template: function(val) {
+                if (!val) return "";
+                let hash = 0;
+                for (let i = 0; i < val.length; i++) {
+                    hash = val.charCodeAt(i) + ((hash << 5) - hash);
+                    hash |= 0; // Ensure 32-bit integer
+                }
+                
+                // Use the golden angle approximation (137.508) to spread colors widely 
+                // even for very similar strings (like INGEST01 vs INGEST05)
+                const hue = Math.abs(hash * 137.508) % 360;
+                const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+                
+                let style = "";
+                if (isDark) {
+                    style = `background: hsla(${hue}, 40%, 15%, 0.4); color: hsl(${hue}, 80%, 85%); border: 1px solid hsla(${hue}, 40%, 30%, 0.5);`;
+                } else {
+                    style = `background: hsla(${hue}, 60%, 95%, 0.5); color: hsl(${hue}, 60%, 25%); border: 1px solid hsla(${hue}, 60%, 80%, 0.5);`;
+                }
+                
+                return `<span class="log-event-badge" style="${style}">${val}</span>`;
+            }
         },
         { 
             id: "split_id", 
