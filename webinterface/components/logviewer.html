@@ -1288,7 +1288,14 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                         clickedEle.parentElement.dispatchEvent(event);
                     }
                     else{
-                        m_graphs_by_container_id[graphid][action]();
+                        let targetGraph = m_graphs_by_container_id[graphid];
+                        if (!targetGraph) {
+                            let altGraphId = graphid.replace("_description_container", "");
+                            targetGraph = m_graphs_by_container_id["graphContainer_" + altGraphId];
+                        }
+                        if (targetGraph) {
+                            targetGraph[action]();
+                        }
                     }
                 }
                 //base cell obj
@@ -1340,9 +1347,9 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             if (cell.ffastransobj.type != "sub_wf") return
             if (!cell.ffastransobj.properties.workflow_id) return
             evt.consume(); //mxgraph stuff
-            //we get a reference to graph object of the currently selected sub_wf this way:
-            // For nested sub-workflows, use the graph mapping instead of container lookup
-            let currentGraph = m_node_to_graph[cell.ffastransobj.id.toUpperCase()];
+            //we get a reference to the inner graph object of the currently selected sub_wf this way:
+            let subWfContainerId = "graphContainer_" + cell.ffastransobj.id.toUpperCase();
+            let currentGraph = m_graphs_by_container_id[subWfContainerId];
             if (!currentGraph) {
                 // Fallback to old method for compatibility
                 currentGraph = m_graphs_by_container_id[cell.ffastransobj.id.toUpperCase() + "_description_container"];
