@@ -404,6 +404,58 @@
         z-index: unset !important;
     }
 
+    /* General Info Section */
+    .general-summary {
+        padding: 12px;
+        font-family: var(--dhx-font-family, sans-serif);
+        font-size: 12px;
+        color: var(--text-primary);
+        line-height: 1.6;
+    }
+    .general-summary .row {
+        margin-bottom: 6px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    .general-summary .label {
+        font-weight: 600;
+        min-width: 110px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+    }
+    .general-summary .value {
+        word-break: break-all;
+        color: var(--text-primary);
+    }
+    .details-toggle {
+        margin-top: 15px;
+        padding: 6px 12px;
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--btn-text);
+        user-select: none;
+        transition: background 0.2s;
+    }
+    .details-toggle:hover {
+        background: var(--row-hover);
+    }
+    .details-content-container {
+        display: none;
+        margin-top: 15px;
+        border-top: 1px solid var(--border-color);
+        padding-top: 10px;
+    }
+    .details-content-container.expanded {
+        display: block;
+    }
+
 </style>
 
 <script>
@@ -792,7 +844,11 @@ function buildMainLayout() {
 
     info_layout.cells("a").setText('<button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleGeneralDock()"><span class="mdi mdi-eject"></span></button>' +
         "<span id='general_text'>General</span>");
-    info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%"/>');
+    info_layout.cells("a").attachHTMLString('<div id="general_div" style="height:100%;width:100%; overflow: auto;">' +
+        '<div id="general_grid_container" style="height: 200px; width: 100%; border-bottom: 1px solid var(--border-color);"></div>' +
+        '<div id="general_details_toggle_container" style="padding: 10px;"></div>' +
+        '<div id="general_details_container" class="details-content-container" style="padding: 0 10px 10px 10px;"></div>' +
+        '</div>');
     info_layout.cells("a").showInnerScroll();
 
     info_layout.cells("c").setText("Nodes");
@@ -813,6 +869,7 @@ function buildMainLayout() {
     window.setPerformanceInfo("Idle");
 
     initBranchGrid();
+    initGeneralGrid();
     
     info_layout.attachEvent("onPanelResizeFinish", function () {
         saveLayoutSizes(info_layout, "info_layout");
@@ -2209,19 +2266,9 @@ function get_all_job_details(job_id) {
                 m_jobobject = response;
                 m_workflowdata = response['wf_object'];
                 m_workflows.push(response['wf_object']);
-                //populate top left data
-                var copy = JSON.stringify(response);
-                copy = JSON.parse(copy); //copy the whole object to be able to delete wf_object for display in general_div
-                delete copy["wf_object"]; 
-                delete copy["nodes"];
-                delete copy["workflows"];
-                delete copy["variables"];
-                delete copy["finished"];
-                //sort
                 
-                var table = (JsonHuman.format(copy));
-                //render
-                document.getElementById("general_div").appendChild(table);
+                //populate top left data
+                renderGeneralInfo(response);
                 $("#general_text").text("General [" + response["workflow"]["name"] + "]");
                 
                 //populate workflow canvas
@@ -2237,6 +2284,73 @@ function get_all_job_details(job_id) {
 }
 
 /* SECTION HELPERS */
+let m_generalGrid;
+function initGeneralGrid() {
+    const columns = [
+        { id: "key", header: [{ text: "Property" }], width: 130, sortable: false },
+        { id: "value", header: [{ text: "Value" }], gravity: 1, sortable: false, htmlEnable: true }
+    ];
+
+    m_generalGrid = new dhx8.dhx.Grid("general_grid_container", {
+        columns,
+        css: "alternate_row",
+        resizable: true,
+        autoWidth: true,
+        adjust: true,
+        selection: "row",
+        rowHeight: 28,
+        headerRowHeight: 30,
+        htmlEnable: true
+    });
+}
+
+function renderGeneralInfo(response) {
+    const toggleContainer = document.getElementById("general_details_toggle_container");
+    const detailsContainer = document.getElementById("general_details_container");
+    toggleContainer.innerHTML = "";
+    detailsContainer.innerHTML = "";
+    detailsContainer.classList.remove("expanded");
+    
+    const workflow = response.workflow || {};
+    const sources = response.sources || {};
+    
+    const gridData = [
+        { key: "Workflow", value: workflow.name },
+        { key: "Original File", value: sources.original_file },
+        { key: "Start Time", value: response.start_time ? moment(response.start_time).format("YYYY-MM-DD HH:mm:ss") : "" },
+        { key: "End Time", value: response.end_time ? moment(response.end_time).format("YYYY-MM-DD HH:mm:ss") : "" },
+        { key: "Work Dir", value: response.work_dir }
+    ].filter(f => f.value);
+
+    if (m_generalGrid) {
+        m_generalGrid.data.parse(gridData);
+    }
+    
+    // Toggle for full details
+    const toggle = document.createElement("div");
+    toggle.className = "details-toggle";
+    toggle.innerHTML = '<span class="mdi mdi-chevron-down"></span> Show Full Details';
+    
+    const copy = JSON.parse(JSON.stringify(response));
+    delete copy["wf_object"]; 
+    delete copy["nodes"];
+    delete copy["workflows"];
+    delete copy["variables"];
+    delete copy["finished"];
+    
+    const fullTable = JsonHuman.format(copy);
+    detailsContainer.appendChild(fullTable);
+    
+    toggle.onclick = () => {
+        const isExpanded = detailsContainer.classList.toggle("expanded");
+        toggle.innerHTML = isExpanded ? 
+            '<span class="mdi mdi-chevron-up"></span> Hide Full Details' : 
+            '<span class="mdi mdi-chevron-down"></span> Show Full Details';
+    };
+    
+    toggleContainer.appendChild(toggle);
+}
+
 function getQueryVariable(variable) {
     var query = window.location.search.substring(1);
     var vars = query.split("&");
