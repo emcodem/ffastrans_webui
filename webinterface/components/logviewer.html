@@ -740,6 +740,7 @@ function buildMainLayout() {
     m_logSubLayout.cells("a").setText('<span style="margin-right:15px;font-size:13px" >Log</span> \
                         <input placeholder="Filter" class="log-filter-input" style="width:150px;height:18px;" type="search" name="log_filter" incremental autocomplete="off">\
                         <button style="width:30px;height:18px;" id="timeline" onclick="open_timeline()" class="icon-logviewer-menu"><span class="mdi mdi-history"></span></button>\
+                        <label style="font-size: 11px; display: inline-flex; align-items: center; gap: 4px; margin-left: 5px; cursor: pointer; color: inherit; vertical-align: middle;"><input type="checkbox" id="render_all_details" style="margin:0; width:12px; height:12px;">Full Details</label>\
                         <button class="btn icon-logviewer-menu" style="float: right;margin-top:4px" name="b_undock" onclick="toggleLogViewerDock()"><span class="mdi mdi-eject"></span></button> \
                         ');
 // removed                         <input type="checkbox" name="toggle_hide_all" onclick="toggle_hide_all(this)" checked=true>All\
@@ -1499,8 +1500,14 @@ function filterLogByNodeId(nodeId, branch){
     
     // If we have matches, auto-show detail for the first one if only a few items
     if (m_logGrid.data.getLength() > 0 && m_logGrid.data.getLength() < 50) {
-        let firstId = m_logGrid.data.getItem(m_logGrid.data.getIndex(0)).id;
-        m_logGrid.selection.setCell(firstId);
+        try {
+            let firstId = m_logGrid.data.getId(0);
+            if (firstId) {
+                m_logGrid.selection.setCell(firstId);
+            }
+        } catch(e) {
+            console.error("Error auto-selecting first log entry:", e);
+        }
     }
 }
             
@@ -1545,8 +1552,17 @@ function initLogGrid() {
             id: "data_preview", 
             header: [{ text: "Data Preview" }, { content: "inputFilter" }], 
             flex: 1,
-            template: function(val) {
-                return `<div class="celltext" style="color:var(--text-secondary); font-style:italic">${val}</div>`;
+            template: function(val, item) {
+                const showFull = document.getElementById("render_all_details")?.checked;
+                if (showFull) {
+                    try {
+                        const table = JsonHuman.format(item.data || item._data || {});
+                        return `<div class="celltext-full" style="padding: 4px 0;">${table.outerHTML}</div>`;
+                    } catch(e) {
+                        return `<div class="celltext" style="color:var(--status-error)">Error: ${e.message}</div>`;
+                    }
+                }
+                return `<div class="celltext" style="color:var(--text-secondary); font-style:italic; max-height:20px; overflow:hidden;">${val}</div>`;
             }
         }
     ];
@@ -1556,17 +1572,26 @@ function initLogGrid() {
         autoWidth: true,
         resizable: true,
         selection: "row",
-        rowHeight: 30,
+        rowHeight: 32,
+        multiline: true,
         headerRowHeight: 30,
         editable: false,
         keyNavigation: true,
         
         htmlEnable: true
     });
+    
+    m_logGrid.selection.events.on("AfterSelect", (row, column) => {
+        if (row) showLogDetail(row);
+    });
+    m_logGrid.selection.events.on("AfterUnSelect", (row, column) => {
+        console.log("afterUnSelect", row, column); 
+    });
 
-    m_logGrid.events.on("afterSelect", function(row, col) {
-        const item = m_logGrid.data.getItem(row.id);
-        if (item) showLogDetail(item);
+    m_logGrid.data.events.on("filter", () => {
+        if (m_logSubLayout && m_logSubLayout.cells("b")) {
+            m_logSubLayout.cells("b").collapse();
+        }
     });
 
     // Global filter from the search input
@@ -1580,20 +1605,25 @@ function initLogGrid() {
             return JSON.stringify(item).toLowerCase().includes(val);
         });
     });
+
+    document.getElementById("render_all_details").addEventListener("change", function() {
+        m_logGrid.paint();
+    });
 }
 
 function showLogDetail(item) {
+    if (!item) return;
     const detailContent = document.getElementById("log_detail_content");
     
     // Attempt to expand the detail cell if it's collapsed
     try {
-        if (m_logSubLayout) {
+        if (m_logSubLayout && m_logSubLayout.cells("b")) {
             m_logSubLayout.cells("b").expand();
         }
     } catch(e) {}
 
     detailContent.innerHTML = "";
-    const table = JsonHuman.format(item.data || item._data);
+    const table = JsonHuman.format(item.data || item._data || {});
     detailContent.appendChild(table);
 }
 
@@ -2000,12 +2030,18 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 console.log("Job still running, getting next log lines from start: " + _start);
                 window.setTimeout(function () { get_job_log(job_id, _start)}, 3000);
                 
+                if (m_logSubLayout && m_logSubLayout.cells("b")) {
+                    m_logSubLayout.cells("b").collapse();
+                }
                 m_logGrid.data.parse(response);
             } else {
                 window.setPerformanceInfo("Rendering log...");
                 showLoading()
                 try{
                     await asyncsleep(10);
+                    if (m_logSubLayout && m_logSubLayout.cells("b")) {
+                        m_logSubLayout.cells("b").collapse();
+                    }
                     m_logGrid.data.parse(response);
                     window.setPerformanceInfo("Rendering log done.");
                 }catch(ex){}
