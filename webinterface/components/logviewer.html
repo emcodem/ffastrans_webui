@@ -2206,12 +2206,10 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
         success: async function (response,status,request) {
         
             //PARSE JOB LOG
+            await asyncsleep(10); // Give UI a chance to render layout for correct width measurement
             for (var a in response) {
                 let item = response[a];
                 item["_data"] = item["data"];
-                if (document.getElementById("render_all_details")?.checked) {
-                    item.$height = calculateLogGridRowHeight(item);
-                }
                 item["node_name"] = getNodeNameById(item.node?.id);
                 
                 try {
@@ -2250,6 +2248,13 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                     m_logSubLayout.cells("b").collapse();
                 }
                 m_logGrid.data.parse(response);
+                if (document.getElementById("render_all_details")?.checked) {
+                    m_logGrid.data.forEach(item => {
+                        item.$height = calculateLogGridRowHeight(item);
+                    });
+                    m_logGrid.adjustColumnWidth("data_preview");
+                    m_logGrid.paint();
+                }
             } else {
                 window.setPerformanceInfo("Rendering log...");
                 showLoading()
@@ -2259,6 +2264,13 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                         m_logSubLayout.cells("b").collapse();
                     }
                     m_logGrid.data.parse(response);
+                    if (document.getElementById("render_all_details")?.checked) {
+                        m_logGrid.data.forEach(item => {
+                            item.$height = calculateLogGridRowHeight(item);
+                        });
+                        m_logGrid.adjustColumnWidth("data_preview");
+                        m_logGrid.paint();
+                    }
                     window.setPerformanceInfo("Rendering log done.");
                 }catch(ex){}
                 finally{
