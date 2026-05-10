@@ -350,11 +350,13 @@
     .jh-root {
         font-family: 'Fira Code', 'Consolas', monospace;
         font-size: 12px;
-        width: 100%;
+        width: auto;
+        max-width: 100%;
     }
 
     .jh-type-object {
-        width: 100%;
+        width: auto;
+        min-width: 200px;
         border-collapse: collapse;
     }
 
@@ -365,7 +367,7 @@
         text-align: left;
         padding: 4px 8px !important;
         border: 1px solid var(--border-color) !important;
-        min-width: 120px !important; /* Prevent narrow keys */
+        min-width: 80px !important; /* Reduced from 120px */
         white-space: nowrap !important;
         vertical-align: top;
     }
@@ -374,8 +376,9 @@
         padding: 4px 8px !important;
         border: 1px solid var(--border-color) !important;
         vertical-align: top;
-        word-break: break-all !important;
+        word-break: break-word !important;
         white-space: normal !important;
+        max-width: 600px !important; /* Prevent insane widths */
     }
 
     .jh-type-string { color: var(--jh-type-string, #2e7d32); }
@@ -1613,7 +1616,8 @@ function initLogGrid() {
         { 
             id: "data_preview", 
             header: [{ text: "Data Preview" }, { content: "inputFilter" }], 
-            flex: 1,
+            adjust: true,
+            minWidth: 400,
             template: function(val, item) {
                 const showFull = document.getElementById("render_all_details")?.checked;
                 if (showFull) {
@@ -1682,6 +1686,7 @@ function initLogGrid() {
             }
         });
 
+        m_logGrid.adjustColumnWidth("data_preview");
         m_logGrid.paint();
         hideLoading();
     });
