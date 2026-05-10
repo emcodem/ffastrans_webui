@@ -1013,7 +1013,7 @@ async function branchGridSelect(row,col){
     m_graph.destroy();
     document.getElementById('graphContainer').innerHTML = "";
     m_graph = null;
-    buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,false);
+    buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,true);
 
     //reload job log filtered by split_id, could be optimized by loading only branch log
     let a_nodeids = branchjson.branches[0].object.path.map(o=>{return o.id});
@@ -1168,7 +1168,7 @@ function drawNestedSubWorkflows(workflow_json, available_workflows) {
                 
                 if (wf_to_render && wf_to_render !== workflow_json) {
                     console.log("Drawing nested sub-workflow for node:", node.id, "with wf_id:", target_wf_id, "nodes count:", wf_to_render.nodes ? wf_to_render.nodes.length : 0);
-                    buildMxGraph(_subwfdiv, wf_to_render, false);
+                    buildMxGraph(_subwfdiv, wf_to_render, true);
                     // Recursively draw nested sub-workflows within this one
                     drawNestedSubWorkflows(wf_to_render, available_wfs_by_id);
                 } else {
@@ -1219,6 +1219,39 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
         // Creates the graph inside the given container
         var graph = new mxGraph(container);
+        
+        // Prevent panning the main graph if the drag started inside a sub-workflow container.
+        // There are TWO pathways that activate panning:
+        //   1. isPanningTrigger — checked in mouseDown
+        //   2. isForcePanningEvent — fired via FIRE_MOUSE_EVENT listener when ignoreCell=true, bypasses #1
+        // We must block BOTH for the main graph container when the event originates inside a sub-workflow.
+        function isInsideSubWorkflow(me) {
+            let target = me.getEvent ? me.getEvent().target : me.target;
+            let currentElement = target;
+            while (currentElement && currentElement !== document.body) {
+                if (currentElement.classList && currentElement.classList.contains("div_ffastrans_processor_desc")) {
+                    return true;
+                }
+                currentElement = currentElement.parentNode;
+            }
+            return false;
+        }
+
+        var originalIsPanningTrigger = graph.panningHandler.isPanningTrigger;
+        graph.panningHandler.isPanningTrigger = function(me) {
+            if (this.graph.container.id === 'graphContainer' && isInsideSubWorkflow(me)) {
+                return false;
+            }
+            return originalIsPanningTrigger.apply(this, arguments);
+        };
+
+        var originalIsForcePanningEvent = graph.panningHandler.isForcePanningEvent;
+        graph.panningHandler.isForcePanningEvent = function(me) {
+            if (this.graph.container.id === 'graphContainer' && isInsideSubWorkflow(me)) {
+                return false;
+            }
+            return originalIsForcePanningEvent.apply(this, arguments);
+        };
         
         // Override fit() to prevent excessive zoom on small workflows
         const originalFit = graph.fit;
@@ -1961,7 +1994,7 @@ async function parseJobLog(lines) {
                                 }
                                 
                                 console.time("buildMxGraph");
-                                buildMxGraph(_subwfdiv,sub_wf_json,false);
+                                buildMxGraph(_subwfdiv,sub_wf_json,true);
                                 console.timeEnd("buildMxGraph");
                                 
                                 // Draw any nested sub-workflows within this newly loaded workflow
@@ -2340,7 +2373,7 @@ function get_all_job_details(job_id) {
                 //$("#general_text").text("General [" + response["workflow"]["name"] + "]");
                 
                 //populate workflow canvas
-                buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,false);//disable panning because we cannot determine if the drag happened outer or inner graph
+                buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,true);
                 get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
             }
         },
