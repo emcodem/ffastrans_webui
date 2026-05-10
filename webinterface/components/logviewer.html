@@ -1649,7 +1649,10 @@ function initLogGrid() {
     });
     
     m_logGrid.selection.events.on("AfterSelect", (row, column) => {
-        if (row) showLogDetail(row);
+        const showFull = document.getElementById("render_all_details")?.checked;
+        if (row && !showFull) {
+            showLogDetail(row);
+        }
     });
     m_logGrid.selection.events.on("AfterUnSelect", (row, column) => {
         console.log("afterUnSelect", row, column); 
