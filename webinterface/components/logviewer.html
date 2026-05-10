@@ -2212,7 +2212,6 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
             for (var a in response) {
                 let item = response[a];
                 item["_data"] = item["data"];
-                item["node_name"] = getNodeName(item.node);
                 
                 try {
                     let created = moment.parseZone(item["created"].replace(/.00$/, ":00"));
@@ -2239,6 +2238,11 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 response = response.filter(logline => a_branchid_filter.indexOf(logline.split_id) != -1);
             }
             await parseJobLog(response);
+            
+            // Assign node names AFTER parseJobLog so that m_workflows includes any dynamically loaded sub-workflows
+            for (var a in response) {
+                response[a]["node_name"] = getNodeName(response[a].node);
+            }
             
             var type = request.getResponseHeader('ffastrans_log_type');
             if (type == "partial") {
