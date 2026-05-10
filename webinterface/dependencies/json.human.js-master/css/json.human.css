@@ -109,3 +109,52 @@ th.jh-key{
     font-style: normal;
 }
 
+/* FFAStrans WebUI Overrides */
+.jh-root {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 11px; /* Reduced from 12px */
+    width: auto;
+    max-width: 100%;
+}
+
+.jh-type-object {
+    width: auto;
+    min-width: 200px;
+    border-collapse: collapse;
+}
+
+.jh-type-object th {
+    background-color: var(--row-even);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 4px 8px !important;
+    border: 1px solid var(--border-color) !important;
+    min-width: 80px !important;
+    white-space: nowrap !important;
+    vertical-align: top;
+    font-size: 11px !important;
+}
+
+.jh-type-object td {
+    padding: 4px 8px !important;
+    border: 1px solid var(--border-color) !important;
+    vertical-align: top;
+    font-size: 11px !important;
+}
+
+.jh-type-object pre {
+    white-space: pre !important; /* Let it stretch horizontally */
+    margin: 0;
+    font-family: inherit;
+    font-size: 11px !important;
+}
+
+.jh-root [contenteditable="true"], .jh-root [contenteditable="true"]:focus {
+    outline: none !important;
+    cursor: text;
+}
+
+.jh-type-string { color: var(--jh-type-string, #2e7d32); }
+.jh-type-number { color: var(--jh-type-number, #1565c0); }
+.jh-key { color: var(--jh-key, #888); font-weight: bold; }
