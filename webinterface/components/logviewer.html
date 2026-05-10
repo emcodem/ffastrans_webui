@@ -376,9 +376,17 @@
         padding: 4px 8px !important;
         border: 1px solid var(--border-color) !important;
         vertical-align: top;
-        word-break: break-word !important;
-        white-space: normal !important;
-        max-width: 600px !important; /* Prevent insane widths */
+    }
+
+    .jh-type-object pre {
+        white-space: pre !important; /* Let it stretch horizontally */
+        margin: 0;
+        font-family: inherit;
+    }
+
+    .jh-root [contenteditable="true"], .jh-root [contenteditable="true"]:focus {
+        outline: none !important;
+        cursor: text;
     }
 
     .jh-type-string { color: var(--jh-type-string, #2e7d32); }
@@ -1623,7 +1631,7 @@ function initLogGrid() {
                 if (showFull) {
                     try {
                         const table = JsonHuman.format(item.data || item._data || {});
-                        return `<div class="dhx_grid-cell__content dhx_grid-cell__content_auto-height" style="padding: 4px 0;">${table.outerHTML}</div>`;
+                        return `<div class="dhx_grid-cell__content dhx_grid-cell__content_auto-height" style="padding: 4px 0; overflow-x: auto; max-width: 100%;">${table.outerHTML}</div>`;
                     } catch(e) {
                         return `<div class="dhx_grid-cell__content" style="color:var(--status-error)">Error: ${e.message}</div>`;
                     }
