@@ -1219,6 +1219,16 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
         // Creates the graph inside the given container
         var graph = new mxGraph(container);
+        
+        // Override fit() to prevent excessive zoom on small workflows
+        const originalFit = graph.fit;
+        graph.fit = function() {
+            originalFit.apply(this, arguments);
+            if (this.view.scale > 1.0) {
+                this.zoomTo(1.0, true);
+            }
+        };
+        
         graph.autoExtend=true;
         graph.border = 50;
         //graph.resizeContainer=true;
