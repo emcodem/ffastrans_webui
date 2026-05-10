@@ -348,8 +348,34 @@
 
     /* JSON Human Overrides */
     .jh-root {
-        font-family: 'Fira Code', monospace;
+        font-family: 'Fira Code', 'Consolas', monospace;
         font-size: 12px;
+        width: 100%;
+    }
+
+    .jh-type-object {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .jh-type-object th {
+        background-color: var(--row-even);
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-align: left;
+        padding: 4px 8px !important;
+        border: 1px solid var(--border-color) !important;
+        min-width: 120px !important; /* Prevent narrow keys */
+        white-space: nowrap !important;
+        vertical-align: top;
+    }
+
+    .jh-type-object td {
+        padding: 4px 8px !important;
+        border: 1px solid var(--border-color) !important;
+        vertical-align: top;
+        word-break: break-all !important;
+        white-space: normal !important;
     }
 
     .jh-type-string { color: var(--jh-type-string, #2e7d32); }
@@ -1512,6 +1538,42 @@ function filterLogByNodeId(nodeId, branch){
 }
             
 
+function calculateLogGridRowHeight(item) {
+    if (!window._logGridMeasureContainer) {
+        window._logGridMeasureContainer = document.createElement("div");
+        window._logGridMeasureContainer.style.position = "absolute";
+        window._logGridMeasureContainer.style.left = "-9999px";
+        window._logGridMeasureContainer.style.visibility = "hidden";
+        window._logGridMeasureContainer.style.fontFamily = "var(--dhx-font-family, sans-serif)";
+        window._logGridMeasureContainer.style.fontSize = "14px";
+        window._logGridMeasureContainer.style.lineHeight = "20px";
+        document.body.appendChild(window._logGridMeasureContainer);
+    }
+    const tempContainer = window._logGridMeasureContainer;
+    
+    // Estimate data_preview column width for accurate text wrapping
+    let dataPreviewWidth = 400;
+    try {
+        const gridContainer = document.getElementById("log_grid_container");
+        const totalWidth = gridContainer ? gridContainer.offsetWidth : 1200;
+        // Subtract fixed column widths + scrollbar + extra buffer for cell paddings
+        const fixedWidth = 150 + 160 + 120 + 80 + 150 + 20; 
+        dataPreviewWidth = Math.max(totalWidth - fixedWidth - 30, 400); 
+    } catch(e) {}
+
+    tempContainer.style.width = dataPreviewWidth + "px";
+
+    try {
+        const table = JsonHuman.format(item.data || item._data || {});
+        // Wrap exactly like the grid cell template to account for padding and box model
+        tempContainer.innerHTML = `<div class="dhx_grid-cell__content dhx_grid-cell__content_auto-height" style="padding: 4px 0;">${table.outerHTML}</div>`;
+        // Add a generous buffer for borders, collapsed margins, and grid rendering nuances
+        return Math.max(tempContainer.scrollHeight + 30, 32); 
+    } catch(e) {
+        return 32;
+    }
+}
+
 function initLogGrid() {
     const columns = [
         { 
@@ -1557,12 +1619,12 @@ function initLogGrid() {
                 if (showFull) {
                     try {
                         const table = JsonHuman.format(item.data || item._data || {});
-                        return `<div class="celltext-full" style="padding: 4px 0;">${table.outerHTML}</div>`;
+                        return `<div class="dhx_grid-cell__content dhx_grid-cell__content_auto-height" style="padding: 4px 0;">${table.outerHTML}</div>`;
                     } catch(e) {
-                        return `<div class="celltext" style="color:var(--status-error)">Error: ${e.message}</div>`;
+                        return `<div class="dhx_grid-cell__content" style="color:var(--status-error)">Error: ${e.message}</div>`;
                     }
                 }
-                return `<div class="celltext" style="color:var(--text-secondary); font-style:italic; max-height:20px; overflow:hidden;">${val}</div>`;
+                return `<div class="dhx_grid-cell__content" style="color:var(--text-secondary); font-style:italic; max-height:20px; overflow:hidden;">${val}</div>`;
             }
         }
     ];
@@ -1606,9 +1668,33 @@ function initLogGrid() {
         });
     });
 
-    document.getElementById("render_all_details").addEventListener("change", function() {
+    document.getElementById("render_all_details").addEventListener("change", async function() {
+        const isChecked = this.checked;
+        showLoading();
+        // Give UI a chance to show spinner
+        await new Promise(r => setTimeout(r, 10));
+
+        m_logGrid.data.forEach(item => {
+            if (isChecked) {
+                item.$height = calculateLogGridRowHeight(item);
+            } else {
+                delete item.$height;
+            }
+        });
+
         m_logGrid.paint();
+        hideLoading();
     });
+
+    // Intercept all grid events for debugging
+    const originalFire = m_logGrid.events.fire;
+    m_logGrid.events.fire = function(eventName, args) {
+        const noisyEvents = ["scroll", "afterPaint", "cellMouseMove"];
+        if (!noisyEvents.includes(eventName)) {
+            console.log(`Grid Event: ${eventName}`, args);
+        }
+        return originalFire.apply(this, arguments);
+    };
 }
 
 function showLogDetail(item) {
@@ -1996,6 +2082,9 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
             for (var a in response) {
                 let item = response[a];
                 item["_data"] = item["data"];
+                if (document.getElementById("render_all_details")?.checked) {
+                    item.$height = calculateLogGridRowHeight(item);
+                }
                 item["node_name"] = getNodeNameById(item.node?.id);
                 
                 try {
