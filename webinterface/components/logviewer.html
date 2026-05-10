@@ -1637,8 +1637,15 @@ function initLogGrid() {
         });
     });
 
-    document.getElementById("render_all_details").addEventListener("change", async function() {
+    const renderDetailsCheckbox = document.getElementById("render_all_details");
+    const savedFullDetailsState = localStorage.getItem("ffastrans_log_full_details");
+    if (savedFullDetailsState === "true") {
+        renderDetailsCheckbox.checked = true;
+    }
+
+    renderDetailsCheckbox.addEventListener("change", async function() {
         const isChecked = this.checked;
+        localStorage.setItem("ffastrans_log_full_details", isChecked);
         showLoading();
         // Give UI a chance to show spinner
         await new Promise(r => setTimeout(r, 10));
