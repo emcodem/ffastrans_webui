@@ -1960,11 +1960,44 @@ function initNodeGrid() {
     console.log("initNodeGrid");
     
     const columns = [
-        { id: "state",   header: [{ text: "State" },{content: "selectFilter" }], width:100, sortable: true },
+        { 
+            id: "state", 
+            header: [{ text: "State" },{content: "selectFilter" }], 
+            width: 100, 
+            sortable: true,
+            template: function(val) {
+                if (!val) return "";
+                let css = "log-event-info";
+                if (val.toLowerCase().includes("error") || val.toLowerCase().includes("fail")) css = "log-event-error";
+                if (val.toLowerCase().includes("success") || val.toLowerCase().includes("end")) css = "log-event-success";
+                return `<span class="log-event-badge ${css}">${val}</span>`;
+            }
+        },
         { id: "name",    header: [{ text: "Name" }, {content: "selectFilter" }]},
         { id: "start",   header: [{ text: "Start" }, {content: "inputFilter" }],       width:100},
         { id: "duration",   header: [{ text: "Duration" }, {content: "selectFilter" }], width:100},
-        { id: "host",    header: [{ text: "Host" },   {content: "selectFilter" }],   sortable: true },
+        { 
+            id: "host", 
+            header: [{ text: "Host" },   {content: "selectFilter" }], 
+            sortable: true,
+            template: function(val) {
+                if (!val) return "";
+                let hash = 0;
+                for (let i = 0; i < val.length; i++) {
+                    hash = val.charCodeAt(i) + ((hash << 5) - hash);
+                    hash |= 0;
+                }
+                const hue = Math.abs(hash * 137.508) % 360;
+                const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+                let style = "";
+                if (isDark) {
+                    style = `background: hsla(${hue}, 40%, 15%, 0.4); color: hsl(${hue}, 85%, 85%); border: 1px solid hsla(${hue}, 40%, 30%, 0.5);`;
+                } else {
+                    style = `background: hsla(${hue}, 60%, 95%, 0.5); color: hsl(${hue}, 60%, 25%); border: 1px solid hsla(${hue}, 60%, 80%, 0.5);`;
+                }
+                return `<span class="log-event-badge" style="${style}">${val}</span>`;
+            }
+        },
         { id: "branch",  header: [{ text: "Branch" }, {content: "inputFilter" }], sortable: true },
         { id: "node_id",     header: [{ text: "ID" }, {content: "inputFilter" }], },
     ];
@@ -1977,8 +2010,9 @@ function initNodeGrid() {
         autoWidth:true,
         adjust: true,
         selection: "row",
-        rowHeight: 20,
+        rowHeight: 28,
         headerRowHeight: 30,
+        htmlEnable: true,
         eventHandlers: {
             onclick: {
               
