@@ -1635,7 +1635,8 @@ function initLogGrid() {
 
     m_logGrid = new dhx8.dhx.Grid("log_grid_container", {
         columns,
-        autoWidth: true,
+        autoWidth: false,
+        width: "100%",
         resizable: true,
         selection: "row",
         rowHeight: 32,
@@ -1682,9 +1683,13 @@ function initLogGrid() {
             if (isChecked) {
                 item.$height = calculateLogGridRowHeight(item);
             } else {
-                delete item.$height;
+                item.$height = 32;
             }
         });
+
+        if (!isChecked) {
+            m_logGrid.scroll(0, 0);
+        }
 
         m_logGrid.adjustColumnWidth("data_preview");
         m_logGrid.paint();
