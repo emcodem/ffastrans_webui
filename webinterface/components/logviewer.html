@@ -166,6 +166,15 @@
 
     .div_ffastrans_processor_container {
         overflow: hidden;
+        user-select: none;       /* prevent text selection during pan */
+        -webkit-user-select: none;
+    }
+
+    /* Prevent browser native drag-ghost on mxGraph HTML labels and SVG elements */
+    .div_ffastrans_processor_container *,
+    #graphContainer * {
+        -webkit-user-drag: none;
+        user-drag: none;
     }
 
     .sub_wf_ctrl_icons {
@@ -663,6 +672,15 @@ function init() {
         }
             
     }, { passive: false });
+
+    // Prevent browser native drag-image ghost when panning mxGraph canvases.
+    // HTML labels (node names) would otherwise appear floating during mouse drag.
+    document.addEventListener('dragstart', function(e) {
+        if (checkParentsForClass(e.target, 'div_ffastrans_processor_container', 30) ||
+            checkParentsForClass(e.target, 'div_ffastrans_processor_desc', 30)) {
+            e.preventDefault();
+        }
+    });
 
 
     /*
