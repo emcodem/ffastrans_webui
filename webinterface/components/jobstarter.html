@@ -450,9 +450,10 @@
             }
 
             function getCurrentFolderHtml() {
-                var html = '<button id="savelocation" onclick="saveLocation()" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:-5px;" title="Save Current Location"><i class="fas fa-save"></i></button>' +
-                    '<button id="gotolocation" onclick="window.promptLocation()" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:0;" title="Navigate to Path"><i class="fas fa-folder-open"></i></button>' +
-                    '<button id="up_one_level" onclick="window.goUpOneLevel()" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:0;" title="Go up one level"><i class="fas fa-level-up-alt"></i></button>' +
+                var html = '<button id="savelocation" onclick="event.stopPropagation();saveLocation()" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:-5px;" title="Save Current Location"><i class="fas fa-save"></i></button>' +
+                    '<button id="gotolocation" onclick="event.stopPropagation();window.promptLocation()" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:0;" title="Navigate to Path"><i class="fas fa-folder-open"></i></button>' +
+                    '<button id="copy_path" onclick="event.stopPropagation();var p=localStorage.getItem(\'lastVisitedBrowseLocation\')||\'\';navigator.clipboard.writeText(p).then(function(){dhx8.dhx.message({expire:3000,text:\'Copied: \'+p})})" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:0;" title="Copy current path to clipboard"><i class="fas fa-copy"></i></button>' +
+                    '<button id="up_one_level" onclick="event.stopPropagation();window.goUpOneLevel()" class="dhxform_obj_dhx_skyblue folder_nav_btn" style="margin-left:0;" title="Go up one level"><i class="fas fa-level-up-alt"></i></button>' +
                     "<span id='current_folder'></span>,Path,is_folder,Size,Created,Modified,original_size,Preview"
                 return html;
             }
