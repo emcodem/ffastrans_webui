@@ -1,0 +1,149 @@
+name: Daily Beta Build
+
+# Runs once per day. If the repo received any (non-build) commits in the last
+# day, it executes compile_to_dist (the canonical Windows build), bumps the
+# version, and publishes a DRAFT, PRE-RELEASE ("beta") GitHub release with the
+# packaged webinterface attached. Can also be started manually.
+
+on:
+  schedule:
+    # 03:00 UTC every day. GitHub may delay scheduled runs by a few minutes.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Build even if there were no changes in the last day'
+        type: boolean
+        default: false
+
+# Prevent overlapping daily builds.
+concurrency:
+  group: daily-beta-release
+  cancel-in-progress: false
+
+# Needed to push the version bump and to create the release.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # The build is Windows-only: nexe (prebuilt windows-x64 binary), verpatch.exe,
+    # ResourceHacker.exe and ie4uinit.exe are all invoked by compile_to_dist.bat.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so we can detect whether anything changed in the last day.
+          fetch-depth: 0
+
+      - name: Detect changes since last build
+        id: changes
+        shell: pwsh
+        run: |
+          # Each successful build pushes a "chore: bump version ... [skip ci]"
+          # commit, so the most recent [skip ci] commit marks the last build.
+          # We build only if there is at least one non-bump commit AFTER it.
+          # This is timing-independent: a delayed, skipped, or failed run never
+          # loses commits, because the window is anchored to the last build,
+          # not to a wall-clock window.
+          $lastBuild = git log -1 --grep="\[skip ci\]" --pretty=format:"%H"
+          if ([string]::IsNullOrWhiteSpace($lastBuild)) {
+            # No prior build in history -> everything is unbuilt.
+            Write-Host "No previous build commit found -> treating all history as new."
+            $commits = git log --invert-grep --grep="\[skip ci\]" --pretty=format:"%H"
+          } else {
+            Write-Host "Last build commit: $lastBuild"
+            $commits = git log "$lastBuild..HEAD" --invert-grep --grep="\[skip ci\]" --pretty=format:"%H"
+          }
+          $force = "${{ github.event.inputs.force }}" -eq "true"
+          if ($force) {
+            Write-Host "Manual run with force=true -> building regardless of changes."
+            "has_changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+          elseif ([string]::IsNullOrWhiteSpace($commits)) {
+            Write-Host "No new commits since the last build -> skipping build."
+            "has_changes=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+          else {
+            $n = ($commits -split "`n").Count
+            Write-Host "$n new commit(s) since the last build -> building."
+            "has_changes=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: actions/setup-node@v4
+        with:
+          # Node runtime used to execute nexe.cmd. The project is fully
+          # self-contained: node_modules is committed to the repo and packed
+          # into the build verbatim, so we deliberately do NOT run npm install /
+          # npm ci here — that would wipe the committed tree and rebuild a
+          # thinner one from the lockfile (dropping optional deps like
+          # ffastrans_common that aren't in package-lock.json).
+          node-version: '20.18.0'
+
+      - name: Run compile_to_dist
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: cmd
+        # Feed NUL into the batch so the trailing `pause` does not block CI.
+        run: compile_to_dist.bat < NUL
+
+      - name: Read built version
+        if: steps.changes.outputs.has_changes == 'true'
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content "webinterface/version.txt" -Raw).Trim()
+          Write-Host "Built version: $version"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Commit version bump
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add webinterface/version.txt
+          # Only commit if the build actually changed the version file.
+          $changed = git status --porcelain webinterface/version.txt
+          if ([string]::IsNullOrWhiteSpace($changed)) {
+            Write-Host "No version change to commit."
+          } else {
+            git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          }
+
+      - name: Package release archive
+        if: steps.changes.outputs.has_changes == 'true'
+        id: package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $src = "redist/webinterface_$version"
+          if (-not (Test-Path $src)) {
+            throw "Expected package directory not found: $src"
+          }
+          $zip = "redist/webinterface_$version.zip"
+          # Archive the folder itself (not its contents) so the zip has a
+          # top-level webinterface_<version>/ directory and extracts cleanly.
+          Compress-Archive -Path $src -DestinationPath $zip -Force
+          Write-Host "Created $zip"
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Create draft pre-release
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $tag = "v$version"
+          # No --target: the tag is created against the default branch HEAD when
+          # the draft is published, which includes the version-bump commit above.
+          gh release create $tag "${{ steps.package.outputs.zip }}" `
+            --draft `
+            --prerelease `
+            --title "Webinterface v$version (beta)" `
+            --notes "Automated daily beta build of version $version.`n`nThis is a draft pre-release. Review and publish to make it public."
