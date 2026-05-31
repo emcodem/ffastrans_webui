@@ -1,7 +1,7 @@
 name: Daily Beta Build
 
-# Runs once per day. If the repo received any (non-build) commits in the last
-# day, it executes compile_to_dist (the canonical Windows build), bumps the
+# Runs once per day. If the repo received any (non-build) commits since the last
+# build, it executes compile_to_dist (the canonical Windows build), bumps the
 # version, and publishes a DRAFT, PRE-RELEASE ("beta") GitHub release with the
 # packaged webinterface attached. Can also be started manually.
 
@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 'Build even if there were no changes in the last day'
+        description: 'Build even if there were no commits since the last build'
         type: boolean
         default: false
 
