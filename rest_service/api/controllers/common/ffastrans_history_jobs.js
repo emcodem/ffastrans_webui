@@ -117,26 +117,23 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
             try {
                 let splitfilepath = path.join(finisheddir, split_id);
                 if (true) {
-                    //funky workaround: check last 2-3 log lines if conditional proc did dispel // ffastrans 1.4 does not contain info about dispel
+                    //ffastrans 1.4 does not flag dispel in the job json \u2014 we detect it from the
+                    //job log instead. A dispelling conditional logs a "conditional" trace entry
+                    //carrying data.dispel:true, immediately followed by the "node end" entry, so
+                    //the marker always lives in the last two array elements. Read those backward
+                    //from EOF \u2014 log files can be hundreds of MB, so we never load the whole file.
                     let _logpath = path.join(finisheddir, path.parse(splitfilepath).name + "_log" + ".json");
 
                     if (!workaround_dispel_database.hasOwnProperty(_logpath)) {
                         try {
-                            // let last2lines = await readfile_cached(_logpath,false,false,1,"job_log_last_2_lines_workaround_dispel");
-                            // let thelog        = await fs.readFile(_logpath, 'utf8');//no need to cache the file, we cache the parsed job obj in jobCache
-                            // thelog            = thelog.replace(/^\uFEFF/, ''); //BOM
-                            let last2lines = await readEndOfFile(_logpath);
-                            console.debug(`Performance read last 2 lines ${_logpath}: ${Date.now() - perf_start}ms`);
+                            let lastObjs = await readLastJsonObjects(_logpath, 2);
+                            console.debug(`Performance read last 2 log objects ${_logpath}: ${Date.now() - perf_start}ms`);
                             perf_start = Date.now();
-                            //TODO: this cost lots of performance, check ffastrans version once we have some that supports indicating dispel in json
-                            if (last2lines.indexOf("dispel\":true") != -1) {//if job ended due to dispel, hide job
-                                workaround_dispel_database[_logpath] = { dispel: true };
-                            } else {
-                                workaround_dispel_database[_logpath] = { dispel: false };
-                            }
+                            let dispelled = lastObjs.some(o => o && o.data && o.data.dispel === true);
+                            workaround_dispel_database[_logpath] = { dispel: dispelled };
                         } catch (ex) {
-                            //i dont care about errors here, its just the dispel workaround#
-                            workaround_dispel_database[_logpath] = { dispel: false }
+                            //i dont care about errors here, its just the dispel workaround
+                            workaround_dispel_database[_logpath] = { dispel: false };
                         }
                     }
                     if (workaround_dispel_database[_logpath].dispel) {//if job ended due to dispel, hide job
@@ -212,21 +209,75 @@ function buildSplitInfo(jobInfo, splitId) {
     return to_return;
 }
 
-async function readEndOfFile(filepath, how_much = 1000) {
-    //the node module to read last 2 lines was crap, slower than reading all file so we try this low level method
-    var SIZE = how_much; // 64 byte intervals
+/**
+ * Reads the last `count` top-level elements of a JSON-array file by scanning
+ * backward from EOF in chunks — the file (a FFAStrans job log) can be hundreds
+ * of MB, so we never load it whole. Returns the parsed objects (oldest first).
+ *
+ * We can't split on newlines/commas because string values may legitimately
+ * contain either, so we track brace depth plus string/escape state while reading
+ * right-to-left. The structural characters we test ({ } [ ] " \) are all ASCII,
+ * so scanning raw UTF-8 bytes is safe even through multibyte sequences.
+ */
+async function readLastJsonObjects(filepath, count = 2) {
+    const CHUNK = 16 * 1024;
     let _fh;
     try {
         _fh = await fs.promises.open(filepath, 'r');
-        let _fstat = await _fh.stat();
-        let maxlen = _fstat.size < how_much ? _fstat.size : how_much;
-        let pos = _fstat.size < how_much ? 0 : _fstat.size - how_much;
-        let buffer = Buffer.alloc(maxlen);
-        let res = await _fh.read({ buffer: buffer, offset: 0, length: maxlen, position: pos });
-        return (buffer.toString());
-    } catch (ex) {
-        console.error("Error reading end of file", filepath, ex)
+        let read = 0;
+        const { size } = await _fh.stat();
+        let buf = Buffer.alloc(0);
+
+        while (read < size) {
+            const grow = Math.min(CHUNK, size - read);
+            const chunk = Buffer.alloc(grow);
+            await _fh.read({ buffer: chunk, offset: 0, length: grow, position: size - read - grow });
+            buf = Buffer.concat([chunk, buf]);
+            read += grow;
+
+            const start = findStartOfLastElements(buf, count);
+            if (start !== -1) {
+                // buf[start..] is `{...},{...}]` — wrap in [ to parse as an array
+                return JSON.parse('[' + buf.toString('utf8', start));
+            }
+        }
+        // fewer than `count` elements in the whole file: parse the array as-is
+        return JSON.parse(buf.toString('utf8').replace(/^﻿/, ''));
     } finally {
         _fh?.close();
     }
+}
+
+/**
+ * Scans `buf` right-to-left and returns the byte index where the `count`-th
+ * top-level array element (counting from the end) begins, or -1 if fewer than
+ * `count` complete elements are present in the buffer. The outermost array is
+ * depth 1; a `{` that drops depth from 2 to 1 starts a top-level object.
+ */
+function findStartOfLastElements(buf, count) {
+    let depth = 0;
+    let inString = false;
+    let found = 0;
+    for (let i = buf.length - 1; i >= 0; i--) {
+        const c = buf[i];
+        if (inString) {
+            if (c === 0x22 /* " */) {
+                let bs = 0, j = i - 1;
+                while (j >= 0 && buf[j] === 0x5C /* \ */) { bs++; j--; }
+                if (bs % 2 === 0) inString = false; // unescaped quote -> string opens
+            }
+            continue;
+        }
+        switch (c) {
+            case 0x22: inString = true; break;     // "
+            case 0x5D:                             // ]
+            case 0x7D: depth++; break;             // }
+            case 0x5B: depth--; break;             // [
+            case 0x7B:                             // {
+                depth--;
+                if (depth === 1 && ++found === count) return i;
+                break;
+        }
+    }
+    return -1;
 }
