@@ -71,6 +71,8 @@
         --log-event-error-color: #c62828;
         --log-event-info-bg: hsla(208, 90%, 92%, 0.5);
         --log-event-info-color: #1565c0;
+        --scrollbar-thumb: #ccc;
+        --scrollbar-thumb-hover: #aaa;
     }
 
     [data-theme="dark"] {
@@ -94,6 +96,8 @@
         --log-event-error-color: #ffb4b4;
         --log-event-info-bg: hsla(208, 40%, 15%, 0.4);
         --log-event-info-color: #b3d7ff;
+        --scrollbar-thumb: #555;
+        --scrollbar-thumb-hover: #666;
     }
 
     html, body {
@@ -122,20 +126,22 @@
         overflow:hidden;
     }
 
-    /* Modern Scrollbars scoped to new components */
-    .dhx_grid ::-webkit-scrollbar, .detail-content::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+    /* Modern Scrollbars — uniform page-wide so the dhx9 grids' internal scroll and
+       the dhtmlx5 layout cells' showInnerScroll() wrappers match. The canvas
+       (#graphContainer) is overflow:hidden, so it has no scrollbars to affect. */
+    ::-webkit-scrollbar {
+        width: 14px;
+        height: 14px;
     }
-    .dhx_grid ::-webkit-scrollbar-track, .detail-content::-webkit-scrollbar-track {
+    ::-webkit-scrollbar-track {
         background: transparent;
     }
-    .dhx_grid ::-webkit-scrollbar-thumb, .detail-content::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 4px;
+    ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb, #ccc);
+        border-radius: 7px;
     }
-    .dhx_grid ::-webkit-scrollbar-thumb:hover, .detail-content::-webkit-scrollbar-thumb:hover {
-        background: #aaa;
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-thumb-hover, #aaa);
     }
 
     #graphContainer {
@@ -1349,7 +1355,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 }
                 
                 var tbl = '<div class="div_ffastrans_processor_container" style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
-                            '<table name="gui_node" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                            '<table name="gui_node" data-ff-node-id="' + FF_NODE_ID + '" data-ff-node-type="' + FF_NODE_TYPE + '" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                             'class="table_ffastrans_processor_disabled" id = "' + TABLE_ID_PREFIX + FF_NODE_ID + '" > ' +
                             '<tr class="tr_ffastrans_processor_top" >' +
                                 `<th width="100%" title="'${FF_NODE_TITLE}'"><span id="${TABLE_ID_PREFIX}${FF_NODE_ID}_exec_count" class="exec_count" title="Execution Counter">0</span><div><span>` + FF_NODE_TITLE + "</span>" +
@@ -1455,21 +1461,38 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
         });
 
-        graph.addListener(mxEvent.CLICK, mxUtils.bind(graph, function (sender, evt) { 
+        graph.addListener(mxEvent.CLICK, mxUtils.bind(graph, function (sender, evt) {
             if (evt.properties.event.defaultPrevented)//it was a drag
                 return;
             var cell = evt.getProperty("cell");
 
-            if (!cell){ //click on canvas
+            // The node vertices are fully transparent (see insertVertex below) and the
+            // visible/clickable node is its HTML label. mxGraph often fails to map a click
+            // on that HTML label back to the transparent vertex and returns cell=null,
+            // which previously got treated as a canvas click and silently CLEARED the
+            // filter ("nothing happens"). Recover the node from the DOM as a fallback so a
+            // click on a node reliably filters the log.
+            var nodeId = null, nodeType = null;
+            if (cell && cell.ffastransobj){
+                nodeId   = cell.ffastransobj.id.toUpperCase();
+                nodeType = cell.ffastransobj.type;
+            } else {
+                var info = nodeInfoFromEventTarget(evt.properties.event.target);
+                if (info){
+                    nodeId   = info.id.toUpperCase();
+                    nodeType = info.type;
+                }
+            }
+
+            if (!nodeId){ //genuine click on empty canvas
                 filterLogByNodeId();
                 return;
             }
 
-            console.log("detected mouseclick on cell",cell)
-            if (cell.ffastransobj.type == "sub_wf")
-                return // if click on node in sub-wf, prevents that we show log only of workflow proc
-            let nodeId = cell["ffastransobj"]["id"].toUpperCase();
-            
+            console.log("detected mouseclick on node", nodeId);
+            if (nodeType == "sub_wf")
+                return // if click on sub-wf wrapper, prevents that we show log only of workflow proc
+
             filterLogByNodeId(nodeId);
 
             evt.consume();
@@ -1612,6 +1635,23 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
     }
 };
 
+
+/* Recover the FFAStrans node (id + type) from a DOM element by walking up to the
+   gui_node table. mxGraph occasionally fails to map a click on an HTML node label
+   to its transparent vertex (returns cell=null); this lets the click handler still
+   resolve which node was clicked so log filtering works reliably. */
+function nodeInfoFromEventTarget(target){
+    let el = target;
+    let depth = 0;
+    while (el && el !== document.body && depth < 30){
+        if (el.dataset && el.dataset.ffNodeId){
+            return { id: el.dataset.ffNodeId, type: el.dataset.ffNodeType };
+        }
+        el = el.parentNode;
+        depth++;
+    }
+    return null;
+}
 
 function filterLogByNodeId(nodeId, branch){
     /* visually filters log  */
