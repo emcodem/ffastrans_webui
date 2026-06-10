@@ -1878,9 +1878,8 @@ function initLogGrid() {
 
     const renderDetailsCheckbox = document.getElementById("render_all_details");
     const savedFullDetailsState = localStorage.getItem("ffastrans_log_full_details");
-    if (savedFullDetailsState === "true") {
-        renderDetailsCheckbox.checked = true;
-    }
+    // Full Details is ON by default; only off if the user explicitly turned it off.
+    renderDetailsCheckbox.checked = (savedFullDetailsState !== "false");
 
     renderDetailsCheckbox.addEventListener("change", async function() {
         const isChecked = this.checked;
@@ -1915,6 +1914,30 @@ function initLogGrid() {
         }
         return originalFire.apply(this, arguments);
     };
+}
+
+// Full Details renders every JSON payload in full, which is far too heavy for very
+// large logs. When the grid grows past this many rows we force Full Details off and
+// disable the checkbox so it can't be re-enabled until the log is small again.
+const FULL_DETAILS_MAX_ROWS = 3000;
+
+function enforceFullDetailsRowLimit() {
+    const checkbox = document.getElementById("render_all_details");
+    if (!checkbox || !m_logGrid) return;
+    const rowCount = m_logGrid.data.getLength();
+    const label = checkbox.closest("label");
+    if (rowCount > FULL_DETAILS_MAX_ROWS) {
+        checkbox.checked = false;
+        checkbox.disabled = true;
+        const msg = "Full Details is disabled because this log has more than " +
+                    FULL_DETAILS_MAX_ROWS + " rows.";
+        checkbox.title = msg;
+        if (label) { label.title = msg; label.style.opacity = "0.5"; }
+    } else {
+        checkbox.disabled = false;
+        checkbox.title = "";
+        if (label) { label.title = ""; label.style.opacity = ""; }
+    }
 }
 
 function showLogDetail(item) {
@@ -2381,6 +2404,7 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                     m_logSubLayout.cells("b").collapse();
                 }
                 m_logGrid.data.parse(response);
+                enforceFullDetailsRowLimit();
                 if (document.getElementById("render_all_details")?.checked) {
                     m_logGrid.data.forEach(item => {
                         item.$height = calculateLogGridRowHeight(item);
@@ -2397,6 +2421,7 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                         m_logSubLayout.cells("b").collapse();
                     }
                     m_logGrid.data.parse(response);
+                    enforceFullDetailsRowLimit();
                     if (document.getElementById("render_all_details")?.checked) {
                         m_logGrid.data.forEach(item => {
                             item.$height = calculateLogGridRowHeight(item);
