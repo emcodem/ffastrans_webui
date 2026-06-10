@@ -603,6 +603,7 @@ async function init(conf) {
     require("./node_components/getserverconfig")(app, express);
     require("./node_components/views/adminconfig")(app, express);
     require("./node_components/views/gethistoryjobs_dhx")(app, express);
+    require("./node_components/views/getjobtree")(app, express);
     require("./node_components/views/get_jobviewercolumns")(app, express);
     require("./node_components/views/generic_json_to_html")(app, express);
     require("./node_components/views/getactivejobs_dhx")(app, express);

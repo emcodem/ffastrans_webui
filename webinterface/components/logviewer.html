@@ -744,6 +744,38 @@ function buildMainLayout() {
     };
     window.menuAction_NewTab    = function() { window.open(window.location.href, '_blank'); };
     window.menuAction_Refresh   = function() { window.location.href = window.location.href; };
+
+    window.menuAction_JobTree = function() {
+        var jobId = getQueryVariable("job_id");
+        openJobTreeViewer(jobId);
+    };
+
+    window.openJobTreeViewer = function(job_id) {
+        var url = "/webinterface/components/jobtreeviewer.html?job_id=" + encodeURIComponent(job_id);
+        const dhxWindow = new dhx8.dhx.Window({
+            node: document.body,
+            viewportOverflow: true,
+            width: window.innerWidth - 40,
+            height: window.innerHeight - 40,
+            title: "Job Tree",
+            modal: false,
+            closable: true,
+            movable: true,
+            resizable: true,
+            css: "custom_window_small_borders"
+        });
+        dhxWindow.header.data.add({ icon: "mdi mdi-fullscreen", id: "fullscreen_tree" }, 2);
+        var isFullScreen = false;
+        dhxWindow.header.events.on("click", function(id) {
+            if (id === "fullscreen_tree") {
+                isFullScreen = !isFullScreen;
+                isFullScreen ? dhxWindow.setFullScreen() : dhxWindow.unsetFullScreen();
+            }
+        });
+        var ifrid = "jtv_" + Date.now();
+        dhxWindow.attachHTML('<iframe id="' + ifrid + '" height="100%" width="100%" style="border:none" src="' + url + '"></iframe>');
+        dhxWindow.show();
+    };
     window.menuAction_LatestJob = function() {
         $.ajax({
             url: "/gethistoryjobsajax_treegrid?count=1", type: "GET", crossDomain: true, dataType: "json",
@@ -795,6 +827,7 @@ function buildMainLayout() {
         { label: "Load latest Job",   html: '<button class="btn logviewer_menu" title="Load latest Finished Job" onclick="menuAction_LatestJob()"><span class="mdi mdi-rss"></span> Latest Finished Job</button>' },
         { label: "Resubmit Job",      html: '<button class="btn logviewer_menu" title="Resubmit Job"            onclick="menuAction_ResubmitJob()"><span class="mdi mdi-repeat"></span> Resubmit Job</button>' },
         { label: "Refresh this page", html: '<button class="btn logviewer_menu" title="Refresh this page"      onclick="menuAction_Refresh()"><span class="mdi mdi-refresh"></span> Refresh this page</button>' },
+        { label: "Job Tree",          html: '<button id="btn_jobtree" class="btn logviewer_menu" style="display:none" title="Show Job Tree" onclick="menuAction_JobTree()"><span class="mdi mdi-family-tree"></span> Job Tree</button>' },
     ];
     var _filter = _getObjectByValue(m_userpermissions, "FILTER_JOBSTATUS_BUTTONS");
     var visibleButtons = allButtons;
@@ -2419,6 +2452,19 @@ function get_all_job_details(job_id) {
                 //populate workflow canvas
                 buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,true);
                 get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
+
+                // Show "Job Tree" button only when this job has child jobs
+                $.ajax({
+                    url: "/getjobtree?jobid=" + encodeURIComponent(job_id) + "&countonly=1",
+                    type: "GET",
+                    dataType: "json",
+                    success: function(r) {
+                        if (r && r.count > 0) {
+                            var btn = document.getElementById("btn_jobtree");
+                            if (btn) btn.style.display = "";
+                        }
+                    }
+                });
             }
         },
         error: function (xhr, status) {

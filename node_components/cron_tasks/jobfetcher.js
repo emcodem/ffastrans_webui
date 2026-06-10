@@ -102,6 +102,7 @@ async function getJobs() {
 	let varcols = global.config.job_viewer?.variable_columns || [];
 	let varsToFetch = new Set();
 	varsToFetch.add("s_is_main_branch");
+	varsToFetch.add("sys_parent_job_id");
 	const rgx = /%(s_.*?|i_.*?|f_.*?|webui_.*?)%/gi;
 
 	// Extract all unique variable names from the variable column templates

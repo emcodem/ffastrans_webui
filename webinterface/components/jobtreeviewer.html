@@ -1,0 +1,498 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FFAStrans Job Tree</title>
+
+<script src="../dependencies/jquery/jquery.js"></script>
+
+<!-- Icon fonts -->
+<link rel="stylesheet" href="../dependencies/fontawesome/css/all.css">
+<link href="../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css">
+
+<!-- DHTMLX 9.2.4 CSS -->
+<link rel="stylesheet" href="../dependencies/dhtmlx/9.2.4/suite.min.css" type="text/css">
+
+<!-- Centralized styles (dark/light theming) -->
+<link rel="stylesheet" href="../dependencies/dhtmlx/dhtmlx.css" id="theme_loader" type="text/css">
+<link rel="stylesheet" href="../dependencies/css/global.css" type="text/css">
+<link rel="stylesheet" href="/alternate-server/css/override.css">
+
+<script>
+    if (localStorage.global_skin_dark == "1") {
+        try { document.querySelector("#theme_loader").href = document.querySelector("#theme_loader").href.replace("dhtmlx.css", "dhtmlx_benjamin.css"); } catch(ex) {}
+    }
+</script>
+
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font: 12px Tahoma;
+        color: var(--dhx-font-color-primary, #333);
+        background: var(--dhx-background-primary, #fff);
+    }
+
+    #jobtree_page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    #jobtree_infobar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-bottom: 1px solid var(--dhx-border-color, #ddd);
+        background: var(--dhx-background-secondary, #f5f5f5);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        font-size: 12px;
+    }
+
+    #jobtree_infobar .info-label {
+        color: var(--dhx-font-color-secondary, #666);
+    }
+
+    #jobtree_infobar .info-value {
+        font-weight: bold;
+    }
+
+    .state-badge {
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    .state-success  { background: #e8f5e9; color: #2e7d32; }
+    .state-error    { background: #ffebee; color: #c62828; }
+    .state-running  { background: #e3f2fd; color: #1565c0; }
+    .state-unknown  { background: var(--dhx-background-secondary, #f5f5f5); color: var(--dhx-font-color-secondary, #666); }
+
+    [data-theme="dark"] .state-success { background: #1b5e20; color: #a5d6a7; }
+    [data-theme="dark"] .state-error   { background: #7f0000; color: #ef9a9a; }
+    [data-theme="dark"] .state-running { background: #0d47a1; color: #90caf9; }
+    [data-theme="dark"] .state-unknown { background: #2d2d2d; color: #aaa; }
+
+    .parent-link {
+        color: var(--dhx-color-primary, #2196f3);
+        cursor: pointer;
+        text-decoration: underline;
+        font-size: 11px;
+    }
+
+    #jobtree_toolbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 6px;
+        border-bottom: 1px solid var(--dhx-border-color, #ddd);
+        background: var(--dhx-background-secondary, #f5f5f5);
+        flex-shrink: 0;
+    }
+
+    .jtv-btn {
+        background: var(--dhx-background-primary, #eee);
+        border: 1px solid var(--dhx-border-color, #ccc);
+        color: var(--dhx-font-color-primary, #333);
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .jtv-btn:hover:not(:disabled) {
+        border-color: var(--dhx-color-primary, #2196f3);
+        filter: brightness(0.96);
+    }
+
+    .jtv-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    .jtv-search {
+        padding: 2px 6px;
+        border: 1px solid var(--dhx-border-color, #ccc);
+        border-radius: 4px;
+        font-size: 11px;
+        background: var(--dhx-background-primary, #fff);
+        color: var(--dhx-font-color-primary, #333);
+        width: 180px;
+    }
+
+    .jtv-label {
+        font-size: 11px;
+        color: var(--dhx-font-color-secondary, #666);
+    }
+
+    .jtv-header-select {
+        padding: 3px 4px;
+        font-size: 12px;
+        background: var(--dhx-background-primary, #fff);
+        color: var(--dhx-font-color-primary, #333);
+        border: 1px solid var(--dhx-border-color, #ccc);
+        border-radius: 3px;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    #jobtree_grid_container {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    #jobtree_status {
+        padding: 20px;
+        font-size: 13px;
+        color: var(--dhx-font-color-secondary, #666);
+    }
+</style>
+</head>
+
+<body>
+<div id="jobtree_page">
+    <div id="jobtree_infobar">
+        <span class="info-label">Root job:</span>
+        <span class="info-value" id="info_workflow">—</span>
+        <span id="info_state_badge" class="state-badge state-unknown">—</span>
+        <span class="info-label" style="margin-left:8px">Started:</span>
+        <span id="info_start">—</span>
+        <span id="info_parent_link" style="display:none; margin-left:12px">
+            <span class="mdi mdi-arrow-up-circle-outline"></span>
+            <span class="parent-link" id="info_parent_job_id" title="Open parent job in logviewer"></span>
+        </span>
+    </div>
+    <div id="jobtree_toolbar">
+        <button class="jtv-btn" id="btn_open_log" disabled><span class="mdi mdi-open-in-new"></span> Open Log</button>
+        <span class="jtv-label" style="margin-left: 8px;">Search:</span>
+        <input type="search" class="jtv-search" id="jtv_search_input" placeholder="Filter rows…">
+        <button class="jtv-btn" id="btn_expand_all"><span class="mdi mdi-expand-all"></span> Expand All</button>
+        <button class="jtv-btn" id="btn_collapse_all"><span class="mdi mdi-collapse-all"></span> Collapse All</button>
+        <span id="jtv_count_label" class="jtv-label" style="margin-left: 8px;"></span>
+    </div>
+    <div id="jobtree_grid_container">
+        <div id="jobtree_status">Loading job tree…</div>
+    </div>
+</div>
+
+<script type="module">
+import { dhx924 } from '../dependencies/dhtmlx/9.2.4/suite.umd.js';
+
+if (localStorage.global_skin_dark == "1") {
+    try { dhx924.dhx.setTheme("dark"); } catch(ex) {}
+}
+
+var m_grid = null;
+// m_allRows: flat list ordered BFS (parents before children), each has: id, _parent_job_id, _depth, _hasChildren, _workflow, + display fields
+var m_allRows = [];
+var m_collapsed = new Set(); // IDs of collapsed parent nodes
+var m_selectedJobId = null;  // job_id of the currently selected row
+var m_stateFilter = "";      // selected state in the State-column filter ("" = all)
+
+function getQueryVariable(variable) {
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        if (decodeURIComponent(pair[0]) == variable) {
+            return decodeURIComponent(pair[1]);
+        }
+    }
+    return null;
+}
+
+function stateClass(state) {
+    if (!state) return "state-unknown";
+    var s = state.toLowerCase();
+    if (s === "success") return "state-success";
+    if (s === "error")   return "state-error";
+    if (s === "running") return "state-running";
+    return "state-unknown";
+}
+
+function stateHtml(state) {
+    return "<span class='state-badge " + stateClass(state) + "'>" + (state || "—") + "</span>";
+}
+
+function openLogViewerForJob(job_id) {
+    // Open in a new browser tab — use window.top to escape iframe nesting
+    window.top.open("/webinterface/components/logviewer.html?job_id=" + encodeURIComponent(job_id), "_blank");
+}
+
+// Exposed globally so inline onclick in grid cell HTML can call it from module scope
+window.jtv_toggle = function(jobId, event) {
+    event.stopPropagation(); // prevent cellClick from firing → no logviewer open on toggle
+    if (m_collapsed.has(jobId)) m_collapsed.delete(jobId);
+    else m_collapsed.add(jobId);
+    refreshGrid();
+};
+
+// Exposed globally for the <select> filter in the State column header
+window.jtv_stateFilter = function(value) {
+    m_stateFilter = value || "";
+    refreshGrid();
+};
+
+// Build the workflow cell HTML with indent + toggle icon
+function workflowCellHtml(row) {
+    var indent = row._depth * 18;
+    var toggle = '';
+    if (row._hasChildren) {
+        var icon = m_collapsed.has(row.id) ? 'mdi-chevron-right' : 'mdi-chevron-down';
+        toggle = '<span class="mdi ' + icon + '" onclick="jtv_toggle(\'' + row.id + '\', event)" style="cursor:pointer;margin-right:3px;vertical-align:middle"></span>';
+    } else {
+        toggle = '<span style="display:inline-block;width:16px;margin-right:3px"></span>';
+    }
+    return '<span style="padding-left:' + indent + 'px">' + toggle + (row._workflow || '') + '</span>';
+}
+
+// Compute visible rows respecting collapse state
+function getVisibleRows(filterStr) {
+    var hiddenDescendants = new Set();
+    var val = (filterStr || '').toLowerCase().trim();
+    return m_allRows.filter(function(row) {
+        if (hiddenDescendants.has(row.id)) return false;
+        if (m_collapsed.has(row.id)) {
+            // Mark all descendants hidden
+            markHidden(row.id, hiddenDescendants);
+        }
+        // State-column select filter
+        if (m_stateFilter && (row.state || '') !== m_stateFilter) return false;
+        if (val) {
+            return (row._workflow || '').toLowerCase().includes(val) ||
+                   (row.source || '').toLowerCase().includes(val) ||
+                   (row.job_start || '').includes(val);
+        }
+        return true;
+    });
+}
+
+function markHidden(parentId, hiddenSet) {
+    m_allRows.forEach(function(row) {
+        if (row._parent_job_id === parentId) {
+            hiddenSet.add(row.id);
+            markHidden(row.id, hiddenSet);
+        }
+    });
+}
+
+// Convert m_allRows entry to a grid data row (with rendered workflow cell)
+function toGridRow(row) {
+    return {
+        id: row.id,
+        workflow_html: workflowCellHtml(row),
+        state_html: row.state_html,
+        source: row.source,
+        outcome: row.outcome,
+        job_start: row.job_start,
+        job_end: row.job_end,
+        duration: row.duration
+    };
+}
+
+function refreshGrid() {
+    if (!m_grid) return;
+    var filterStr = document.getElementById('jtv_search_input').value;
+    var visible = getVisibleRows(filterStr);
+    m_grid.data.parse(visible.map(toGridRow));
+    updateCountLabel(visible.length);
+}
+
+function updateCountLabel(visible) {
+    var total = m_allRows.length;
+    var label = total + ' job' + (total === 1 ? '' : 's');
+    if (visible !== undefined && visible < total) label += ' (' + visible + ' visible)';
+    document.getElementById('jtv_count_label').textContent = label;
+}
+
+function buildGrid(jobs) {
+    document.getElementById("jobtree_status").style.display = "none";
+
+    // Deduplicate and build flat ordered list
+    var seen = new Set();
+    var childrenOf = {}; // parentId → true
+    var rawRows = [];
+
+    jobs.forEach(function(j) {
+        if (seen.has(j.job_id)) return;
+        seen.add(j.job_id);
+        rawRows.push({
+            id: j.job_id,
+            _parent_job_id: j.parent_job_id || null,
+            _depth: j.depth || 0,
+            _workflow: j.workflow || '',
+            _hasChildren: false,
+            state: j.state || '',
+            state_html: stateHtml(j.state),
+            source: j.source || '',
+            outcome: j.outcome || '',
+            job_start: j.job_start || '',
+            job_end: j.job_end || '',
+            duration: j.duration || ''
+        });
+        if (j.parent_job_id) childrenOf[j.parent_job_id] = true;
+    });
+
+    // Mark which rows have children
+    rawRows.forEach(function(row) {
+        row._hasChildren = !!childrenOf[row.id];
+    });
+
+    m_allRows = rawRows;
+
+    // Build the State-column header select from the unique states present
+    var uniqueStates = [];
+    rawRows.forEach(function(r) {
+        if (r.state && uniqueStates.indexOf(r.state) === -1) uniqueStates.push(r.state);
+    });
+    uniqueStates.sort();
+    var stateOptions = '<option value="">All states</option>' + uniqueStates.map(function(s) {
+        return '<option value="' + s + '">' + s + '</option>';
+    }).join('');
+    // onclick stopPropagation prevents the header sort from firing when using the select
+    var stateHeaderHtml = "<select class='jtv-header-select' title='Filter by state' onclick='event.stopPropagation()' " +
+                          "onchange='jtv_stateFilter(this.value)'>" + stateOptions + "</select>";
+
+    // Create the flat grid (no type:"tree" — tree is handled manually)
+    m_grid = new dhx924.dhx.Grid("jobtree_grid_container", {
+        columns: [
+            {
+                id: "workflow_html",
+                header: [{ text: "Workflow" }],
+                width: 320,
+                resizable: true,
+                htmlEnable: true
+            },
+            {
+                id: "state_html",
+                header: [{ text: stateHeaderHtml, htmlEnable: true }],
+                width: 110,
+                resizable: true,
+                htmlEnable: true
+            },
+            {
+                id: "source",
+                header: [{ text: "Source" }],
+                gravity: 1,
+                resizable: true,
+                htmlEnable: true,
+                template: function(val) {
+                    return "<div style='direction:rtl;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + (val || "") + "</div>";
+                }
+            },
+            {
+                id: "job_start",
+                header: [{ text: "Start" }],
+                width: 145,
+                resizable: true
+            },
+            {
+                id: "job_end",
+                header: [{ text: "End" }],
+                width: 145,
+                resizable: true
+            },
+            {
+                id: "duration",
+                header: [{ text: "Duration" }],
+                width: 75,
+                resizable: true
+            },
+            {
+                id: "outcome",
+                header: [{ text: "Outcome" }],
+                gravity: 1,
+                resizable: true
+            }
+        ],
+        data: m_allRows.map(toGridRow),
+        autoWidth: true,
+        resizable: true,
+        selection: "row",
+        htmlEnable: true,
+        headerRowHeight: 36,
+        css: "alternate_row"
+    });
+
+    // Row click selects the row and enables the "Open Log" button.
+    // (Opening the logviewer happens via the toolbar button, not on click.)
+    // Toggle clicks use window.jtv_toggle (inline onclick) which calls stopPropagation
+    // so they never reach this handler.
+    m_grid.events.on("cellClick", function(row) {
+        if (!row || !row.id) return;
+        m_selectedJobId = row.id;
+        document.getElementById("btn_open_log").disabled = false;
+    });
+
+    updateCountLabel(m_allRows.length);
+}
+
+function filterGrid(value) {
+    refreshGrid();
+}
+
+function expandCollapseAll(expand) {
+    if (expand) {
+        m_collapsed.clear();
+    } else {
+        m_allRows.forEach(function(row) { if (row._hasChildren) m_collapsed.add(row.id); });
+    }
+    refreshGrid();
+}
+
+// Wire up toolbar buttons via event listeners (module scope — no global onclick)
+document.getElementById("btn_open_log").addEventListener("click", function() {
+    if (m_selectedJobId) openLogViewerForJob(m_selectedJobId);
+});
+document.getElementById("btn_expand_all").addEventListener("click", function() { expandCollapseAll(true); });
+document.getElementById("btn_collapse_all").addEventListener("click", function() { expandCollapseAll(false); });
+document.getElementById("jtv_search_input").addEventListener("input", function() { filterGrid(this.value); });
+document.getElementById("info_parent_job_id").addEventListener("click", function() {
+    var parentId = this.dataset.jobid;
+    if (parentId) openLogViewerForJob(parentId);
+});
+
+// Fetch and render
+var jobId = getQueryVariable("job_id");
+if (!jobId) {
+    document.getElementById("jobtree_status").textContent = "No job_id specified.";
+} else {
+    $.ajax({
+        url: "/getjobtree?jobid=" + encodeURIComponent(jobId),
+        type: "GET",
+        dataType: "json",
+        success: function(data) {
+            if (!data || !data.jobs || data.jobs.length === 0) {
+                document.getElementById("jobtree_status").textContent = "No jobs found for this ID.";
+                return;
+            }
+
+            var root = data.jobs[0];
+            document.getElementById("info_workflow").textContent = root.workflow || root.job_id;
+            var badge = document.getElementById("info_state_badge");
+            badge.textContent = root.state || "—";
+            badge.className = "state-badge " + stateClass(root.state);
+            document.getElementById("info_start").textContent = root.job_start || "—";
+
+            if (data.parent_of_root) {
+                var parentLink = document.getElementById("info_parent_link");
+                parentLink.style.display = "";
+                var parentLabel = document.getElementById("info_parent_job_id");
+                parentLabel.textContent = "Parent job (" + data.parent_of_root + ")";
+                parentLabel.dataset.jobid = data.parent_of_root;
+            }
+
+            buildGrid(data.jobs);
+        },
+        error: function(xhr) {
+            document.getElementById("jobtree_status").textContent = "Error loading job tree (HTTP " + xhr.status + ").";
+        }
+    });
+}
+</script>
+</body>
+</html>
