@@ -18,13 +18,10 @@ module.exports = {
   Param 1: a handle to the request object
   Param 2: a handle to the response object
  */
-var START = 0;
-
-
 async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
   var jobid = req.query.jobid;
-  START = req.query.start | 0;
+  var startpos = req.query.start | 0;
   
 	console.debug("get_job_log called for: " + jobid);
 	
@@ -65,7 +62,7 @@ async function start(req, res) {
 	  }else{
 		//serve log for running job
         console.log("Serving log from running job");
-        serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",0,0,res);
+        serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",startpos,0,res);
       }
 	} catch(err) {
 		console.debug(err);
@@ -97,21 +94,22 @@ function serveRunningLog(jobdir, start, end, response) {
         }
         
         console.log("Num found log files: " + buffers.length);
-        if (START > buffers.length) {
-            console.error("Requested more log lines than i have, start was: " + START + " but i only have: " + buffers.length);
-            response.set('ffastrans_log_last_endpos', START);
+        if (start > buffers.length) {
+            console.error("Requested more log lines than i have, start was: " + start + " but i only have: " + buffers.length);
+            response.set('ffastrans_log_type', 'partial');
+            response.set('ffastrans_log_last_endpos', start);
             response.write("[]");
             response.end();
             return;
         }
-        
+
         COUNT = buffers.length;
         response.set('ffastrans_log_type', 'partial')
         response.set('ffastrans_log_last_endpos', COUNT)
         response.write("[");
         console.log("Log lines count: " + buffers.length)
         console.log("Log lines wanted: " + COUNT)
-        for (let i = START; i < COUNT; i++) {
+        for (let i = start; i < COUNT; i++) {
             console.log(buffers[i].toString());
             response.write(strip_bom(buffers[i].toString()));
             if (i < COUNT - 1) {

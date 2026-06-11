@@ -584,6 +584,11 @@ var m_workflows = []; //deprecated, we got multiple workflows now
 
 var m_jobobject = {};
 var m_unique_nodes = {}; //filled by logparse method, contains all unique nodes
+//Per canvas-node-element, the state ("running"|"success"|"error") of each branch
+//instance that passed through it. A canvas node box is shared across branches, so
+//we use this to PREFER the running state: the box keeps blinking as long as ANY
+//branch is still inside it, even if other branches already finished it.
+var m_node_branch_state = {};
 var m_graph;
 var m_graphs_by_container_id = {};
 var m_serverconfig;
@@ -594,6 +599,7 @@ let m_subWorkflows = {node_id:"workflow_id"}
 let m_branchGrid;
 let m_logGrid; // New virtualized log grid
 let m_logSubLayout; // Sub-layout for grid and details
+let m_accumulatedLogLines = []; // running jobs: partial responses only contain lines from "start" onwards, so we accumulate them here
 // Maps node IDs to their container prefixes (for nested workflows)
 let m_node_to_container = {};
 // Maps node IDs to their graph objects (for finding correct graph in nested workflows)
@@ -931,7 +937,7 @@ function buildMainLayout() {
     info_layout.cells("c").attachObject("node_div"); 
     info_layout.cells("c").showInnerScroll();   
 
-    info_layout.cells("b").setText("Branches");
+    info_layout.cells("b").setText("Finished Branches");
     info_layout.cells("b").attachHTMLString('<div id="branch_div" style=""/>');
     info_layout.cells("b").showInnerScroll();
 
@@ -971,16 +977,36 @@ function buildMainLayout() {
 
 
 
+let m_branchPollTimer = null;
+let m_lastBranchCount = -1;
 async function refreshBranches(){
-    //until job is finished, update list
-    const response = await fetch(build_new_api_url("/getbranchlog?jobid=" + getQueryVariable("job_id")));
-    if (!response.ok) {
-      console.log("error refreshing branches for job:",getQueryVariable("job_id"))
-        //throw new Error(`HTTP error! status: ${response.status}`);
+    //Branches grid lists only FINISHED branches (json files in the job's "finished" folder).
+    //While the job runs, branches finish one by one, so we re-poll until the job is complete.
+    let data;
+    try {
+        const response = await fetch(build_new_api_url("/getbranchlog?jobid=" + getQueryVariable("job_id")));
+        if (!response.ok) {
+            console.log("error refreshing branches for job:",getQueryVariable("job_id"), response.status);
+            //404 = no "finished" folder yet (no branch has finished). Keep polling.
+        } else {
+            data = await response.json();
+            //Only re-parse when the finished-branch count actually changed, otherwise we would
+            //clobber the user's current row selection on every poll.
+            if (data.branches && data.branches.length !== m_lastBranchCount) {
+                m_lastBranchCount = data.branches.length;
+                m_branchGrid.data.parse(data.branches);
+            }
+        }
+    } catch(ex) {
+        console.log("refreshBranches failed, will retry:", ex);
     }
-    let data = await response.json(); // Assuming the response is JSON
-    m_branchGrid.data.parse(data.branches);
-    
+
+    //stop polling once the job is finished (full_log.json exists)
+    if (data && data.is_complete) {
+        m_branchPollTimer = null;
+        return;
+    }
+    m_branchPollTimer = window.setTimeout(refreshBranches, 3000);
 }
 
 function initBranchGrid(){
@@ -1053,6 +1079,7 @@ async function branchGridSelect(row,col){
     
     //rebuild graph with empty cells could be optimized by reset existing graph
     m_unique_nodes = [];
+    m_node_branch_state = {};
     m_graph.destroy();
     document.getElementById('graphContainer').innerHTML = "";
     m_graph = null;
@@ -1758,8 +1785,8 @@ function calculateLogGridRowHeight(item) {
 function initLogGrid() {
     const columns = [
         { 
-            id: "node_name", 
-            header: [{ text: "Node" }, { content: "inputFilter" }], 
+            id: "node_name",
+            header: [{ text: "Node" }, { content: "selectFilter" }],
             width: 150,
             template: function(val, item) {
                 return `<div class="celltext" title="${val}">${val}</div>`;
@@ -1798,9 +1825,9 @@ function initLogGrid() {
             }
         },
         { 
-            id: "split_id", 
-            header: [{ text: "Branch" }, { content: "inputFilter" }], 
-            width: 80 
+            id: "split_id",
+            header: [{ text: "Branch" }, { content: "selectFilter" }],
+            width: 80
         },
         { 
             id: "event", 
@@ -2140,34 +2167,48 @@ async function parseJobLog(lines) {
                 $("#" + containerPrefix + _proc_id).addClass("table_ffastrans_processor_enabled");
             }
             
+            //track per-branch state of this node so the canvas can PREFER the
+            //running state (see m_node_branch_state declaration)
+            var _elemSel = containerPrefix + _proc_id;
+            if (!m_node_branch_state[_elemSel]) m_node_branch_state[_elemSel] = {};
+
             //check processor error state and count
             if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
                 m_unique_nodes[new_key] = (line);
                 m_unique_nodes[new_key]["state"] = "running";
+                m_node_branch_state[_elemSel][new_key] = "running";
                 //raise proc count on gui
                 var _o_counter = $("#" + containerPrefix + _proc_id + "_exec_count");//execution count
-                
+
                 console.log("_o_counter","#" + containerPrefix + _proc_id + "_exec_count",_o_counter);
                 _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
-
-                //progress-circle
-                $("#" + containerPrefix + _proc_id).parent().addClass("blinking-progress");
-
             }
-            
+
             //check for processor end and state
             if (line["event"] == "node end") {
                 m_unique_nodes[new_key]["date_end"] = line["created"];
                 m_unique_nodes[new_key]["state"] = "success";
-                $("#" + containerPrefix + _proc_id).parent().removeClass("blinking-progress");
+                m_node_branch_state[_elemSel][new_key] = "success";
 
                 //red border for errored nodes
                 if (line["data"] != null) { //when this exists, we have a node in error
                     $("#" + containerPrefix + _proc_id).parent().addClass("blinking-error");
                     m_unique_nodes[new_key]["state"] = "error";
+                    m_node_branch_state[_elemSel][new_key] = "error";
                     node_has_errors = true;
-                } 
+                }
             }
+
+            //PREFER running: keep the shared node box blinking as long as ANY branch
+            //instance is still running; only stop once every branch has ended.
+            var _anyRunning = false;
+            for (var _bk in m_node_branch_state[_elemSel]) {
+                if (m_node_branch_state[_elemSel][_bk] === "running") { _anyRunning = true; break; }
+            }
+            if (_anyRunning)
+                $("#" + containerPrefix + _proc_id).parent().addClass("blinking-progress");
+            else
+                $("#" + containerPrefix + _proc_id).parent().removeClass("blinking-progress");
 
         } catch (ex) { }
         //sort the current line as accurate as possible
@@ -2399,18 +2440,24 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 var _start = request.getResponseHeader('ffastrans_log_last_endpos');
                 console.log("Job still running, getting next log lines from start: " + _start);
                 window.setTimeout(function () { get_job_log(job_id, _start)}, 3000);
-                
-                if (m_logSubLayout && m_logSubLayout.cells("b")) {
-                    m_logSubLayout.cells("b").collapse();
-                }
-                m_logGrid.data.parse(response);
-                enforceFullDetailsRowLimit();
-                if (document.getElementById("render_all_details")?.checked) {
-                    m_logGrid.data.forEach(item => {
-                        item.$height = calculateLogGridRowHeight(item);
-                    });
-                    m_logGrid.adjustColumnWidth("data_preview");
-                    m_logGrid.paint();
+
+                if (start == 0)
+                    m_accumulatedLogLines = [];
+                m_accumulatedLogLines = m_accumulatedLogLines.concat(response);
+
+                if (response.length > 0 || start == 0) { //don't touch the grid when the poll brought no new lines
+                    if (m_logSubLayout && m_logSubLayout.cells("b")) {
+                        m_logSubLayout.cells("b").collapse();
+                    }
+                    m_logGrid.data.parse(m_accumulatedLogLines);
+                    enforceFullDetailsRowLimit();
+                    if (document.getElementById("render_all_details")?.checked) {
+                        m_logGrid.data.forEach(item => {
+                            item.$height = calculateLogGridRowHeight(item);
+                        });
+                        m_logGrid.adjustColumnWidth("data_preview");
+                        m_logGrid.paint();
+                    }
                 }
             } else {
                 window.setPerformanceInfo("Rendering log...");
