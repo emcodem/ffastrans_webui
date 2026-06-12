@@ -4,6 +4,18 @@ const fs = require('fs');
 const strip_bom = require('strip-bom');
 var path = require('path');
 const common = require("./common/helpers.js");
+const active = require("./common/ffastrans_active_jobs.js");
+
+//map a finished branch json "status" field to a display state string.
+//1=success, 0=error, 2=cancelled (see buildSplitInfo in ffastrans_history_jobs.js / jobfetcher.js)
+function statusToState(status){
+  switch (status){
+    case 1: return "finished";
+    case 0: return "error";
+    case 2: return "cancelled";
+    default: return "unknown";
+  }
+}
 
 fs.promises.exists = async function(f) {
   try {
@@ -41,43 +53,59 @@ async function get(req, res) {
 	  if (await fs.promises.exists(full_log_path))
       returnobj.is_complete = true;
 
-    if (!await fs.promises.exists(branch_log_path)){
-      res.status(404);
-      res.end();
-      return;
+    //list FINISHED branch jsons (the "finished" folder may not exist yet for a
+    //running job that has not completed a single branch - in that case we still
+    //want to return the running branches below, so don't bail out here).
+    let branch_objects = [];//{name:1-0-0,object:json,state:"finished"}
+    if (await fs.promises.exists(branch_log_path)){
+      let logs_and_jsons = await fs.promises.readdir(branch_log_path);
+      let json_files = logs_and_jsons.filter(f=>{return !f.match(/_log\.json$/)});
+      returnobj.all_branch_count = json_files.length;
+
+      for (let i=0;i<json_files.length;i++){
+
+        let current_branch_id = json_files[i].replace(".json","");
+        if (filter_branchid != "" && current_branch_id != filter_branchid)
+          continue;
+        if (list_only){
+          branch_objects.push({name:current_branch_id,object:{}});
+          continue;
+        }
+        //read file contents
+        try{
+
+          let o_branch = await fs.promises.readFile(path.join(branch_log_path,json_files[i]));
+          o_branch = JSON.parse(strip_bom(o_branch.toString()));
+          branch_objects.push({name:current_branch_id,object:o_branch,state:statusToState(o_branch.status)});
+        }catch(ex){
+          console.error("Cannot read branch json",ex);
+        }
+      }
+
+      branch_objects = branch_objects.sort((a,b)=>{
+        return  a.object.end_time > b.object.end_time
+      })
     }
 
-    //list branch jsons
-    let logs_and_jsons = await fs.promises.readdir(branch_log_path);
-    let json_files = logs_and_jsons.filter(f=>{return !f.match(/_log\.json$/)});
-    returnobj.all_branch_count = json_files.length;
-
-    let branch_objects = [];//{name:1-0-0,object:json}
-    for (let i=0;i<json_files.length;i++){
-
-      let current_branch_id = json_files[i].replace(".json","");
-      if (filter_branchid != "" && current_branch_id != filter_branchid)
-        continue;
-      if (list_only){
-        branch_objects.push({name:current_branch_id,object:{}});
-        continue;
-      }
-      //read file contents
+    //append RUNNING branches from the monitor folder (only while the job runs).
+    //Reuse getActiveJobs which reads s_SYS_CACHE_DIR/monitor[/.list]/<jobid>~<split_id>.json
+    if (!returnobj.is_complete && !list_only){
       try{
-
-        let o_branch = await fs.promises.readFile(path.join(branch_log_path,json_files[i]));
-        o_branch = JSON.parse(strip_bom(o_branch.toString()));
-        branch_objects.push({name:current_branch_id,object:o_branch});
+        let finished_names = new Set(branch_objects.map(b=>b.name));
+        let running = await active.getActiveJobs(0, 1000, [jobid], true); //[{job_id,split_id}]
+        for (let r of running){
+          let split_id = r.split_id;
+          if (!split_id || finished_names.has(split_id)) continue;
+          if (filter_branchid != "" && split_id != filter_branchid) continue;
+          branch_objects.push({name:split_id,object:{result:""},state:"running"});
+        }
       }catch(ex){
-        console.error("Cannot read branch json",ex);
+        console.error("Cannot read running branches",ex);
       }
     }
 
-    branch_objects = branch_objects.sort((a,b)=>{
-      return  a.object.end_time > b.object.end_time
-    })
     returnobj.branches = branch_objects;
-    
+
     res.json(returnobj);
 
 	} catch(err) {

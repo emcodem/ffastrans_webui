@@ -978,7 +978,7 @@ function buildMainLayout() {
 
 
 let m_branchPollTimer = null;
-let m_lastBranchCount = -1;
+let m_lastBranchSig = "";
 async function refreshBranches(){
     //Branches grid lists only FINISHED branches (json files in the job's "finished" folder).
     //While the job runs, branches finish one by one, so we re-poll until the job is complete.
@@ -990,10 +990,12 @@ async function refreshBranches(){
             //404 = no "finished" folder yet (no branch has finished). Keep polling.
         } else {
             data = await response.json();
-            //Only re-parse when the finished-branch count actually changed, otherwise we would
-            //clobber the user's current row selection on every poll.
-            if (data.branches && data.branches.length !== m_lastBranchCount) {
-                m_lastBranchCount = data.branches.length;
+            //Only re-parse when branches actually changed (name or state), otherwise we would
+            //clobber the user's current row selection on every poll. A length check is not
+            //enough now that running branches transition to finished/error in place.
+            const sig = (data.branches || []).map(b => b.name + ":" + (b.state || "")).join("|");
+            if (sig !== m_lastBranchSig) {
+                m_lastBranchSig = sig;
                 m_branchGrid.data.parse(data.branches);
             }
         }
@@ -1013,20 +1015,31 @@ function initBranchGrid(){
     //build grid and kick off data loading
     const columns = [
         {
+            id: "state",
+            header: [{ text: "State" }, { content: "selectFilter" }],
+            width: 90,
+            template: function(val){
+                if (!val) return "";
+                let css = "log-event-info";
+                if (val === "error" || val === "cancelled") css = "log-event-error";
+                else if (val === "finished") css = "log-event-success";
+                return `<span class="log-event-badge ${css}">${val}</span>`;
+            }
+        },
+        {
             id: "name",
             header: [{ text: "ID" }, { content: "inputFilter" }],
             resizable: true,
-            
+
         },
         {
             id: "object",
             header: [{ text: "Outcome" }],
             template: function(o_branch){
-                let to_display = o_branch.result;
-                to_display = o_branch.result.replaceAll(/\r|\n/g,"");
+                let to_display = (o_branch && o_branch.result) ? o_branch.result.replaceAll(/\r|\n/g,"") : "";
                 return to_display
             },
-           
+
         }
     ];
 
@@ -1041,9 +1054,10 @@ function initBranchGrid(){
         selection: "row",
         rowHeight: 20,
         headerRowHeight: 30,
+        htmlEnable: true,
         eventHandlers: {
             onclick: {
-                
+
             },
         },
     });
