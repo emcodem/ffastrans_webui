@@ -26,6 +26,19 @@ var last_backlog_size = 0; // Track last detected backlog
 var backlog_import_running = false; // Prevent concurrent backlog imports
 var backlog_total_to_import = 0;   // Total jobs to import in current backlog run
 var backlog_total_imported = 0;    // Jobs successfully imported so far
+
+// Track job ids the API returned no data for (e.g. finished on disk but missing
+// full_log.json, so /job_info yields nothing). We retry each at most once per
+// cooldown so a permanently un-importable job can't re-trigger the backlog import
+// on every fetch cycle and flood the UI with "backlog import" messages.
+const unresolved = new Map(); // job_id -> last failed-attempt timestamp (ms)
+const UNRESOLVED_COOLDOWN_MS = 10 * 60 * 1000;
+setInterval(() => {
+	let cutoff = Date.now() - UNRESOLVED_COOLDOWN_MS;
+	for (let [id, t] of unresolved) {
+		if (t < cutoff) unresolved.delete(id);
+	}
+}, 60 * 1000);
 // blocked((time, stack) => {
 // console.log(`Blocked for ${time}ms, operation started here:`, stack)
 // })
@@ -147,6 +160,13 @@ async function getJobs() {
 
 			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id) && !deleted_ids.has(id));
 
+			// Drop ids the API recently returned nothing for; retry them only once per
+			// cooldown so permanently un-importable jobs don't re-trigger backlog imports.
+			missing_ids = missing_ids.filter(id => {
+				let t = unresolved.get(id);
+				return !t || (Date.now() - t) > UNRESOLVED_COOLDOWN_MS;
+			});
+
 			if (missing_ids.length > 0 && missing_ids.length === fetched_history_ids.length && !backlog_detection_run) {
 				if (missing_ids.length > 500) {
 					console.log(`Detected that all ${missing_ids.length} fetched jobs were unknown. Triggering deep scan for next run.`);
@@ -164,9 +184,9 @@ async function getJobs() {
 				let jobInfoUrl = helpers.build_new_api_url(`/job_info`, h, global.config["STATIC_API_NEW_PORT"]);
 				try {
 					let batchResponse = await axios.post(jobInfoUrl, { jobids: missing_ids, vars: Array.from(varsToFetch) }, { timeout: global.config.STATIC_API_TIMEOUT });
-					if (batchResponse && batchResponse.data && batchResponse.data.history) {
-						all_history_jobs.push(...batchResponse.data.history);
-					}
+					let returned = (batchResponse && batchResponse.data && batchResponse.data.history) ? batchResponse.data.history : [];
+					all_history_jobs.push(...returned);
+					trackUnresolved(missing_ids, returned);
 				} catch (e) {
 					console.error(`Error fetching batch of ${missing_ids.length} jobs:`, e.message);
 				}
@@ -241,11 +261,14 @@ async function importBacklogJobs(missing_ids, varsArray, host, existingCount) {
 			let jobInfoUrl = helpers.build_new_api_url(`/job_info`, host, global.config["STATIC_API_NEW_PORT"]);
 			try {
 				let batchResponse = await axios.post(jobInfoUrl, { jobids: batch, vars: varsArray }, { timeout: BACKLOG_TIMEOUT });
-				if (batchResponse && batchResponse.data && batchResponse.data.history) {
-					backlog_history_jobs.push(...batchResponse.data.history);
-				}
-				imported += batch.length;
-				backlog_total_imported += batch.length;
+				let returned = (batchResponse && batchResponse.data && batchResponse.data.history) ? batchResponse.data.history : [];
+				backlog_history_jobs.push(...returned);
+				trackUnresolved(batch, returned);
+				// count only jobs the API actually returned; ids it could not resolve
+				// (e.g. missing full_log.json) are unresolved, not imported.
+				imported += returned.length;
+				backlog_total_imported += returned.length;
+				skipped += (batch.length - returned.length);
 			} catch (e) {
 				const isTimeout = e.code === 'ECONNABORTED' || (e.message && e.message.includes('timeout'));
 				if (isTimeout && batch.length > MIN_BATCH_SIZE) {
@@ -560,6 +583,21 @@ async function parseHistoryJobs(all_jobs) {
 }
 
 /* HELPERS */
+
+// Update the unresolved-id cooldown map after a /job_info call: clear ids the API
+// returned, and (re)stamp ids it did not return so they aren't retried until the
+// cooldown elapses. Prevents permanently un-importable jobs from re-triggering the
+// backlog import on every fetch cycle.
+function trackUnresolved(requested_ids, returned_jobs) {
+	let returned_set = new Set((returned_jobs || []).map(j => j.job_id));
+	for (let id of requested_ids) {
+		if (returned_set.has(id)) {
+			unresolved.delete(id);
+		} else {
+			unresolved.set(id, Date.now());
+		}
+	}
+}
 
 function objectWithoutKey(key, obj) {
 	var { [key]: val, ...rest } = obj;
