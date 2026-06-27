@@ -1,6 +1,15 @@
 const path = require("path");
 const fs = require("fs-extra");
 const { readFile } = require("./helpers");
+const { getActiveJobs } = require("./ffastrans_active_jobs.js");
+
+// A finished job is normally marked by a consolidated full_log.json. The engine
+// occasionally finishes a job (all branches written to finished\) but never writes
+// that file, leaving the job permanently invisible to history. When full_log.json
+// is missing we treat the job as finished only if no branch is still active AND its
+// root .json has been untouched for at least this long — this guards the brief
+// fan-out window where a parent's monitor file is gone before its children's appear.
+const ORPHAN_MIN_AGE_MS = 30000; // can be promoted to a config knob later
 
 
 module.exports = {
@@ -73,6 +82,7 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
 
     let startcount = 0;
     let jobCount = 0;
+    let activeJobIdSet = null; // lazily built once per call, only if a job lacks full_log.json
     for (let job_id of subfolders) {
         startcount++;
         if (startcount < start)
@@ -86,16 +96,40 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
             continue;
         }
 
-        //excludes unfinished jobs
-        if (!(await fs.exists(path.join(jobDir, job_id, "full_log.json"))))
-            continue
+        //excludes unfinished jobs. Normally a finished job has a consolidated
+        //full_log.json. If it's missing the job may still be running, or the engine
+        //finished it but never wrote full_log.json (orphaned finalization). Only
+        //treat it as finished when no branch is active and it has settled.
+        if (!(await fs.exists(path.join(jobDir, job_id, "full_log.json")))) {
+            if (activeJobIdSet === null) {
+                activeJobIdSet = new Set((await getActiveJobs(0, Number.MAX_SAFE_INTEGER, [], true)).map(a => a.job_id));
+            }
+            if (activeJobIdSet.has(job_id))
+                continue; //a branch is still running -> not history yet
+            try {
+                let rootStat = await fs.stat(path.join(jobDir, job_id, ".json"));
+                if (Date.now() - rootStat.mtimeMs < ORPHAN_MIN_AGE_MS)
+                    continue; //still settling / fan-out window -> re-evaluate on a later call
+            } catch (ex) {
+                continue; //no root .json -> nothing to import
+            }
+            //otherwise fall through: orphaned-but-finished, build from finished\ below
+        }
 
         //from here we are sure to have a finished job
+        let finisheddir = path.join(jobDir, job_id, "finished")
+        let split_ids;
+        try {
+            split_ids = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
+        } catch (ex) {
+            //no finished\ output (e.g. job crashed before any branch completed) -> skip
+            //without seeding jobCache, so the job can be re-evaluated on a later call
+            console.warn(`Skipping job ${job_id}: cannot read finished dir: ${ex.message}`);
+            continue;
+        }
         if (!jobCache[job_id]) {
             jobCache[job_id] = [];
         }
-        let finisheddir = path.join(jobDir, job_id, "finished")
-        let split_ids = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
         console.debug(`Performance Dirlist ${finisheddir}: ${Date.now() - perf_start}ms`);
         perf_start = Date.now();
 
