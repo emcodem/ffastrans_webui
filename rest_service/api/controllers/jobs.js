@@ -69,10 +69,26 @@ async function get(req, res) {
             const jobPath_dir = path.join(global.api_config["s_SYS_CACHE_DIR"], "jobs");
             const results = [];
 
+            //check if monitor/.list folder exists, if yes it is ffastrans >1.4.2 and also it is the single source of truth for finished jobs
+            //this works around cases where full_log.json is missing but the job is actually finished.
+            //Active/queued branches live here as "<jobid>~<split_id>.json"; a job with no file present is finished.
+            const monitorListPath = path.join(global.api_config["s_SYS_CACHE_DIR"], "monitor", ".list");
+            let activeJobIds = null; // null => .list folder not present (older ffastrans); fall back to full_log.json
+            try {
+                const listFiles = await fsPromises.readdir(monitorListPath);
+                activeJobIds = new Set(
+                    listFiles
+                        .filter(f => f.endsWith(".json"))
+                        .map(f => f.split("~")[0]) // "<jobid>~<split_id>.json" -> "<jobid>"
+                );
+            } catch {
+                activeJobIds = null;
+            }
+
             for (const jobid of jobids) {
                 const jobPath = path.join(jobPath_dir, jobid);
                 const fullLogPath = path.join(jobPath, "full_log.json");
-                
+
                 try {
                     // Check if job folder exists
                     let jobExists = false;
@@ -93,7 +109,13 @@ async function get(req, res) {
                             finished = false;
                         }
                     }
-                    
+
+                    // .list is the single source of truth when present: if the job has no
+                    // active/queued branch file there, it is finished even when full_log.json is missing.
+                    if (activeJobIds !== null && jobExists && !finished) {
+                        finished = !activeJobIds.has(jobid);
+                    }
+
                     results.push({
                         jobid: jobid,
                         finished: finished,
