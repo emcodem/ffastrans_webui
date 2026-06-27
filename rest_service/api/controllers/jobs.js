@@ -71,19 +71,42 @@ async function get(req, res) {
 
             //check if monitor/.list folder exists, if yes it is ffastrans >1.4.2 and also it is the single source of truth for finished jobs
             //this works around cases where full_log.json is missing but the job is actually finished.
-            //Active/queued branches live here as "<jobid>~<split_id>.json"; a job with no file present is finished.
+            //A job is considered active (NOT finished) when it still has either:
+            //  - a running branch file in monitor/.list  -> "<jobid>~<split_id>.json", or
+            //  - a ticket in ANY tickets subfolder (pending/queue/running/temp) -> "<priority>~<jobid>~...json".
+            //The tickets check covers the window where a job is queued/pending but does not yet have a .list branch file.
             const monitorListPath = path.join(global.api_config["s_SYS_CACHE_DIR"], "monitor", ".list");
-            let activeJobIds = null; // null => .list folder not present (older ffastrans); fall back to full_log.json
+            const ticketsPath = path.join(global.api_config["s_SYS_CACHE_DIR"], "tickets");
+
+            let listExists = false;     // false => .list folder not present (older ffastrans); fall back to full_log.json only
+            const busyJobIds = new Set(); // jobids that are still active somewhere (.list or any tickets subfolder)
+
+            // Running branches in monitor/.list -> "<jobid>~<split_id>.json"
             try {
                 const listFiles = await fsPromises.readdir(monitorListPath);
-                activeJobIds = new Set(
-                    listFiles
-                        .filter(f => f.endsWith(".json"))
-                        .map(f => f.split("~")[0]) // "<jobid>~<split_id>.json" -> "<jobid>"
-                );
+                listExists = true;
+                for (const f of listFiles) {
+                    if (f.endsWith(".json")) busyJobIds.add(f.split("~")[0]);
+                }
             } catch {
-                activeJobIds = null;
+                listExists = false;
             }
+
+            // Tickets in pending/queue/running/temp -> "<priority>~<jobid>~...json"
+            try {
+                const ticketSubdirs = await fsPromises.readdir(ticketsPath, { withFileTypes: true });
+                for (const d of ticketSubdirs) {
+                    if (!d.isDirectory()) continue;
+                    try {
+                        const ticketFiles = await fsPromises.readdir(path.join(ticketsPath, d.name));
+                        for (const f of ticketFiles) {
+                            if (!f.endsWith(".json")) continue;
+                            const jid = f.split("~")[1]; // <priority>~<jobid>~...
+                            if (jid) busyJobIds.add(jid);
+                        }
+                    } catch { /* subfolder vanished mid-scan; ignore */ }
+                }
+            } catch { /* tickets folder missing; rely on .list only */ }
 
             for (const jobid of jobids) {
                 const jobPath = path.join(jobPath_dir, jobid);
@@ -110,10 +133,11 @@ async function get(req, res) {
                         }
                     }
 
-                    // .list is the single source of truth when present: if the job has no
-                    // active/queued branch file there, it is finished even when full_log.json is missing.
-                    if (activeJobIds !== null && jobExists && !finished) {
-                        finished = !activeJobIds.has(jobid);
+                    // .list is the single source of truth when present: a job whose folder exists but
+                    // is no longer active anywhere (no .list branch AND no ticket in any tickets subfolder)
+                    // is finished even when full_log.json is missing.
+                    if (listExists && jobExists && !finished) {
+                        finished = !busyJobIds.has(jobid);
                     }
 
                     results.push({
