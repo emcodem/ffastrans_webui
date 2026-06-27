@@ -83,6 +83,9 @@
         font-size: 11px;
     }
 
+    .jtv-focus-row { background: var(--dhx-color-primary-lighter, #fff3cd) !important; }
+    [data-theme="dark"] .jtv-focus-row { background: #4a4327 !important; }
+
     #jobtree_toolbar {
         display: flex;
         align-items: center;
@@ -156,7 +159,7 @@
 <body>
 <div id="jobtree_page">
     <div id="jobtree_infobar">
-        <span class="info-label">Root job:</span>
+        <span class="info-label">Job:</span>
         <span class="info-value" id="info_workflow">—</span>
         <span id="info_state_badge" class="state-badge state-unknown">—</span>
         <span class="info-label" style="margin-left:8px">Started:</span>
@@ -191,6 +194,7 @@ var m_grid = null;
 var m_allRows = [];
 var m_collapsed = new Set(); // IDs of collapsed parent nodes
 var m_selectedJobId = null;  // job_id of the currently selected row
+var m_focusJobId = null;     // job_id opened from the URL — persistently highlighted
 var m_stateFilter = "";      // selected state in the State-column filter ("" = all)
 
 function getQueryVariable(variable) {
@@ -415,7 +419,10 @@ function buildGrid(jobs) {
         selection: "row",
         htmlEnable: true,
         headerRowHeight: 36,
-        css: "alternate_row"
+        css: "alternate_row",
+        rowCss: function(row) {
+            return (m_focusJobId && row.id === m_focusJobId) ? "jtv-focus-row" : "";
+        }
     });
 
     // Row click selects the row and enables the "Open Log" button.
@@ -442,6 +449,17 @@ function expandCollapseAll(expand) {
         m_allRows.forEach(function(row) { if (row._hasChildren) m_collapsed.add(row.id); });
     }
     refreshGrid();
+}
+
+// Expand every ancestor of the given job so its row is never hidden by a collapsed parent.
+function revealJob(jobId) {
+    var byId = {};
+    m_allRows.forEach(function(r) { byId[r.id] = r; });
+    var cur = byId[jobId];
+    while (cur && cur._parent_job_id) {
+        m_collapsed.delete(cur._parent_job_id);
+        cur = byId[cur._parent_job_id];
+    }
 }
 
 // Wire up toolbar buttons via event listeners (module scope — no global onclick)
@@ -471,22 +489,42 @@ if (!jobId) {
                 return;
             }
 
-            var root = data.jobs[0];
-            document.getElementById("info_workflow").textContent = root.workflow || root.job_id;
-            var badge = document.getElementById("info_state_badge");
-            badge.textContent = root.state || "—";
-            badge.className = "state-badge " + stateClass(root.state);
-            document.getElementById("info_start").textContent = root.job_start || "—";
+            // The tree is rooted at the top-most ancestor; find the job actually opened.
+            var requestedId = data.requested_job_id || jobId;
+            var opened = data.jobs.filter(function(j) { return j.job_id === requestedId; })[0] || data.jobs[0];
 
-            if (data.parent_of_root) {
-                var parentLink = document.getElementById("info_parent_link");
+            document.getElementById("info_workflow").textContent = opened.workflow || opened.job_id;
+            var badge = document.getElementById("info_state_badge");
+            badge.textContent = opened.state || "—";
+            badge.className = "state-badge " + stateClass(opened.state);
+            document.getElementById("info_start").textContent = opened.job_start || "—";
+
+            // Up-link to the opened job's own parent (falls back to the true root's
+            // missing-in-DB parent when the opened job is itself the root).
+            var parentId = opened.parent_job_id ||
+                           (opened.job_id === data.root_job_id ? data.parent_of_root : null);
+            var parentLink = document.getElementById("info_parent_link");
+            if (parentId) {
                 parentLink.style.display = "";
                 var parentLabel = document.getElementById("info_parent_job_id");
-                parentLabel.textContent = "Parent job (" + data.parent_of_root + ")";
-                parentLabel.dataset.jobid = data.parent_of_root;
+                parentLabel.textContent = "Parent job (" + parentId + ")";
+                parentLabel.dataset.jobid = parentId;
+            } else {
+                parentLink.style.display = "none";
             }
 
+            m_focusJobId = requestedId; // set before buildGrid so rowCss highlights on first render
             buildGrid(data.jobs);
+
+            revealJob(requestedId);
+            refreshGrid();
+
+            m_selectedJobId = requestedId;
+            document.getElementById("btn_open_log").disabled = false;
+            try { m_grid.selection.setCell(requestedId, "workflow_html"); } catch (e) {}
+            requestAnimationFrame(function() {
+                try { m_grid.scrollTo(requestedId, "workflow_html"); } catch (e) {}
+            });
         },
         error: function(xhr) {
             document.getElementById("jobtree_status").textContent = "Error loading job tree (HTTP " + xhr.status + ").";

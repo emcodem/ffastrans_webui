@@ -24,31 +24,61 @@ module.exports = function(app, express) {
                 allowedWorkflows = allWorkflows;
             }
 
-            // Lightweight child-count check used by the "show button" probe
+            // Lightweight probe used to show the "Job Tree" button. The job is part of
+            // a family (and thus has a tree worth showing) if it has children OR a parent.
             if (req.query.countonly === "1") {
                 const childCount = await global.db.jobs.countDocuments({
                     workflow: { $in: allowedWorkflows },
                     "children.variables": { $elemMatch: { name: "sys_parent_job_id", data: jobid } }
                 });
-                res.json({ count: childCount });
+                let count = childCount;
+                if (count === 0) {
+                    const self = await global.db.jobs.findOne({ job_id: jobid }, { projection: { children: 1, workflow: 1 } });
+                    if (self && allowedWorkflows.includes(String(self.workflow)) && getParentJobId(self)) {
+                        count = 1;
+                    }
+                }
+                res.json({ count: count });
                 return;
             }
 
-            // Fetch root job
-            const rootJob = await global.db.jobs.findOne({ job_id: jobid });
-            if (!rootJob) {
+            // Fetch the requested job
+            const requestedJob = await global.db.jobs.findOne({ job_id: jobid });
+            if (!requestedJob) {
                 res.status(404).json({ error: "Job not found" });
                 return;
             }
 
-            const parent_of_root = getParentJobId(rootJob);
-            const allJobs = [enrichJob(rootJob, null, 0)];
-            const seenIds = new Set([jobid]);
-
-            // Iterative BFS — one query per depth level
             const MAX_JOBS = 2000;
             const MAX_DEPTH = 15;
-            let currentLevel = [jobid];
+
+            // Walk UP the sys_parent_job_id chain to the top-most ancestor present in the
+            // DB, so the tree is rooted at the whole family rather than the opened job.
+            // chain is ordered [requested ... trueRoot].
+            const chain = [requestedJob];
+            const upSeen = new Set([jobid]);
+            let parent_of_root = null;
+            let cursor = requestedJob;
+            for (let i = 0; i < MAX_DEPTH; i++) {
+                const pid = getParentJobId(cursor);
+                if (!pid) break;                          // reached the true root
+                if (upSeen.has(pid)) break;               // cycle guard
+                const parentDoc = await global.db.jobs.findOne({ job_id: pid });
+                if (!parentDoc) { parent_of_root = pid; break; } // parent not in DB -> keep up-link
+                upSeen.add(pid);
+                chain.push(parentDoc);
+                cursor = parentDoc;
+                if (i === MAX_DEPTH - 1) parent_of_root = getParentJobId(parentDoc) || null;
+            }
+
+            const trueRoot = chain[chain.length - 1];
+            const rootId = trueRoot.job_id;
+
+            const allJobs = [enrichJob(trueRoot, null, 0)];
+            const seenIds = new Set([rootId]);
+
+            // Iterative BFS down from the true root — one query per depth level
+            let currentLevel = [rootId];
             let depth = 0;
 
             while (currentLevel.length > 0 && allJobs.length < MAX_JOBS && depth < MAX_DEPTH) {
@@ -74,8 +104,22 @@ module.exports = function(app, express) {
                 currentLevel = nextLevel;
             }
 
+            // Truncation safety: guarantee the opened job and its full ancestor chain are
+            // always present even if MAX_JOBS cut the BFS short before reaching them.
+            for (let k = 0; k < chain.length; k++) {
+                const doc = chain[k];
+                if (seenIds.has(doc.job_id)) continue;
+                seenIds.add(doc.job_id);
+                const chainDepth = (chain.length - 1) - k;
+                const pid = (doc.job_id === rootId) ? null : getParentJobId(doc);
+                allJobs.push(enrichJob(doc, pid, chainDepth));
+            }
+            // Stable parent-before-child ordering (root at depth 0 stays first)
+            allJobs.sort((a, b) => a.depth - b.depth);
+
             res.json({
-                root_job_id: jobid,
+                requested_job_id: jobid,
+                root_job_id: rootId,
                 parent_of_root: parent_of_root || null,
                 jobs: allJobs
             });
