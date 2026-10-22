@@ -158,7 +158,12 @@ async function getJobs() {
 			let deleted_docs = await global.db.deleted_jobs.find({ job_id: { $in: fetched_history_ids } }).project({ job_id: 1 }).toArray();
 			let deleted_ids = new Set(deleted_docs.map(x => x.job_id));
 
-			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id) && !deleted_ids.has(id));
+			// return_id_only lists every job folder, including jobs that are still running.
+			// Skip those: /job_info returns nothing for them yet, which would put them on the
+			// unresolved cooldown and delay their import by UNRESOLVED_COOLDOWN_MS after they finish.
+			let active_ids = new Set(responseActive.data.active.map(j => j.job_id));
+
+			let missing_ids = fetched_history_ids.filter(id => !existing_ids.has(id) && !deleted_ids.has(id) && !active_ids.has(id));
 
 			// Drop ids the API recently returned nothing for; retry them only once per
 			// cooldown so permanently un-importable jobs don't re-trigger backlog imports.
