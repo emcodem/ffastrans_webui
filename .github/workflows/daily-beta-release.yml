@@ -2,7 +2,7 @@ name: Daily Beta Build
 
 # Runs once per day. If the repo received any (non-build) commits since the last
 # build, it executes compile_to_dist (the canonical Windows build), bumps the
-# version, and publishes a DRAFT, PRE-RELEASE ("beta") GitHub release with the
+# version, and publishes a PRE-RELEASE ("beta") GitHub release with the
 # packaged webinterface attached. Can also be started manually.
 
 on:
@@ -135,7 +135,7 @@ jobs:
           Write-Host "Created $zip"
           "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Create draft pre-release
+      - name: Create pre-release
         if: steps.changes.outputs.has_changes == 'true'
         shell: pwsh
         env:
@@ -143,10 +143,11 @@ jobs:
         run: |
           $version = "${{ steps.version.outputs.version }}"
           $tag = "v$version"
-          # No --target: the tag is created against the default branch HEAD when
-          # the draft is published, which includes the version-bump commit above.
+          # Tag the commit that was built (HEAD = the version-bump commit pushed above),
+          # not whatever master points to by the time the release is created.
+          $sha = git rev-parse HEAD
           gh release create $tag "${{ steps.package.outputs.zip }}" `
-            --draft `
+            --target $sha `
             --prerelease `
             --title "Webinterface v$version (beta)" `
-            --notes "Automated daily beta build of version $version.`n`nThis is a draft pre-release. Review and publish to make it public."
+            --notes "Automated daily beta build of version $version.`n`nThis is a pre-release, not recommended for production."
