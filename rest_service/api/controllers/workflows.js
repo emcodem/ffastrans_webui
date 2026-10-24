@@ -11,6 +11,11 @@ module.exports = {
     put: putWorkflows
 };
 
+//full path of the workflow file, or false if wf_id would point outside the workflows folder
+function workflowFile(wf_id){
+    return helpers.resolveInside(path.join(global.api_config["s_SYS_CONFIGS_DIR"], "workflows"), wf_id + ".json");
+}
+
 async function putWorkflows(req, res) {
     //updates part of workflow
     try{
@@ -22,8 +27,8 @@ async function putWorkflows(req, res) {
         if (typeof(req.body.update) != "object"){
             throw new Error("update field must contain object");
         }
-        if (!helpers.isPlainFileName(req.body.wf_id)){
-            res.status(400).send("wf_id must be a plain workflow id");
+        if (!workflowFile(req.body.wf_id)){
+            res.status(400).send("wf_id must point inside the workflows folder");
             return;
         }
         await updateWorkflowField(req.body.wf_id,req.body.update);
@@ -47,8 +52,8 @@ async function postWorfklows(req, res) {
             _wf = formatWorkflow(_wf);
             if (!("workflow" in _wf))
                 throw new Error("Did not find workflow key in submitted (list of) object ");
-            if (!helpers.isPlainFileName(_wf.workflow.wf_id)){
-                res.status(400).send("wf_id must be a plain workflow id");
+            if (!workflowFile(_wf.workflow.wf_id)){
+                res.status(400).send("wf_id must point inside the workflows folder");
                 return;
             }
 

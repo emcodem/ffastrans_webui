@@ -53,12 +53,13 @@ async function post(req, res) {
 
 async function do_delete(req, res) {
 	try {
-        if (!common.isPlainFileName(req.query.name)) {
-            return res.status(400).json({description: "name must be a plain preset name"});
-        }
         //was deleting from the hosts folder (copy of machines.js), presets live in configs/presets
         var presets_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/presets/");
-        await fsPromises.unlink(path.join(presets_folder,req.query.name + ".json"));
+        var preset_file = common.resolveInside(presets_folder, req.query.name + ".json");
+        if (!preset_file) {
+            return res.status(400).json({description: "name must be inside the presets folder"});
+        }
+        await fsPromises.unlink(preset_file);
 		res.json({"success":true});
 		res.end();
 	} catch(err) {

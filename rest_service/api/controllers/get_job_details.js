@@ -20,8 +20,8 @@ async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var jobid = req.query.jobid;
     console.debug("get_job_details called for: " + jobid);
-    //jobid is used in file paths and as 7z argument
-    if (!common.isFfasId(jobid)) {
+    //jobid is used as job folder and archive name
+    if (!common.isJobIdInside(jobid)) {
         return res.status(400).json({ description: "invalid jobid" });
     }
 	//check if full log exists, if yes, serve contents

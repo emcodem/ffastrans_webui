@@ -30,7 +30,7 @@ class JobTicket {
 
     async init_ticket(wf_id,start_proc_id){
         //wf_id comes from the request and is used as file name
-        if (!isPlainFileName(wf_id))
+        if (!resolveInside(path.join(global.api_config["s_SYS_CONFIGS_DIR"], "workflows"), wf_id + ".json"))
             throw new Error("invalid wf_id");
 
         var $o_workflow = await readJsonFile(locateWorkflowFile(wf_id));
@@ -300,19 +300,20 @@ function getUserName() {
     return userInfo.username;
 }
 
-//true if name is a plain file name without any path parts, so path.join(folder, name) stays inside folder.
-//Rejects "..", "/" and "\" (also "..\..\x"), drive letters and ":" (alternate data streams)
-function isPlainFileName(name) {
-    return typeof name === "string"
-        && name !== "" && name !== "." && name !== ".."
-        && path.win32.basename(name) === name
-        && path.posix.basename(name) === name
-        && name.indexOf(":") === -1;
+//returns the full path of name inside dir, or false if it would end up outside of dir (or is dir itself).
+//Use it for every file name or id from a request before it becomes part of a path.
+function resolveInside(dir, name) {
+    if (typeof name !== "string" || name === "") return false;
+    const base = path.resolve(dir);
+    const full = path.resolve(base, name);
+    return full.toLowerCase().startsWith(base.toLowerCase() + path.sep) ? full : false;
 }
 
-//true for FFAStrans ids like job, split and workflow ids (20261010-1145-0195-932d-b95d479634e9): letters, digits and "-" only
-function isFfasId(id) {
-    return typeof id === "string" && /^[0-9A-Za-z-]{1,64}$/.test(id);
+//jobid is used as job folder (cache\jobs\<jobid>) and as archive file (cache\archive\jobs\<first 8 chars>\<jobid>.7z), both must stay inside
+function isJobIdInside(jobid) {
+    return typeof jobid === "string"
+        && !!resolveInside(global.api_config["s_SYS_JOB_DIR"], jobid)
+        && !!resolveInside(path.join(global.api_config["s_SYS_CACHE_DIR"], "archive", "jobs"), path.join(jobid.substring(0, 8), jobid + ".7z"));
 }
 
 //runs an exe without a shell, so arguments are never interpreted as commands
@@ -327,8 +328,8 @@ function exeFile(file, argList) {
 }
 
 module.exports = {
-    isPlainFileName             : isPlainFileName,
-    isFfasId                    : isFfasId,
+    resolveInside               : resolveInside,
+    isJobIdInside               : isJobIdInside,
     exeFile                     : exeFile,
     readFile                    : readFile,
     readJsonFile                : readJsonFile,

@@ -14,7 +14,7 @@ async function jobvars(req, res) {
         let regex
         let file
         let item
-        if (!common.isFfasId(req.query.jobid)) {
+        if (!common.isJobIdInside(req.query.jobid)) {
             return res.status(400).json({ description: "invalid jobid" });
         }
         let job_fdr = path.join(global.api_config["s_SYS_CACHE_DIR"], 'jobs')

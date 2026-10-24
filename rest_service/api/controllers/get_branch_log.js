@@ -36,8 +36,8 @@ async function get(req, res) {
   let filter_branchid  = req.query.branchid || "";
   let list_only = req.query.list_only || false;
   console.debug("listFinishedBranches called for: " + jobid);
-  //jobid is used in file paths and as 7z argument
-  if (!common.isFfasId(jobid)) {
+  //jobid is used as job folder and archive name
+  if (!common.isJobIdInside(jobid)) {
     return res.status(400).json({ description: "invalid jobid" });
   }
   res.set('Content-Type', 'application/json');

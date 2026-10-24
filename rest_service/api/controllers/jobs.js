@@ -250,13 +250,13 @@ async function put(req, res) {
     if (!req.body.system) {
         req.body.system = os.hostname()
     }
-    //job_id and split_id end up in file names in the status folder. Not isFfasId: for incoming files,
-    //job_id is the name of the mons\..\i file, which is derived from the source file name
-    if (!common.isPlainFileName(job_id) || (split_id && !common.isPlainFileName(split_id + ""))) {
-        return res.status(400).json({ description: "invalid job_id or split_id" });
-    }
     //var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
     var splitpart = split_id ? "~" + split_id : "";
+    //job_id and split_id end up in file names in the status folder (for incoming files job_id is the
+    //name of the mons\..\i file), so the resulting file must stay inside that folder
+    if (!common.resolveInside(path.join(global.api_config["s_SYS_CACHE_DIR"], "status"), ".x~" + job_id + splitpart)) {
+        return res.status(400).json({ description: "invalid job_id or split_id" });
+    }
 
     try {
         if (s_action == 'pause') {
