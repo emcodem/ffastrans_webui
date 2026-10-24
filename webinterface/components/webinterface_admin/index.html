@@ -321,6 +321,14 @@ Example2: \\FIRSTServer\share\folder\,\\SecondServer\share\
 <b>STATIC_API_HOST</b>
 FFAstrans Server, use localhost if this webserver runs on the same server as your main ffastrans server.
 
+<b>STATIC_API_LISTEN_ALL_INTERFACES</b>
+"false" (default): the Rest API v3 (STATIC_API_NEW_PORT) only listens on 127.0.0.1 and can only be reached through this webinterface.
+"true": listens on all interfaces. Needed when another webinterface lists this server in its STATIC_API_HOSTS, or when STATIC_USE_PROXY_URL is false. The Rest API has no login. Requires a restart.
+
+<b>STATIC_USE_PROXY_URL</b>
+true (default): browsers call the Rest API v3 through this webinterface (/new_proxy).
+false: browsers call the Rest API v3 directly on STATIC_API_HOST:STATIC_API_NEW_PORT. This requires STATIC_API_LISTEN_ALL_INTERFACES = "true".
+
 <b>STATIC_API_PORT</b>
 FFAStrans API port, typically 65445
 

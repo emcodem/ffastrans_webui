@@ -8,7 +8,8 @@ function processCommandlineArgs(){
     
     program 
         .addOption(new Option('-p, --ffastranspath <string>', 'ffastrans root folder'))
-        .addOption(new Option('-l, --listenport <int>', 'listen port for this api service'));
+        .addOption(new Option('-l, --listenport <int>', 'listen port for this api service'))
+        .addOption(new Option('--listenhost <string>', 'address to listen on, 0.0.0.0 for all interfaces').default('127.0.0.1'));
 
     program.parse();
     let opts = program.opts();
@@ -19,7 +20,7 @@ function processCommandlineArgs(){
       }
 
     //start webserver
-    rest_service.init(opts.listenport,opts.ffastranspath);
+    rest_service.init(opts.listenport,opts.ffastranspath,{},opts.listenhost);
 }
 
 processCommandlineArgs();

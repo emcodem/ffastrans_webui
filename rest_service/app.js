@@ -70,14 +70,14 @@ module.exports = {
 if (workerData){
   //workerData is set, this script was loaded as WebWorker thread
   console.log("Startup as worker thread detected, params:",workerData);
-  init(workerData.port,workerData.path,workerData.globalconf);
+  init(workerData.port,workerData.path,workerData.globalconf,workerData.listenhost);
 }
 
-function init (_listenport,_ffastranspath,globalconf = {}) {
+function init (_listenport,_ffastranspath,globalconf = {},_listenhost = "127.0.0.1") {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
     console.log("init called, arguments: ", arguments)
 	  changeInstallPath(_ffastranspath);
-    start_server(_listenport,globalconf);
+    start_server(_listenport,globalconf,_listenhost);
 }
 
 function sleep(ms) {
@@ -117,7 +117,11 @@ function handleListenError(err){
 	console.log(err)//prevents the program keeps running when port is in use
 }
 
-async function start_server( _listenport,globalconf){
+async function start_server( _listenport,globalconf,_listenhost){
+    //"0.0.0.0" or "::" means all interfaces: listen without host, node then uses "::" (IPv4 and IPv6) or 0.0.0.0 if IPv6 is not available
+    var listen_all = (_listenhost == "0.0.0.0" || _listenhost == "::");
+    var listen_args = listen_all ? [_listenport] : [_listenport, _listenhost];
+    console.log("rest_service listen host:", listen_all ? "all interfaces" : _listenhost);
 	//GLOBAL CONFIG - the keyword global here will make the sub-objects available in all scripts that run in same process
 
     
@@ -213,13 +217,13 @@ async function start_server( _listenport,globalconf){
 		  passphrase: key_password
 		}, app);
 		
-		httpsServer.listen(_listenport, () => {
+		httpsServer.listen(...listen_args, () => {
 			console.log('HTTPS Server running on port',_listenport);
 		});
 		
 	}else{
 		const http = require('http').Server(app);
-		http.listen(_listenport, () => {
+		http.listen(...listen_args, () => {
 			console.log('\x1b[36m%s\x1b[0m','Running on http://localhost:' + _listenport);
 		}).on('error', handleListenError);
   }

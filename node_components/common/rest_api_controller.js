@@ -15,11 +15,14 @@ class RestApi {
             self = this; //need this because we cannot use "this" in setTimeout, this becomes the timeout function itself
         //const ffastrans_new_rest_api = require("./rest_service");
         console.log("starting up rest api");
+        //only reachable through our /new_proxy unless the admin allows remote access
+        var listenhost = (globalconf && globalconf.STATIC_API_LISTEN_ALL_INTERFACES + "" == "true") ? "0.0.0.0" : "127.0.0.1";
         this.private_rest_api_worker = new Worker("./rest_service/app.js",{
             workerData: {
                 port:port,
                 path:path,
-                globalconf:globalconf
+                globalconf:globalconf,
+                listenhost:listenhost
             }
         });
         this.private_rest_api_worker.on('exit', (code) => {

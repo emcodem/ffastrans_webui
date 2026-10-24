@@ -45,6 +45,9 @@ defaultConfig.STATIC_API_HOSTS = "localhost"; //commasep list of hosts
 defaultConfig.STATIC_API_HOST = "localhost"; //the default host e.g. where job submits go to
 defaultConfig.STATIC_API_PORT = "65445";
 defaultConfig.STATIC_API_NEW_PORT = "3003";
+//"false": rest_service only listens on 127.0.0.1, so only this webinterface (via /new_proxy) can reach it.
+//"true": listens on all interfaces, needed when other webinterfaces list this server in STATIC_API_HOSTS or when STATIC_USE_PROXY_URL is false
+defaultConfig.STATIC_API_LISTEN_ALL_INTERFACES = "false";
 defaultConfig.STATIC_API_TIMEOUT = 7000;
 
 defaultConfig.STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,20%,10%,10%"; 
@@ -65,6 +68,8 @@ defaultConfig.STATIC_GET_FINISHED_JOBS_URL = "/api/json/v2/history";
 defaultConfig.STATIC_GET_QUEUED_JOBS_URL =  "/api/json/v2/tickets";
 defaultConfig.STATIC_GET_JOB_LOG_URL = "/api/json/v2/joblog/" //+ <job_id>?start=0&count=100
 
+//true: browsers call rest_service through this webinterface (/new_proxy).
+//false: browsers call rest_service directly on STATIC_API_HOST:STATIC_API_NEW_PORT, this requires STATIC_API_LISTEN_ALL_INTERFACES = "true"
 defaultConfig.STATIC_USE_PROXY_URL = true;
 
 //new methods of node api (WEB_API_PORT )
