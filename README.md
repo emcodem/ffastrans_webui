@@ -86,7 +86,7 @@ The server starts at `http://localhost:3002` unless the port has been customized
 
 ### Frontend build
 
-The client-side bundle is built with Webpack and bundlet to a single .exe using nexe:
+The client-side bundle is built with Webpack and packed together with the Node.js runtime into a single .exe:
 
 ```bash
 compile_to_dist.bat
@@ -127,4 +127,4 @@ ffastrans_webui/
 compile_to_dist.bat
 ```
 
-This uses [nexe](https://github.com/nexe/nexe) to bundle the Node.js runtime and all source files into a single `ffastrans_webui.exe`. The `database/`, `tools/`, `webinterface/`, and `alternate-server/` folders are copied alongside the EXE as the distributable package.
+This bundles the server with Webpack and packs it with all resources into the official Node.js runtime (see `build_tools/nexe_sea/`, nexe compatible format) as a single `ffastrans_webui.exe`. The `database/`, `tools/`, `webinterface/`, and `alternate-server/` folders are copied alongside the EXE as the distributable package.

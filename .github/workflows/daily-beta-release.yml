@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   build:
-    # The build is Windows-only: nexe (prebuilt windows-x64 binary), verpatch.exe,
+    # The build is Windows-only: the windows-x64 node base binary, verpatch.exe,
     # ResourceHacker.exe and ie4uinit.exe are all invoked by compile_to_dist.bat.
     runs-on: windows-latest
 
@@ -76,12 +76,12 @@ jobs:
         if: steps.changes.outputs.has_changes == 'true'
         uses: actions/setup-node@v4
         with:
-          # Node runtime used to execute nexe.cmd. The project is fully
+          # Node runtime used to run webpack and build_tools/nexe_sea/pack.js. The project is fully
           # self-contained: node_modules is committed to the repo and packed
           # into the build verbatim, so we deliberately do NOT run npm install /
           # npm ci here — that would wipe the committed tree and rebuild a
-          # thinner one from the lockfile (dropping optional deps like
-          # ffastrans_common that aren't in package-lock.json).
+          # different one from the lockfile (the committed tree is not exactly
+          # what npm ci installs).
           node-version: '24.22.1'
 
       - name: Run compile_to_dist
