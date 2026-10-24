@@ -37,6 +37,9 @@ jobs:
         with:
           # Full history so we can detect whether anything changed in the last day.
           fetch-depth: 0
+          # ...but only the commits and trees: file contents are downloaded just for the
+          # checked out version, not for every old binary in the history (~1.2 GB).
+          filter: blob:none
 
       - name: Detect changes since last build
         id: changes
