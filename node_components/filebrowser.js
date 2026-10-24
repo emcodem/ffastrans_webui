@@ -198,62 +198,75 @@ module.exports = function(app, express){
     }
 
 
-    app.get('/getjpeg', async (req, res) => {
+    app.get('/getjpeg', (req, res) => {
+        var fullpath = req.query.fullpath;
+        //only absolute paths: rejects ffmpeg protocols like http: or concat: and anything starting with "-"
+        if (typeof fullpath !== "string" || !path.isAbsolute(fullpath)) {
+            return res.status(400).send("fullpath must be an absolute path");
+        }
+        fullpath = path.resolve(fullpath);
 
-        return new Promise((resolve,reject) => {
-            var standard_args = [
-                "-i", req.query.fullpath, 
-                "-vframes","1",
-                "-c:v", "mjpeg","-f","rawvideo",
-                "-"
-                ];
-            
-            var binarydata = Buffer.from("");
-            
-            var ffmpegexe = path.join(global.approot,"tools","ffmpeg","ffmpeg.exe");
+        var standard_args = [
+            "-i", fullpath,
+            "-vframes","1",
+            "-c:v", "mjpeg","-f","rawvideo",
+            "-"
+            ];
+        var chunks = [];
+        var done = false;
+        var ffmpegexe = path.join(global.approot,"tools","ffmpeg","ffmpeg.exe");
+        var ffrewrap;
 
-            this.ffrewrap = spawn(ffmpegexe, standard_args); 
-                                
-            this.ffrewrap.stdout.on('data', data => {
-                binarydata = Buffer.concat([binarydata,data]);
-            });
+        //every path must end up here exactly once, otherwise the request hangs and blocks a browser connection
+        function finish(status, body, contentType) {
+            if (done) return;
+            done = true;
+            clearTimeout(timeout);
+            if (!res.headersSent)
+                res.status(status).type(contentType || "text/plain").send(body);
+        }
 
-            this.ffrewrap.stderr.on('data', data => {
-                console.log(`preview extraction log: ${data}`);
-            });
-    
-            this.ffrewrap.on('exit', returncode => { 
-                console.log ("ffmpeg image extraction end, returncode: "+returncode);
-                
-                if (returncode != "0"){
-                    console.log("ffmpeg preview extraction failed, return code: ",returncode);
-                    console.error("Error extracting preview image, read logs above");
-                    res.writeHead(500,{"Content-Type" : "text/html"});
-                    res.write("ffmpeg preview extraction failed, return code: " + returncode);
-                    res.end();
-                    resolve();
-                    return;
-                }
-                res.writeHead(200,{"Content-Type" : "image/jpeg"});
-                res.write(binarydata);
-                res.end();
-                resolve();
-                return;
-            });
-    
-            /* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
-            this.ffrewrap.on('error', data => {
+        var timeout = setTimeout(() => {
+            console.error("ffmpeg preview extraction timed out for", fullpath);
+            if (ffrewrap) ffrewrap.kill();
+            finish(504, "ffmpeg preview extraction timed out");
+        }, 20000);
+
+        try {
+            //throws synchronously e.g. when Windows Smart App Control blocks the unsigned exe (spawn UNKNOWN)
+            ffrewrap = spawn(ffmpegexe, standard_args, { windowsHide: true });
+        } catch (ex) {
+            console.error("Could not start ffmpeg for preview extraction", ffmpegexe, ex);
+            return finish(500, "ffmpeg preview extraction failed, could not start ffmpeg");
+        }
+
+        //client went away (e.g. scrolled the lazy loaded thumbnail out of view), no need to keep ffmpeg running
+        res.on('close', () => {
+            if (!done && ffrewrap.exitCode === null) ffrewrap.kill();
+        });
+
+        ffrewrap.stdout.on('data', data => {
+            chunks.push(data);
+        });
+
+        ffrewrap.stderr.on('data', data => {
+            console.log(`preview extraction log: ${data}`);
+        });
+
+        ffrewrap.on('close', returncode => {
+            console.log ("ffmpeg image extraction end, returncode: "+returncode);
+            if (returncode !== 0){
                 console.error("Error extracting preview image, read logs above");
-                res.writeHead(500,{"Content-Type" : "text/html"});
-                res.write("ffmpeg preview extraction failed, return code: ");
-                res.end();
-                reject();
-                return;
-            });
-            
+                return finish(500, "ffmpeg preview extraction failed, return code: " + returncode);
+            }
+            finish(200, Buffer.concat(chunks), "image/jpeg");
+        });
 
-        })//extractpreview promise
-
+        /* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
+        ffrewrap.on('error', ex => {
+            console.error("Error extracting preview image", ex);
+            finish(500, "ffmpeg preview extraction failed");
+        });
     })
 
     function getReadableFileSizeString(fileSizeInBytes) {

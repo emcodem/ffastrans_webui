@@ -28,7 +28,7 @@ async function initializeUppy(app){
             await initializeTUSdProxy(app);
             return;
         }catch(ex){
-            console.error("FATAL Error starting tusd, did you update the webinterface/tools?");
+            console.error("FATAL Error starting tusd, did you update the webinterface/tools?", ex);
         }
     }
 
@@ -220,7 +220,9 @@ async function exists(f) {
         console.log("TUSD stdout",line.toString())
     };
     onExit = function(){};
-    onError = function(){};
+    onError = function(err){
+        console.error("TUSD process error", err);
+    };
 
     //public fields readonly
     isRunning   = false;

@@ -19,8 +19,6 @@ class Player
 		this.mpv = null;
 		this.senderInterval = null;
 		this.outCounter = 0;
-		this.arewrap = 0;
-		this.vrewrap = 0;
 		this.lastPlayerProps ={};
 		this.lastPlayerCommand = "play";
 		this.outputWidth = 1920;
@@ -93,7 +91,7 @@ class Player
 			})
 
 		}catch(ex){
-			let msg = "Could not get free player slot, most likely too many players are open on the server. Contact System Administrator. Error Message: " + ex.message;
+			let msg = "Could not start player on the server. Contact System Administrator. Error Message: " + ex.message;
 			console.error(ex)
 			playerInstance.websocket.emit("playererror", msg)
 			return;
@@ -546,7 +544,7 @@ class Player
 		if (!probe_streams){
 			var msg = "No streams/tracks found in this file, is it a media file? Path was: " + config.file;
 			console.error(msg);
-			playerInstance.websocket.emit("playererror",e.message);
+			playerInstance.websocket.emit("playererror",msg);
 		}
 		return ffprobe
 	}
@@ -573,62 +571,6 @@ class Player
 		})
 	}
 
-	async startFFRewrap(port,is_audio = false){
-
-		var ffmpegexe = path.join(global.approot,"tools","ffmpeg","ffmpeg.exe");
-		let playerInstance = this;
-		let myconfig = {is_audio:is_audio}
-		var args = 	[	
-			"-re",
-			"-reuse","1",
-			"-i","udp://127.0.0.1:"+port,
-			"-ar","48000",
-			"-codec",(is_audio ? "copy" : "copy"),
-			"-map","0",
-			//"-map","0:" + (is_audio ? "a" : "v"),
-			
-			"-f",(is_audio ? "mpegts" : "mpegts"),
-			"-"
-		]
-		//check if there is video
-		// probe_streams.forEach(function(str){
-		// 	if (str["codec_type"] == "video"){
-		// 		selected_args = standard_args;
-		// 	}
-		// });
-
-		let ffrewrap = spawn(ffmpegexe, args); 
-		if (is_audio)
-			playerInstance.arewrap = this.ffrewrap
-		else
-			playerInstance.vrewrap = this.ffrewrap
-		ffrewrap.stdout.on('data', data => {
-			if (myconfig.is_audio){
-				playerInstance.websocket.emit("audiodata",data)
-				fs.appendFile("c:\\temp\\raw.bin", data,  "binary",function(err) { });
-			}else{
-				playerInstance.websocket.emit("videodata",data)
-			}
-		});
-
-		ffrewrap.stderr.on('data', data => {
-			console.log(`${data}`);
-		});
-
-		ffrewrap.on('exit', returncode => { 
-			console.log ("ffmpeg rewrapper end, returncode: "+returncode  )
-			if (returncode != "0"){
-				console.log("ffmpeg failed, return code: ",returncode)
-			}
-		});
-
-		/* process could not be spawned, or The process could not be killed, or Sending a message to the child process failed. */
-		ffrewrap.on('error', data => {
-		  socket.emit("playererror","Error spawning ffmpeg on webinterface server, check if ffmpeg is in the PATH");
-		});
-
-		
-	}
 	// async startmpv(sourceUrl,udpPort){
 	// 	//C:\dev\mpv-installer-messed\mpv.com  --profile=myencprofile --o=udp://127.0.0.1:12345 C:\temp\fjolla.mp4 --demuxer-seekable-cache=yes --cache=yes --demuxer-max-back-bytes=10000M --hr-seek=yes --demuxer-cache-wait=yes
 	// 	let playerInstance = this;
