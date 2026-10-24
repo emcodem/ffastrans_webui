@@ -1,0 +1,559 @@
+import { EventEmitter } from 'node:events';
+import PoolResource from './pool-resource.js';
+import SMTPConnection from '../smtp-connection/index.js';
+import wellKnown from '../well-known/index.js';
+import * as shared from '../shared/index.js';
+import * as errors from '../errors.js';
+import * as packageData from '../package-info.js';
+/** First delay before a requeued message is retried, doubled on every further requeue */
+const REQUEUE_BASE_DELAY = 50;
+/** Upper bound for the requeue delay */
+const REQUEUE_MAX_DELAY = 2000;
+/**
+ * Creates a SMTP pool transport object for Nodemailer
+ *
+ * @constructor
+ * @param options SMTP Connection options
+ */
+class SMTPPool extends EventEmitter {
+    constructor(options) {
+        super();
+        options = options || {};
+        if (typeof options === 'string') {
+            options = {
+                url: options
+            };
+        }
+        let urlData;
+        let service = options.service;
+        if (typeof options.getSocket === 'function') {
+            this.getSocket = options.getSocket;
+        }
+        if (options.url) {
+            urlData = shared.parseConnectionUrl(options.url);
+            service = service || urlData.service;
+        }
+        this.options = shared.assign(false, // create new object
+        options, // regular options
+        urlData, // url options
+        (service && wellKnown(service)) // wellknown options
+        );
+        this.options.maxConnections = this.options.maxConnections || 5;
+        this.options.maxMessages = this.options.maxMessages || 100;
+        // a default bound, a server that closes every connection before the greeting would otherwise be retried forever
+        this.options.maxRequeues = typeof this.options.maxRequeues === 'number' ? this.options.maxRequeues : 5;
+        // below the 5 minutes RFC 5321 asks servers to wait at least, the connection is closed by us
+        // and not by the server in the middle of handing it a message
+        this.options.idleTimeout = typeof this.options.idleTimeout === 'number' ? this.options.idleTimeout : 4 * 60 * 1000;
+        this.logger = shared.getLogger(this.options, {
+            component: this.options.component || 'smtp-pool'
+        });
+        this.name = 'SMTP (pool)';
+        this.version = packageData.version + '[client:' + packageData.version + ']';
+        this._rateLimit = {
+            counter: 0,
+            timeout: null,
+            waiting: [],
+            checkpoint: false,
+            delta: Number(this.options.rateDelta) || 1000,
+            limit: Number(this.options.rateLimit) || 0
+        };
+        this._closed = false;
+        this._queue = [];
+        this._connections = [];
+        this._connectionCounter = 0;
+        this._pending = 0;
+        this.idling = true;
+        setImmediate(() => {
+            if (this.idling) {
+                this.emit('idle');
+            }
+        });
+    }
+    /**
+     * Placeholder function for creating proxy sockets. This method immediatelly returns
+     * without a socket
+     *
+     * @param options Connection options
+     * @param callback Callback function to run with the socket keys
+     */
+    getSocket(options, callback) {
+        // return immediatelly
+        setImmediate(() => callback(null, false));
+    }
+    /**
+     * Queues an e-mail to be sent using the selected settings
+     *
+     * @param mail Mail object
+     * @param callback Callback function
+     */
+    send(mail, callback) {
+        if (this._closed) {
+            // Mail.sendMail ignores the return value, so without a callback its promise would never settle
+            const err = new Error('Connection pool was closed');
+            err.code = errors.ECONNECTION;
+            setImmediate(() => callback(err));
+            return false;
+        }
+        // counted until the callback runs, whichever path runs it: delivered, failed, requeued
+        // until it gives up, or drained by close()
+        let counted = true;
+        this._pending++;
+        this._queue.push({
+            mail,
+            requeueAttempts: 0,
+            callback: (err, info) => {
+                if (counted) {
+                    counted = false;
+                    this._pending--;
+                }
+                callback(err, info);
+            }
+        });
+        if (this.idling && this._queue.length >= this.options.maxConnections) {
+            this.idling = false;
+        }
+        setImmediate(() => this._processMessages());
+        return true;
+    }
+    /**
+     * Closes all connections in the pool. If there is a message being sent, the connection
+     * is closed later
+     */
+    close() {
+        let connection;
+        const len = this._connections.length;
+        this._closed = true;
+        // release connections gated by the rate limiter so they become
+        // available and are torn down below instead of leaking with a
+        // cleared timer that never fires
+        this._clearRateLimit();
+        if (!len && !this._queue.length) {
+            return;
+        }
+        // remove all available connections
+        for (let i = len - 1; i >= 0; i--) {
+            if (this._connections[i] && this._connections[i].available) {
+                connection = this._connections[i];
+                connection.close();
+                this.logger.info({
+                    tnx: 'connection',
+                    cid: connection.id,
+                    action: 'removed'
+                }, 'Connection #%s removed', connection.id);
+            }
+        }
+        if (len && !this._connections.length) {
+            this.logger.debug({
+                tnx: 'connection'
+            }, 'All connections removed');
+        }
+        if (!this._queue.length) {
+            return;
+        }
+        // make sure that entire queue would be cleaned
+        const invokeCallbacks = () => {
+            if (!this._queue.length) {
+                this.logger.debug({
+                    tnx: 'connection'
+                }, 'Pending queue entries cleared');
+                return;
+            }
+            const entry = this._queue.shift();
+            if (entry && typeof entry.callback === 'function') {
+                try {
+                    entry.callback(new Error('Connection pool was closed'));
+                }
+                catch (E) {
+                    // the queue is drained without a connection, so there is no cid to log
+                    this.logger.error({
+                        err: E,
+                        tnx: 'callback'
+                    }, 'Callback error: %s', E.message);
+                }
+            }
+            setImmediate(invokeCallbacks);
+        };
+        setImmediate(invokeCallbacks);
+    }
+    /**
+     * Check the queue and available connections. If there is a message to be sent and there is
+     * an available connection, then use this connection to send the mail
+     * @internal
+     */
+    _processMessages() {
+        // do nothing if already closed
+        if (this._closed) {
+            return;
+        }
+        // do nothing if queue is empty
+        if (!this._queue.length) {
+            if (!this.idling) {
+                // no pending jobs
+                this.idling = true;
+                this.emit('idle');
+            }
+            return;
+        }
+        // find first available connection
+        let connection = this._connections.find(c => c.available);
+        if (!connection && this._connections.length < this.options.maxConnections) {
+            connection = this._createConnection();
+        }
+        if (!connection) {
+            // no more free connection slots available
+            this.idling = false;
+            return;
+        }
+        // check if there is free space in the processing queue
+        if (!this.idling && this._queue.length < this.options.maxConnections) {
+            this.idling = true;
+            this.emit('idle');
+        }
+        const entry = (connection.queueEntry = this._queue.shift());
+        entry.messageId = (connection.queueEntry.mail.message.getHeader('message-id') || '').replace(/[<>\s]/g, '');
+        connection.available = false;
+        this.logger.debug({
+            tnx: 'pool',
+            cid: connection.id,
+            messageId: entry.messageId,
+            action: 'assign'
+        }, 'Assigned message <%s> to #%s (%s)', entry.messageId, connection.id, connection.messages + 1);
+        if (this._rateLimit.limit) {
+            this._rateLimit.counter++;
+            if (!this._rateLimit.checkpoint) {
+                this._rateLimit.checkpoint = Date.now();
+            }
+        }
+        connection.send(entry.mail, (err, info) => {
+            // only process callback if current handler is not changed
+            if (entry === connection.queueEntry) {
+                try {
+                    entry.callback(err, info);
+                }
+                catch (E) {
+                    this.logger.error({
+                        err: E,
+                        tnx: 'callback',
+                        cid: connection.id
+                    }, 'Callback error for #%s: %s', connection.id, E.message);
+                }
+                connection.queueEntry = false;
+            }
+        });
+    }
+    /**
+     * Creates a new pool resource
+     * @internal
+     */
+    _createConnection() {
+        const connection = new PoolResource(this);
+        connection.id = ++this._connectionCounter;
+        this.logger.info({
+            tnx: 'pool',
+            cid: connection.id,
+            action: 'conection'
+        }, 'Created new pool resource #%s', connection.id);
+        // resource comes available
+        connection.on('available', () => {
+            this.logger.debug({
+                tnx: 'connection',
+                cid: connection.id,
+                action: 'available'
+            }, 'Connection #%s became available', connection.id);
+            if (this._closed) {
+                // if already closed run close() that will remove this connections from connections list
+                this.close();
+            }
+            else {
+                // check if there's anything else to send
+                this._processMessages();
+            }
+        });
+        // resource is terminated with an error
+        connection.once('error', (err) => {
+            if (err.code !== errors.EMAXLIMIT) {
+                this.logger.warn({
+                    err,
+                    tnx: 'pool',
+                    cid: connection.id
+                }, 'Pool Error for #%s: %s', connection.id, err.message);
+            }
+            else {
+                this.logger.debug({
+                    tnx: 'pool',
+                    cid: connection.id,
+                    action: 'maxlimit'
+                }, 'Max messages limit exchausted for #%s', connection.id);
+            }
+            if (connection.queueEntry) {
+                try {
+                    connection.queueEntry.callback(err);
+                }
+                catch (E) {
+                    this.logger.error({
+                        err: E,
+                        tnx: 'callback',
+                        cid: connection.id
+                    }, 'Callback error for #%s: %s', connection.id, E.message);
+                }
+                connection.queueEntry = false;
+            }
+            // remove the erroneus connection from connections list
+            this._removeConnection(connection);
+            this._continueProcessing();
+        });
+        connection.once('close', () => {
+            this.logger.info({
+                tnx: 'connection',
+                cid: connection.id,
+                action: 'closed'
+            }, 'Connection #%s was closed', connection.id);
+            this._removeConnection(connection);
+            if (connection.queueEntry) {
+                // If the connection closed when sending, add the message to the queue again
+                // if max number of requeues is not reached yet
+                // Note that we must wait a bit.. because the callback of the 'error' handler might be called
+                // in the next event loop
+                setTimeout(() => {
+                    let delay = 0;
+                    if (connection.queueEntry) {
+                        if (this._shouldRequeuOnConnectionClose(connection.queueEntry)) {
+                            delay = this._requeueEntryOnConnectionClose(connection);
+                        }
+                        else {
+                            this._failDeliveryOnConnectionClose(connection);
+                        }
+                    }
+                    if (delay) {
+                        // back off, a server that keeps dropping connections is not hammered
+                        setTimeout(() => this._continueProcessing(), delay);
+                    }
+                    else {
+                        this._continueProcessing();
+                    }
+                }, 50);
+            }
+            else {
+                if (!this._closed && this.idling && !this._connections.length) {
+                    this.emit('clear');
+                }
+                this._continueProcessing();
+            }
+        });
+        this._connections.push(connection);
+        return connection;
+    }
+    /** @internal */
+    _shouldRequeuOnConnectionClose(queueEntry) {
+        if (this.options.maxRequeues < 0) {
+            return true;
+        }
+        return queueEntry.requeueAttempts < this.options.maxRequeues;
+    }
+    /** @internal */
+    _failDeliveryOnConnectionClose(connection) {
+        if (connection.queueEntry && connection.queueEntry.callback) {
+            try {
+                const err = new Error('Reached maximum number of retries after connection was closed');
+                err.code = errors.ECONNECTION;
+                connection.queueEntry.callback(err);
+            }
+            catch (E) {
+                this.logger.error({
+                    err: E,
+                    tnx: 'callback',
+                    messageId: connection.queueEntry.messageId,
+                    cid: connection.id
+                }, 'Callback error for #%s: %s', connection.id, E.message);
+            }
+            connection.queueEntry = false;
+        }
+    }
+    /** @internal */
+    _requeueEntryOnConnectionClose(connection) {
+        const delay = Math.min(REQUEUE_BASE_DELAY * 2 ** connection.queueEntry.requeueAttempts, REQUEUE_MAX_DELAY);
+        connection.queueEntry.requeueAttempts += 1;
+        this.logger.debug({
+            tnx: 'pool',
+            cid: connection.id,
+            messageId: connection.queueEntry.messageId,
+            action: 'requeue'
+        }, 'Re-queued message <%s> for #%s. Attempt: #%s', connection.queueEntry.messageId, connection.id, connection.queueEntry.requeueAttempts);
+        this._queue.unshift(connection.queueEntry);
+        connection.queueEntry = false;
+        return delay;
+    }
+    /**
+     * Continue to process message if the pool hasn't closed
+     * @internal
+     */
+    _continueProcessing() {
+        if (this._closed) {
+            this.close();
+        }
+        else {
+            setTimeout(() => this._processMessages(), 100);
+        }
+    }
+    /**
+     * Remove resource from pool
+     *
+     * @param connection The PoolResource to remove
+     * @internal
+     */
+    _removeConnection(connection) {
+        const index = this._connections.indexOf(connection);
+        if (index !== -1) {
+            this._connections.splice(index, 1);
+        }
+    }
+    /**
+     * Checks if connections have hit current rate limit and if so, queues the availability callback
+     *
+     * @param callback Callback function to run once rate limiter has been cleared
+     * @internal
+     */
+    _checkRateLimit(callback) {
+        if (!this._rateLimit.limit) {
+            return callback();
+        }
+        const now = Date.now();
+        if (this._rateLimit.counter < this._rateLimit.limit) {
+            return callback();
+        }
+        this._rateLimit.waiting.push(callback);
+        if (this._rateLimit.checkpoint <= now - this._rateLimit.delta) {
+            return this._clearRateLimit();
+        }
+        if (!this._rateLimit.timeout) {
+            this._rateLimit.timeout = setTimeout(() => this._clearRateLimit(), this._rateLimit.delta - (now - this._rateLimit.checkpoint));
+            this._rateLimit.checkpoint = now;
+        }
+    }
+    /**
+     * Clears current rate limit limitation and runs paused callback
+     * @internal
+     */
+    _clearRateLimit() {
+        clearTimeout(this._rateLimit.timeout);
+        this._rateLimit.timeout = null;
+        this._rateLimit.counter = 0;
+        this._rateLimit.checkpoint = false;
+        // resume all paused connections
+        while (this._rateLimit.waiting.length) {
+            const cb = this._rateLimit.waiting.shift();
+            setImmediate(cb);
+        }
+    }
+    /**
+     * Returns true if there are free slots in the queue
+     */
+    isIdle() {
+        return this.idling;
+    }
+    /**
+     * Counts the messages the pool has not finished with yet: the ones waiting in the queue
+     * plus the ones a connection is transmitting right now. isIdle() only tells whether the
+     * pool can take another message, it is already true while a message is still being sent,
+     * so use this to check that nothing would be lost by closing the pool. A message that is
+     * re-queued after its connection dropped is counted until its callback runs, also while it waits to be put back on the queue, and
+     * it is no longer counted by the time its callback runs.
+     *
+     * @returns Number of queued and in-flight messages
+     */
+    pendingCount() {
+        return this._pending;
+    }
+    verify(callback) {
+        let promise;
+        if (!callback) {
+            promise = new Promise((resolve, reject) => {
+                callback = shared.callbackPromise(resolve, reject);
+            });
+        }
+        // the error paths hand over the error alone
+        const done = callback;
+        const auth = new PoolResource(this).auth;
+        // the proxy handshake, if any, counts against connectionTimeout as well
+        const connectStartedAt = Date.now();
+        this.getSocket(Object.assign({}, this.options, { connectStartedAt }), (err, socketOptions) => {
+            if (err) {
+                return done(err);
+            }
+            let options = this.options;
+            if (socketOptions && socketOptions.connection) {
+                this.logger.info({
+                    tnx: 'proxy',
+                    remoteAddress: socketOptions.connection.remoteAddress,
+                    remotePort: socketOptions.connection.remotePort,
+                    destHost: options.host || '',
+                    destPort: options.port || '',
+                    action: 'connected'
+                }, 'Using proxied socket from %s:%s to %s:%s', socketOptions.connection.remoteAddress, socketOptions.connection.remotePort, options.host || '', options.port || '');
+                options = Object.assign(shared.assign(false, options), socketOptions);
+            }
+            const connection = new SMTPConnection(options);
+            connection._connectStartedAt = connectStartedAt;
+            let returned = false;
+            connection.once('error', err => {
+                if (returned) {
+                    return;
+                }
+                returned = true;
+                connection.close();
+                return done(err);
+            });
+            connection.once('end', () => {
+                if (returned) {
+                    return;
+                }
+                returned = true;
+                return done(new Error('Connection closed'));
+            });
+            const finalize = () => {
+                if (returned) {
+                    return;
+                }
+                returned = true;
+                connection.quit();
+                return done(null, true);
+            };
+            connection.connect(err => {
+                if (returned) {
+                    return;
+                }
+                if (err) {
+                    returned = true;
+                    connection.close();
+                    return done(err);
+                }
+                if (auth && (connection.allowsAuth || options.forceAuth)) {
+                    connection.login(auth, err => {
+                        if (returned) {
+                            return;
+                        }
+                        if (err) {
+                            returned = true;
+                            connection.close();
+                            return done(err);
+                        }
+                        finalize();
+                    });
+                }
+                else if (!auth && connection.allowsAuth && options.forceAuth) {
+                    const err = new Error('Authentication info was not provided');
+                    err.code = errors.ENOAUTH;
+                    returned = true;
+                    connection.close();
+                    return done(err);
+                }
+                else {
+                    finalize();
+                }
+            });
+        });
+        return promise;
+    }
+}
+export default SMTPPool;

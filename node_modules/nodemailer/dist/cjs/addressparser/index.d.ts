@@ -1,0 +1,59 @@
+/**
+ * Options for addressparser
+ */
+export interface AddressParserOptions {
+    /** Flatten groups into a single list of mailboxes */
+    flatten?: boolean | undefined;
+}
+/**
+ * A single mailbox. Either value may be an empty string when the input did not carry it
+ */
+export interface MailboxAddress {
+    name: string;
+    address: string;
+    group?: undefined;
+}
+/**
+ * An address group. RFC 5322 does not allow nested groups, so any nesting is flattened
+ * into `group`
+ */
+export interface GroupAddress {
+    name: string;
+    group: Address[];
+    address?: undefined;
+}
+/**
+ * A parsed address entry, either a mailbox or a group
+ */
+export type Address = MailboxAddress | GroupAddress;
+/**
+ * Parses structured e-mail addresses from an address field
+ *
+ * Example:
+ *
+ *    'Name <address@domain>'
+ *
+ * will be converted to
+ *
+ *     [{name: 'Name', address: 'address@domain'}]
+ *
+ * @param str Address field
+ * @param options Optional options object
+ * @return An array of address objects
+ */
+declare function addressparser(str: string | null | undefined, options: AddressParserOptions & {
+    flatten: true;
+}): MailboxAddress[];
+declare function addressparser(str?: string | null, options?: AddressParserOptions): Address[];
+/**
+ * Type aliases in the layout of @types/nodemailer, so `addressparser.Address` style references keep working
+ */
+type AddressEntry = Address;
+declare namespace addressparser {
+    type Address = MailboxAddress;
+    type Group = GroupAddress;
+    type AddressOrGroup = AddressEntry;
+}
+/** The names @types/nodemailer used for the group entry and for the union of both entry types */
+export type { GroupAddress as Group, Address as AddressOrGroup };
+export default addressparser;

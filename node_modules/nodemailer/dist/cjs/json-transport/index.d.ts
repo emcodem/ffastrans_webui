@@ -1,0 +1,64 @@
+import type { Logger } from '../shared/index.js';
+import type { MimeNodeEnvelope } from '../mime-node/index.js';
+import type MailMessage from '../mailer/mail-message.js';
+import type { default as Mail, SentMessageInfo, SendMailOptions, TransportOptions } from '../mailer/index.js';
+/**
+ * Options for the JSON transport
+ */
+export interface JSONTransportOptions extends TransportOptions {
+    /** Selects this transport in createTransport */
+    jsonTransport?: boolean | undefined;
+    /** If true, the message is returned as an object instead of a JSON string */
+    skipEncoding?: boolean | undefined;
+}
+/**
+ * The value the JSON transport hands to the send callback. M is the type of the message
+ * field: a JSON string by default, the message object itself when skipEncoding is set
+ */
+export interface JSONSentMessageInfo<M = string> extends SentMessageInfo {
+    /** The envelope the message was generated with */
+    envelope: MimeNodeEnvelope;
+    /** Message-ID value of the message */
+    messageId: string;
+    /** The normalized message as a JSON string, or as the object itself when skipEncoding is set */
+    message: M;
+}
+/**
+ * The value the JSON transport hands to the send callback when skipEncoding is set: the
+ * message field holds the message object. Typed loosely so that a transporter created with
+ * skipEncoding still fits a variable declared with the plain result type
+ */
+export type JSONSentMessageObjectInfo = JSONSentMessageInfo<any>;
+/**
+ * Generates a Transport object to generate JSON output
+ *
+ * @constructor
+ * @param optional config parameter
+ */
+declare class JSONTransport {
+    mailer: Mail<JSONSentMessageInfo>;
+    options: JSONTransportOptions;
+    name: string;
+    version: string;
+    logger: Logger;
+    constructor(options?: JSONTransportOptions);
+    /**
+     * <p>Compiles a mailcomposer message and forwards it to handler that sends it.</p>
+     *
+     * @param mail MailComposer object
+     * @param done Callback function to run when the sending is completed
+     */
+    send(mail: MailMessage<JSONSentMessageInfo>, done: (err: Error | null, info?: JSONSentMessageInfo) => void): void;
+}
+/**
+ * Type aliases in the layout of @types/nodemailer, so `JSONTransport.Options` style references keep working
+ */
+declare namespace JSONTransport {
+    type Options = JSONTransportOptions;
+    type MailOptions = SendMailOptions;
+    type SentMessageInfo = JSONSentMessageInfo;
+    type SentMessageObjectInfo = JSONSentMessageObjectInfo;
+}
+/** The same aliases as module level exports, for `import * as JSONTransport` and `import JSONTransport = require()` */
+export type { JSONTransportOptions as Options, SendMailOptions as MailOptions, JSONSentMessageInfo as SentMessageInfo, JSONSentMessageObjectInfo as SentMessageObjectInfo };
+export default JSONTransport;

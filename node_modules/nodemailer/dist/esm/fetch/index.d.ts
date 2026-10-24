@@ -1,0 +1,70 @@
+import http from 'node:http';
+import { PassThrough, type Readable } from 'node:stream';
+import Cookies from './cookies.js';
+/**
+ * Options for nmfetch
+ */
+export interface FetchOptions {
+    /** HTTP method, defaults to GET, or to POST when a body is given */
+    method?: string | undefined;
+    /** Request headers, keys are lowercased before use */
+    headers?: http.OutgoingHttpHeaders | undefined;
+    /** Overrides the default User-Agent header */
+    userAgent?: string | undefined;
+    /** Cookie string(s) to seed the cookie jar with for this URL */
+    cookie?: string | string[] | false | undefined;
+    /** Cookie jar shared across redirects, created when missing */
+    cookies?: Cookies | undefined;
+    /** Request body: a readable stream, a Buffer, a form object or a string */
+    body?: Readable | Buffer | {
+        [key: string]: any;
+    } | string | false | undefined;
+    /** Content-Type header for the body, false leaves it out for a stream body */
+    contentType?: string | false | undefined;
+    /** TLS settings, only the keys listed in TLS_OPTION_KEYS are used */
+    tls?: {
+        [key: string]: any;
+    } | undefined;
+    /** Socket inactivity timeout in milliseconds, defaults to 60000, 0 disables it */
+    timeout?: number | undefined;
+    /** Time limit for the whole request in milliseconds, redirects included, defaults to 120000, 0 disables it */
+    maxTime?: number | undefined;
+    /** Maximum size of the (decoded) response body in bytes, defaults to 64 MB, Infinity disables the limit */
+    maxBytes?: number | undefined;
+    /** Maximum number of redirects to follow (default 5) */
+    maxRedirects?: number | undefined;
+    /** Resolve responses with a status code of 300 or above instead of emitting an error */
+    allowErrorResponse?: boolean | undefined;
+    /** Redirects followed so far, set by nmfetch itself */
+    redirects?: number | undefined;
+    /** Response stream shared across redirects, set by nmfetch itself */
+    fetchRes?: FetchResponse | undefined;
+    /** Timestamp the whole request has to be done by, shared across redirects, set by nmfetch itself */
+    deadline?: number | undefined;
+}
+/**
+ * The stream nmfetch returns. The response body is piped into it, the status code and
+ * headers of the final response are attached once they arrive
+ */
+export interface FetchResponse extends PassThrough {
+    statusCode?: number | undefined;
+    headers?: http.IncomingHttpHeaders | undefined;
+}
+declare function nmfetch(url: string, options?: FetchOptions): FetchResponse;
+declare namespace nmfetch {
+    var Cookies: typeof import("./cookies.js").default;
+    var DEFAULT_TIMEOUT: number;
+    var DEFAULT_MAX_TIME: number;
+}
+type CookiesJar = Cookies;
+/**
+ * Type aliases in the layout of @types/nodemailer, so `fetch.Options` style references keep working
+ */
+declare namespace nmfetch {
+    type Options = FetchOptions;
+    type WritableResponse = FetchResponse;
+    type Cookies = CookiesJar;
+}
+/** The same aliases as module level exports, for `import * as fetch` and `import fetch = require()` */
+export type { FetchOptions as Options, FetchResponse as WritableResponse, Cookies };
+export default nmfetch;

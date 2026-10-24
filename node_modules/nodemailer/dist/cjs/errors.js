@@ -1,0 +1,94 @@
+"use strict";
+/**
+ * Nodemailer Error Codes
+ *
+ * Centralized error code definitions for consistent error handling.
+ *
+ * Usage:
+ *   import * as errors from './errors.js';
+ *   const err: NodemailerError = new Error('Connection closed');
+ *   err.code = errors.ECONNECTION;
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ERR_ACCESS_DENIED = exports.isPermanentResponseCode = exports.isTransientError = exports.EFETCH = exports.EURLACCESS = exports.EFILEACCESS = exports.EPROXY = exports.ECONFIG = exports.ESES = exports.ESENDMAIL = exports.EMAXRECIPIENTS = exports.EMAXLIMIT = exports.EOAUTH2 = exports.ENOAUTH = exports.EAUTH = exports.ESTREAM = exports.EMESSAGE = exports.EENVELOPE = exports.EPROTOCOL = exports.EREQUIRETLS = exports.ETLS = exports.EDNS = exports.ESOCKET = exports.ETIMEDOUT = exports.ECONNECTION = exports.ERROR_CODES = void 0;
+/**
+ * Error code descriptions for documentation and debugging
+ */
+exports.ERROR_CODES = {
+    // Connection errors
+    ECONNECTION: 'Connection closed unexpectedly',
+    ETIMEDOUT: 'Connection or operation timed out',
+    ESOCKET: 'Socket-level error',
+    EDNS: 'DNS resolution failed',
+    // TLS/Security errors
+    ETLS: 'TLS handshake or STARTTLS failed',
+    EREQUIRETLS: 'REQUIRETLS not supported by server (RFC 8689)',
+    // Protocol errors
+    EPROTOCOL: 'Invalid SMTP server response',
+    EENVELOPE: 'Invalid mail envelope (sender or recipients)',
+    EMESSAGE: 'Message delivery error',
+    ESTREAM: 'Stream processing error',
+    // Authentication errors
+    EAUTH: 'Authentication failed',
+    ENOAUTH: 'Authentication credentials not provided',
+    EOAUTH2: 'OAuth2 token generation or refresh error',
+    // Resource errors
+    EMAXLIMIT: 'Pool resource limit reached (max messages per connection)',
+    EMAXRECIPIENTS: 'Recipient count exceeds maxRecipients',
+    // Transport-specific errors
+    ESENDMAIL: 'Sendmail command error',
+    ESES: 'AWS SES transport error',
+    // Configuration and access errors
+    ECONFIG: 'Invalid configuration',
+    EPROXY: 'Proxy connection error',
+    EFILEACCESS: 'File access rejected (disableFileAccess is set)',
+    EURLACCESS: 'URL access rejected (disableUrlAccess is set)',
+    EFETCH: 'HTTP fetch error'
+};
+// Error codes as string constants
+exports.ECONNECTION = 'ECONNECTION';
+exports.ETIMEDOUT = 'ETIMEDOUT';
+exports.ESOCKET = 'ESOCKET';
+exports.EDNS = 'EDNS';
+exports.ETLS = 'ETLS';
+exports.EREQUIRETLS = 'EREQUIRETLS';
+exports.EPROTOCOL = 'EPROTOCOL';
+exports.EENVELOPE = 'EENVELOPE';
+exports.EMESSAGE = 'EMESSAGE';
+exports.ESTREAM = 'ESTREAM';
+exports.EAUTH = 'EAUTH';
+exports.ENOAUTH = 'ENOAUTH';
+exports.EOAUTH2 = 'EOAUTH2';
+exports.EMAXLIMIT = 'EMAXLIMIT';
+exports.EMAXRECIPIENTS = 'EMAXRECIPIENTS';
+exports.ESENDMAIL = 'ESENDMAIL';
+exports.ESES = 'ESES';
+exports.ECONFIG = 'ECONFIG';
+exports.EPROXY = 'EPROXY';
+exports.EFILEACCESS = 'EFILEACCESS';
+exports.EURLACCESS = 'EURLACCESS';
+exports.EFETCH = 'EFETCH';
+/**
+ * Tells whether the error ended the connection rather than rejected what was sent over it
+ */
+const isTransientError = (err) => err.responseCode === 421 || err.code === exports.ECONNECTION || err.code === exports.ESOCKET || err.code === exports.ETIMEDOUT;
+exports.isTransientError = isTransientError;
+/**
+ * Tells whether an SMTP reply code is a permanent rejection, one that retrying the same
+ * message would get again. RFC 5321 makes every 5yz reply a permanent negative completion
+ * and every 4yz reply a transient one. 503 (bad sequence of commands) is the exception: it
+ * says the session was in the wrong state for the command rather than that the message was
+ * refused, so the same message can go through on a new connection. 2yz and 3yz replies are
+ * only an error when the client expected something else, and are not permanent either.
+ *
+ * @param responseCode SMTP reply code
+ * @returns true for a permanent rejection
+ */
+const isPermanentResponseCode = (responseCode) => responseCode >= 500 && responseCode < 600 && responseCode !== 503;
+exports.isPermanentResponseCode = isPermanentResponseCode;
+/**
+ * Code Node.js sets on an error when its permission model (`--permission`) denies an
+ * operation. It is not replaced with the Nodemailer code of the failing step (`ESOCKET`,
+ * `EDNS`, `EFETCH`, ...), so a missing grant such as `--allow-net` stays recognizable.
+ */
+exports.ERR_ACCESS_DENIED = 'ERR_ACCESS_DENIED';

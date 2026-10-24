@@ -1,0 +1,180 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const node_stream_1 = require("node:stream");
+/**
+ * Drops the SP and HTAB from both ends of a field name.
+ *
+ * An index scan rather than `/^[ \t]+|[ \t]+$/g`, which retries the trailing branch at
+ * every offset of a blank run that is followed by other text: the run is consumed greedily,
+ * `$` fails, and the engine gives the characters back one at a time before moving on to
+ * start the same walk one offset further in. A field name carrying a 128 KiB run of spaces
+ * between two atoms took about 6.7 seconds to trim, and the cost grows with its square.
+ *
+ * Not `.trim()`, which takes the other Unicode spaces along: an NBSP in front of a field
+ * name would come off and select the name into the signed set, where the relaxed
+ * canonicalization in sign.ts deliberately leaves everything but SP and HTAB alone.
+ *
+ * @param str Field name to trim
+ * @return The field name without the surrounding SP and HTAB
+ */
+function _trimFieldName(str) {
+    let start = 0;
+    let end = str.length;
+    while (start < end && (str.charCodeAt(start) === 0x20 || str.charCodeAt(start) === 0x09)) {
+        start++;
+    }
+    while (end > start && (str.charCodeAt(end - 1) === 0x20 || str.charCodeAt(end - 1) === 0x09)) {
+        end--;
+    }
+    return str.slice(start, end);
+}
+/**
+ * MessageParser instance is a transform stream that separates message headers
+ * from the rest of the body. Headers are emitted with the 'headers' event. Message
+ * body is passed on as the resulting stream.
+ */
+class MessageParser extends node_stream_1.Transform {
+    constructor(options) {
+        super(options);
+        this.lastBytes = Buffer.alloc(4);
+        this.headersParsed = false;
+        this.headerBytes = 0;
+        this.headerChunks = [];
+        this.rawHeaders = false;
+        this.bodySize = 0;
+    }
+    /**
+     * Keeps count of the last 4 bytes in order to detect line breaks on chunk boundaries
+     *
+     * @param data Next data chunk from the stream
+     */
+    updateLastBytes(data) {
+        const lblen = this.lastBytes.length;
+        const nblen = Math.min(data.length, lblen);
+        // shift existing bytes
+        for (let i = 0, len = lblen - nblen; i < len; i++) {
+            this.lastBytes[i] = this.lastBytes[i + nblen];
+        }
+        // add new bytes
+        for (let i = 1; i <= nblen; i++) {
+            this.lastBytes[lblen - i] = data[data.length - i];
+        }
+    }
+    /**
+     * Finds and removes message headers from the remaining body. We want to keep
+     * headers separated until final delivery to be able to modify these
+     *
+     * @param data Next chunk of data
+     * @return Returns true if headers are already found or false otherwise
+     */
+    checkHeaders(data) {
+        if (this.headersParsed) {
+            return true;
+        }
+        const lblen = this.lastBytes.length;
+        let headerPos = 0;
+        for (let i = 0, len = this.lastBytes.length + data.length; i < len; i++) {
+            let chr;
+            if (i < lblen) {
+                chr = this.lastBytes[i];
+            }
+            else {
+                chr = data[i - lblen];
+            }
+            if (chr === 0x0a && i) {
+                const pr1 = i - 1 < lblen ? this.lastBytes[i - 1] : data[i - 1 - lblen];
+                const pr2 = i > 1 ? (i - 2 < lblen ? this.lastBytes[i - 2] : data[i - 2 - lblen]) : false;
+                if (pr1 === 0x0a) {
+                    this.headersParsed = true;
+                    headerPos = i - lblen + 1;
+                    this.headerBytes += headerPos;
+                    break;
+                }
+                else if (pr1 === 0x0d && pr2 === 0x0a) {
+                    this.headersParsed = true;
+                    headerPos = i - lblen + 1;
+                    this.headerBytes += headerPos;
+                    break;
+                }
+            }
+        }
+        if (this.headersParsed) {
+            this.headerChunks.push(data.slice(0, headerPos));
+            this.rawHeaders = Buffer.concat(this.headerChunks, this.headerBytes);
+            this.headerChunks = null;
+            this.emit('headers', this.parseHeaders());
+            if (data.length > headerPos) {
+                const chunk = data.slice(headerPos);
+                this.bodySize += chunk.length;
+                // this would be the first chunk of data sent downstream
+                this.push(chunk);
+            }
+            return false;
+        }
+        this.headerBytes += data.length;
+        this.headerChunks.push(data);
+        // store last 4 bytes to catch header break
+        this.updateLastBytes(data);
+        return false;
+    }
+    /** @internal */
+    _transform(chunk, encoding, callback) {
+        if (!chunk || !chunk.length) {
+            return callback();
+        }
+        if (typeof chunk === 'string') {
+            chunk = Buffer.from(chunk, encoding);
+        }
+        let headersFound;
+        try {
+            headersFound = this.checkHeaders(chunk);
+        }
+        catch (E) {
+            return callback(E);
+        }
+        if (headersFound) {
+            this.bodySize += chunk.length;
+            this.push(chunk);
+        }
+        callback();
+    }
+    /** @internal */
+    _flush(callback) {
+        if (this.headerChunks) {
+            // no empty line was seen, so the message consists of headers only
+            this.rawHeaders = Buffer.concat(this.headerChunks, this.headerBytes);
+            this.headerChunks = null;
+            this.emit('headers', this.parseHeaders());
+        }
+        callback();
+    }
+    parseHeaders() {
+        // the header bytes are kept as they are, one character per byte, so the
+        // signature covers exactly the bytes the receiving side canonicalizes
+        // Only SP and HTAB fold a line, and only they are trimmed from the field name, the
+        // same whitespace the relaxed canonicalization in sign.ts works with
+        const rawLines = (this.rawHeaders || Buffer.alloc(0)).toString('binary').split(/\r?\n/);
+        // Unfold in a single forward pass and only ever test a freshly split line for the
+        // continuation prefix. Testing an already merged line instead would rescan a string
+        // that grows with every continuation line, so a header folded into many continuation
+        // lines (a large recipient list, for example) would take quadratic time to unfold
+        const lines = [];
+        for (const rawLine of rawLines) {
+            if (lines.length && /^[ \t]/.test(rawLine)) {
+                lines[lines.length - 1] += '\n' + rawLine;
+            }
+            else {
+                lines.push(rawLine);
+            }
+        }
+        return lines
+            .filter(line => /[^ \t\r]/.test(line))
+            .map(line => ({
+            key: _trimFieldName(line.substr(0, line.indexOf(':'))).toLowerCase(),
+            line
+        }));
+    }
+}
+exports.default = MessageParser;
+module.exports = exports.default;
+Object.defineProperty(module.exports, 'default', { value: exports.default, enumerable: false, writable: true, configurable: true });

@@ -1,0 +1,147 @@
+import { EventEmitter } from 'node:events';
+import * as shared from '../shared/index.js';
+import type { SMTPTransportOptions, SMTPTransportGetSocketCallback, SMTPTransportSendCallback, SMTPSentMessageInfo } from '../smtp-transport/index.js';
+import type MailMessage from '../mailer/mail-message.js';
+import type { default as Mail, SendMailOptions, VerifyCallback } from '../mailer/index.js';
+/**
+ * Options for the pooled SMTP transport, the SMTP transport options plus the pool settings
+ */
+export interface SMTPPoolOptions extends SMTPTransportOptions {
+    /** Set to true to get this pooled transport from createTransport */
+    pool?: boolean | undefined;
+    /** Maximum number of open connections, defaults to 5 */
+    maxConnections?: number | undefined;
+    /** Number of messages a connection sends before it is closed and replaced, defaults to 100 */
+    maxMessages?: number | undefined;
+    /** Maximum number of messages to send in rateDelta milliseconds, unlimited when not set */
+    rateLimit?: number | undefined;
+    /** Time window for rateLimit in milliseconds, defaults to 1000 */
+    rateDelta?: number | undefined;
+    /** How many times a message is requeued when its connection closes while sending, defaults to 5, a negative value means unlimited */
+    maxRequeues?: number | undefined;
+    /** Time in milliseconds a connection may stay idle before it is closed, defaults to 4 minutes, 0 keeps it open until the server closes it */
+    idleTimeout?: number | undefined;
+}
+/**
+ * The pool options once the constructor has applied the defaults
+ */
+export type SMTPPoolResolvedOptions = SMTPPoolOptions & {
+    maxConnections: number;
+    maxMessages: number;
+    maxRequeues: number;
+    idleTimeout: number;
+};
+/**
+ * Result of a message sent through the pool, same as for the SMTP transport
+ */
+export type SMTPPoolSentMessageInfo = SMTPSentMessageInfo;
+/**
+ * Callback for send()
+ */
+export type SMTPPoolSendCallback = SMTPTransportSendCallback;
+/**
+ * A message waiting in the pool queue
+ */
+export interface SMTPPoolQueueEntry {
+    /** The message to send */
+    mail: MailMessage;
+    /** How many times the entry was put back on the queue after its connection closed */
+    requeueAttempts: number;
+    /** Callback to run once the message is sent or failed */
+    callback: SMTPPoolSendCallback;
+    /** Message-ID value without the angle brackets, set when the entry is assigned to a connection */
+    messageId?: string | undefined;
+}
+/**
+ * Rate limiter state of the pool
+ */
+export interface SMTPPoolRateLimit {
+    /** Messages assigned within the current window */
+    counter: number;
+    /** Timer that clears the current window */
+    timeout: NodeJS.Timeout | null;
+    /** Availability callbacks waiting for the window to clear */
+    waiting: Array<() => void>;
+    /** Start of the current window as a timestamp, false when no window is open */
+    checkpoint: number | false;
+    /** Window length in milliseconds */
+    delta: number;
+    /** Maximum number of messages per window, 0 for no limit */
+    limit: number;
+}
+/**
+ * Creates a SMTP pool transport object for Nodemailer
+ *
+ * @constructor
+ * @param options SMTP Connection options
+ */
+declare class SMTPPool extends EventEmitter {
+    options: SMTPPoolResolvedOptions;
+    logger: shared.Logger;
+    name: string;
+    version: string;
+    idling: boolean;
+    /**
+     * The Mail instance using this transport, assigned by Mail
+     */
+    mailer?: Mail<SMTPPoolSentMessageInfo, SMTPPoolOptions> | undefined;
+    constructor(options?: SMTPPoolOptions | string);
+    /**
+     * Placeholder function for creating proxy sockets. This method immediatelly returns
+     * without a socket
+     *
+     * @param options Connection options
+     * @param callback Callback function to run with the socket keys
+     */
+    getSocket(options: SMTPPoolOptions, callback: SMTPTransportGetSocketCallback): void;
+    /**
+     * Queues an e-mail to be sent using the selected settings
+     *
+     * @param mail Mail object
+     * @param callback Callback function
+     */
+    send(mail: MailMessage<SMTPPoolSentMessageInfo>, callback: SMTPPoolSendCallback): boolean;
+    /**
+     * Closes all connections in the pool. If there is a message being sent, the connection
+     * is closed later
+     */
+    close(): void;
+    /**
+     * Returns true if there are free slots in the queue
+     */
+    isIdle(): boolean;
+    /**
+     * Counts the messages the pool has not finished with yet: the ones waiting in the queue
+     * plus the ones a connection is transmitting right now. isIdle() only tells whether the
+     * pool can take another message, it is already true while a message is still being sent,
+     * so use this to check that nothing would be lost by closing the pool. A message that is
+     * re-queued after its connection dropped is counted until its callback runs, also while it waits to be put back on the queue, and
+     * it is no longer counted by the time its callback runs.
+     *
+     * @returns Number of queued and in-flight messages
+     */
+    pendingCount(): number;
+    /**
+     * Verifies SMTP configuration
+     *
+     * @returns Promise that resolves to true if the configuration is usable
+     */
+    verify(): Promise<true>;
+    /**
+     * Verifies SMTP configuration
+     *
+     * @param callback Callback function
+     */
+    verify(callback: VerifyCallback): void;
+}
+/**
+ * Type aliases in the layout of @types/nodemailer, so `SMTPPool.Options` style references keep working
+ */
+declare namespace SMTPPool {
+    type Options = SMTPPoolOptions;
+    type MailOptions = SendMailOptions;
+    type SentMessageInfo = SMTPPoolSentMessageInfo;
+}
+/** The same aliases as module level exports, for `import * as SMTPPool` and `import SMTPPool = require()` */
+export type { SMTPPoolOptions as Options, SendMailOptions as MailOptions, SMTPPoolSentMessageInfo as SentMessageInfo };
+export default SMTPPool;

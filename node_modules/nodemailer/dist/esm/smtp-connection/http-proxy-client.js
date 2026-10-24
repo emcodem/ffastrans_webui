@@ -1,0 +1,169 @@
+/**
+ * Minimal HTTP/S proxy client
+ */
+import net from 'node:net';
+import tls from 'node:tls';
+import * as urllib from '../shared/url.js';
+import * as errors from '../errors.js';
+// Cap the CONNECT response we buffer before the header terminator, so a proxy that
+// never sends \r\n\r\n cannot grow memory unboundedly before the socket times out.
+const MAX_RESPONSE_HEADER_BYTES = 64 * 1024;
+// URL hostnames keep the brackets around an IPv6 literal, socket options and net.isIPv6 take it without
+const unbracket = (host) => (typeof host === 'string' && host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host);
+function httpProxyClient(proxyUrl, destinationPort, destinationHost, tlsOptions, callback) {
+    if (typeof tlsOptions === 'function') {
+        callback = tlsOptions;
+        tlsOptions = {};
+    }
+    tlsOptions = tlsOptions || {};
+    // the error paths hand over the error alone
+    const done = callback;
+    // Reject CRLF in the destination before it reaches the CONNECT request line
+    // and Host header. A tainted host/port could otherwise inject additional
+    // request headers into the proxy connection (HTTP request splitting).
+    destinationPort = Number(destinationPort) || 0;
+    if (!destinationPort || /[\r\n]/.test(destinationHost)) {
+        const err = new Error('Invalid proxy destination');
+        err.code = errors.EPROXY;
+        setImmediate(() => done(err));
+        return;
+    }
+    const proxy = urllib.parse(proxyUrl);
+    // the CONNECT request line and the Host header take an IPv6 destination in brackets
+    const authority = (net.isIPv6(unbracket(destinationHost)) ? '[' + unbracket(destinationHost) + ']' : destinationHost) + ':' + destinationPort;
+    const connectOptions = {
+        host: proxy.hostname,
+        port: Number(proxy.port) ? Number(proxy.port) : proxy.protocol === 'https:' ? 443 : 80
+    };
+    let connect;
+    if (proxy.protocol === 'https:') {
+        // Validate the proxy's TLS certificate by default. A caller that uses a
+        // self-signed proxy (e.g. integration tests) opts out explicitly with
+        // tls.rejectUnauthorized === false.
+        connectOptions.rejectUnauthorized = tlsOptions.rejectUnauthorized !== false;
+        connect = tls.connect.bind(tls);
+    }
+    else {
+        connect = net.connect.bind(net);
+    }
+    // The handshake is bounded as a whole, a proxy that keeps sending a byte now and then can
+    // not hold the connection open past it
+    const timeout = Number(tlsOptions.timeout) || httpProxyClient.timeout || 30 * 1000;
+    let socket;
+    // Single settlement path for the handshake: every temporary listener and the timer are
+    // dropped exactly once. Once the tunnel is up, the responsibility to handle errors is passed
+    // to whoever uses this socket
+    let finished = false;
+    let timer;
+    const cleanup = () => {
+        clearTimeout(timer);
+        socket.removeListener('data', onSocketData);
+        socket.removeListener('error', fail);
+        socket.removeListener('close', onEarlyClose);
+    };
+    function fail(err) {
+        if (finished) {
+            return;
+        }
+        finished = true;
+        cleanup();
+        try {
+            socket.destroy();
+        }
+        catch (_E) {
+            // ignore
+        }
+        done(err);
+    }
+    function onEarlyClose() {
+        const err = new Error('Proxy closed the connection before the tunnel was established');
+        err.code = errors.EPROXY;
+        fail(err);
+    }
+    // The response is collected as chunks and only the bytes that just arrived, together
+    // with the three before them, are searched for the end of the headers. Appending to a
+    // string and searching all of it again re-read the whole response on every chunk.
+    const chunks = [];
+    let received = 0;
+    let tail = '';
+    function onSocketData(chunk) {
+        if (finished) {
+            return;
+        }
+        const window = tail + chunk.toString('binary');
+        const windowEnd = window.indexOf('\r\n\r\n');
+        chunks.push(chunk);
+        received += chunk.length;
+        tail = window.slice(-3);
+        if (windowEnd < 0) {
+            if (received > MAX_RESPONSE_HEADER_BYTES) {
+                const err = new Error('Proxy response headers too large');
+                err.code = errors.EPROXY;
+                fail(err);
+            }
+            return;
+        }
+        // Stop reading before anything is put back. A socket that keeps flowing would emit the
+        // bytes after the headers, a greeting the proxy sent together with its own response,
+        // before the next owner of the socket has a listener for them
+        socket.removeListener('data', onSocketData);
+        socket.pause();
+        const headerEnd = received - window.length + windowEnd;
+        const response = Buffer.concat(chunks, received);
+        if (response.length > headerEnd + 4) {
+            socket.unshift(response.subarray(headerEnd + 4));
+        }
+        // check response code
+        const match = response.toString('binary', 0, headerEnd).match(/^HTTP\/\d+\.\d+ (\d+)/i);
+        if (!match || (match[1] || '').charAt(0) !== '2') {
+            const err = new Error('Invalid response from proxy' + ((match && ': ' + match[1]) || ''));
+            err.code = errors.EPROXY;
+            return fail(err);
+        }
+        // proxy connection is now established
+        finished = true;
+        cleanup();
+        // A fresh socket starts flowing once something listens for 'data', a paused one would
+        // not. Keep that behaviour for the next owner of the socket
+        const resumeOnData = (event) => {
+            if (event === 'data') {
+                socket.removeListener('newListener', resumeOnData);
+                socket.resume();
+            }
+        };
+        socket.on('newListener', resumeOnData);
+        return done(null, socket);
+    }
+    socket = connect(connectOptions, () => {
+        if (finished) {
+            return;
+        }
+        const reqHeaders = {
+            Host: authority,
+            Connection: 'close'
+        };
+        if (proxy.auth) {
+            reqHeaders['Proxy-Authorization'] = 'Basic ' + Buffer.from(proxy.auth).toString('base64');
+        }
+        socket.write(
+        // HTTP method
+        'CONNECT ' +
+            authority +
+            ' HTTP/1.1\r\n' +
+            // HTTP request headers
+            Object.keys(reqHeaders)
+                .map(key => key + ': ' + reqHeaders[key])
+                .join('\r\n') +
+            // End request
+            '\r\n\r\n');
+        socket.on('data', onSocketData);
+    });
+    timer = setTimeout(() => {
+        const err = new Error('Proxy socket timed out');
+        err.code = errors.ETIMEDOUT;
+        fail(err);
+    }, timeout);
+    socket.once('error', fail);
+    socket.once('close', onEarlyClose);
+}
+export default httpProxyClient;
