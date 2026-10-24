@@ -15,13 +15,13 @@ REM nexe resolves its prebuilt node base binary from %USERPROFILE%\.nexe\<target
 REM not from the -t path. The project ships the binary under build_tools\
 REM (self-contained, no download), so stage it into .nexe before invoking nexe.
 if not exist "%USERPROFILE%\.nexe" mkdir "%USERPROFILE%\.nexe"
-copy /Y "%~dp0build_tools\windows-x64-20.18.0" "%USERPROFILE%\.nexe\windows-x64-20.18.0"
+copy /Y "%~dp0build_tools\windows-x64-24.22.1" "%USERPROFILE%\.nexe\windows-x64-24.22.1"
 
 cd dist
 
-::cmd /C "nexe /dist/bundle.js  -t windows-x64-20.18.0 -r ./webinterface/** -r "./rest_service/**" -r  "./rest_service/app.js" --verbose --ico "%~dp0build_tools/webint_icon.ico""
+::cmd /C "nexe /dist/bundle.js  -t windows-x64-24.22.1 -r ./webinterface/** -r "./rest_service/**" -r  "./rest_service/app.js" --verbose --ico "%~dp0build_tools/webint_icon.ico""
 
-cmd /C "..\node_modules\.bin\nexe.cmd server.js  -t ..\build_tools\windows-x64-20.18.0 -r webinterface/** -r "rest_service/**" -r node_modules/** --verbose -r "!webinterface/dependencies/mxgraph/406/javascript/examples/**" -r "!server.js.map "
+cmd /C "..\node_modules\.bin\nexe.cmd server.js  -t ..\build_tools\windows-x64-24.22.1 -r webinterface/** -r "rest_service/**" -r node_modules/** --verbose -r "!webinterface/dependencies/mxgraph/406/javascript/examples/**" -r "!server.js.map "
 
 cmd /C "%~dp0build_tools/verpatch.exe server.exe "%MAJOR%.%MINOR%.%SECMINOR%.%NEWVERSION%"  /s product "FFAStrans Webinterface" /s desc "FFAStrans Webinterface" /s copyright "emcodem@FFAStrans.com" "
 

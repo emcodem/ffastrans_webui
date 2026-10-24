@@ -82,7 +82,7 @@ jobs:
           # npm ci here — that would wipe the committed tree and rebuild a
           # thinner one from the lockfile (dropping optional deps like
           # ffastrans_common that aren't in package-lock.json).
-          node-version: '20.18.0'
+          node-version: '24.22.1'
 
       - name: Run compile_to_dist
         if: steps.changes.outputs.has_changes == 'true'
