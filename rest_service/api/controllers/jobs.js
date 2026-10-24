@@ -250,6 +250,11 @@ async function put(req, res) {
     if (!req.body.system) {
         req.body.system = os.hostname()
     }
+    //job_id and split_id end up in file names in the status folder. Not isFfasId: for incoming files,
+    //job_id is the name of the mons\..\i file, which is derived from the source file name
+    if (!common.isPlainFileName(job_id) || (split_id && !common.isPlainFileName(split_id + ""))) {
+        return res.status(400).json({ description: "invalid job_id or split_id" });
+    }
     //var tick_temp_path = path.join(global.api_config["s_SYS_CACHE_DIR"],"tickets","temp",fname);
     var splitpart = split_id ? "~" + split_id : "";
 
@@ -269,6 +274,13 @@ async function put(req, res) {
             let done = false;
             if (typeof s_extra === 'string') {
                 if (s_extra.match(/mons/)) {
+                    //only incoming files of workflow watch folders (db\cache\wfs\<wf>\mons\<proc>\i\<file>) may be moved
+                    const wfsDir = path.resolve(global.api_config["s_SYS_CACHE_DIR"], "wfs") + path.sep;
+                    const resolved = path.resolve(s_extra);
+                    if (!resolved.toLowerCase().startsWith(wfsDir.toLowerCase()) || path.basename(path.dirname(resolved)).toLowerCase() != "i") {
+                        return res.status(400).json({ description: "value must be an incoming file of a workflow monitor" });
+                    }
+                    s_extra = resolved;
                     //abort incoming by move from mons/i one level up
                     const destinationPath = path.join(path.dirname(s_extra), '..', path.basename(s_extra));
                     await fsPromises.rename(s_extra, destinationPath);

@@ -46,6 +46,9 @@ async function post(req, res) {
 
 async function do_delete(req, res) {
 	try {
+        if (!common.isPlainFileName(req.query.name)) {
+            return res.status(400).json({description: "name must be a plain machine name"});
+        }
         var machines_folder = path.join(global.api_config["s_SYS_CACHE_DIR"],"../configs/hosts/");
         await fsPromises.unlink(path.join(machines_folder,req.query.name + ".json"));
 		res.json({"success":true});

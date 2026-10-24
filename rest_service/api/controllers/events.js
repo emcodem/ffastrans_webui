@@ -41,12 +41,26 @@ function ensureWatcher() {
     }
 }
 
+function isLocalUrl(url) {
+    try {
+        const u = new URL(url);
+        return (u.protocol === "http:" || u.protocol === "https:")
+            && ["127.0.0.1", "localhost", "[::1]"].includes(u.hostname);
+    } catch (ex) {
+        return false;
+    }
+}
+
 module.exports = {
     post: function(req, res) {
         ensureWatcher();
         const callbackUrl = req.body.url;
         if (!callbackUrl) {
             return res.status(400).json({ error: "Missing 'url' in body" });
+        }
+        //every ticket change gets posted to this url until restart, so only allow callbacks on this machine
+        if (!isLocalUrl(callbackUrl)) {
+            return res.status(400).json({ error: "Callback url must point to localhost" });
         }
         registeredCallbacks.add(callbackUrl);
         console.log("Registered event callback:", callbackUrl);

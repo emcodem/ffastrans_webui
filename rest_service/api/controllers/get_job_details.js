@@ -20,6 +20,10 @@ async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     var jobid = req.query.jobid;
     console.debug("get_job_details called for: " + jobid);
+    //jobid is used in file paths and as 7z argument
+    if (!common.isFfasId(jobid)) {
+        return res.status(400).json({ description: "invalid jobid" });
+    }
 	//check if full log exists, if yes, serve contents
     const job_description_path = path.join(global.api_config["s_SYS_JOB_DIR"], jobid, ".json");  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\.json
     //console.debug("Locating file " + job_description_path)
@@ -29,7 +33,7 @@ async function start(req, res) {
                 console.log("job don't exist, searching archive: ", ajob)
                 const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
                 const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
-                await common.exeCmd(`"${z7path}" x "${ajob}" -y -o"${out}"`);
+                await common.exeFile(z7path, ["x", ajob, "-y", "-o" + out]);
             }
             if (await fs.promises.exists(job_description_path)) {
                 //console.debug("File exists, reading contents");

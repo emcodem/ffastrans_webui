@@ -14,6 +14,9 @@ async function jobvars(req, res) {
         let regex
         let file
         let item
+        if (!common.isFfasId(req.query.jobid)) {
+            return res.status(400).json({ description: "invalid jobid" });
+        }
         let job_fdr = path.join(global.api_config["s_SYS_CACHE_DIR"], 'jobs')
         job_fdr = path.join(job_fdr, req.query.jobid, 'finished') + '\\'
         let flist = await common._fileList(job_fdr, '*-*-*.json|*_log.json', 0, 0, 'all')

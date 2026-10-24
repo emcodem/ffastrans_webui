@@ -49,6 +49,9 @@ async function do_delete(req, res) {
     // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
     try{
       var filename = req.query.filename;
+      if (!common.isPlainFileName(filename)) {
+          return res.status(400).json({description: "filename must be a plain file name"});
+      }
       var s_path = path.join(path.join(global.api_config["s_SYS_CACHE_DIR"],"review","queue"),"");
       var to_delete = path.join(s_path,filename);
       console.info("Deleting review ticket file: ", to_delete)

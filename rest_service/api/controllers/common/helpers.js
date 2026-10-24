@@ -29,7 +29,10 @@ class JobTicket {
     variables       = 	    []
 
     async init_ticket(wf_id,start_proc_id){
-        
+        //wf_id comes from the request and is used as file name
+        if (!isPlainFileName(wf_id))
+            throw new Error("invalid wf_id");
+
         var $o_workflow = await readJsonFile(locateWorkflowFile(wf_id));
         var prio = 2;
         try{
@@ -291,31 +294,42 @@ async function _fileList(dir, pattern = '*', recurse = false, sort = false, repl
     }
 }
 
-async function exeCmd(cmd, args = { shell: true }) {
-    return new Promise(function (resolve, reject) {
-       const child = spawn(cmd, args);
-       child.on('exit', function (code, signal) {
-          resolve(code);
-       });
-       child.on('error', function (code, signal) {
-          reject(code);
-       });
-       child.stdout.on('data', (data) => {
-          // console.log(`${data}`) 
-       });
-  
-       child.stderr.on('data', (data) => {
-          console.error(`stderr: ${data}`);
-       });
-    });
-  } 
 
 function getUserName() {
     const userInfo = os.userInfo();
     return userInfo.username;
 }
 
+//true if name is a plain file name without any path parts, so path.join(folder, name) stays inside folder.
+//Rejects "..", "/" and "\" (also "..\..\x"), drive letters and ":" (alternate data streams)
+function isPlainFileName(name) {
+    return typeof name === "string"
+        && name !== "" && name !== "." && name !== ".."
+        && path.win32.basename(name) === name
+        && path.posix.basename(name) === name
+        && name.indexOf(":") === -1;
+}
+
+//true for FFAStrans ids like job, split and workflow ids (20261010-1145-0195-932d-b95d479634e9): letters, digits and "-" only
+function isFfasId(id) {
+    return typeof id === "string" && /^[0-9A-Za-z-]{1,64}$/.test(id);
+}
+
+//runs an exe without a shell, so arguments are never interpreted as commands
+function exeFile(file, argList) {
+    return new Promise(function (resolve, reject) {
+        const child = spawn(file, argList, { windowsHide: true });
+        child.on('exit', code => resolve(code));
+        child.on('error', reject);
+        child.stdout.on('data', () => {});
+        child.stderr.on('data', data => console.error(`stderr: ${data}`));
+    });
+}
+
 module.exports = {
+    isPlainFileName             : isPlainFileName,
+    isFfasId                    : isFfasId,
+    exeFile                     : exeFile,
     readFile                    : readFile,
     readJsonFile                : readJsonFile,
     get_wf_name                 : get_wf_name,
@@ -323,6 +337,5 @@ module.exports = {
     json_files_to_array         : json_files_to_array,
     _fileList                   : _fileList,
     getUserName                 : getUserName,
-    JobTicket                   : JobTicket,
-    exeCmd                      : exeCmd
+    JobTicket                   : JobTicket
 };

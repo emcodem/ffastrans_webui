@@ -36,6 +36,10 @@ async function get(req, res) {
   let filter_branchid  = req.query.branchid || "";
   let list_only = req.query.list_only || false;
   console.debug("listFinishedBranches called for: " + jobid);
+  //jobid is used in file paths and as 7z argument
+  if (!common.isFfasId(jobid)) {
+    return res.status(400).json({ description: "invalid jobid" });
+  }
   res.set('Content-Type', 'application/json');
 
 	let returnobj = {is_complete:false,all_branch_count:0,branches:[]};//{id, end_time}
@@ -48,7 +52,7 @@ async function get(req, res) {
       console.log("job don't exist, searching archive: ", ajob)
       const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
       const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
-      await common.exeCmd(`"${z7path}" x "${ajob}" -y -o"${out}"`);
+      await common.exeFile(z7path, ["x", ajob, "-y", "-o" + out]);
     }
 	  if (await fs.promises.exists(full_log_path))
       returnobj.is_complete = true;

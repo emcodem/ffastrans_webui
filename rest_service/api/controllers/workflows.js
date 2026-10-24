@@ -22,6 +22,10 @@ async function putWorkflows(req, res) {
         if (typeof(req.body.update) != "object"){
             throw new Error("update field must contain object");
         }
+        if (!helpers.isPlainFileName(req.body.wf_id)){
+            res.status(400).send("wf_id must be a plain workflow id");
+            return;
+        }
         await updateWorkflowField(req.body.wf_id,req.body.update);
 
     }catch(ex){
@@ -43,12 +47,17 @@ async function postWorfklows(req, res) {
             _wf = formatWorkflow(_wf);
             if (!("workflow" in _wf))
                 throw new Error("Did not find workflow key in submitted (list of) object ");
-            
+            if (!helpers.isPlainFileName(_wf.workflow.wf_id)){
+                res.status(400).send("wf_id must be a plain workflow id");
+                return;
+            }
+
             await updateWorkflow(_wf.workflow);
             await updateUserVars(_wf.user_variables);
         }
     }catch(ex){
         res.status(500).send(ex.stack.toString());
+        return;
     }
     res.json({});
     res.end();
@@ -359,6 +368,8 @@ function zeropad(number, amount = 2) {
 
 function deepMerge(target, source) {
     for (let key in source) {
+        //source comes from the request body: "__proto__" would modify Object.prototype of the whole process
+        if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
         if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
             if (!target[key]) target[key] = {};
             deepMerge(target[key], source[key]);

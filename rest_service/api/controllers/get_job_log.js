@@ -22,7 +22,11 @@ async function start(req, res) {
   // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
   var jobid = req.query.jobid;
   var startpos = req.query.start | 0;
-  
+  //jobid is used in file paths and as 7z argument
+  if (!common.isFfasId(jobid)) {
+    return res.status(400).json({ description: "invalid jobid" });
+  }
+
 	console.debug("get_job_log called for: " + jobid);
 	
 	// Download job folder as ZIP if requested
@@ -52,7 +56,7 @@ async function start(req, res) {
       console.log("job don't exist, searching archive: ", ajob)
       const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
       const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
-      await common.exeCmd(`"${z7path}" x "${ajob}" -y -o"${out}"`);
+      await common.exeFile(z7path, ["x", ajob, "-y", "-o" + out]);
     }
 	  if (await fs.promises.exists(jobPath)) {
 		console.debug("Full Log file exists, returning contents");
