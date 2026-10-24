@@ -58,6 +58,7 @@ jobs:
             $commits = git log --invert-grep --grep="\[skip ci\]" --pretty=format:"%H"
           } else {
             Write-Host "Last build commit: $lastBuild"
+            "last_build=$lastBuild" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             $commits = git log "$lastBuild..HEAD" --invert-grep --grep="\[skip ci\]" --pretty=format:"%H"
           }
           $force = "${{ github.event.inputs.force }}" -eq "true"
@@ -146,8 +147,15 @@ jobs:
           # Tag the commit that was built (HEAD = the version-bump commit pushed above),
           # not whatever master points to by the time the release is created.
           $sha = git rev-parse HEAD
+          # Release notes: commit subjects since the last build (without the version bumps).
+          $lastBuild = "${{ steps.changes.outputs.last_build }}"
+          $range = if ($lastBuild) { "$lastBuild..$sha" } else { $sha }
+          $changes = git log $range --invert-grep --grep="\[skip ci\]" --pretty=format:"- %s (%h)"
+          if ([string]::IsNullOrWhiteSpace($changes)) { $changes = "- no new commits since the last build" }
+          $notes = "Automated daily beta build of version $version.`n`nThis is a pre-release, not recommended for production.`n`n## Changes since the last build`n`n" + ($changes -join "`n")
+          Set-Content -Path release_notes.md -Value $notes -Encoding utf8
           gh release create $tag "${{ steps.package.outputs.zip }}" `
             --target $sha `
             --prerelease `
             --title "Webinterface v$version (beta)" `
-            --notes "Automated daily beta build of version $version.`n`nThis is a pre-release, not recommended for production."
+            --notes-file release_notes.md
