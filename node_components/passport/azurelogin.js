@@ -62,27 +62,46 @@ function proxyNetworkClient(proxy){
     */
     let agent = new HttpsProxyAgent(proxy);
     async function send(method, url, options, timeout){
-        let response = await axios.request({
-            method: method,
-            url: url,
-            headers: options && options.headers,
-            data: method == "POST" ? ((options && options.body) || "") : undefined,
-            httpsAgent: agent,
-            proxy: false,                       //axios must not apply its own proxy settings
-            timeout: timeout || 0,
-            responseType: "text",
-            transformResponse: [(data) => data],
-            validateStatus: () => true          //msal evaluates error status codes itself
-        });
+        let response;
+        try {
+            response = await axios.request({
+                method: method,
+                url: url,
+                headers: options && options.headers,
+                data: method == "POST" ? ((options && options.body) || "") : undefined,
+                httpsAgent: agent,
+                proxy: false,                       //axios must not apply its own proxy settings
+                timeout: timeout || 0,
+                responseType: "text",
+                transformResponse: [(data) => data],
+                validateStatus: () => true          //msal evaluates error status codes itself
+            });
+        } catch (ex) {
+            //never log the proxy url itself, it may contain the password
+            throw logProxyError("Request via proxy failed for " + url + ": " + (ex.code || "") + " " + ex.message);
+        }
+        //proxy errors come back as html pages, msal would only report a generic network_error
+        if (response.status == 407)
+            throw logProxyError("Proxy authentication failed (HTTP 407) for " + url + ", check user and password in the proxy url");
+        let body;
+        try {
+            body = JSON.parse(response.data);
+        } catch (ex) {
+            throw logProxyError("Unexpected response via proxy for " + url + ": HTTP " + response.status + " " + String(response.data).substring(0, 200));
+        }
         //plain object with string values, like msal's fetch client (axios headers have no prototype)
         let headers = {};
         for (let [key, value] of Object.entries(response.headers.toJSON()))
             headers[key] = Array.isArray(value) ? value.join(", ") : String(value);
         return {
             headers: headers,
-            body: JSON.parse(response.data),
+            body: body,
             status: response.status
         };
+    }
+    function logProxyError(message){
+        console.error("Azure login:", message);
+        return new Error(message);
     }
     return {
         sendGetRequestAsync: (url, options, timeout) => send("GET", url, options, timeout),
