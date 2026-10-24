@@ -52,7 +52,7 @@ passport.use('local-login', new LocalStrategy({
             ActiveDirectoryLogin(req, username, password, done);
         }else{
             //LOCAL LOGIN
-			console.log("Local user exists", existing);
+			console.log("Local user exists", username);
                 var doc;
                 try{
                     doc = await global.db.config.findOne({ 'local.username' :  username });
@@ -96,10 +96,9 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 		var configServer = require('../server_config');
 
 		var currentConfig = configServer.get(async function(config){
-				console.log("Config from DB:",config)
 				try{	
 					if (!("ad_config" in global.config)){
-						console.log("AD is not set up in global config: ",global.config);
+						console.log("AD is not set up in global config");
 						return done("Username " + username + " is not known");
 					}
                     
@@ -156,7 +155,7 @@ async function ActiveDirectoryLogin(req,username,passwd,done){
 					var newGroups = groups_cn_only;
 					
 						if (existing){
-							console.log("merging existing user groups with ad groups", existing,intersection_groups )
+							console.log("merging existing user groups with ad groups", username, intersection_groups )
 							
 							newGroups = [...existing.local.groups, ...intersection_groups];
 							newGroups = array_unique(newGroups);

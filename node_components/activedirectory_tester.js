@@ -22,7 +22,6 @@ module.exports = function(app, passport){
 				}
                 
                 //password is base64
-				console.log("decrypted pw",data["ad_password"])
 				var decrypted = Buffer.from(data["ad_password"], 'base64').toString();
 				decrypted = ("decrypted ad_pw",decrypted);
 				
@@ -39,7 +38,7 @@ module.exports = function(app, passport){
 				  username: data["ad_user"] +'@' + data["ad_config"]["ad_fqdn"],
 				  password: decrypted
 				}
-				console.log("Testing AD with options:",adopts,data);
+				console.log("Testing AD with options:", { url: adopts.url, baseDN: adopts.baseDN, username: adopts.username });
 				var ad = new ActiveDirectory(adopts);
 				var usernameToCheck = data["ad_user"];
 				if (data["ad_alternate_user"]){
