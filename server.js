@@ -442,7 +442,7 @@ async function init(conf) {
     });
 
     //NON Password protected stuff
-    require("./node_components/metrics_control.js")(app);//metrics control must work unauthorized
+    require("./node_components/metrics_control.js").serviceDiscovery(app);//prometheus calls this without login, local callers only
 
     app.use('/webinterface/images/F364x64.png', express.static('./webinterface/images/F364x64.png'));
 
@@ -547,7 +547,28 @@ async function init(conf) {
         connectApi();
     }
 
+
+    //log all requests
+    app.use(function (req, res, next) {
+        //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
+        if (req.url.indexOf("temp") != -1) {
+            var stop = 1;
+        }
+        next();
+    });
+
+    //"routes"
+
+
+
+    require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
+    require('./node_components/passport/passport')(passport); // pass passport for configuration
+
+    //metrics admin page, needs login (service_discovery for prometheus is registered further up)
+    require("./node_components/metrics_control.js")(app);
+
     //PROXY, forward to new api, port 3003 default
+    //must stay after routes.js: rest_service has no login of its own, the isLoggedIn check in routes.js protects this proxy
     var protocol = global.config.STATIC_WEBSERVER_ENABLE_HTTPS == "true" ? "https://" : "http://";
     app.use('/new_proxy', proxy(protocol + global.config.STATIC_API_HOST + ":" + global.config.STATIC_API_NEW_PORT, {
         limit: '500mb',
@@ -581,23 +602,6 @@ async function init(conf) {
             return bodyContent;
         }
     }));
-
-
-    //log all requests
-    app.use(function (req, res, next) {
-        //console.debug("REQUEST: " + "[" + req.originalUrl + "]");
-        if (req.url.indexOf("temp") != -1) {
-            var stop = 1;
-        }
-        next();
-    });
-
-    //"routes"
-
-
-
-    require('./node_components/routes.js')(app, passport); // load our routes and pass in our app and fully configured passport
-    require('./node_components/passport/passport')(passport); // pass passport for configuration
 
     require("./node_components/filebrowser")(app, express);
     require("./node_components/getserverconfig")(app, express);

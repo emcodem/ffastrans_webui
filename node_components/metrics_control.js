@@ -11,6 +11,11 @@ var os = require("os");
     
 */
 
+/*
+    Registration is split on purpose (see server.js):
+    - serviceDiscovery(app) is registered before routes.js: prometheus calls it without login, so it only answers local callers
+    - module.exports(app) is registered after routes.js: the metrics admin page needs a login
+*/
 module.exports =  function(app, passport){
 	
     //passport.authenticate('local-login');//fills req.user with infos from cookie -- we cannot do this as unauthentificated ajax requests it
@@ -145,29 +150,17 @@ module.exports =  function(app, passport){
     
 
 
-    app.get('/metrics_control/service_discovery', async(req, res) => {
-        //used to configure prometheus dynamically, if configured in prometeus.yml, this will be called recurring
-            var hostname = os.hostname();
-            var _default = [
-              {
-                "targets": [ hostname+":3003",hostname+":9182" ],
-              },
-            ];
-            
-            if(!"prometheus_targets" in global.config || !global.config["prometheus_targets"]){
-                console.log("No prometheus_targets stored, serving default")
-                global.config["prometheus_targets"] = _default;
-                configmgr.save(global.config);
-            }
-        
-            res.json(global.config["prometheus_targets"]);
-    })
     
 	
     app.post('/metrics_control', async (req, res) => {
 		try{
             
             var data = req.body;
+            var invalid = validateTargets(data);
+            if (invalid) {
+                res.status(400).send(invalid);
+                return;
+            }
             console.log("metrics_control Current hosts:",global.config["prometheus_targets"]);
 			console.log("metrics_control New hosts:",data)
             
@@ -230,6 +223,48 @@ module.exports =  function(app, passport){
                 return;
 		}
 	});
+}
+
+module.exports.serviceDiscovery = function(app){
+    app.get('/metrics_control/service_discovery', async(req, res) => {
+        //prometheus runs on this host; nobody else needs the target list
+        if (!isLocalCaller(req)) {
+            return res.status(403).send("service_discovery is only available from localhost");
+        }
+        //used to configure prometheus dynamically, if configured in prometeus.yml, this will be called recurring
+            var hostname = os.hostname();
+            var apiPort = global.config.STATIC_API_NEW_PORT || "3003";
+            //rest_service only listens on 127.0.0.1 unless STATIC_API_LISTEN_ALL_INTERFACES is on; prometheus runs on this host
+            var _default = [
+              {
+                "targets": [ "localhost:" + apiPort,hostname+":9182" ],
+              },
+            ];
+
+            if(!("prometheus_targets" in global.config) || !global.config["prometheus_targets"]){
+                console.log("No prometheus_targets stored, serving default")
+                global.config["prometheus_targets"] = _default;
+                configmgr.save(global.config);
+            }
+        
+            res.json(global.config["prometheus_targets"]);
+    })
+}
+
+function isLocalCaller(req){
+    var ip = req.socket.remoteAddress || "";
+    return ip == "127.0.0.1" || ip == "::1" || ip == "::ffff:127.0.0.1";
+}
+
+//returns an error message, or false if data is a valid list of prometheus targets (host:port)
+function validateTargets(data){
+    if (!Array.isArray(data)) return "targets must be a list";
+    if (data.length > 100) return "too many targets, maximum is 100";
+    for (const t of data) {
+        var m = (typeof t == "string") && t.match(/^([A-Za-z0-9._-]+|\[[0-9A-Fa-f:]+\]):(\d{1,5})$/);
+        if (!m || m[2] < 1 || m[2] > 65535) return "invalid target, expected host:port: " + t;
+    }
+    return false;
 }
 //     app.put('/metrics_control', async (req, res) => {
 

@@ -73,6 +73,9 @@ module.exports = function(app, passport) {
 
 
 	//protect / require auth for all other pages
+	//Only covers what server.js registers AFTER this file. Everything registered before it is public, so
+	//anything needing a login (e.g. /new_proxy, rest_service has no login) must be registered after routes.js,
+	//and before uppy.js, which is registered last and takes over all remaining urls.
     app.use('/*', isLoggedIn);//ensure user is logged in
     
     //redirect request from /
