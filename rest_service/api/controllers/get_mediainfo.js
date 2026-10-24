@@ -3,7 +3,7 @@
 const fs = require('fs');
 const fsExtra = require('fs-extra');
 const path = require('path');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 
 module.exports = {
     get: start
@@ -20,21 +20,23 @@ function start(req, res) {
     var filepath = req.query.filepath;
 	var do_html = req.query.do_html || false;
     console.debug("get_mediainfo called for: " + filepath);
-	//check if full log exists, if yes, serve contents
+    //only absolute paths: a resolved absolute path never starts with "-", so mediainfo can't mistake it for an option
+    if (typeof filepath !== "string" || !path.isAbsolute(filepath)) {
+        return res.status(400).json({ description: "filepath must be an absolute path" });
+    }
+    filepath = path.resolve(filepath);
     try {
-        if (fs.existsSync(filepath)) {
-            //file exists
-        } else {
+        if (!fs.existsSync(filepath)) {
             console.debug("File does not exist: ", filepath);
             return res.status(404).json({ description: "File does not exist: "+ filepath });
         }
     } catch (err) {
-        console.debug(err);
-        return res.status(500).json({ description: err.stack });
+        console.error("get_mediainfo error checking file", filepath, err);
+        return res.status(500).json({ description: "Error checking file" });
     }
 
     main(res, filepath,do_html);
-    
+
 }
 
 async function main(res, filepath,do_html) {
@@ -42,23 +44,19 @@ async function main(res, filepath,do_html) {
         let mediainfo_exe = await findMediainfoExe();
         let data = await mediaInfo(filepath,mediainfo_exe);
         return res.status(200).send(data);
-        
+
     } catch (ex) {
-        return res.status(500).send("Error getting mediainfo" + ex);
+        console.error("Error getting mediainfo for", filepath, ex);
+        return res.status(500).send("Error getting mediainfo");
     }
 }
 
 function mediaInfo(file,mediainfo_exe) {
-    var args = [].slice.call(arguments);
-    var cmd_options = typeof args[0] === "object" ? args.shift() : {};
-    var cmd = [];
-
-    cmd.push(mediainfo_exe); // base command
-    cmd.push('--Output=HTML'); // args
-    cmd.push(file);
-    console.log("exec mediainfo",cmd)
+    var args = ['--Output=HTML', file];
+    console.log("execFile mediainfo", mediainfo_exe, args)
+    //execFile does not use a shell, so metacharacters in the filename are not interpreted
     return new Promise(function (resolve, reject) {
-        exec(cmd.join(' '), cmd_options, function (error, stdout, stderr) {
+        execFile(mediainfo_exe, args, function (error, stdout, stderr) {
             if (error !== null || stderr !== '') return reject(error || stderr);
             resolve(stdout);
         });
