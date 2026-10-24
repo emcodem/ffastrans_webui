@@ -1,5 +1,5 @@
 var moment = require('moment-timezone');
-const { uuid } = require('uuidv4');
+const { randomUUID: uuid } = require('crypto');
 var axios = require("axios");
 const { build_new_api_url } = require('./common/helpers');
 
