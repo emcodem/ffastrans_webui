@@ -1,0 +1,28 @@
+import { RpcProtocol } from "../RpcProtocol";
+import { TypeRegistry } from "@smithy/core/schema";
+import { EndpointBearer, HandlerExecutionContext, HttpRequest as IHttpRequest, HttpResponse as IHttpResponse, MetadataBearer, OperationSchema, ResponseMetadata, SerdeFunctions, ShapeDeserializer, ShapeSerializer } from "@smithy/types";
+import { JsonCodec2 } from "./codec-v2/JsonCodec2";
+/**
+ * Client protocol for Smithy RPCv2 JSON.
+ *
+ * @public
+ */
+export declare class SmithyRpcV2JsonProtocol extends RpcProtocol {
+    /**
+     * @override
+     */
+    protected compositeErrorRegistry: TypeRegistry;
+    private codec;
+    protected serializer: ShapeSerializer<string | Uint8Array>;
+    protected deserializer: ShapeDeserializer<string | Uint8Array>;
+    constructor({ defaultNamespace, errorTypeRegistries, }: {
+        defaultNamespace: string;
+        errorTypeRegistries?: TypeRegistry[];
+    });
+    getShapeId(): string;
+    getPayloadCodec(): JsonCodec2;
+    serializeRequest<Input extends object>(operationSchema: OperationSchema, input: Input, context: HandlerExecutionContext & SerdeFunctions & EndpointBearer): Promise<IHttpRequest>;
+    deserializeResponse<Output extends MetadataBearer>(operationSchema: OperationSchema, context: HandlerExecutionContext & SerdeFunctions, response: IHttpResponse): Promise<Output>;
+    protected handleError(operationSchema: OperationSchema, context: HandlerExecutionContext & SerdeFunctions, response: IHttpResponse, dataObject: any, metadata: ResponseMetadata): Promise<never>;
+    protected getDefaultContentType(): string;
+}

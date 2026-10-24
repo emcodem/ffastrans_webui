@@ -29,7 +29,6 @@
     "express": "^4.18.2",
     "express-http-proxy": "^1.6.3",
     "express-session": "^1.17.1",
-    "fast-xml-parser": "^4.0.9",
     "ffprobe": "^1.1.2",
     "firstline": "^2.0.2",
     "fs-extra": "^11.3.2",
