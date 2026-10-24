@@ -1,5 +1,6 @@
 const { ConfidentialClientApplication } = require('@azure/msal-node');
 var {HttpsProxyAgent} = require('https-proxy-agent');
+const axios = require('axios');
 
 module.exports = {
     doLogin:doLogin
@@ -54,19 +55,42 @@ global.expressapp.get('/azurecallback', async (req, res) => {
     }
 });
 
-function get_msal_config(){
-    /* 
-        MSAL native proxyUrl method did not work but injecting HttpsProxyAgent worked.
-        NOTE that we needed to change msal-node.cjs const networkRequestViaHttps =  method.
-        instead of this:
-            customOptions.agent = https.Agent(agentOptions);
-        we do this:
-            if(agentOptions.constructor && (agentOptions.constructor.name == "HttpsProxyAgent"))
-                customOptions.agent = agentOptions;
-            else 
-                customOptions.agent = https.Agent(agentOptions);
-
+function proxyNetworkClient(proxy){
+    /*
+        msal network module (INetworkModule) that sends all requests to microsoft via HttpsProxyAgent.
+        Returns the same as msal's builtin fetch client: headers, parsed json body and status.
     */
+    let agent = new HttpsProxyAgent(proxy);
+    async function send(method, url, options, timeout){
+        let response = await axios.request({
+            method: method,
+            url: url,
+            headers: options && options.headers,
+            data: method == "POST" ? ((options && options.body) || "") : undefined,
+            httpsAgent: agent,
+            proxy: false,                       //axios must not apply its own proxy settings
+            timeout: timeout || 0,
+            responseType: "text",
+            transformResponse: [(data) => data],
+            validateStatus: () => true          //msal evaluates error status codes itself
+        });
+        //plain object with string values, like msal's fetch client (axios headers have no prototype)
+        let headers = {};
+        for (let [key, value] of Object.entries(response.headers.toJSON()))
+            headers[key] = Array.isArray(value) ? value.join(", ") : String(value);
+        return {
+            headers: headers,
+            body: JSON.parse(response.data),
+            status: response.status
+        };
+    }
+    return {
+        sendGetRequestAsync: (url, options, timeout) => send("GET", url, options, timeout),
+        sendPostRequestAsync: (url, options) => send("POST", url, options)
+    };
+}
+
+function get_msal_config(){
     let conf= {
         auth:{
 		clientId: global.confidential_config.azure_config.clientId,
@@ -77,7 +101,7 @@ function get_msal_config(){
     }
     if (global.confidential_config.azure_config.proxy ){
         conf.system = {
-            customAgentOptions: new HttpsProxyAgent(global.confidential_config.azure_config.proxy)
+            networkClient: proxyNetworkClient(global.confidential_config.azure_config.proxy)
         }
     }
     return conf;
