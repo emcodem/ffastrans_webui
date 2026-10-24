@@ -23,13 +23,31 @@ async function send(rcpt,subject, body){
 	return await _send_internal(rcpt,subject, body);
 }
 
+/* RC4, as ffastrans encrypts the smtp password with it. crypto.createDecipheriv("RC4") fails since node 17 (OpenSSL 3 legacy algorithm) */
+function rc4(key, data){
+	var s = new Uint8Array(256);
+	for (var i = 0; i < 256; i++)
+		s[i] = i;
+	for (var i = 0, j = 0; i < 256; i++){
+		j = (j + s[i] + key[i % key.length]) & 255;
+		[s[i], s[j]] = [s[j], s[i]];
+	}
+	var out = Buffer.alloc(data.length);
+	for (var n = 0, i = 0, j = 0; n < data.length; n++){
+		i = (i + 1) & 255;
+		j = (j + s[i]) & 255;
+		[s[i], s[j]] = [s[j], s[i]];
+		out[n] = data[n] ^ s[(s[i] + s[j]) & 255];
+	}
+	return out;
+}
+
 async function _send_internal(rcpt,subject, body){
 	var ec =  global["ffastrans-about"]["about"]["email"];
 	console.log("Sendmail config:",ec)
 	var crypto = require('crypto');
 	const hash = crypto.createHash('MD5').update("CHKSUM280873").digest(); //create crypto hash out of static secret word
-	decipher = crypto.createDecipheriv("RC4", hash,"");						
-	var decoded_pwd = Buffer.concat([decipher.update(Buffer.from(ec["password"], "hex")) , decipher.final()]);
+	var decoded_pwd = rc4(hash, Buffer.from(ec["password"], "hex"));
 	  let transporter = nodemailer.createTransport({
 		host: ec ["server"],
 		port: ec ["port"],
