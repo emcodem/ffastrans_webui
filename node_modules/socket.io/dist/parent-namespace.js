@@ -43,7 +43,7 @@ class ParentNamespace extends namespace_1.Namespace {
     createChild(name) {
         debug("creating child namespace %s", name);
         const namespace = new namespace_1.Namespace(this.server, name);
-        this._fns.forEach((fn) => namespace.use(fn));
+        this["_fns"].forEach((fn) => namespace.use(fn));
         this.listeners("connect").forEach((listener) => namespace.on("connect", listener));
         this.listeners("connection").forEach((listener) => namespace.on("connection", listener));
         this.children.add(namespace);

@@ -81,7 +81,7 @@ export declare class Namespace<ListenEvents extends EventsMap = DefaultEventsMap
     adapter: Adapter;
     /** @private */
     readonly server: Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>;
-    protected _fns: Array<(socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>, next: (err?: ExtendedError) => void) => void>;
+    private _fns;
     /** @private */
     _ids: number;
     /**
