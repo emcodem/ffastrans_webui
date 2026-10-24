@@ -61,6 +61,10 @@ async function postWorfklows(req, res) {
             await updateUserVars(_wf.user_variables);
         }
     }catch(ex){
+        if (ex.status == 400){
+            res.status(400).send(ex.message);
+            return;
+        }
         res.status(500).send(ex.stack.toString());
         return;
     }
@@ -75,14 +79,20 @@ function formatWorkflow(_wf){
         constructed.workflow = _wf;
     else
         constructed = _wf
-    if (!_wf.user_variables)
-        constructed.user_variables = workflow.user_variables;
+    if (!_wf.user_variables){
+        //was a ReferenceError (undefined "workflow"); submitted workflows must contain user_variables
+        var err = new Error("user_variables missing in submitted workflow");
+        err.status = 400;
+        throw err;
+    }
     
     delete _wf._status;
     delete _wf.user_variables;
     return constructed;
 }
 
+//TODO: not implemented, the user_variables submitted with POST /workflows are dropped.
+//Needs investigation how FFAStrans merges imported user variables (see the commented AutoIt code below and todo.md).
 function updateUserVars(){
 
     if (true){
@@ -170,12 +180,13 @@ async function updateWorkflow(wf){
 
     if (wf.wf_id && wf.wf_name && wf.wf_id != "" && wf.wf_name!= ""){
         var wf_file = path.join(wf_path,wf.wf_id + ".json");
+        //existing workflows get a backup first; new ones are just written, FFAStrans picks up new files in this folder
         if (fs.existsSync(wf_file)){
             await backupWorkflow(wf.wf_id,wf_file,archive_path);
-            await fs.writeFile(wf_file,JSON.stringify(wf,null,3));
         }
+        await fs.writeFile(wf_file,JSON.stringify(wf,null,3));
     }else{
-        throw new Exception ("wf_id or wf_name was empty or not existent");
+        throw new Error("wf_id or wf_name was empty or not existent");
     }
 
 }
@@ -214,19 +225,21 @@ async function getWorkflows(req, res) {
             })
         }
         o_return.workflows.sort((a, b) => {
+            //workflows created through POST /workflows may lack wf_folder or wf_name, treat them as empty
+            const folderA = (a.wf_folder || '').toLowerCase();
+            const folderB = (b.wf_folder || '').toLowerCase();
+
             // Handle wf_folder: prioritize non-empty values
-            if (a.wf_folder === '' && b.wf_folder !== '') return 1;
-            if (a.wf_folder !== '' && b.wf_folder === '') return -1;
-          
+            if (folderA === '' && folderB !== '') return 1;
+            if (folderA !== '' && folderB === '') return -1;
+
             // Sort wf_folder in ascending order (case-insensitive)
-            const folderA = a.wf_folder.toLowerCase();
-            const folderB = b.wf_folder.toLowerCase();
             if (folderA < folderB) return -1;
             if (folderA > folderB) return 1;
           
             // If wf_folder is the same, sort wf_name in ascending order (case-insensitive)
-            const nameA = a.wf_name.toLowerCase();
-            const nameB = b.wf_name.toLowerCase();
+            const nameA = (a.wf_name || '').toLowerCase();
+            const nameB = (b.wf_name || '').toLowerCase();
             if (nameA < nameB) return -1;
             if (nameA > nameB) return 1;
           

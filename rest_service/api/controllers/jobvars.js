@@ -30,7 +30,8 @@ async function jobvars(req, res) {
             } else {
                 regex = new RegExp('.+', 'g')
             }
-            hit.variables = item.variables.filter(o => o.name.match(regex));
+            //current FFAStrans versions don't store variables in the finished branch files
+            hit.variables = (item.variables || []).filter(o => o.name.match(regex));
             o_return.push(hit)
         }
         res.json(o_return);

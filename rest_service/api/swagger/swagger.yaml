@@ -210,22 +210,8 @@ paths:
           description: Success
         default:
           description: Error
-    post:
-      description: "Save about section"
-      operationId: machines_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              example: {"ip_address": ""}
-      responses:
-        "200":
-          description: List of Machines and config
-        default:
-          description: Error   
     delete:
-      description: Deletes machine by name. 
+      description: Deletes machine by name.
       parameters:
         - name: name
           in: query
@@ -249,22 +235,8 @@ paths:
           description: Success
         default:
           description: Error
-    post:
-      description: "Post a new preset"
-      operationId: presets_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              example: {"ip_address": ""}
-      responses:
-        "200":
-          description: List of Machines and config
-        default:
-          description: Error   
     delete:
-      description: Deletes presets by id. 
+      description: Deletes presets by id.
       parameters:
         - name: name
           in: query
