@@ -52,9 +52,14 @@ module.exports = function(app, express){
 		}
 	});
 
-	app.post('/serverconfig_confidential', async (req, res) => {        
+	app.post('/serverconfig_confidential', async (req, res) => {
+        var _user = "";
+        if (req.user){
+            _user = req.user.local.username;
+        }
+
         // Security: Only allow users with admin rights to save confidential config
-        const hasPermission = await userpermissions.hasPermissionAsync(req.user.local.username, "GROUPRIGHT_MENU_VIEW_ADMIN");
+        const hasPermission = await userpermissions.hasPermissionAsync(_user, "GROUPRIGHT_MENU_VIEW_ADMIN");
         if (!hasPermission) {
             res.status(403).json({ message: "Forbidden" });
             res.end();
@@ -75,8 +80,8 @@ module.exports = function(app, express){
             res.end();
         }catch(ex){
             console.error("Error, could not save global config, ", ex);
-            res.write("Error, could not save database, " + ex);
             res.status(500);
+            res.write("Error, could not save database, " + ex);
             res.end();
         }   
      })
