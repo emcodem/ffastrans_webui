@@ -1,0 +1,2229 @@
+/*
+	MIT License http://www.opensource.org/licenses/mit-license.php
+*/
+
+"use strict";
+
+const ConstDependency = require("../dependencies/core/ConstDependency");
+const StaticExportsDependency = require("../dependencies/core/StaticExportsDependency");
+const HtmlEntryDependency = require("../dependencies/html/HtmlEntryDependency");
+const HtmlInlineHtmlDependency = require("../dependencies/html/HtmlInlineHtmlDependency");
+const HtmlInlineScriptDependency = require("../dependencies/html/HtmlInlineScriptDependency");
+const HtmlInlineStyleDependency = require("../dependencies/html/HtmlInlineStyleDependency");
+const HtmlSourceDependency = require("../dependencies/html/HtmlSourceDependency");
+const WebpackError = require("../errors/WebpackError");
+const Parser = require("../module/Parser");
+const ResourceHintPlugin = require("../prefetch/ResourceHintPlugin");
+const parseResourceHintOptions = require("../prefetch/parseResourceHintOptions");
+const ModuleInfoHeaderPlugin = require("../template/ModuleInfoHeaderPlugin");
+const LazySet = require("../util/LazySet");
+const LocConverter = require("../util/LocConverter");
+const createHash = require("../util/createHash");
+const { contextify, getRequestBaseName } = require("../util/identifier");
+const {
+	createMagicCommentContext,
+	parseMagicComment,
+	webpackCommentRegExp
+} = require("../util/magicComment");
+const memoize = require("../util/memoize");
+const { JAVASCRIPT_SCRIPT_TYPES } = require("./data");
+const { SVG_TAG_ADJUST } = require("./data");
+const { SourceProcessor } = require("./syntax");
+const {
+	Field,
+	Flag,
+	NodeType,
+	Part,
+	baseTag,
+	buildHeadTags,
+	decodeEntities,
+	escapeAttribute,
+	escapeText,
+	isAsciiWhitespace,
+	metaTag,
+	parseCssUrls,
+	parseMsapplicationTask,
+	parseSrc,
+	parseSrcset
+} = require("./syntax-parser");
+
+const getUnsupportedFeatureWarning = memoize(() =>
+	require("../errors/UnsupportedFeatureWarning")
+);
+
+const getModuleDependencyError = memoize(() =>
+	require("../errors/ModuleDependencyError")
+);
+
+const getCommentCompilationWarning = memoize(() =>
+	require("../errors/CommentCompilationWarning")
+);
+
+/** @import { BuiltHtmlModule, HtmlNormalModule } from "./HtmlModule" */
+/** @import { HtmlParserOptions } from "../../declarations/WebpackOptions" */
+/** @import { Range } from "../javascript/JavascriptParser" */
+/** @import Module from "../module/Module" */
+/** @import { FileSystemDependencies } from "../Compilation" */
+/** @import { ParserState, PreparsedAst } from "../module/Parser" */
+
+/**
+ * @typedef {object} HtmlTemplateContext
+ * @property {Module} module the html module being transformed
+ * @property {string} resource absolute path of the module's resource
+ * @property {(dependency: string) => void} addDependency register a file (e.g. a template partial) as a build dependency so editing it triggers a rebuild
+ * @property {(dependency: string) => void} addContextDependency register a directory as a build dependency
+ * @property {(dependency: string) => void} addMissingDependency register a not-yet-existing path as a build dependency so creating it triggers a rebuild
+ * @property {(dependency: string) => void} addBuildDependency register a build dependency (e.g. a template engine config) so changing it invalidates the cache
+ * @property {(warning: Error | string) => void} emitWarning report a non-fatal warning on the module
+ * @property {(error: Error | string) => void} emitError report an error on the module
+ */
+/** @typedef {(source: string, context: HtmlTemplateContext) => string} HtmlTemplateFunction */
+
+/** @import { ParsedSource } from "./syntax-parser" */
+/** @import { MagicCommentOptions } from "../util/magicComment" */
+
+// Cheap pre-filter for a `style="..."` attribute: only route it through the
+// CSS pipeline when it can hold a URL-bearing function (`url()` / `src()` /
+// `image()` / `image-set()`), otherwise the processed text equals the input.
+const STYLE_ATTR_URL_REGEXP = /url\(|src\(|image\(|image-set\(/i;
+
+// Cheap pre-filter for a `css-url` attribute value (an SVG presentation
+// attribute such as `fill`, `clip-path`, …): only tokenize values that can
+// hold a `url(...)` FuncIRI. Most are plain colors/keywords (`#fff`, `red`).
+const FUNC_IRI_URL_REGEXP = /url\(/i;
+
+// Cheap pre-filter for `<iframe srcdoc>`: a nested HTML module is only worth
+// building when the markup can reference an asset — any attribute, a CSS
+// `url(...)` or an `@import`. Pure text markup rewrites to itself.
+const SRCDOC_ASSET_REGEXP = /[=]|url\(|@import/i;
+
+// A URL carrying its own scheme (`https:`, `data:`, …) ignores the document
+// base per the URL spec, so `<base href>` never rewrites it.
+const ABSOLUTE_URL_SCHEME_REGEXP = /^[a-zA-Z][a-zA-Z\d+\-.]*:/;
+
+// a `charset=` declaration inside an `http-equiv="content-type"` content value
+const CHARSET_DECLARATION_REGEXP = /charset\s*=/i;
+
+// CSP/fetch attributes copied verbatim onto a synthesized sibling `<link>` /
+// `<script>` (`HtmlEntryDependency`). Fixed output order, independent of
+// source order.
+/**
+ * @param {import("./syntax-parser").HtmlPath} path walk path at an element
+ * @returns {boolean} whether the element is in the HTML namespace
+ */
+const isHtmlElement = (path) => !path.flag(Flag.svg) && !path.flag(Flag.mathml);
+
+const COPYABLE_SIBLING_ATTRS = ["nonce", "crossorigin", "referrerpolicy"];
+
+const CC_QUOTATION = '"'.charCodeAt(0);
+const CC_APOSTROPHE = "'".charCodeAt(0);
+const CC_SLASH = "/".charCodeAt(0);
+
+/**
+ * Byte-exact source span of an attribute including the single leading
+ * whitespace (` name`, ` name=value`, ` name="value"`), mirroring the
+ * tokenizer's end-of-attribute rule (`valueEnd + 1` past the closing quote).
+ * @param {import("./syntax-parser").HtmlPath} path walk path (used only for attribute-ref reads)
+ * @param {string} source HTML source
+ * @param {import("./syntax-parser").HtmlAttributeRef} attr attribute ref
+ * @returns {string} the attribute's source slice
+ */
+const attrSourceSpan = (path, source, attr) => {
+	const valueStart = path.startOf(Part.value, attr);
+	const valueEnd = path.endOf(Part.value, attr);
+	const end =
+		valueStart === -1
+			? path.endOf(Part.name, attr)
+			: source.charCodeAt(valueStart - 1) === CC_QUOTATION ||
+				  source.charCodeAt(valueStart - 1) === CC_APOSTROPHE
+				? valueEnd + 1
+				: valueEnd;
+	return source.slice(path.startOf(Part.name, attr) - 1, end);
+};
+
+/**
+ * Source span of a tag's `integrity` attribute (offsets relative to
+ * `elementStart`, leading whitespace and quotes included), so the template can
+ * drop the content-specific author value without re-parsing. Null when absent.
+ * @param {import("./syntax-parser").HtmlPath} path walk path (for attribute reads)
+ * @param {string} source HTML source
+ * @param {number} elementStart offset of the tag's opening `<`
+ * @returns {Range | null} the span, or null when there is no `integrity`
+ */
+const captureIntegrityRange = (path, source, elementStart) => {
+	const integrityAttr = path.fieldNamed(Field.attributes, "integrity");
+	if (integrityAttr === 0 || path.startOf(Part.name, integrityAttr) < 0) {
+		return null;
+	}
+	let rs = path.startOf(Part.name, integrityAttr);
+	while (rs > 0 && isAsciiWhitespace(source.charCodeAt(rs - 1))) {
+		rs--;
+	}
+	let re;
+	const ivs = path.startOf(Part.value, integrityAttr);
+	if (ivs === -1) {
+		re = path.endOf(Part.name, integrityAttr);
+	} else {
+		const q = source.charCodeAt(ivs - 1);
+		const ive = path.endOf(Part.value, integrityAttr);
+		re = q === CC_QUOTATION || q === CC_APOSTROPHE ? ive + 1 : ive;
+	}
+	return [rs - elementStart, re - elementStart];
+};
+
+/**
+ * Whether a span holds nothing a script body could have read — whitespace and
+ * comments only. Scanned rather than matched: the pattern for it backtracks.
+ * @param {string} source HTML source
+ * @param {number} start offset the span starts at
+ * @param {number} end offset the span ends at
+ * @returns {boolean} true when no node of the span reaches the DOM
+ */
+const isEmptyRunGap = (source, start, end) => {
+	let offset = start;
+	while (offset < end) {
+		if (isAsciiWhitespace(source.charCodeAt(offset))) {
+			offset++;
+			continue;
+		}
+		if (!source.startsWith("<!--", offset)) return false;
+		const close = source.indexOf("-->", offset + 4);
+		if (close === -1 || close + 3 > end) return false;
+		offset = close + 3;
+	}
+	return true;
+};
+
+// What an entry name keeps from a page's path. The mapping is reversible, so
+// two pages of one compilation can never sanitize to the same name.
+const ENTRY_NAME_KEPT_REGEXP = /[^\w.]/g;
+const ENTRY_NAME_EXTENSION_REGEXP = /\.[^./\\]*$/;
+const ENTRY_NAME_TRIM_REGEXP = /^[-.]+|[-.]+$/g;
+
+/**
+ * Names the entries a page's tags are extracted under, after the page itself.
+ * A `data:` document has no path to be named after, so it keeps a digest of
+ * the one thing that tells it from another such document.
+ * @param {string} pagePath the page's path, relative to the compiler context
+ * @param {import("../util/Hash").HashFunction | undefined} hashFunction `output.hashFunction`
+ * @returns {string} the prefix every entry name of this page starts with
+ */
+const entryNamePrefix = (pagePath, hashFunction) => {
+	if (pagePath.startsWith("data:")) {
+		const digest = createHash(hashFunction || "md4")
+			.update(pagePath)
+			.digest("hex")
+			.slice(0, 8);
+		return `data-${digest}`;
+	}
+	return pagePath
+		.replace(ENTRY_NAME_EXTENSION_REGEXP, "")
+		.replace(ENTRY_NAME_KEPT_REGEXP, (character) => {
+			if (character === "-") return "--";
+			if (character === "/" || character === "\\") return "-";
+			return `_${character.charCodeAt(0).toString(16)}_`;
+		})
+		.replace(ENTRY_NAME_TRIM_REGEXP, "");
+};
+
+/**
+ * @typedef {object} HtmlChunkNameData
+ * @property {string} page the page's path, escaped for use in a name
+ * @property {string} name the tag's own basename, empty for an inline body
+ * @property {number} index the tag's position in the page, across all kinds
+ * @property {"script" | "script-module" | "modulepreload" | "stylesheet" | "html" | "preload" | "prefetch"} type what the tag is extracted as
+ */
+
+/** @typedef {(data: HtmlChunkNameData) => string} HtmlChunkNameFn */
+
+const CHUNK_NAME_PLACEHOLDER_REGEXP = /\[(page|name|index|type)\]/g;
+
+/**
+ * End offset of a raw-text element, its closing tag included. `contentEnd`
+ * sits at the `</` that ended the body, and at the body's end without one.
+ * @param {string} source HTML source
+ * @param {number} contentEnd end offset of the element's raw text
+ * @returns {number} offset just past the element
+ */
+const rawTextElementEnd = (source, contentEnd) => {
+	const close = source.startsWith("</", contentEnd)
+		? source.indexOf(">", contentEnd)
+		: -1;
+	return close === -1 ? contentEnd : close + 1;
+};
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @param {string} name name
+ * @returns {string | undefined} attribute value
+ */
+const getAttributeValue = (attributes, name) => attributes.get(name);
+
+/** @type {Map<string, Set<string>>} */
+const META = new Map([
+	[
+		"name",
+		new Set([
+			// msapplication-TileImage
+			"msapplication-tileimage",
+			"msapplication-square70x70logo",
+			"msapplication-square150x150logo",
+			"msapplication-wide310x150logo",
+			"msapplication-square310x310logo",
+			"msapplication-config",
+			// Only the `icon-uri` part is an asset, see `parseMsapplicationTask`
+			"msapplication-task",
+			"twitter:image",
+			"twitter:image:src",
+			// Twitter player card: URL to the raw video/media stream
+			"twitter:player:stream",
+			// Legacy preview-image hint
+			"thumbnail"
+		])
+	],
+	[
+		"property",
+		new Set([
+			"og:image",
+			"og:image:url",
+			"og:image:secure_url",
+			"og:audio",
+			"og:audio:secure_url",
+			"og:video",
+			"og:video:secure_url",
+			"vk:image"
+		])
+	],
+	[
+		"itemprop",
+		new Set([
+			"image",
+			"logo",
+			"screenshot",
+			"thumbnailurl",
+			"contenturl",
+			"downloadurl",
+			"duringmedia",
+			"embedurl",
+			"installurl",
+			"layoutimage"
+		])
+	]
+]);
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when need to parse, otherwise false
+ */
+const filterLinkItemprop = (attributes) => {
+	const itemprop = getAttributeValue(attributes, "itemprop");
+	if (!itemprop) return false;
+	const allowedAttributes = META.get("itemprop");
+	if (!allowedAttributes) return false;
+
+	return allowedAttributes.has(itemprop.trim().toLowerCase());
+};
+
+// `<link rel>` values whose `href`/`imagesrcset` webpack treats as a reference.
+const ALLOWED_LINK_RELS = new Set([
+	"stylesheet",
+	"icon",
+	"mask-icon",
+	"apple-touch-icon",
+	"apple-touch-icon-precomposed",
+	"apple-touch-startup-image",
+	// Routed to the `asset/webmanifest` module type, which parses its icon URLs.
+	"manifest",
+	"prefetch",
+	"preload",
+	"modulepreload",
+	// Legacy preview-image hint (`<link rel="image_src" href>`)
+	"image_src"
+]);
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when need to parse, otherwise false
+ */
+const filterLinkHref = (attributes) => {
+	const rel = getAttributeValue(attributes, "rel");
+	if (!rel) return false;
+	const usedRels = rel.trim().toLowerCase().split(/\s+/);
+	for (let i = 0; i < usedRels.length; i++) {
+		if (ALLOWED_LINK_RELS.has(usedRels[i])) return true;
+	}
+	return false;
+};
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when need to parse, otherwise false
+ */
+const filterLinkUnion = (attributes) =>
+	filterLinkHref(attributes) || filterLinkItemprop(attributes);
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when need to parse, otherwise false
+ */
+const filterMetaContent = (attributes) => {
+	for (const item of META) {
+		const [key, allowedNames] = item;
+		const name = getAttributeValue(attributes, key);
+		if (!name) continue;
+		// Check every present attribute, not only the first one
+		if (allowedNames.has(name.trim().toLowerCase())) return true;
+	}
+
+	return false;
+};
+
+/**
+ * `<param value>` (obsolete `<object>`/`<applet>` child) is only a URL when
+ * `valuetype="ref"`; otherwise it's an opaque string.
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when `value` is a URL reference
+ */
+const filterParamRef = (attributes) => {
+	const valuetype = getAttributeValue(attributes, "valuetype");
+	if (!valuetype) return false;
+	return valuetype.trim().toLowerCase() === "ref";
+};
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when the script element opts into ES module semantics
+ */
+const isModuleScript = (attributes) => {
+	const type = getAttributeValue(attributes, "type");
+	if (!type) return false;
+	return type.trim().toLowerCase() === "module";
+};
+
+// HTML `<script>` `type` values that the browser treats as executable
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when the script element's `type` is executable JS
+ */
+const isExecutableJsScript = (attributes) => {
+	const type = getAttributeValue(attributes, "type");
+	if (type === undefined) return true;
+	return JAVASCRIPT_SCRIPT_TYPES.has(type.trim().toLowerCase());
+};
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when the link points at an ES module that should be bundled as an entry chunk
+ */
+const isLinkModulePreload = (attributes) => {
+	const rel = getAttributeValue(attributes, "rel");
+	if (!rel) return false;
+	return rel.trim().toLowerCase().split(/\s+/).includes("modulepreload");
+};
+
+/**
+ * @param {Map<string, string>} attributes attributes
+ * @returns {boolean} true when the link is a `<link rel="stylesheet">` that should be bundled as a CSS entry chunk
+ */
+const isLinkStylesheet = (attributes) => {
+	const rel = getAttributeValue(attributes, "rel");
+	if (!rel) return false;
+	return rel.trim().toLowerCase().split(/\s+/).includes("stylesheet");
+};
+
+/** @typedef {"src" | "srcset" | "css-url" | "msapplication-task" | "script" | "script-module" | "modulepreload" | "stylesheet" | "html" | "preload" | "prefetch" | "stylesheet-style" | "stylesheet-style-attribute" | "srcdoc"} SourceType */
+/** Entry types: a `type` whose value is loaded as its own compilation entry chunk. */
+/** @typedef {"script" | "script-module" | "modulepreload" | "stylesheet" | "html" | "preload" | "prefetch"} EntrySourceType */
+/** @typedef {SourceType | ((attrs: Map<string, string>, css: boolean) => SourceType)} SourceTypeOrResolver */
+/** @typedef {(attributes: Map<string, string>, value: string) => boolean} SourceFilter */
+/** @typedef {{ tag?: string, attribute: string, type: SourceType, filter?: SourceFilter }} SourceEntry */
+/** A `type` plus optional gates: `filter` (the decoded attribute map + the decoded value; return false to skip — covers both cross-attribute checks and cheap value checks) and `namespace` (restrict to an element namespace, by its `Flag`, e.g. SVG). */
+/** @typedef {{ type: SourceTypeOrResolver, filter?: SourceFilter, namespace?: typeof Flag.svg | typeof Flag.mathml }} SourceItem */
+/** A tag→attribute lookup; a `undefined` value marks a built-in source disabled via `sources` (`type: false`). */
+/** @typedef {Record<string, SourceItem | undefined>} SourceBucket */
+/** @typedef {Record<string, SourceBucket>} SourceTable */
+/** A source whose value is the element's text content (a `<style>`/`<script>` body) rather than an attribute. */
+/** @typedef {{ type: SourceTypeOrResolver, filter?: (attributes: Map<string, string>) => boolean }} ContentSourceItem */
+
+/**
+ * Builds a null-prototype dictionary from the given property bags
+ * (later bags win; `undefined` bags are skipped). A null prototype is
+ * essential here: the tables are indexed by HTML tag and attribute
+ * names, so a plain object would let names like `__proto__`,
+ * `constructor`, or `toString` resolve to inherited values at lookup
+ * time — producing bogus dependencies and letting `sources: false` be
+ * bypassed.
+ * @template T
+ * @param {...(Record<string, T> | undefined)} bags property bags
+ * @returns {Record<string, T>} null-prototype dictionary
+ */
+const dict = (...bags) => Object.assign(Object.create(null), ...bags);
+
+// One shared `SourceItem` per kind, so the walk's lookups stay on a single V8
+// hidden class. `srcset` is its own type: the walk picks `parseSrcset` for it
+// and otherwise treats it like `src`.
+/** @type {SourceItem} */
+const PLAIN_SRC = { type: "src", filter: undefined };
+/** @type {SourceItem} */
+const PLAIN_SRCSET = { type: "srcset", filter: undefined };
+
+/**
+ * `<link href>` is polymorphic: `rel="modulepreload"` → an ESM
+ * preload entry, `rel="stylesheet"` (with `experiments.css`) → a CSS
+ * entry, otherwise a plain asset URL.
+ * @type {SourceItem}
+ */
+const LINK_HREF = {
+	type: (attrs, css) => {
+		if (isLinkModulePreload(attrs)) return "modulepreload";
+		if (css && isLinkStylesheet(attrs)) return "stylesheet";
+		// `rel="preload"/"prefetch"` with `as="script"` — or `as="style"` under
+		// `experiments.css` — becomes a non-executing entry pointing at the built
+		// chunk; every other `as` target stays a plain asset URL.
+		const rel = getAttributeValue(attrs, "rel");
+		if (rel) {
+			const rels = rel.trim().toLowerCase().split(/\s+/);
+			const kind = rels.includes("preload")
+				? "preload"
+				: rels.includes("prefetch")
+					? "prefetch"
+					: undefined;
+			if (kind) {
+				const as = getAttributeValue(attrs, "as");
+				const asLower = as ? as.trim().toLowerCase() : "";
+				if (asLower === "script" || (css && asLower === "style")) return kind;
+			}
+		}
+		return "src";
+	},
+	filter: filterLinkUnion
+};
+
+/**
+ * `<script src>`: non-JS types (e.g. `application/ld+json`,
+ * `importmap`) stay plain asset URLs so the browser keeps seeing them
+ * as data blocks; `type="module"` opts into the ESM entry chunk;
+ * everything else in `JAVASCRIPT_SCRIPT_TYPES` is a classic script.
+ * @type {SourceItem}
+ */
+const SCRIPT_SRC = {
+	type: (attrs) =>
+		isExecutableJsScript(attrs)
+			? isModuleScript(attrs)
+				? "script-module"
+				: "script"
+			: "src",
+	filter: undefined
+};
+
+/**
+ * `<meta content>`: most referenced names hold a single URL (`src`); the
+ * `msapplication-task` value is a `;`-delimited list whose `icon-uri` part
+ * is the only asset, so it selects the `msapplication-task` parser.
+ * @type {SourceItem}
+ */
+const META_CONTENT = {
+	type: (attrs) => {
+		const name = attrs.get("name");
+		return name !== undefined &&
+			name.trim().toLowerCase() === "msapplication-task"
+			? "msapplication-task"
+			: "src";
+	},
+	filter: filterMetaContent
+};
+
+// Written in its final resolved shape, `[tag][attribute] = item`, rather than
+// built from an array at module load: a parser on the default `sources` config
+// references this table and pays nothing per instance.
+/** @type {Record<string, Record<string, SourceItem>>} */
+const DEFAULT_SOURCES_BY_TAG = dict({
+	// Obsolete Java-applet element; `code`/`object` are single class/object URLs.
+	applet: dict({ code: PLAIN_SRC, object: PLAIN_SRC }),
+	audio: dict({ src: PLAIN_SRC }),
+	// Deprecated presentational `background` attribute — an image URL.
+	body: dict({ background: PLAIN_SRC }),
+	embed: dict({ src: PLAIN_SRC }),
+	// `srcdoc` is an entity-encoded HTML document parsed and rewritten as a
+	// nested module — its handling lives in the generic source loop so the
+	// `sources` option can re-target it (or other tags/attributes) freely.
+	iframe: dict({ srcdoc: { type: "srcdoc", filter: undefined } }),
+	img: dict({ src: PLAIN_SRC, srcset: PLAIN_SRCSET }),
+	input: dict({ src: PLAIN_SRC }),
+	link: dict({
+		href: LINK_HREF,
+		imagesrcset: { type: "srcset", filter: filterLinkHref }
+	}),
+	meta: dict({ content: META_CONTENT }),
+	// MathML `<mglyph src>` references an image.
+	mglyph: dict({ src: PLAIN_SRC }),
+	// `classid` is a single object URI (`codebase`/`archive` are a base/list, skipped).
+	object: dict({ data: PLAIN_SRC, classid: PLAIN_SRC }),
+	// Obsolete `<param valuetype="ref" value="url">` child of `<object>`.
+	param: dict({ value: { type: "src", filter: filterParamRef } }),
+	// `href`/`xlink:href` reference the source of SVG `<script>` elements
+	script: dict({
+		src: SCRIPT_SRC,
+		href: SCRIPT_SRC,
+		"xlink:href": SCRIPT_SRC
+	}),
+	source: dict({ src: PLAIN_SRC, srcset: PLAIN_SRCSET }),
+	// Deprecated presentational `background` attribute — an image URL.
+	table: dict({ background: PLAIN_SRC }),
+	td: dict({ background: PLAIN_SRC }),
+	th: dict({ background: PLAIN_SRC }),
+	track: dict({ src: PLAIN_SRC }),
+	video: dict({ poster: PLAIN_SRC, src: PLAIN_SRC }),
+	// WHY: SVG. Tag names match the tree builder's adjusted camelCase
+	// (`feImage`/`textPath`/`linearGradient`/`radialGradient`). `href` and
+	// `xlink:href` reference another element or resource, and a fragment-only
+	// `#id` value is left untouched, so only an external `file.svg#id` is
+	// rewritten. `color-profile`'s `xlink:href` points at an external ICC profile
+	// file; `cursor` and `font-face-uri` at an external image or font file; and
+	// `altGlyph`, `glyphRef` and `tref` are legacy element references, removed in
+	// SVG 2.
+	altGlyph: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	"color-profile": dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	cursor: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	feImage: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	filter: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	"font-face-uri": dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	glyphRef: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	image: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	linearGradient: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	mpath: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	pattern: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	radialGradient: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	textPath: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	tref: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC }),
+	use: dict({ "xlink:href": PLAIN_SRC, href: PLAIN_SRC })
+	// CSS `url(...)` references in SVG presentation attributes (fill, stroke,
+	// clip-path, …) are handled separately during the walk (`parseCssUrls`).
+});
+
+// WHY: SVG presentation attributes (`fill`, `stroke`, …) carry CSS `url(...)`
+// FuncIRIs, whose external refs `parseCssUrls` extracts as assets, leaving an
+// internal `url(#id)` untouched. They apply to every SVG-namespace element, so
+// the item is `namespace`-gated rather than placed in a tag bucket, and the
+// filter is a cheap pre-check skipping the common plain values (`red`, `none`).
+/** @type {SourceItem} */
+const SVG_CSS_URL = {
+	type: "css-url",
+	filter: (attributes, value) => FUNC_IRI_URL_REGEXP.test(value),
+	namespace: Flag.svg
+};
+
+// The global `style=""` attribute, available on every tag and even under
+// `sources: false`. Like every `stylesheet-style*` source it only emits when
+// `experiments.css` is on, checked where the dependency is created.
+/** @type {SourceItem} */
+const STYLE_ATTRIBUTE = {
+	type: "stylesheet-style-attribute",
+	filter: (attributes, value) => STYLE_ATTR_URL_REGEXP.test(value)
+};
+
+// Any-tag sources, folded into each tag bucket so the walk resolves one object
+// per element and one property per attribute. `sources: false` leaves only the
+// always-on style attribute.
+/** @type {Record<string, SourceItem>} */
+const DEFAULT_ANY_SOURCES = dict({ style: STYLE_ATTRIBUTE });
+for (const name of [
+	"fill",
+	"stroke",
+	"clip-path",
+	"mask",
+	"filter",
+	"marker",
+	"marker-start",
+	"marker-mid",
+	"marker-end",
+	"cursor"
+]) {
+	DEFAULT_ANY_SOURCES[name] = SVG_CSS_URL;
+}
+/** @type {Record<string, SourceItem>} */
+const ALWAYS_ANY_SOURCES = dict({ style: STYLE_ATTRIBUTE });
+
+// Reserved key holding the any-tag sources inside the per-tag table — the
+// schema forbids an empty `tag`, so it never collides with a real tag. The
+// walk falls back to it for elements without their own bucket.
+const ANY_TAG = "";
+
+/**
+ * Folds the any-tag sources into every per-tag bucket (tag-specific entries
+ * win) and stores them under `ANY_TAG`, so the whole source model is one
+ * object and the walk's per-attribute lookup is a single property read.
+ * @param {SourceTable} byTag per-tag sources
+ * @param {SourceBucket} any any-tag sources
+ * @returns {SourceTable} folded table
+ */
+const foldAnySources = (byTag, any) => {
+	for (const tag of Object.keys(byTag)) {
+		byTag[tag] = dict(any, byTag[tag]);
+	}
+	byTag[ANY_TAG] = any;
+	return byTag;
+};
+
+// Default table (per-tag defaults + any-tag sources folded in) and the
+// `sources: false` table (only the always-on `style=""` attribute). Both are
+// precomputed so the common cases reference them with zero per-parser work.
+/** @type {SourceTable} */
+const DEFAULT_SOURCES_FOLDED = foldAnySources(
+	dict(DEFAULT_SOURCES_BY_TAG),
+	DEFAULT_ANY_SOURCES
+);
+/** @type {SourceTable} */
+const DISABLED_SOURCES_FOLDED = foldAnySources(dict(), ALWAYS_ANY_SOURCES);
+
+/**
+ * Inline `<script>` body: classic JS unless `type="module"` opts into ESM.
+ * @param {Map<string, string>} attrs attributes
+ * @returns {SourceType} the entry type for the inline script
+ */
+const scriptContentType = (attrs) =>
+	isModuleScript(attrs) ? "script-module" : "script";
+
+/**
+ * Inline `<script>` body: only an executable JS block with no external source
+ * carries content webpack should bundle.
+ * @param {Map<string, string>} attrs attributes
+ * @returns {boolean} true when the inline body should be bundled
+ */
+const scriptContentFilter = (attrs) =>
+	!attrs.has("src") &&
+	!attrs.has("href") &&
+	!attrs.has("xlink:href") &&
+	isExecutableJsScript(attrs);
+
+/**
+ * `<style>` body is a stylesheet only when its `type` is empty or `text/css`.
+ * @param {Map<string, string>} attrs attributes
+ * @returns {boolean} true when the body is CSS
+ */
+const styleContentFilter = (attrs) => {
+	const type = attrs.get("type");
+	if (type === undefined) return true;
+	const t = type.trim().toLowerCase();
+	return t === "" || t === "text/css";
+};
+
+// Element-body sources, independent of the `sources` option: a `<script>` body
+// is always processed, while a `<style>` body only emits when `experiments.css`
+// is on, checked where the dependency is created.
+/** @type {Record<string, ContentSourceItem>} */
+const CONTENT_SOURCES = dict({
+	script: { type: scriptContentType, filter: scriptContentFilter },
+	style: { type: "stylesheet-style", filter: styleContentFilter }
+});
+
+/**
+ * @extends {Parser<BuiltHtmlModule>}
+ */
+class HtmlParser extends Parser {
+	/**
+	 * Creates an instance of HtmlParser.
+	 * @param {HtmlParserOptions} options parser options (from `module.parser.html`; always passed by the `createParser` hook)
+	 */
+	constructor(options) {
+		super();
+		this.magicCommentContext = createMagicCommentContext();
+		// Read by HtmlModulesPlugin's `processResult` hook, which transforms
+		// the module source before it is stored and parsed.
+		/** @type {HtmlTemplateFunction | undefined} */
+		this.template = options.template;
+		/** @type {import("../../declarations/WebpackOptions").UrlHintRule[] | undefined} */
+		this._urlHints = options.urlHints;
+		// `as` selects the parse mode: `"document"` parses a full page, any other
+		// value names the context element whose inner HTML this is, so that a
+		// partial's `<tr>`, `<td>` or `<option>` is kept rather than dropped.
+		/** @type {string | HtmlChunkNameFn | undefined} */
+		this._chunkName = options.chunkName;
+		/** @type {string | undefined} */
+		this.fragmentContext =
+			options.as === undefined || options.as === "document"
+				? undefined
+				: options.as;
+		// One source model: a per-tag table that also holds the any-tag sources
+		// under `ANY_TAG`. The common cases reference precomputed tables.
+		/** @type {SourceTable} */
+		this.sourcesByTag = DEFAULT_SOURCES_FOLDED;
+
+		const sources = options.sources;
+		if (sources === undefined || sources === true) return;
+		if (sources === false) {
+			// Only the always-on `style=""` attribute survives; nothing else is
+			// extracted (svg presentation, `<script src>`, `<link>` entries, …).
+			this.sourcesByTag = DISABLED_SOURCES_FOLDED;
+			return;
+		}
+
+		// `"..."` anywhere opts the per-tag defaults in as the base, and a user
+		// entry with no `tag` is an any-tag source; user entries override wherever
+		// they sit. Per-tag writes rebuild the bucket, so the defaults stay intact.
+		/** @type {SourceTable} */
+		const byTag = sources.includes("...")
+			? dict(DEFAULT_SOURCES_BY_TAG)
+			: dict();
+		/** @type {SourceBucket} */
+		const any = dict(DEFAULT_ANY_SOURCES);
+		for (const entry of sources) {
+			if (entry === "...") continue;
+			// `type: false` disables a built-in source: writing `undefined` over the
+			// attribute makes the walk's `sources[name]` lookup skip it (see below).
+			/** @type {SourceItem | undefined} */
+			const item =
+				entry.type === false
+					? undefined
+					: {
+							type: entry.type,
+							filter:
+								typeof entry.filter === "function" ? entry.filter : undefined
+						};
+			const attr = entry.attribute.toLowerCase();
+			if (entry.tag === undefined) {
+				any[attr] = item;
+			} else {
+				const tag = entry.tag.toLowerCase();
+				byTag[tag] = dict(byTag[tag], { [attr]: item });
+				// The AST carries adjusted camelCase names for foreign-content
+				// tags (e.g. `feImage`) — register the entry under both.
+				const adjusted = SVG_TAG_ADJUST[tag];
+				if (adjusted !== undefined) {
+					byTag[adjusted] = dict(byTag[adjusted], { [attr]: item });
+				}
+			}
+		}
+		/** @type {SourceTable} */
+		this.sourcesByTag = foldAnySources(byTag, any);
+	}
+
+	/**
+	 * Runs the `template` option over the source and returns the transformed
+	 * html. Called from HtmlModulesPlugin's `processResult`, where the return
+	 * value becomes the module's stored source so the parser (which records
+	 * dependency offsets against it) and the generator (which renders from
+	 * `module.originalSource()`) stay in agreement.
+	 * @param {string | Buffer} source the original source
+	 * @param {HtmlNormalModule} module the html module
+	 * @returns {string | Buffer} the transformed source
+	 */
+	applyTemplate(source, module) {
+		if (!this.template) return source;
+		// `processResult` runs after `_doBuild` has initialized these
+		// dependency sets, so they are always present here.
+		const { buildInfo } = /** @type {BuiltHtmlModule} */ (module);
+		const fileDependencies = /** @type {FileSystemDependencies} */ (
+			buildInfo.fileDependencies
+		);
+		const contextDependencies = /** @type {FileSystemDependencies} */ (
+			buildInfo.contextDependencies
+		);
+		const missingDependencies = /** @type {FileSystemDependencies} */ (
+			buildInfo.missingDependencies
+		);
+		const transformed = this.template(
+			typeof source === "string" ? source : source.toString("utf8"),
+			{
+				module,
+				resource: module.resource,
+				addDependency: (dependency) => {
+					fileDependencies.add(dependency);
+				},
+				addContextDependency: (dependency) => {
+					contextDependencies.add(dependency);
+				},
+				addMissingDependency: (dependency) => {
+					missingDependencies.add(dependency);
+				},
+				addBuildDependency: (dependency) => {
+					if (buildInfo.buildDependencies === undefined) {
+						buildInfo.buildDependencies = new LazySet();
+					}
+					buildInfo.buildDependencies.add(dependency);
+				},
+				emitWarning: (warning) =>
+					module.addWarning(
+						warning instanceof Error ? warning : new WebpackError(warning)
+					),
+				emitError: (error) =>
+					module.addError(
+						error instanceof Error ? error : new WebpackError(error)
+					)
+			}
+		);
+		if (typeof transformed !== "string") {
+			throw new Error(
+				"The `template` html parser option must return a string."
+			);
+		}
+		return transformed;
+	}
+
+	/**
+	 * Parses the provided source and updates the parser state.
+	 * @param {string | Buffer | PreparsedAst} source the source to parse
+	 * @param {ParserState} state the parser state
+	 * @returns {ParserState} the parser state
+	 */
+	parse(source, state) {
+		if (Buffer.isBuffer(source)) {
+			source = source.toString("utf8");
+		} else if (typeof source === "object") {
+			throw new Error("webpackAst is unexpected for the HtmlParser");
+		}
+		if (source[0] === "\uFEFF") {
+			source = source.slice(1);
+		}
+
+		const locConverter = new LocConverter(source);
+
+		const module = /** @type {BuiltHtmlModule} */ (state.module);
+		const compilation = state.compilation;
+		const { hashFunction, module: outputModule } = compilation.outputOptions;
+		const context = compilation.compiler.context;
+		const css = Boolean(compilation.options.experiments.css);
+		const urlHints = this._urlHints;
+
+		// An entry name starts with the page's own path, so two pages never claim
+		// one — from `resource`, since `identifier()` is `html|<path>`.
+		/** @type {string} */
+		const resource = module.resource || module.identifier();
+		const entryPrefix = entryNamePrefix(
+			context ? contextify(context, resource) : resource,
+			hashFunction
+		);
+
+		// `output.html` head injection collects facts during the walk and turns
+		// them into presentational dependencies after, so no later pass re-parses
+		// the page. `data:` documents are skipped — they already carry the tags.
+		const htmlOutputOptions =
+			compilation.options && compilation.options.output
+				? compilation.options.output.html
+				: undefined;
+		const headOptions =
+			typeof htmlOutputOptions === "object" &&
+			(htmlOutputOptions.title !== undefined ||
+				htmlOutputOptions.meta !== undefined ||
+				htmlOutputOptions.base !== undefined) &&
+			!resource.startsWith("data:")
+				? htmlOutputOptions
+				: undefined;
+		const chunkNameOption = this._chunkName;
+		/** @type {Set<string>} */
+		const claimedEntryNames = new Set();
+		/** @type {Set<string>} */
+		const requestedEntryNames = new Set();
+
+		/**
+		 * Claims `base`, counting up from the tag's own position while another tag
+		 * of this page holds it: one name would merge entries the document parts.
+		 * @param {string} base the name the tag asks for
+		 * @param {number} index the tag's position in the page
+		 * @returns {string} the name it claimed
+		 */
+		const claimEntryName = (base, index) => {
+			let claimed = base;
+			for (let suffix = index; claimedEntryNames.has(claimed); suffix++) {
+				claimed = `${base}-${suffix}`;
+			}
+			claimedEntryNames.add(claimed);
+			return claimed;
+		};
+
+		/**
+		 * The name a tag's extracted entry claims: what its own
+		 * `webpackChunkName` comment asked for, else what
+		 * `module.parser.html.chunkName` makes of it, else the page and the position.
+		 * @param {string | undefined} requested name from the tag's magic comment
+		 * @param {string} request the tag's request
+		 * @param {number} index the tag's position in the page
+		 * @param {HtmlChunkNameData["type"]} type what the tag is extracted as
+		 * @returns {string} an entry name no other tag of this page claims
+		 */
+		const entryNameFor = (requested, request, index, type) => {
+			let name = requested;
+			if (name === undefined && chunkNameOption !== undefined) {
+				const tagName = getRequestBaseName(request) || "";
+				name =
+					typeof chunkNameOption === "function"
+						? chunkNameOption({ page: entryPrefix, name: tagName, index, type })
+						: chunkNameOption.replace(
+								CHUNK_NAME_PLACEHOLDER_REGEXP,
+								(_, placeholder) => {
+									if (placeholder === "page") return entryPrefix;
+									if (placeholder === "name") return tagName;
+									if (placeholder === "index") return `${index}`;
+									return type;
+								}
+							);
+			}
+			if (typeof name !== "string" || name === "") {
+				return claimEntryName(`${entryPrefix}-${index}`, index);
+			}
+			const claimed = claimEntryName(name, index);
+			requestedEntryNames.add(claimed);
+			return claimed;
+		};
+
+		/**
+		 * The name a tag's file is emitted under when the page asked for one, so
+		 * a named chunk is not left to be called after the tag's url.
+		 * @param {string} entryName the entry name the tag claimed
+		 * @returns {string | undefined} the asked-for name, else undefined
+		 */
+		const requestedFileName = (entryName) =>
+			requestedEntryNames.has(entryName) ? entryName : undefined;
+
+		let doctypeEnd = -1;
+		let htmlTagEnd = -1;
+		// insertion offsets just inside the (possibly implicit) head
+		let headStart = 0;
+		let headLastEnd = 0;
+		let headSeen = false;
+		let inHead = false;
+		// `<template>` contents are inert
+		let headTemplateDepth = 0;
+		// Depth of open `<template>` elements anywhere in the tree: their content
+		// is an inert fragment, so a `<base>` inside one must not set the document
+		// base. `headTemplateDepth` covers only `<head>`, so it cannot guard this.
+		let templateDepth = 0;
+		let headHasTitle = false;
+		let headHasBase = false;
+		let headCharsetEnd = -1;
+		/** @type {Set<string> | undefined} */
+		let headMetaNames;
+
+		// Collected per type during the walk; HtmlModulesPlugin turns them into
+		// entries. `script` and `script-module` chain through a leader-only
+		// dependOn; modulepreload stays independent, as it must not run.
+		/**
+		 * @typedef {object} HtmlEntryInfo
+		 * @property {string} request
+		 * @property {string} entryName
+		 * @property {number} index position in the document, across all groups — the order the emitted files are named in
+		 * @property {"script" | "script-module" | "modulepreload" | "stylesheet" | "html" | "preload" | "prefetch"} type
+		 * @property {boolean=} css entry emits a CSS chunk (`<link rel="preload" as="style">`), so it needs the CSS filename template
+		 * @property {string=} chunkName name the page asked this tag's chunk to claim, which names its file too
+		 */
+		/** @type {HtmlEntryInfo[]} */
+		const scriptEntries = [];
+		/** @type {HtmlEntryInfo[]} */
+		const scriptModuleEntries = [];
+		/** @type {HtmlEntryInfo[]} */
+		const modulePreloadEntries = [];
+		/** @type {HtmlEntryInfo[]} */
+		const stylesheetEntries = [];
+		// `type: "html"` links — each referenced `.html` becomes its own page
+		// entry (`<a href="page.html">`), independent (no dependOn).
+		/** @type {HtmlEntryInfo[]} */
+		const htmlLinkEntries = [];
+		// `<link rel="preload"/"prefetch">` of a bundled resource: each becomes an
+		// independent, non-executing entry whose `href` is rewritten to the built
+		// chunk's URL (JS for `as="script"`, CSS for `as="style"`).
+		/** @type {HtmlEntryInfo[]} */
+		const preloadEntries = [];
+		/** @type {HtmlEntryInfo[]} */
+		const prefetchEntries = [];
+
+		// Offset of the first classic blocking script tag, which injected stylesheet
+		// `<link>`s stay ahead of. `defer`/`async`/module scripts do not anchor: they
+		// run after parsing and after pending stylesheets.
+		let firstBlockingScriptStart = -1;
+
+		let nextEntryIndex = 0;
+		// One chunk per run of inline `<script>`: under module output every
+		// extracted tag is deferred, so only what executes between them matters.
+		/** @type {string | undefined} */
+		let inlineRunEntryName;
+		// Element offset of the run's last member — any other `<script>` ends it.
+		let inlineRunTag = -1;
+		// End offset of that member, for the gap a classic run may not span.
+		let inlineRunEnd = -1;
+		// How the run's tags are scheduled, which a member has to share.
+		/** @type {string | undefined} */
+		let inlineRunScheduling;
+		// The run's first tag, which carries the chunk and so the inline request.
+		/** @type {HtmlInlineScriptDependency | undefined} */
+		let inlineRunLeaderDependency;
+
+		// WHY: `<base href>` resolves the relative URLs that follow it. A relative base
+		// (`./assets/`) rewrites them into a subdirectory and they stay bundled; a
+		// root-relative or absolute one (`/`, `https://cdn/`) points outside the
+		// build, so those URLs are left untouched. Resolved in the walk below from
+		// the first `<base href>` seen, `documentBase` being undefined until then.
+		/** @type {string | undefined} */
+		let documentBase;
+		/** @type {string | undefined} */
+		let baseDir;
+		let baseIsExternal = false;
+		// Prepended to the emitted URLs' auto-public-path undo path: the browser
+		// resolves them against the base dir, so one `../` per base segment cancels
+		// it. Undefined for an absolute publicPath, which emits no undo path.
+		/** @type {string | undefined} */
+		let baseUrlPrefix;
+
+		/**
+		 * Tracks the `webpackIgnore` value from the most recent comment that
+		 * appears before the next tag. Reset whenever a tag is emitted or a
+		 * comment without a `webpackIgnore` value is encountered.
+		 * @type {boolean | undefined}
+		 */
+		let pendingWebpackIgnore;
+		/** @type {boolean | undefined} */
+		let pendingWebpackInline;
+		/**
+		 * The name the most recent comment asked the next tag's chunk to claim,
+		 * cleared the same way as the flags above.
+		 * @type {string | undefined}
+		 */
+		let pendingWebpackChunkName;
+		/**
+		 * Tracks the resource-hint values from the most recent `<!-- webpackPrefetch: … -->`
+		 * (etc.) comment so the next asset URL attribute picks them up.
+		 * @type {import("../prefetch/parseResourceHintOptions").ResourceHintOptions | undefined}
+		 */
+		let pendingHints;
+
+		const magicCommentContext = this.magicCommentContext;
+
+		/**
+		 * @param {import("./syntax-parser").HtmlPath} path walk path (used only for attribute-ref reads)
+		 * @param {import("./syntax-parser").HtmlAttributeRef} typeAttr type attribute ref (0 = none)
+		 * @param {number} nameEnd end offset of the tag name
+		 * @param {string} type type of the script
+		 * @param {string} input source string
+		 */
+		const reconcileScriptTypeAttr = (path, typeAttr, nameEnd, type, input) => {
+			const valueStart =
+				typeAttr !== 0 ? path.startOf(Part.value, typeAttr) : -1;
+			const valueEnd = typeAttr !== 0 ? path.endOf(Part.value, typeAttr) : -1;
+			if (outputModule && type === "script") {
+				// Chunk is an ES module; upgrade the tag.
+				if (typeAttr !== 0 && valueStart !== -1) {
+					module.addPresentationalDependency(
+						new ConstDependency("module", [valueStart, valueEnd])
+					);
+				} else {
+					module.addPresentationalDependency(
+						new ConstDependency(' type="module"', nameEnd)
+					);
+				}
+			} else if (!outputModule && type === "script-module" && typeAttr !== 0) {
+				// Chunk is a classic IIFE; drop `type="module"` so the
+				// browser doesn't load it under module semantics.
+				let attrEnd;
+				if (valueStart === -1) {
+					attrEnd = path.endOf(Part.name, typeAttr);
+				} else if (input[valueEnd] === '"' || input[valueEnd] === "'") {
+					attrEnd = valueEnd + 1;
+				} else {
+					attrEnd = valueEnd;
+				}
+				let attrStart = path.startOf(Part.name, typeAttr);
+				if (
+					attrStart > 0 &&
+					isAsciiWhitespace(input.charCodeAt(attrStart - 1))
+				) {
+					attrStart -= 1;
+				}
+				module.addPresentationalDependency(
+					new ConstDependency("", [attrStart, attrEnd])
+				);
+			}
+		};
+
+		/**
+		 * @param {string} mime mime type
+		 * @param {string} text inline text
+		 * @returns {string} a `data:` request for the text
+		 */
+		const dataUri = (mime, text) =>
+			`data:${mime};base64,${Buffer.from(text, "utf8").toString("base64")}`;
+
+		/**
+		 * @param {ConstDependency | HtmlSourceDependency | HtmlEntryDependency | HtmlInlineStyleDependency | HtmlInlineScriptDependency | HtmlInlineHtmlDependency} dep dependency
+		 * @param {number} start raw start offset
+		 * @param {number} end raw end offset
+		 */
+		const setLoc = (dep, start, end) => {
+			const s = locConverter.get(start);
+			const e = locConverter.get(end);
+			dep.setLoc(s.line, s.column, e.line, e.column);
+		};
+
+		/**
+		 * Classifies the first `<base href>` seen in the walk, setting
+		 * `documentBase`/`baseDir`/`baseIsExternal`/`baseUrlPrefix` for the URLs
+		 * that follow it.
+		 * @param {import("./syntax-parser").HtmlPath} path walk path (for attribute reads)
+		 * @param {import("./syntax-parser").HtmlAttributeRef} hrefAttr the base's href attribute
+		 */
+		const resolveDocumentBase = (path, hrefAttr) => {
+			documentBase = path.value(hrefAttr).trim();
+			if (!documentBase) return;
+			if (
+				ABSOLUTE_URL_SCHEME_REGEXP.test(documentBase) ||
+				documentBase.charCodeAt(0) === CC_SLASH
+			) {
+				baseIsExternal = true;
+				return;
+			}
+			// Normalize the base path into descending directory segments, resolving
+			// `.`/`..` as the URL spec does. The final segment names a file and is
+			// dropped; `up` counts the `..`s climbing above the document dir.
+			const parts = documentBase.split("/");
+			/** @type {string[]} */
+			const dirs = [];
+			let up = 0;
+			for (let i = 0; i < parts.length; i++) {
+				const part = parts[i];
+				if (part === "" || part === ".") continue;
+				if (part === "..") {
+					if (dirs.length > 0) dirs.pop();
+					else up++;
+					continue;
+				}
+				// A trailing plain segment (no following `/`) is the file, not a dir.
+				if (i === parts.length - 1) continue;
+				dirs.push(part);
+			}
+			baseDir = `${"../".repeat(up)}${dirs.length > 0 ? `${dirs.join("/")}/` : ""}`;
+			// A base above the document dir can't be cancelled with `../` (the
+			// document's own dir name is unknown) — leave the output URLs
+			// un-prefixed; they still resolve under an absolute publicPath.
+			if (up === 0 && dirs.length > 0) {
+				baseUrlPrefix = "../".repeat(dirs.length);
+			}
+		};
+
+		// Lazy decoded-attribute map for the current element — parse-scoped
+		// to avoid a closure and memo slot per element.
+		/** @type {import("./syntax-parser").HtmlPath | undefined} */
+		let attrMapPath;
+		let attrMapCount = 0;
+		/** @type {Map<string, string> | undefined} */
+		let currentAttributesMap;
+		const getAttributesMap = () => {
+			if (currentAttributesMap) return currentAttributesMap;
+			currentAttributesMap = new Map();
+			const path = /** @type {import("./syntax-parser").HtmlPath} */ (
+				attrMapPath
+			);
+			for (let i = 0; i < attrMapCount; i++) {
+				const attr = path.field(i, Field.attributes);
+				// Decoded values — filters and type resolvers compare what
+				// the browser sees (e.g. `rel="&#105;con"` means `icon`)
+				currentAttributesMap.set(path.name(attr), path.value(attr));
+			}
+			return currentAttributesMap;
+		};
+
+		// TODO implement full HTML parser (WASM)
+		// The walker descends into children and `<template>` content itself, and the
+		// Element `exit` clears a pending `webpackIgnore` once they are done.
+		new SourceProcessor()
+			.use({
+				[NodeType.Comment]: (path) => {
+					const start = path.start(path.node);
+					const end = path.end(path.node);
+					// comments count toward the head-end insertion anchor
+					if (inHead && headTemplateDepth === 0 && end > headLastEnd) {
+						headLastEnd = end;
+					}
+					// Only proper `<!-- ... -->` comments carry magic comments.
+					if (
+						end - start < 7 ||
+						source.charCodeAt(start) !== 0x3c ||
+						source.charCodeAt(start + 1) !== 0x21 ||
+						source.charCodeAt(start + 2) !== 0x2d ||
+						source.charCodeAt(start + 3) !== 0x2d ||
+						source.charCodeAt(end - 1) !== 0x3e ||
+						source.charCodeAt(end - 2) !== 0x2d ||
+						source.charCodeAt(end - 3) !== 0x2d
+					) {
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					const value = path.value();
+					if (!webpackCommentRegExp.test(value)) {
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					/** @type {MagicCommentOptions} */
+					let options;
+					try {
+						options = parseMagicComment(value, magicCommentContext);
+					} catch (err) {
+						const { line: sl, column: sc } = locConverter.get(start);
+						const { line: el, column: ec } = locConverter.get(end);
+						module.addWarning(
+							new (getCommentCompilationWarning())(
+								`Compilation error while processing magic comment(-s): /*${value}*/: ${
+									/** @type {Error} */ (err).message
+								}`,
+								{
+									start: { line: sl, column: sc },
+									end: { line: el, column: ec }
+								}
+							)
+						);
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					if (
+						options.webpackIgnore === undefined &&
+						options.webpackInline === undefined &&
+						options.webpackChunkName === undefined &&
+						options.webpackPrefetch === undefined &&
+						options.webpackPreload === undefined &&
+						options.webpackFetchPriority === undefined
+					) {
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					if (
+						options.webpackIgnore !== undefined &&
+						typeof options.webpackIgnore !== "boolean"
+					) {
+						const { line: sl, column: sc } = locConverter.get(start);
+						const { line: el, column: ec } = locConverter.get(end);
+						module.addWarning(
+							new (getUnsupportedFeatureWarning())(
+								`\`webpackIgnore\` expected a boolean, but received: ${options.webpackIgnore}.`,
+								{
+									start: { line: sl, column: sc },
+									end: { line: el, column: ec }
+								}
+							)
+						);
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					if (
+						options.webpackInline !== undefined &&
+						typeof options.webpackInline !== "boolean"
+					) {
+						const { line: sl, column: sc } = locConverter.get(start);
+						const { line: el, column: ec } = locConverter.get(end);
+						module.addWarning(
+							new (getUnsupportedFeatureWarning())(
+								`\`webpackInline\` expected a boolean, but received: ${options.webpackInline}.`,
+								{
+									start: { line: sl, column: sc },
+									end: { line: el, column: ec }
+								}
+							)
+						);
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					if (
+						options.webpackChunkName !== undefined &&
+						(typeof options.webpackChunkName !== "string" ||
+							options.webpackChunkName === "")
+					) {
+						const { line: sl, column: sc } = locConverter.get(start);
+						const { line: el, column: ec } = locConverter.get(end);
+						module.addWarning(
+							new (getUnsupportedFeatureWarning())(
+								`\`webpackChunkName\` expected a non-empty string, but received: ${options.webpackChunkName}.`,
+								{
+									start: { line: sl, column: sc },
+									end: { line: el, column: ec }
+								}
+							)
+						);
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+						return;
+					}
+					pendingWebpackIgnore = options.webpackIgnore;
+					pendingWebpackInline = options.webpackInline;
+					pendingWebpackChunkName = options.webpackChunkName;
+					if (
+						options.webpackPrefetch !== undefined ||
+						options.webpackPreload !== undefined ||
+						options.webpackFetchPriority !== undefined
+					) {
+						const s = locConverter.get(start);
+						const e = locConverter.get(end);
+						const parsedHints = parseResourceHintOptions(options, module, {
+							start: { line: s.line, column: s.column },
+							end: { line: e.line, column: e.column }
+						});
+						pendingHints =
+							parsedHints.prefetch !== undefined ||
+							parsedHints.preload !== undefined ||
+							parsedHints.fetchPriority !== undefined
+								? parsedHints
+								: undefined;
+					} else {
+						pendingHints = undefined;
+					}
+				},
+				[NodeType.Doctype]: (path) => {
+					// only visited when head injection is active (see `skip` below)
+					if (doctypeEnd === -1) doctypeEnd = path.end(path.node);
+					pendingWebpackIgnore = undefined;
+					pendingWebpackInline = undefined;
+					pendingWebpackChunkName = undefined;
+					pendingHints = undefined;
+				},
+				[NodeType.Element]: {
+					// Children (and `<template>` content) are walked by the
+					// processor after `enter`; `exit` clears a pending
+					// `webpackIgnore` once they're done.
+					enter: (path) => {
+						const ignore = pendingWebpackIgnore === true;
+						const forceInline = pendingWebpackInline === true;
+						const chunkName = pendingWebpackChunkName;
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+
+						// `<head>` anchors are collected for every page, since they place
+						// `inject: "head"` siblings and resource hints. Structural, so this
+						// runs even for `webpackIgnore`d elements.
+						{
+							const name = path.name();
+							if (name === "template" && isHtmlElement(path)) {
+								templateDepth++;
+							}
+							if (headTemplateDepth > 0) {
+								if (name === "template" && isHtmlElement(path)) {
+									headTemplateDepth++;
+								}
+							} else if (inHead) {
+								if (headOptions !== undefined && isHtmlElement(path)) {
+									switch (name) {
+										case "title":
+											headHasTitle = true;
+											break;
+										case "base":
+											headHasBase = true;
+											break;
+										case "meta": {
+											if (path.fieldNamed(Field.attributes, "charset") !== 0) {
+												headCharsetEnd = path.startOf(Part.content, path.node);
+											} else {
+												const httpEquiv = path.fieldNamed(
+													Field.attributes,
+													"http-equiv"
+												);
+												const contentAttr =
+													httpEquiv !== 0 &&
+													path.value(httpEquiv).toLowerCase() === "content-type"
+														? path.fieldNamed(Field.attributes, "content")
+														: 0;
+												if (
+													contentAttr !== 0 &&
+													CHARSET_DECLARATION_REGEXP.test(
+														path.value(contentAttr)
+													)
+												) {
+													headCharsetEnd = path.startOf(
+														Part.content,
+														path.node
+													);
+												}
+											}
+											const nameAttr = path.fieldNamed(
+												Field.attributes,
+												"name"
+											);
+											const propertyAttr = path.fieldNamed(
+												Field.attributes,
+												"property"
+											);
+											if (nameAttr !== 0 || propertyAttr !== 0) {
+												if (headMetaNames === undefined) {
+													headMetaNames = new Set();
+												}
+												if (nameAttr !== 0) {
+													headMetaNames.add(path.value(nameAttr).toLowerCase());
+												}
+												if (propertyAttr !== 0) {
+													headMetaNames.add(
+														path.value(propertyAttr).toLowerCase()
+													);
+												}
+											}
+											break;
+										}
+										case "template":
+											headTemplateDepth++;
+											break;
+									}
+								} else if (name === "template" && isHtmlElement(path)) {
+									headTemplateDepth++;
+								}
+								if (path.end(path.node) > headLastEnd) {
+									headLastEnd = path.end(path.node);
+								}
+							} else if (!headSeen && isHtmlElement(path)) {
+								if (name === "html") {
+									htmlTagEnd = path.startOf(Part.content, path.node);
+								} else if (name === "head") {
+									headSeen = true;
+									inHead = true;
+									// explicit head has real offsets; an implicit one (head
+									// tags are optional in HTML5) anchors after `<html>`,
+									// the doctype, or the document start
+									const tagEnd = path.startOf(Part.content, path.node);
+									headStart =
+										tagEnd > 0
+											? tagEnd
+											: htmlTagEnd > 0
+												? htmlTagEnd
+												: doctypeEnd > 0
+													? doctypeEnd
+													: 0;
+									headLastEnd = headStart;
+								}
+							}
+						}
+
+						if (ignore) {
+							// It stays in the document and runs where it stands, so a run
+							// may not span it either.
+							if (path.name() === "script") {
+								inlineRunEntryName = undefined;
+								inlineRunLeaderDependency = undefined;
+								inlineRunScheduling = undefined;
+							}
+							return;
+						}
+
+						const elementName = path.name();
+						const attributeCount = path.fieldCount(Field.attributes);
+						const elementStart = path.start(path.node);
+						const tagEnd = path.startOf(Part.content, path.node);
+						const nameEnd = path.endOf(Part.name, path.node);
+
+						// The first `<base href>` freezes the base for later URLs — but
+						// only one in the real document tree, not inside an inert
+						// `<template>` (whose contents are a separate fragment).
+						if (
+							documentBase === undefined &&
+							templateDepth === 0 &&
+							elementName === "base" &&
+							isHtmlElement(path)
+						) {
+							const hrefAttr = path.fieldNamed(Field.attributes, "href");
+							if (hrefAttr !== 0) resolveDocumentBase(path, hrefAttr);
+						}
+
+						// Rebind the parse-scoped lazy attribute map to this element.
+						attrMapPath = path;
+						attrMapCount = attributeCount;
+						currentAttributesMap = undefined;
+
+						// Each matched attribute is a source; the element body (inline
+						// `<style>`/`<script>`) is one more — content rather than an attribute.
+						// All are dispatched by the same `switch (type)`.
+						const sources =
+							this.sourcesByTag[elementName] || this.sourcesByTag[ANY_TAG];
+						const bodyItem = CONTENT_SOURCES[elementName];
+						// Iterate the attributes, then one extra step for the element
+						// body (`i === attributeCount`); the attribute ref is only read on the
+						// attribute steps, so it stays in bounds.
+						for (let i = 0; i < attributeCount + 1; i++) {
+							const content = i === attributeCount;
+							/** @type {SourceType} */
+							let type;
+							/** @type {string} */
+							let value;
+							/** @type {number} */
+							let start;
+							/** @type {number} */
+							let end;
+							/** @type {import("./syntax-parser").HtmlAttributeRef} */
+							let attr = 0;
+							if (content) {
+								if (!bodyItem) continue;
+								if (bodyItem.filter && !bodyItem.filter(getAttributesMap())) {
+									continue;
+								}
+								// `skip.text` drops the body `Text` node; the raw content
+								// span is [`tagEnd`, `contentEnd`] on the element.
+								const bodyStart = tagEnd;
+								const bodyEnd = path.endOf(Part.content, path.node);
+								if (bodyEnd <= bodyStart) continue;
+								value = source.slice(bodyStart, bodyEnd);
+								if (value.trim() === "") continue;
+								start = bodyStart;
+								end = bodyEnd;
+								type =
+									typeof bodyItem.type === "function"
+										? bodyItem.type(getAttributesMap(), css)
+										: bodyItem.type;
+							} else {
+								attr = path.field(i, Field.attributes);
+								const item = sources[path.name(attr)];
+								if (!item) continue;
+								if (
+									item.namespace !== undefined &&
+									!path.flag(item.namespace)
+								) {
+									continue;
+								}
+								// Adoption-agency clones carry no offsets; skip blank values.
+								const valueStart = path.startOf(Part.value, attr);
+								if (valueStart === -1) continue;
+								value = path.source(valueStart, path.endOf(Part.value, attr));
+								if (!value || !/\S/.test(value)) continue;
+								const filter = item.filter;
+								if (filter) {
+									// The filter also sees the decoded value (the browser tokenizes it
+									// decoded, e.g. `&#117;rl(`), so a value-only check needn't re-read it.
+									const decoded = value.includes("&")
+										? decodeEntities(value, true)
+										: value;
+									if (!filter(getAttributesMap(), decoded)) continue;
+								}
+								start = valueStart;
+								end = path.endOf(Part.value, attr);
+								type =
+									typeof item.type === "function"
+										? item.type(getAttributesMap(), css)
+										: item.type;
+							}
+							// A resolved `type` selects the parse algorithm and the dependency
+							// kind — the only dispatch in the parser.
+							switch (type) {
+								// Inline CSS — a `<style>` body (a full stylesheet) or an
+								// attribute value (decoded, re-escaped on write-back; `*-attribute`
+								// is a declaration list). Needs `experiments.css`.
+								case "stylesheet-style":
+								case "stylesheet-style-attribute": {
+									if (!css) break;
+									// WHY: an HTML `<style>` body is raw text, so its source is its
+									// text. The same element in a foreign subtree holds character
+									// data, where `&#x2e;a` is the selector `.a` — so the sheet has
+									// to be decoded going in and escaped coming back out, which is
+									// what `characterData` tells the write-back.
+									const characterData = content && !isHtmlElement(path);
+									// A page webpack emitted is one it can be pointed at again,
+									// where a sheet arrives headed by the module the last build
+									// read it as. That header was that build's; this writes its own.
+									const cssText = ModuleInfoHeaderPlugin.stripHeaders(
+										content
+											? characterData
+												? decodeEntities(value, false)
+												: value
+											: decodeEntities(value, true)
+									);
+									if (cssText.trim() === "") break;
+									const dep = new HtmlInlineStyleDependency(
+										dataUri("text/css", cssText),
+										[start, end],
+										content ? false : type === "stylesheet-style-attribute",
+										!content,
+										characterData
+									);
+									setLoc(dep, start, end);
+									module.addDependency(dep);
+									module.addCodeGenerationDependency(dep);
+									break;
+								}
+								// `<iframe srcdoc>` is an entity-encoded document, fed back through
+								// the pipeline as a nested `data:text/html` module. Its URL is
+								// `about:srcdoc`, so asset URLs resolve against this file.
+								case "srcdoc": {
+									const htmlText = decodeEntities(value, true);
+									// Only spin up a nested module when there is markup that can
+									// reference an asset; text/formatting-only markup is identical
+									// after rewriting (see `SRCDOC_ASSET_REGEXP`).
+									if (
+										!htmlText.includes("<") ||
+										!SRCDOC_ASSET_REGEXP.test(htmlText)
+									) {
+										break;
+									}
+									const dep = new HtmlInlineHtmlDependency(
+										dataUri("text/html", htmlText),
+										[start, end]
+									);
+									setLoc(dep, start, end);
+									module.addDependency(dep);
+									module.addCodeGenerationDependency(dep);
+									break;
+								}
+								// Inline `<script>` body — bundled as its own entry chunk.
+								case "script":
+								case "script-module":
+									if (content) {
+										const scriptType =
+											/** @type {"script" | "script-module"} */ (type);
+										// WHY: an HTML `<script>` body is raw text, so its source
+										// is its text. The same element in a foreign subtree holds
+										// character data, where a character reference stands for
+										// what it names — `1 &lt; 2` is `1 < 2` there, but reads
+										// as `1 & lt < 2` when taken as written. Character data
+										// also decodes `&copy=1`, which an attribute keeps whole.
+										const scriptText = isHtmlElement(path)
+											? value
+											: decodeEntities(value, false);
+										const request = dataUri("text/javascript", scriptText);
+										const index = nextEntryIndex++;
+										// Module output upgrades a classic tag, so every extracted
+										// tag defers; without it the authored kind parts the run.
+										const scheduling = outputModule ? "deferred" : scriptType;
+										// `async` fires whenever it loads and a `<template>` body never
+										// does, so neither joins — and only a deferred run spans markup.
+										const joinsRun =
+											templateDepth === 0 &&
+											path.fieldNamed(Field.attributes, "async") === 0 &&
+											(outputModule ||
+												inlineRunEntryName === undefined ||
+												isEmptyRunGap(source, inlineRunEnd, elementStart));
+										/** @type {Range | undefined} */
+										let removeRange;
+										/** @type {string} */
+										let entryName;
+										if (joinsRun) {
+											// A tag the page named leads a run of its own rather than
+											// joining one, so the name covers what follows it.
+											if (
+												chunkName !== undefined ||
+												inlineRunEntryName === undefined ||
+												inlineRunScheduling !== scheduling
+											) {
+												entryName = entryNameFor(
+													chunkName,
+													request,
+													index,
+													scriptType
+												);
+												inlineRunEntryName = entryName;
+												inlineRunScheduling = scheduling;
+											} else {
+												entryName = inlineRunEntryName;
+												// The body rides in the run's chunk already, so the
+												// element goes rather than gaining a `src`.
+												removeRange = [
+													elementStart,
+													rawTextElementEnd(source, end)
+												];
+											}
+											inlineRunTag = elementStart;
+											inlineRunEnd = rawTextElementEnd(source, end);
+										} else {
+											entryName = entryNameFor(
+												chunkName,
+												request,
+												index,
+												scriptType
+											);
+										}
+										const dep = new HtmlInlineScriptDependency(
+											request,
+											nameEnd,
+											[start, end],
+											entryName,
+											scriptType === "script-module" ? "esm" : "commonjs",
+											removeRange,
+											forceInline
+										);
+										if (joinsRun) {
+											if (removeRange === undefined) {
+												inlineRunLeaderDependency = dep;
+											} else if (
+												forceInline &&
+												inlineRunLeaderDependency !== undefined
+											) {
+												// A run is one chunk, so a tag asking to be written
+												// into the page asks it of the whole run.
+												inlineRunLeaderDependency.forceInline = true;
+											}
+										}
+										setLoc(dep, start, end);
+										module.addPresentationalDependency(dep);
+										// A dropped tag is not rewritten: an edit inside the
+										// removed range would survive it as loose text.
+										if (removeRange === undefined) {
+											reconcileScriptTypeAttr(
+												path,
+												path.fieldNamed(Field.attributes, "type"),
+												nameEnd,
+												scriptType,
+												source
+											);
+										}
+										(scriptType === "script"
+											? scriptEntries
+											: scriptModuleEntries
+										).push({
+											request,
+											entryName,
+											index,
+											type: scriptType,
+											chunkName: requestedFileName(entryName)
+										});
+										break;
+									}
+								// falls through — external `<script src>` joins the URL-bearing types
+								case "src":
+								case "srcset":
+								case "css-url":
+								case "msapplication-task":
+								case "modulepreload":
+								case "stylesheet":
+								case "html":
+								case "preload":
+								case "prefetch": {
+									// Parse the value into one or more URLs (decoding character
+									// references, mapping spans back to raw offsets), then emit a plain
+									// asset reference or an entry chunk per URL.
+									const parse =
+										type === "srcset"
+											? parseSrcset
+											: type === "css-url"
+												? parseCssUrls
+												: type === "msapplication-task"
+													? parseMsapplicationTask
+													: parseSrc;
+									let text = value;
+									/** @type {number[] | undefined} */
+									let map;
+									if (value.includes("&")) {
+										({ text, map } = decodeEntities(value, true, true));
+										if (!/\S/.test(text)) break;
+									}
+									/** @type {ParsedSource[] | undefined} */
+									let parsed;
+									try {
+										parsed = parse(text);
+									} catch (err) {
+										const ds = locConverter.get(start);
+										const de = locConverter.get(end);
+										module.addError(
+											new (getModuleDependencyError())(
+												module,
+												new WebpackError(
+													`Bad value for attribute "${path.name(
+														attr
+													)}" on element "${elementName}": ${
+														/** @type {Error} */ (err).message
+													}`
+												),
+												{
+													start: { line: ds.line, column: ds.column },
+													end: { line: de.line, column: de.column }
+												}
+											)
+										);
+										break;
+									}
+									if (!parsed) break;
+									for (const [url, us, ue] of parsed) {
+										// Internal `url(#id)` / fragment-only refs aren't assets.
+										if (!url || url.startsWith("#")) continue;
+										// Resolve the request against `<base href>`. Only relative
+										// URLs are affected (scheme / `//` / `/` URLs ignore the
+										// base); an external base drops them from the build.
+										let request = url;
+										if (
+											documentBase &&
+											url.charCodeAt(0) !== CC_SLASH &&
+											!ABSOLUTE_URL_SCHEME_REGEXP.test(url)
+										) {
+											if (baseIsExternal) continue;
+											request = baseDir + url;
+										}
+										const s = start + (map ? map[us] : us);
+										const e = start + (map ? map[ue] : ue);
+										// `html` links the URL as its own emitted page: the same dependency
+										// as `<script src>`, but rewriting to the page's filename and
+										// emitting no siblings. Independent, like an entry point.
+										if (type === "html") {
+											const index = nextEntryIndex++;
+											const entryName = entryNameFor(
+												chunkName,
+												request,
+												index,
+												"html"
+											);
+											const dep = new HtmlEntryDependency(
+												request,
+												[s, e],
+												entryName,
+												undefined,
+												"html"
+											);
+											setLoc(dep, s, e);
+											module.addPresentationalDependency(dep);
+											htmlLinkEntries.push({
+												request,
+												entryName,
+												index,
+												type,
+												chunkName: requestedFileName(entryName)
+											});
+											continue;
+										}
+										// `rel="preload"/"prefetch"` of a bundled resource: an independent,
+										// non-executing entry rewritten to the built chunk's URL. No
+										// siblings — a resource hint references exactly one URL.
+										if (type === "preload" || type === "prefetch") {
+											const as = getAttributeValue(getAttributesMap(), "as");
+											const asStyle = as
+												? as.trim().toLowerCase() === "style"
+												: false;
+											const index = nextEntryIndex++;
+											const entryName = entryNameFor(
+												chunkName,
+												request,
+												index,
+												type
+											);
+											// Tag metadata letting the template mirror `crossorigin` and
+											// `integrity` onto a native `preload` `<link>`. `prefetch` is not
+											// integrity-eligible per the SRI spec, so its is left uncaptured.
+											const isNativeLink = elementName === "link";
+											const dep = new HtmlEntryDependency(
+												request,
+												[s, e],
+												entryName,
+												asStyle ? "css-import" : undefined,
+												type,
+												elementStart,
+												tagEnd,
+												isNativeLink,
+												"",
+												nameEnd,
+												isNativeLink &&
+													path.fieldNamed(Field.attributes, "crossorigin") !==
+														0,
+												-1,
+												type === "preload" && isNativeLink
+													? captureIntegrityRange(path, source, elementStart)
+													: null,
+												null
+											);
+											setLoc(dep, s, e);
+											module.addPresentationalDependency(dep);
+											(type === "preload"
+												? preloadEntries
+												: prefetchEntries
+											).push({
+												request,
+												entryName,
+												index,
+												type,
+												css: asStyle,
+												chunkName: requestedFileName(entryName)
+											});
+											continue;
+										}
+										// `src`/`srcset`/`css-url`/`msapplication-task` are plain assets;
+										// the rest are narrowed to entry types here and share one
+										// `HtmlEntryDependency`, recorded for HtmlModulesPlugin.
+										if (
+											type === "script" ||
+											type === "script-module" ||
+											type === "modulepreload" ||
+											type === "stylesheet"
+										) {
+											const index = nextEntryIndex++;
+											const entryName = entryNameFor(
+												chunkName,
+												request,
+												index,
+												type
+											);
+											const willBeModuleScript =
+												type === "script-module" ||
+												(outputModule && type === "script");
+											/** @type {EntrySourceType} */
+											const elementKind =
+												type === "modulepreload"
+													? "modulepreload"
+													: type === "stylesheet"
+														? "stylesheet"
+														: willBeModuleScript
+															? "script-module"
+															: "script";
+											const entryCategory =
+												type === "stylesheet"
+													? "css-import"
+													: type === "script-module" || type === "modulepreload"
+														? "esm"
+														: undefined;
+											// Native = the loading element is the tag the template clones
+											// verbatim (`<script>` / `<link>`); a custom element is not.
+											const nativeTag =
+												elementKind === "stylesheet" ||
+												elementKind === "modulepreload"
+													? "link"
+													: "script";
+											// CSP/fetch attributes the template copies onto siblings.
+											let copyableAttrsText = "";
+											let hasOwnCrossOrigin = false;
+											if (elementStart >= 0) {
+												for (const copyableName of COPYABLE_SIBLING_ATTRS) {
+													const copyableAttr = path.fieldNamed(
+														Field.attributes,
+														copyableName
+													);
+													if (copyableAttr !== 0) {
+														copyableAttrsText += attrSourceSpan(
+															path,
+															source,
+															copyableAttr
+														);
+														if (copyableName === "crossorigin") {
+															hasOwnCrossOrigin = true;
+														}
+													}
+												}
+											}
+											// Blocking-ness of the tag as emitted, not as authored:
+											// `reconcileScriptTypeAttr` decides the final `type`, so only
+											// non-module output without `defer`/`async` blocks.
+											if (
+												firstBlockingScriptStart === -1 &&
+												(type === "script" || type === "script-module") &&
+												!outputModule &&
+												(elementName !== nativeTag ||
+													(path.fieldNamed(Field.attributes, "defer") === 0 &&
+														path.fieldNamed(Field.attributes, "async") === 0))
+											) {
+												firstBlockingScriptStart = elementStart;
+											}
+											// Sibling-clone attribute edits, captured as offsets relative to
+											// the tag so the template need not re-parse it: `integrity` is
+											// content-specific and dropped, `script-module` forces `type`.
+											const integrityRange =
+												elementStart >= 0 && elementName === nativeTag
+													? captureIntegrityRange(path, source, elementStart)
+													: null;
+											/** @type {Range | null} */
+											let typeValueRange = null;
+											if (
+												elementStart >= 0 &&
+												elementName === nativeTag &&
+												elementKind === "script-module"
+											) {
+												const typeAttr = path.fieldNamed(
+													Field.attributes,
+													"type"
+												);
+												if (
+													typeAttr !== 0 &&
+													path.startOf(Part.value, typeAttr) >= 0
+												) {
+													typeValueRange = [
+														path.startOf(Part.value, typeAttr) - elementStart,
+														path.endOf(Part.value, typeAttr) - elementStart
+													];
+												}
+											}
+											const dep = new HtmlEntryDependency(
+												request,
+												[s, e],
+												entryName,
+												entryCategory,
+												elementKind,
+												elementStart,
+												tagEnd,
+												elementName === nativeTag,
+												copyableAttrsText,
+												nameEnd,
+												hasOwnCrossOrigin,
+												firstBlockingScriptStart,
+												integrityRange,
+												typeValueRange,
+												forceInline,
+												headSeen && headStart > 0 ? headStart : -1,
+												headSeen && headLastEnd > 0 ? headLastEnd : -1
+											);
+											setLoc(dep, s, e);
+											module.addPresentationalDependency(dep);
+											if (
+												elementName === "script" &&
+												(type === "script" || type === "script-module")
+											) {
+												reconcileScriptTypeAttr(
+													path,
+													path.fieldNamed(Field.attributes, "type"),
+													nameEnd,
+													type,
+													source
+												);
+											}
+											(type === "script"
+												? scriptEntries
+												: type === "script-module"
+													? scriptModuleEntries
+													: type === "stylesheet"
+														? stylesheetEntries
+														: modulePreloadEntries
+											).push({
+												request,
+												entryName,
+												index,
+												type,
+												chunkName: requestedFileName(entryName)
+											});
+										} else {
+											const dep = new HtmlSourceDependency(request, [s, e]);
+											ResourceHintPlugin.applyDefaults(
+												dep,
+												ResourceHintPlugin.matchUrlHints(urlHints, request)
+											);
+											// `<!-- webpackPrefetch: true -->` (etc.) immediately
+											// before this tag wins over the project-wide default.
+											if (pendingHints) {
+												ResourceHintPlugin.applyParsedHints(dep, pendingHints);
+												pendingHints = undefined;
+											}
+											setLoc(dep, s, e);
+											module.addDependency(dep);
+											module.addCodeGenerationDependency(dep);
+										}
+									}
+									break;
+								}
+							}
+						}
+						// A `<script>` that joined no run ends the open one: the chunk runs
+						// where its first tag stands, so nothing may execute in between.
+						if (elementName === "script" && inlineRunTag !== elementStart) {
+							inlineRunEntryName = undefined;
+							inlineRunLeaderDependency = undefined;
+							inlineRunScheduling = undefined;
+						}
+					},
+					exit: (path) => {
+						if (isHtmlElement(path)) {
+							const name = path.name();
+							if (name === "template") {
+								if (templateDepth > 0) templateDepth--;
+								if (headTemplateDepth > 0) headTemplateDepth--;
+							} else if (name === "head") {
+								inHead = false;
+							}
+						}
+						pendingWebpackIgnore = undefined;
+						pendingWebpackInline = undefined;
+						pendingWebpackChunkName = undefined;
+						pendingHints = undefined;
+					}
+				}
+			})
+			// Skip AST output this walk never reads: `text`, since script and style
+			// bodies are read by offset, and `doctype` unless head injection needs it
+			// as an anchor. `comments` stays, for `webpackIgnore`.
+			.process(source, {
+				fragmentContext: this.fragmentContext,
+				skip: { text: true, doctype: headOptions === undefined }
+			});
+
+		// `output.html` head injection: existing tags win, injected values are
+		// escaped, insertions at the same offset are merged to keep their order.
+		if (headOptions !== undefined && headSeen) {
+			const { title, meta, base } = headOptions;
+			let startTags = "";
+			if (meta && meta.charset && headCharsetEnd === -1) {
+				startTags += `<meta charset="${escapeAttribute(meta.charset)}">`;
+			}
+			// <base> must follow the charset declaration per spec
+			let baseAfterCharset = "";
+			if (base && !headHasBase) {
+				if (headCharsetEnd !== -1) baseAfterCharset = baseTag(base);
+				else startTags += baseTag(base);
+			}
+			let endTags = "";
+			if (meta) {
+				for (const [name, value] of Object.entries(meta)) {
+					if (
+						name === "charset" ||
+						(headMetaNames !== undefined &&
+							headMetaNames.has(name.toLowerCase()))
+					) {
+						continue;
+					}
+					endTags += metaTag(name, value);
+				}
+			}
+			if (title && !headHasTitle) {
+				endTags += `<title>${escapeText(title)}</title>`;
+			}
+			/** @type {[number, string][]} */
+			const inserts = [];
+			if (startTags) inserts.push([headStart, startTags]);
+			if (baseAfterCharset) inserts.push([headCharsetEnd, baseAfterCharset]);
+			if (endTags) inserts.push([headLastEnd, endTags]);
+			inserts.sort((a, b) => a[0] - b[0]);
+			for (let i = 0; i < inserts.length; i++) {
+				const at = inserts[i][0];
+				let tags = inserts[i][1];
+				while (i + 1 < inserts.length && inserts[i + 1][0] === at) {
+					tags += inserts[++i][1];
+				}
+				module.addPresentationalDependency(new ConstDependency(tags, at));
+			}
+		}
+
+		const buildInfo = module.buildInfo;
+		buildInfo.strict = true;
+		if (baseUrlPrefix !== undefined) buildInfo.baseUrlPrefix = baseUrlPrefix;
+		// WHY: hand the collected entries to HtmlModulesPlugin, which creates the
+		// real compilation entries during the finishMake hook. The `script` and
+		// `script-module` groups chain through a leader-only `dependOn` so they share
+		// a runtime, while `modulepreload` and `stylesheet` entries are independent:
+		// `<link rel=modulepreload>` must preload without running, and a stylesheet
+		// has no runtime. `html` links are independent page entries too.
+		if (
+			scriptEntries.length > 0 ||
+			scriptModuleEntries.length > 0 ||
+			modulePreloadEntries.length > 0 ||
+			stylesheetEntries.length > 0 ||
+			htmlLinkEntries.length > 0 ||
+			preloadEntries.length > 0 ||
+			prefetchEntries.length > 0
+		) {
+			buildInfo.htmlEntries = {
+				script: scriptEntries,
+				"script-module": scriptModuleEntries,
+				modulepreload: modulePreloadEntries,
+				stylesheet: stylesheetEntries,
+				html: htmlLinkEntries,
+				preload: preloadEntries,
+				prefetch: prefetchEntries
+			};
+		}
+
+		module.buildMeta.exportsType = "default";
+
+		state.module.addDependency(new StaticExportsDependency(["default"], true));
+
+		return state;
+	}
+}
+
+HtmlParser.buildHeadTags = buildHeadTags;
+
+module.exports = HtmlParser;

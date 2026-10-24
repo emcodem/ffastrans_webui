@@ -80,13 +80,14 @@ import {
     AST_True,
     AST_UnaryPrefix,
     AST_Undefined,
+    AST_Using,
 
     TreeWalker,
     walk,
     walk_abort,
     walk_parent,
 } from "../ast.js";
-import { make_node, regexp_source_fix, string_template, makePredicate } from "../utils/index.js";
+import { make_node, make_void_0, regexp_source_fix, string_template, makePredicate } from "../utils/index.js";
 import { first_in_statement } from "../utils/first_in_statement.js";
 import { has_flag, TOP } from "./compressor-flags.js";
 
@@ -147,7 +148,7 @@ export function make_node_from_constant(val, orig) {
       case "boolean":
         return make_node(val ? AST_True : AST_False, orig);
       case "undefined":
-        return make_node(AST_Undefined, orig);
+        return make_void_0(orig);
       default:
         if (val === null) {
             return make_node(AST_Null, orig, { value: null });
@@ -198,7 +199,7 @@ export function get_simple_key(key) {
     if (key instanceof AST_UnaryPrefix
         && key.operator == "void"
         && key.expression instanceof AST_Constant) {
-        return;
+        return undefined;
     }
     return key;
 }
@@ -308,6 +309,7 @@ export function can_be_evicted_from_block(node) {
         node instanceof AST_Defun ||
         node instanceof AST_Let ||
         node instanceof AST_Const ||
+        node instanceof AST_Using ||
         node instanceof AST_Export ||
         node instanceof AST_Import
     );

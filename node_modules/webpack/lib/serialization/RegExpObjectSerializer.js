@@ -4,11 +4,12 @@
 
 "use strict";
 
-/** @typedef {import("./ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("./ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("./ObjectMiddleware").ObjectDeserializerContext<[string, string]>} ObjectDeserializerContext */
+/** @typedef {import("./ObjectMiddleware").ObjectSerializerContext<[string, string]>} ObjectSerializerContext */
 
 class RegExpObjectSerializer {
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {RegExp} obj regexp
 	 * @param {ObjectSerializerContext} context context
 	 */
@@ -18,6 +19,7 @@ class RegExpObjectSerializer {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 * @returns {RegExp} regexp
 	 */

@@ -5,7 +5,8 @@
 
 "use strict";
 
-const nextTick = require("process").nextTick;
+// eslint-disable-next-line n/prefer-global/process
+const { nextTick } = require("process");
 
 /** @typedef {import("./Resolver").FileSystem} FileSystem */
 /** @typedef {import("./Resolver").PathLike} PathLike */
@@ -22,12 +23,12 @@ const nextTick = require("process").nextTick;
  * @param {string} path path
  * @returns {string} dirname
  */
-const dirname = path => {
+const dirname = (path) => {
 	let idx = path.length - 1;
 	while (idx >= 0) {
-		const c = path.charCodeAt(idx);
+		const char = path.charCodeAt(idx);
 		// slash or backslash
-		if (c === 47 || c === 92) break;
+		if (char === 47 || char === 92) break;
 		idx--;
 	}
 	if (idx < 0) return "";
@@ -50,18 +51,131 @@ const runCallbacks = (callbacks, err, result) => {
 	for (const callback of callbacks) {
 		try {
 			callback(err, result);
-		} catch (e) {
-			if (!error) error = e;
+		} catch (err) {
+			if (!error) error = err;
 		}
 	}
 	callbacks.length = 0;
 	if (error) throw error;
 };
 
+// eslint-disable-next-line jsdoc/reject-function-type
+/** @typedef {Function} EXPECTED_FUNCTION */
+// eslint-disable-next-line jsdoc/reject-any-type
+/** @typedef {any} EXPECTED_ANY */
+
+/**
+ * The first pending cache hit is held in these slots (a scheduled tick is
+ * pending iff `firstCallback` is set); later hits from the same synchronous
+ * burst spill into `dispatchQueue` as flat [callback, err, result] triples
+ * and are drained by the same tick. This keeps the common single-hit case
+ * as cheap as a plain `nextTick` while bursts share one tick.
+ * @type {FileSystemCallback<EXPECTED_ANY> | undefined}
+ */
+let firstCallback;
+/** @type {Error | null} */
+let firstErr = null;
+/** @type {EXPECTED_ANY} */
+let firstResult;
+/** @type {EXPECTED_ANY[]} */
+let dispatchQueue = [];
+let dispatchQueueLength = 0;
+/** @type {EXPECTED_ANY[]} */
+let spareQueue = [];
+// upper bound on the spill-array capacity kept alive between bursts
+const MAX_RETAINED_QUEUE_LENGTH = 1024;
+
+const runDispatch = () => {
+	const callback = /** @type {FileSystemCallback<EXPECTED_ANY>} */ (
+		firstCallback
+	);
+	const err = firstErr;
+	const result = firstResult;
+	// clear before calling: hits made from inside a callback start a new tick
+	firstCallback = undefined;
+	firstErr = null;
+	firstResult = undefined;
+	if (dispatchQueueLength === 0) {
+		// single hit: no queue bookkeeping, a throw affects nobody else
+		callback(err, result);
+		return;
+	}
+	const queue = dispatchQueue;
+	const length = dispatchQueueLength;
+	// ping-pong the two arrays so draining never allocates
+	dispatchQueue = spareQueue;
+	dispatchQueueLength = 0;
+	let i = -3;
+	try {
+		callback(err, result);
+		for (i = 0; i < length; i += 3) {
+			queue[i](queue[i + 1], queue[i + 2]);
+		}
+	} finally {
+		// a throwing callback must not starve the rest: re-schedule the
+		// remainder ahead of anything scheduled during this drain (matching
+		// the old per-tick FIFO order) and rethrow
+		i += 3;
+		if (i < length) {
+			if (firstCallback === undefined) {
+				// no reentrant hit took the slot, so `dispatchQueue` is empty
+				firstCallback = queue[i];
+				firstErr = queue[i + 1];
+				firstResult = queue[i + 2];
+				nextTick(runDispatch);
+				for (let j = i + 3; j < length; j++) {
+					dispatchQueue[dispatchQueueLength++] = queue[j];
+				}
+			} else {
+				// a reentrant hit claimed the slot (and scheduled the tick);
+				// displace it behind the remainder to keep FIFO order
+				const rest = queue.slice(i, length);
+				rest.push(firstCallback, firstErr, firstResult);
+				for (let j = 0; j < dispatchQueueLength; j++) {
+					rest.push(dispatchQueue[j]);
+				}
+				[firstCallback, firstErr, firstResult] = rest;
+				dispatchQueue = rest.slice(3);
+				dispatchQueueLength = dispatchQueue.length;
+			}
+		}
+		// release references but keep the backing store, so the next burst
+		// does not have to re-grow the array from scratch
+		for (let j = 0; j < length; j++) queue[j] = undefined;
+		// bound the permanently retained capacity after a rare giant burst
+		if (queue.length > MAX_RETAINED_QUEUE_LENGTH) {
+			queue.length = MAX_RETAINED_QUEUE_LENGTH;
+		}
+		spareQueue = queue;
+	}
+};
+
+/**
+ * Cache hits stay asynchronous, but all hits from the same synchronous
+ * execution share a single `nextTick` instead of scheduling one each.
+ * @param {FileSystemCallback<EXPECTED_ANY>} callback callback
+ * @param {Error | null} err error
+ * @param {EXPECTED_ANY} result result
+ */
+const scheduleDispatch = (callback, err, result) => {
+	if (firstCallback === undefined) {
+		firstCallback = callback;
+		firstErr = err;
+		firstResult = result;
+		nextTick(runDispatch);
+	} else {
+		const queue = dispatchQueue;
+		queue[dispatchQueueLength] = callback;
+		queue[dispatchQueueLength + 1] = err;
+		queue[dispatchQueueLength + 2] = result;
+		dispatchQueueLength += 3;
+	}
+};
+
 class OperationMergerBackend {
 	/**
-	 * @param {Function | undefined} provider async method in filesystem
-	 * @param {Function | undefined} syncProvider sync method in filesystem
+	 * @param {EXPECTED_FUNCTION | undefined} provider async method in filesystem
+	 * @param {EXPECTED_FUNCTION | undefined} syncProvider sync method in filesystem
 	 * @param {BaseFileSystem} providerContext call context for the provider methods
 	 */
 	constructor(provider, syncProvider, providerContext) {
@@ -71,15 +185,18 @@ class OperationMergerBackend {
 		this._activeAsyncOperations = new Map();
 
 		this.provide = this._provider
-			? /**
-			   * @param {PathLike | PathOrFileDescriptor} path path
-			   * @param {object | FileSystemCallback<any> | undefined} options options
-			   * @param {FileSystemCallback<any>=} callback callback
-			   * @returns {any} result
-			   */
-			  (path, options, callback) => {
+			? // Comment to align jsdoc
+				/**
+				 * @param {PathLike | PathOrFileDescriptor} path path
+				 * @param {object | FileSystemCallback<EXPECTED_ANY> | undefined} options options
+				 * @param {FileSystemCallback<EXPECTED_ANY>=} callback callback
+				 * @returns {EXPECTED_ANY} result
+				 */
+				(path, options, callback) => {
 					if (typeof options === "function") {
-						callback = /** @type {FileSystemCallback<any>} */ (options);
+						callback =
+							/** @type {FileSystemCallback<EXPECTED_ANY>} */
+							(options);
 						options = undefined;
 					}
 					if (
@@ -88,18 +205,18 @@ class OperationMergerBackend {
 						!(path instanceof URL) &&
 						typeof path !== "number"
 					) {
-						/** @type {Function} */
+						/** @type {EXPECTED_FUNCTION} */
 						(callback)(
-							new TypeError("path must be a string, Buffer, URL or number")
+							new TypeError("path must be a string, Buffer, URL or number"),
 						);
 						return;
 					}
 					if (options) {
-						return /** @type {Function} */ (this._provider).call(
+						return /** @type {EXPECTED_FUNCTION} */ (this._provider).call(
 							this._providerContext,
 							path,
 							options,
-							callback
+							callback,
 						);
 					}
 					let callbacks = this._activeAsyncOperations.get(path);
@@ -108,37 +225,38 @@ class OperationMergerBackend {
 						return;
 					}
 					this._activeAsyncOperations.set(path, (callbacks = [callback]));
-					/** @type {Function} */
+					/** @type {EXPECTED_FUNCTION} */
 					(provider)(
 						path,
 						/**
 						 * @param {Error} err error
-						 * @param {any} result result
+						 * @param {EXPECTED_ANY} result result
 						 */
 						(err, result) => {
 							this._activeAsyncOperations.delete(path);
 							runCallbacks(callbacks, err, result);
-						}
+						},
 					);
-			  }
+				}
 			: null;
 		this.provideSync = this._syncProvider
-			? /**
-			   * @param {PathLike | PathOrFileDescriptor} path path
-			   * @param {object=} options options
-			   * @returns {any} result
-			   */
-			  (path, options) => {
-					return /** @type {Function} */ (this._syncProvider).call(
+			? // Comment to align jsdoc
+				/**
+				 * @param {PathLike | PathOrFileDescriptor} path path
+				 * @param {object=} options options
+				 * @returns {EXPECTED_ANY} result
+				 */
+				(path, options) =>
+					/** @type {EXPECTED_FUNCTION} */ (this._syncProvider).call(
 						this._providerContext,
 						path,
-						options
-					);
-			  }
+						options,
+					)
 			: null;
 	}
 
 	purge() {}
+
 	purgeParent() {}
 }
 
@@ -169,16 +287,16 @@ const STORAGE_MODE_ASYNC = 2;
 /**
  * @callback Provide
  * @param {PathLike | PathOrFileDescriptor} path path
- * @param {any} options options
- * @param {FileSystemCallback<any>} callback callback
+ * @param {EXPECTED_ANY} options options
+ * @param {FileSystemCallback<EXPECTED_ANY>} callback callback
  * @returns {void}
  */
 
 class CacheBackend {
 	/**
 	 * @param {number} duration max cache duration of items
-	 * @param {function | undefined} provider async method
-	 * @param {function | undefined} syncProvider sync method
+	 * @param {EXPECTED_FUNCTION | undefined} provider async method
+	 * @param {EXPECTED_FUNCTION | undefined} syncProvider sync method
 	 * @param {BaseFileSystem} providerContext call context for the provider methods
 	 */
 	constructor(duration, provider, syncProvider, providerContext) {
@@ -186,14 +304,18 @@ class CacheBackend {
 		this._provider = provider;
 		this._syncProvider = syncProvider;
 		this._providerContext = providerContext;
-		/** @type {Map<string, FileSystemCallback<any>[]>} */
+		/** @type {Map<string, FileSystemCallback<EXPECTED_ANY>[]>} */
 		this._activeAsyncOperations = new Map();
-		/** @type {Map<string, { err: Error | null, result?: any, level: Set<string> }>} */
+		/** @type {Map<string, { err: Error | null, result?: EXPECTED_ANY, level: Set<string> }>} */
 		this._data = new Map();
 		/** @type {Set<string>[]} */
 		this._levels = [];
 		for (let i = 0; i < 10; i++) this._levels.push(new Set());
-		for (let i = 5000; i < duration; i += 500) this._levels.push(new Set());
+		if (duration !== Infinity) {
+			for (let i = 5000; i < duration; i += 500) {
+				this._levels.push(new Set());
+			}
+		}
 		this._currentLevel = 0;
 		this._tickInterval = Math.floor(duration / this._levels.length);
 		/** @type {STORAGE_MODE_IDLE | STORAGE_MODE_SYNC | STORAGE_MODE_ASYNC} */
@@ -204,16 +326,18 @@ class CacheBackend {
 		/** @type {number | undefined} */
 		this._nextDecay = undefined;
 
+		// eslint-disable-next-line no-warning-comments
 		// @ts-ignore
 		this.provide = provider ? this.provide.bind(this) : null;
+		// eslint-disable-next-line no-warning-comments
 		// @ts-ignore
 		this.provideSync = syncProvider ? this.provideSync.bind(this) : null;
 	}
 
 	/**
 	 * @param {PathLike | PathOrFileDescriptor} path path
-	 * @param {any} options options
-	 * @param {FileSystemCallback<any>} callback callback
+	 * @param {EXPECTED_ANY} options options
+	 * @param {FileSystemCallback<EXPECTED_ANY>} callback callback
 	 * @returns {void}
 	 */
 	provide(path, options, callback) {
@@ -232,11 +356,11 @@ class CacheBackend {
 		}
 		const strPath = typeof path !== "string" ? path.toString() : path;
 		if (options) {
-			return /** @type {Function} */ (this._provider).call(
+			return /** @type {EXPECTED_FUNCTION} */ (this._provider).call(
 				this._providerContext,
 				path,
 				options,
-				callback
+				callback,
 			);
 		}
 
@@ -246,10 +370,12 @@ class CacheBackend {
 		}
 
 		// Check in cache
-		let cacheEntry = this._data.get(strPath);
+		const cacheEntry = this._data.get(strPath);
 		if (cacheEntry !== undefined) {
-			if (cacheEntry.err) return nextTick(callback, cacheEntry.err);
-			return nextTick(callback, null, cacheEntry.result);
+			if (cacheEntry.err) {
+				return scheduleDispatch(callback, cacheEntry.err, undefined);
+			}
+			return scheduleDispatch(callback, null, cacheEntry.result);
 		}
 
 		// Check if there is already the same operation running
@@ -261,13 +387,13 @@ class CacheBackend {
 		this._activeAsyncOperations.set(strPath, (callbacks = [callback]));
 
 		// Run the operation
-		/** @type {Function} */
+		/** @type {EXPECTED_FUNCTION} */
 		(this._provider).call(
 			this._providerContext,
 			path,
 			/**
 			 * @param {Error | null} err error
-			 * @param {any} [result] result
+			 * @param {EXPECTED_ANY=} result result
 			 */
 			(err, result) => {
 				this._activeAsyncOperations.delete(strPath);
@@ -277,18 +403,18 @@ class CacheBackend {
 				this._enterAsyncMode();
 
 				runCallbacks(
-					/** @type {FileSystemCallback<any>[]} */ (callbacks),
+					/** @type {FileSystemCallback<EXPECTED_ANY>[]} */ (callbacks),
 					err,
-					result
+					result,
 				);
-			}
+			},
 		);
 	}
 
 	/**
 	 * @param {PathLike | PathOrFileDescriptor} path path
-	 * @param {any} options options
-	 * @returns {any} result
+	 * @param {EXPECTED_ANY} options options
+	 * @returns {EXPECTED_ANY} result
 	 */
 	provideSync(path, options) {
 		if (
@@ -301,10 +427,10 @@ class CacheBackend {
 		}
 		const strPath = typeof path !== "string" ? path.toString() : path;
 		if (options) {
-			return /** @type {Function} */ (this._syncProvider).call(
+			return /** @type {EXPECTED_FUNCTION} */ (this._syncProvider).call(
 				this._providerContext,
 				path,
-				options
+				options,
 			);
 		}
 
@@ -314,7 +440,7 @@ class CacheBackend {
 		}
 
 		// Check in cache
-		let cacheEntry = this._data.get(strPath);
+		const cacheEntry = this._data.get(strPath);
 		if (cacheEntry !== undefined) {
 			if (cacheEntry.err) throw cacheEntry.err;
 			return cacheEntry.result;
@@ -329,9 +455,9 @@ class CacheBackend {
 		// When in idle mode, we will enter sync mode
 		let result;
 		try {
-			result = /** @type {Function} */ (this._syncProvider).call(
+			result = /** @type {EXPECTED_FUNCTION} */ (this._syncProvider).call(
 				this._providerContext,
-				path
+				path,
 			);
 		} catch (err) {
 			this._storeResult(strPath, /** @type {Error} */ (err), undefined);
@@ -350,10 +476,11 @@ class CacheBackend {
 	}
 
 	/**
-	 * @param {string | Buffer | URL | number | (string | URL | Buffer | number)[] | Set<string | URL | Buffer | number>} [what] what to purge
+	 * @param {(string | Buffer | URL | number | (string | URL | Buffer | number)[] | Set<string | URL | Buffer | number>)=} what what to purge
+	 * @param {{ exact?: boolean }=} options options; `exact: true` removes only entries whose key matches `what` exactly instead of any entry whose key starts with `what`
 	 */
-	purge(what) {
-		if (!what) {
+	purge(what, options) {
+		if (what === undefined || what === null) {
 			if (this._mode !== STORAGE_MODE_IDLE) {
 				this._data.clear();
 				for (const level of this._levels) {
@@ -361,14 +488,57 @@ class CacheBackend {
 				}
 				this._enterIdleMode();
 			}
-		} else if (
+			return;
+		}
+		const exact =
+			options !== undefined && options !== null && options.exact === true;
+		if (exact) {
+			if (
+				typeof what === "string" ||
+				Buffer.isBuffer(what) ||
+				what instanceof URL ||
+				typeof what === "number"
+			) {
+				const strWhat = typeof what !== "string" ? what.toString() : what;
+				const data = this._data.get(strWhat);
+				if (data !== undefined) {
+					this._data.delete(strWhat);
+					data.level.delete(strWhat);
+				}
+			} else {
+				for (const item of what) {
+					const strItem = typeof item !== "string" ? item.toString() : item;
+					const data = this._data.get(strItem);
+					if (data !== undefined) {
+						this._data.delete(strItem);
+						data.level.delete(strItem);
+					}
+				}
+			}
+			if (this._data.size === 0) {
+				this._enterIdleMode();
+			}
+			return;
+		}
+		if (
 			typeof what === "string" ||
 			Buffer.isBuffer(what) ||
 			what instanceof URL ||
 			typeof what === "number"
 		) {
 			const strWhat = typeof what !== "string" ? what.toString() : what;
-			for (let [key, data] of this._data) {
+			if (strWhat === "") {
+				// empty string is a prefix of every key — short-circuit the O(n) scan
+				if (this._mode !== STORAGE_MODE_IDLE) {
+					this._data.clear();
+					for (const level of this._levels) {
+						level.clear();
+					}
+					this._enterIdleMode();
+				}
+				return;
+			}
+			for (const [key, data] of this._data) {
 				if (key.startsWith(strWhat)) {
 					this._data.delete(key);
 					data.level.delete(key);
@@ -378,7 +548,7 @@ class CacheBackend {
 				this._enterIdleMode();
 			}
 		} else {
-			for (let [key, data] of this._data) {
+			for (const [key, data] of this._data) {
 				for (const item of what) {
 					const strItem = typeof item !== "string" ? item.toString() : item;
 					if (key.startsWith(strItem)) {
@@ -395,10 +565,10 @@ class CacheBackend {
 	}
 
 	/**
-	 * @param {string | Buffer | URL | number | (string | URL | Buffer | number)[] | Set<string | URL | Buffer | number>} [what] what to purge
+	 * @param {(string | Buffer | URL | number | (string | URL | Buffer | number)[] | Set<string | URL | Buffer | number>)=} what what to purge
 	 */
 	purgeParent(what) {
-		if (!what) {
+		if (what === undefined || what === null) {
 			this.purge();
 		} else if (
 			typeof what === "string" ||
@@ -421,7 +591,7 @@ class CacheBackend {
 	/**
 	 * @param {string} path path
 	 * @param {Error | null} err error
-	 * @param {any} result result
+	 * @param {EXPECTED_ANY} result result
 	 */
 	_storeResult(path, err, result) {
 		if (this._data.has(path)) return;
@@ -434,7 +604,7 @@ class CacheBackend {
 		const nextLevel = (this._currentLevel + 1) % this._levels.length;
 		const decay = this._levels[nextLevel];
 		this._currentLevel = nextLevel;
-		for (let item of decay) {
+		for (const item of decay) {
 			this._data.delete(item);
 		}
 		decay.clear();
@@ -468,17 +638,23 @@ class CacheBackend {
 				this._runDecays();
 				// _runDecays may change the mode
 				if (
-					/** @type {STORAGE_MODE_IDLE | STORAGE_MODE_SYNC | STORAGE_MODE_ASYNC}*/
+					/** @type {STORAGE_MODE_IDLE | STORAGE_MODE_SYNC | STORAGE_MODE_ASYNC} */
 					(this._mode) === STORAGE_MODE_IDLE
-				)
+				) {
 					return;
+				}
 				timeout = Math.max(
 					0,
-					/** @type {number} */ (this._nextDecay) - Date.now()
+					/** @type {number} */ (this._nextDecay) - Date.now(),
 				);
 				break;
 		}
 		this._mode = STORAGE_MODE_ASYNC;
+		// When duration is Infinity, cache entries never expire, so there
+		// is no need to schedule a decay timer.
+		if (this._duration === Infinity) {
+			return;
+		}
 		const ref = setTimeout(() => {
 			this._mode = STORAGE_MODE_SYNC;
 			this._runDecays();
@@ -502,8 +678,8 @@ class CacheBackend {
 }
 
 /**
- * @template {function} Provider
- * @template {function} AsyncProvider
+ * @template {EXPECTED_FUNCTION} Provider
+ * @template {EXPECTED_FUNCTION} AsyncProvider
  * @template FileSystem
  * @param {number} duration duration in ms files are cached
  * @param {Provider | undefined} provider provider
@@ -530,7 +706,7 @@ module.exports = class CachedInputFileSystem {
 			duration,
 			this.fileSystem.lstat,
 			this.fileSystem.lstatSync,
-			this.fileSystem
+			this.fileSystem,
 		);
 		const lstat = this._lstatBackend.provide;
 		this.lstat = /** @type {FileSystem["lstat"]} */ (lstat);
@@ -541,7 +717,7 @@ module.exports = class CachedInputFileSystem {
 			duration,
 			this.fileSystem.stat,
 			this.fileSystem.statSync,
-			this.fileSystem
+			this.fileSystem,
 		);
 		const stat = this._statBackend.provide;
 		this.stat = /** @type {FileSystem["stat"]} */ (stat);
@@ -552,7 +728,7 @@ module.exports = class CachedInputFileSystem {
 			duration,
 			this.fileSystem.readdir,
 			this.fileSystem.readdirSync,
-			this.fileSystem
+			this.fileSystem,
 		);
 		const readdir = this._readdirBackend.provide;
 		this.readdir = /** @type {FileSystem["readdir"]} */ (readdir);
@@ -565,7 +741,7 @@ module.exports = class CachedInputFileSystem {
 			duration,
 			this.fileSystem.readFile,
 			this.fileSystem.readFileSync,
-			this.fileSystem
+			this.fileSystem,
 		);
 		const readFile = this._readFileBackend.provide;
 		this.readFile = /** @type {FileSystem["readFile"]} */ (readFile);
@@ -582,18 +758,18 @@ module.exports = class CachedInputFileSystem {
 					(
 						/**
 						 * @param {string} path path
-						 * @param {FileSystemCallback<any>} callback
+						 * @param {FileSystemCallback<EXPECTED_ANY>} callback callback
 						 */
 						(path, callback) => {
 							this.readFile(path, (err, buffer) => {
 								if (err) return callback(err);
 								if (!buffer || buffer.length === 0)
-									return callback(new Error("No file content"));
+									{return callback(new Error("No file content"));}
 								let data;
 								try {
-									data = JSON.parse(buffer.toString("utf-8"));
-								} catch (e) {
-									return callback(/** @type {Error} */ (e));
+									data = JSON.parse(buffer.toString("utf8"));
+								} catch (err_) {
+									return callback(/** @type {Error} */ (err_));
 								}
 								callback(null, data);
 							});
@@ -605,15 +781,15 @@ module.exports = class CachedInputFileSystem {
 					(
 						/**
 						 * @param {string} path path
-						 * @returns {any} result
+						 * @returns {EXPECTED_ANY} result
 						 */
 						(path) => {
 							const buffer = this.readFileSync(path);
-							const data = JSON.parse(buffer.toString("utf-8"));
+							const data = JSON.parse(buffer.toString("utf8"));
 							return data;
 						}
 				 )),
-			this.fileSystem
+			this.fileSystem,
 		);
 		const readJson = this._readJsonBackend.provide;
 		this.readJson = /** @type {FileSystem["readJson"]} */ (readJson);
@@ -626,7 +802,7 @@ module.exports = class CachedInputFileSystem {
 			duration,
 			this.fileSystem.readlink,
 			this.fileSystem.readlinkSync,
-			this.fileSystem
+			this.fileSystem,
 		);
 		const readlink = this._readlinkBackend.provide;
 		this.readlink = /** @type {FileSystem["readlink"]} */ (readlink);
@@ -639,7 +815,7 @@ module.exports = class CachedInputFileSystem {
 			duration,
 			this.fileSystem.realpath,
 			this.fileSystem.realpathSync,
-			this.fileSystem
+			this.fileSystem,
 		);
 		const realpath = this._realpathBackend.provide;
 		this.realpath = /** @type {FileSystem["realpath"]} */ (realpath);
@@ -650,15 +826,20 @@ module.exports = class CachedInputFileSystem {
 	}
 
 	/**
-	 * @param {string | Buffer | URL | number | (string | URL | Buffer | number)[] | Set<string | URL | Buffer | number>} [what] what to purge
+	 * @param {(string | Buffer | URL | number | (string | URL | Buffer | number)[] | Set<string | URL | Buffer | number>)=} what what to purge
+	 * @param {{ exact?: boolean }=} options options; `exact: true` removes only cache entries whose key matches `what` exactly instead of any entry whose key starts with `what`
 	 */
-	purge(what) {
-		this._statBackend.purge(what);
-		this._lstatBackend.purge(what);
-		this._readdirBackend.purgeParent(what);
-		this._readFileBackend.purge(what);
-		this._readlinkBackend.purge(what);
-		this._readJsonBackend.purge(what);
-		this._realpathBackend.purge(what);
+	purge(what, options) {
+		this._statBackend.purge(what, options);
+		this._lstatBackend.purge(what, options);
+		if (options !== undefined && options !== null && options.exact === true) {
+			this._readdirBackend.purge(what, options);
+		} else {
+			this._readdirBackend.purgeParent(what);
+		}
+		this._readFileBackend.purge(what, options);
+		this._readlinkBackend.purge(what, options);
+		this._readJsonBackend.purge(what, options);
+		this._realpathBackend.purge(what, options);
 	}
 };

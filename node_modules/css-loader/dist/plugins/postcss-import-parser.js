@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 var _postcssValueParser = _interopRequireDefault(require("postcss-value-parser"));
 var _utils = require("../utils");
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 function isIgnoredAfterName(atRule) {
   if (atRule.raws && atRule.raws.afterName && atRule.raws.afterName.trim().length > 0) {
     const lastCommentIndex = atRule.raws.afterName.lastIndexOf("/*");

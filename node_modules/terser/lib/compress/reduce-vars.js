@@ -87,8 +87,9 @@ import {
     AST_Try,
     AST_Unary,
     AST_UnaryPrefix,
-    AST_Undefined,
+    AST_UsingDef,
     AST_VarDef,
+    AST_VarDefLike,
     AST_While,
     AST_Yield,
 
@@ -96,7 +97,7 @@ import {
     walk_body,
     walk_parent,
 } from "../ast.js";
-import { HOP, make_node, noop } from "../utils/index.js";
+import { HOP, make_node, make_void_0, noop } from "../utils/index.js";
 
 import { lazy_op, is_modified, is_lhs } from "./inference.js";
 import { INLINED, clear_flag } from "./compressor-flags.js";
@@ -170,7 +171,7 @@ function safe_to_read(tw, def) {
         if (def.fixed == null) {
             var orig = def.orig[0];
             if (orig instanceof AST_SymbolFunarg || orig.name == "arguments") return false;
-            def.fixed = make_node(AST_Undefined, orig);
+            def.fixed = make_void_0(orig);
         }
         return true;
     }
@@ -235,7 +236,7 @@ function mark_escaped(tw, d, scope, node, value, level = 0, depth = 1) {
         parent instanceof AST_Assign && (parent.operator === "=" || parent.logical) && node === parent.right
         || parent instanceof AST_Call && (node !== parent.expression || parent instanceof AST_New)
         || parent instanceof AST_Exit && node === parent.value && node.scope !== d.scope
-        || parent instanceof AST_VarDef && node === parent.value
+        || parent instanceof AST_VarDefLike && node === parent.value
         || parent instanceof AST_Yield && node === parent.value && node.scope !== d.scope
     ) {
         if (depth > 1 && !(value && value.is_constant_expression(scope))) depth = 1;
@@ -468,7 +469,7 @@ function mark_lambda(tw, descend, compressor) {
             if (d.orig.length > 1) return;
             if (d.fixed === undefined && (!this.uses_arguments || tw.has_directive("use strict"))) {
                 d.fixed = function() {
-                    return iife.args[i] || make_node(AST_Undefined, iife);
+                    return iife.args[i] || make_void_0(iife);
                 };
                 tw.loop_ids.set(d.id, tw.in_loop);
                 mark(tw, d, true);
@@ -618,7 +619,7 @@ function handle_defined_after_hoist(parent) {
 
     // Refine `defun_first_read_map` to be as high as possible
     for (const [defun, defun_first_read] of defun_first_read_map) {
-        // Update all depdencies of `defun`
+        // Update all dependencies of `defun`
         const queue = new Set(defun_dependencies_map.get(defun));
         for (const enclosed_defun of queue) {
             let enclosed_defun_first_read = defun_first_read_map.get(enclosed_defun);
@@ -845,6 +846,10 @@ def_reduce_vars(AST_VarDef, function(tw, descend) {
             d.fixed = false;
         }
     }
+});
+
+def_reduce_vars(AST_UsingDef, function() {
+    suppress(this.name);
 });
 
 def_reduce_vars(AST_While, function(tw, descend, compressor) {

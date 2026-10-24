@@ -4,17 +4,17 @@
 
 "use strict";
 
-/** @typedef {import("./ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("./ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {string[]} Keys */
 
 class NullPrototypeObjectSerializer {
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @template {object} T
 	 * @param {T} obj null object
-	 * @param {ObjectSerializerContext} context context
+	 * @param {import("./ObjectMiddleware").ObjectSerializerContext<(string | null | T[keyof T])[]>} context context
 	 */
 	serialize(obj, context) {
-		/** @type {string[]} */
+		/** @type {Keys} */
 		const keys = Object.keys(obj);
 		for (const key of keys) {
 			context.write(key);
@@ -26,23 +26,25 @@ class NullPrototypeObjectSerializer {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @template {object} T
-	 * @param {ObjectDeserializerContext} context context
+	 * @param {import("./ObjectMiddleware").ObjectDeserializerContext<(string | null | T[keyof T])[]>} context context
 	 * @returns {T} null object
 	 */
 	deserialize(context) {
 		/** @type {T} */
 		const obj = Object.create(null);
-		/** @type {string[]} */
+		/** @type {Keys} */
 		const keys = [];
-		/** @type {string | null} */
-		let key = context.read();
+		let key = /** @type {string | null} */ (context.read());
 		while (key !== null) {
 			keys.push(key);
-			key = context.read();
+			key = /** @type {string | null} */ (context.read());
 		}
 		for (const key of keys) {
-			obj[/** @type {keyof T} */ (key)] = context.read();
+			obj[/** @type {keyof T} */ (key)] = /** @type {T[keyof T]} */ (
+				context.read()
+			);
 		}
 		return obj;
 	}

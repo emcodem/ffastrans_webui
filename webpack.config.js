@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 //'yaml-loader' module is required by rules 
 
@@ -10,7 +11,9 @@ module.exports = {
 	},
 	externalsPresets: { node: true },
 	mode: 'production',
-	devtool: 'source-map',
+	//same as devtool: 'source-map' but only for our js bundles: webpack >= 5.105 would also generate
+	//maps for the css copied by CopyWebpackPlugin, which conflict with the .css.map files copied alongside
+	devtool: false,
 	module: {
 		rules: [
 		 //no need for rules as we bundle using nexe
@@ -21,6 +24,12 @@ module.exports = {
 		]
 	},
 	plugins: [
+		new webpack.SourceMapDevToolPlugin({
+			filename: '[file].map[query]',
+			test: /\.(c|m)?js($|\?)/i,
+			module: true,
+			columns: true,
+		}),
 		/*swagger-ui needs some static files, if we used the typescript module this would not be the case but as long as we use cjs, we need to copy the files into root of rest_service */
 		new CopyWebpackPlugin({
 			patterns: [
@@ -32,7 +41,9 @@ module.exports = {
 				{from:'./rest_service/node_modules/swagger-ui-dist/favicon-32x32.png',to: "rest_service", toType:"dir"},
 				
 				{ from: './webinterface', to: 'webinterface', toType:"dir" }
-			]
+			//keep html/css verbatim: webpack >= 5.105 also minifies html/css assets in production mode.
+			//copied js is still minified by terser as before
+			].map(pattern => ({ ...pattern, info: (file) => ({ minimized: !/\.(c|m)?js$/i.test(file.filename) }) }))
 		})
 	],
 	output: {
