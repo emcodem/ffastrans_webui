@@ -8,6 +8,9 @@ const path = require("path")
 const common = require("./common/helpers.js")
 const readLastLines = require('read-last-lines')
 const axios = require('axios');
+const https = require('https');
+
+const loopbackHttpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 var   first_call_after_startup = false;
 var   caller_ip= 0;
@@ -153,21 +156,17 @@ async function parse_monitor_log(req){
         return "";//nothing to report if log did not change
     }
     
-    //fetch jobs from self
+    //fetch jobs from self, always via loopback: works with any listen setting and does not trust the caller's Host header
     var youngestHistory;
+    const url = `${req.protocol}://127.0.0.1:${global.MY_OWN_LISTEN_PORT}/jobs`;
     try {
-        const protocol = req.protocol; // 'http' or 'https'
-        const host = req.get('host'); // Includes hostname and port (e.g., 'localhost:3000')
-        
-        const url = `${protocol}://${host}/jobs`;
         console.log(`Fetching from: ${url}`);
-
-        const response = await axios.get(url);
+        //the https certificate is issued for the hostname, not 127.0.0.1, and this call goes to ourselves anyway
+        const response = await axios.get(url, { httpsAgent: loopbackHttpsAgent });
         youngestHistory = await response.data.history;
-
-        //res.json({ fetchedData: data });
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching jobs from self: ' +url });
+        //metrics for the counts above are still valid, only the error job report is skipped
+        console.error("Error fetching jobs from self: " + url, error.message);
     }
 
     var returnvalue = "";
