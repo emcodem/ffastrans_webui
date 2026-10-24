@@ -322,12 +322,13 @@ async function extractZipToJobFolder(zipPath, res) {
       await fs.promises.mkdir(extractPath, { recursive: true });
     }
     
-    // Extract files
-    let extractedCount = 0;
+    // Determine target paths, reject the whole zip if any entry would end up outside of the job folder (e.g. "../x")
+    const extractRoot = path.resolve(extractPath) + path.sep;
+    const targets = [];
     for (const entry of zipEntries) {
       if (!entry.isDirectory) {
         let targetPath;
-        
+
         if (topLevelFolder && entry.entryName.startsWith(topLevelFolder + '/')) {
           // Remove top-level folder from path
           const relativePath = entry.entryName.substring(topLevelFolder.length + 1);
@@ -335,7 +336,17 @@ async function extractZipToJobFolder(zipPath, res) {
         } else {
           targetPath = path.join(extractPath, entry.entryName);
         }
-        
+
+        if (!path.resolve(targetPath).startsWith(extractRoot)) {
+          throw new Error('ZIP entry points outside of the job folder: ' + entry.entryName);
+        }
+        targets.push({ entry, targetPath });
+      }
+    }
+
+    // Extract files
+    let extractedCount = 0;
+    for (const { entry, targetPath } of targets) {
         // Ensure directory exists
         const targetDir = path.dirname(targetPath);
         if (!await fs.promises.exists(targetDir)) {
@@ -345,7 +356,6 @@ async function extractZipToJobFolder(zipPath, res) {
         // Extract file
         await fs.promises.writeFile(targetPath, entry.getData());
         extractedCount++;
-      }
     }
     
     console.log(`Successfully extracted ${extractedCount} files to ${extractPath}`);
