@@ -48,6 +48,9 @@ defaultConfig.STATIC_API_NEW_PORT = "3003";
 //"true": listens on all interfaces, needed when other webinterfaces list this server in STATIC_API_HOSTS or when STATIC_USE_PROXY_URL is false
 defaultConfig.STATIC_API_LISTEN_ALL_INTERFACES = "false";
 defaultConfig.STATIC_API_TIMEOUT = 7000;
+//comma separated origins (e.g. https://portal.example.com) whose pages may send POST/PUT/DELETE to this webinterface from the browser.
+//empty: only pages of this webinterface itself (CSRF protection, see cross_origin_protection.js)
+defaultConfig.STATIC_TRUSTED_ORIGINS = "";
 
 defaultConfig.STATIC_RUNNING_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,20%,10%,10%"; 
 defaultConfig.STATIC_FINISHED_GRID_COL_WIDTHS_PERCENT = "5%,35%,10%,5%,10%,20%";

@@ -40,6 +40,8 @@ const { Player } = require('./node_components/player');
 const logfactory = require("./shared_modules/logger.js");
 
 const restApiController = require("./node_components/common/rest_api_controller.js");
+const { crossOriginProtection, crossOriginReason } = require("./node_components/cross_origin_protection.js");
+let sessionMiddleware; //set in init, shared with socket.io
 let m_rest_api_worker;
 
 const dns = require('node:dns');
@@ -389,6 +391,18 @@ async function registerAddedFolders(newline_separated_folder_list) {
     }
 }
 
+//signs the session cookie. Random per install, whoever knows it can forge a login
+async function getSessionSecret() {
+    if (process.env.SESSION_SECRET) {
+        return process.env.SESSION_SECRET;
+    }
+    if (!global.confidential_config.session_secret) {
+        global.confidential_config.session_secret = require('crypto').randomBytes(32).toString('hex');
+        await configmgr.saveConfidentialAsync();
+    }
+    return global.confidential_config.session_secret;
+}
+
 async function init(conf) {
     global.config = conf;
 
@@ -416,6 +430,9 @@ async function init(conf) {
         }
         next();
     });
+
+    //CSRF: reject state changing requests from other origins, before anything handles them
+    app.use(crossOriginProtection);
 
     // we need bodyparser to take care about the sent jsons except for the following cases
     // Skip body-parser for /new_proxy routes to preserve multipart data
@@ -487,12 +504,13 @@ async function init(conf) {
     //EVERYTHING FROM HERE IS PASSWORD PROTECTED (i think)
     // required for passport
     var farFuture = new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 365 * 10)); // ~10y
-    app.use(session({
-        secret: process.env.SESSION_SECRET || 'a-fallback-secret-for-dev-only',
+    sessionMiddleware = session({
+        secret: await getSessionSecret(),
         resave: false, // Do not save session if unmodified
         saveUninitialized: false, // Do not create session until something stored
         cookie: { maxAge: farFuture, sameSite: 'lax' } // Add sameSite for CSRF protection
-    }));
+    });
+    app.use(sessionMiddleware);
 
     app.use(passport.initialize());
     app.use(passport.session()); // persistent login sessions
@@ -717,7 +735,23 @@ function initSocketIo(created_httpserver) {
     //init live connection to clients using socket.io
     global.socketio = socket(created_httpserver, {
         serveClient: false,     // disables serving /socket.io/socket.io.js from socket.io require, we serve it in routes
-        path: "/ws"             // sets the socket.io server path to /ws instead of default /socket.io (clients must specify same path)
+        path: "/ws",            // sets the socket.io server path to /ws instead of default /socket.io (clients must specify same path)
+        allowRequest: (req, callback) => {
+            //socket.io bypasses express, so CSRF (cross site websocket hijacking) is checked here
+            const reason = crossOriginReason(req);
+            if (reason) {
+                console.warn("Blocked cross origin socket.io connection:", reason);
+            }
+            callback(reason ? "cross origin" : null, !reason);
+        }
+    });
+    //socket.io does not run the express middlewares, so session and login are checked here as well
+    global.socketio.engine.use(sessionMiddleware);
+    global.socketio.use((socket, next) => {
+        if (global.config.STATIC_USE_WEB_AUTHENTIFICATION + "" == "false" || socket.request.session?.passport?.user) {
+            return next();
+        }
+        next(new Error("not logged in"));
     });
     var wildcard = socketwildcard();
     global.socketio.use(wildcard);
