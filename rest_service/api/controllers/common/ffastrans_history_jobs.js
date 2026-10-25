@@ -1,7 +1,6 @@
 const path = require("path");
 const fs = require("fs-extra");
-const { readFile } = require("./helpers");
-const { getActiveJobs } = require("./ffastrans_active_jobs.js");
+const { getBusyJobIds } = require("./ffastrans_active_jobs.js");
 
 // A finished job is normally marked by a consolidated full_log.json. The engine
 // occasionally finishes a job (all branches written to finished\) but never writes
@@ -19,8 +18,8 @@ module.exports = {
 };
 
 let fileContentDatabase = {}; // currently unused — kept for diagnostics only
-let jobCache = {};//{job_id:[task,task]},job_id:...}
-let workaround_dispel_database = {}; //workaround missing dispel info in ffastrans job json, currently we parse job log to find out if dispel
+let jobCache = {};//{job_id:{version,rows:[task,task]}}
+let workaround_dispel_database = {}; //legacy log fallback for split JSONs without a boolean dispel flag
 
 function roughSizeOf(obj) {
     try { return Buffer.byteLength(JSON.stringify(obj), 'utf8'); } catch { return -1; }
@@ -41,6 +40,26 @@ function _clearCaches() {
     jobCache = {};
     workaround_dispel_database = {};
     fileContentDatabase = {};
+}
+
+function filterSplitVariables(split, variablesFilter) {
+    // Cached rows retain all variables; every request gets its own projection.
+    const variables = Array.isArray(variablesFilter)
+        ? split.variables.filter(variable => variablesFilter.includes(variable.name))
+        : [];
+    return { ...split, variables };
+}
+
+function getSplitState(split) {
+    return typeof split.state === 'number' ? split.state
+        : typeof split.status === 'number' ? split.status : undefined;
+}
+
+function clearJobDispelCache(jobDir, jobId) {
+    const prefix = path.join(jobDir, jobId, 'finished') + path.sep;
+    for (const logPath of Object.keys(workaround_dispel_database)) {
+        if (logPath.startsWith(prefix)) delete workaround_dispel_database[logPath];
+    }
 }
 
 async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, return_id_only = false) {
@@ -82,30 +101,57 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
 
     let startcount = 0;
     let jobCount = 0;
-    let activeJobIdSet = null; // lazily built once per call, only if a job lacks full_log.json
+    const busyJobIds = await getBusyJobIds();
+    // An observed retry invalidates the previous completed result, even if
+    // that job is outside this request's pagination window.
+    for (const job_id of busyJobIds) {
+        delete jobCache[job_id];
+        clearJobDispelCache(jobDir, job_id);
+    }
     for (let job_id of subfolders) {
         startcount++;
         if (startcount < start)
             continue
         if (jobCount >= end)
             break;
-        if (jobCache[job_id]) {
+        if (busyJobIds.has(job_id))
+            continue;
+        let fullLogStat;
+        let finishedStat;
+        const finisheddir = path.join(jobDir, job_id, 'finished');
+        try {
+            fullLogStat = await fs.stat(path.join(jobDir, job_id, 'full_log.json'));
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+        }
+        if (fullLogStat) {
+            try {
+                finishedStat = await fs.stat(finisheddir);
+            } catch (error) {
+                if (error.code !== 'ENOENT') throw error;
+            }
+        }
+        // The consolidated log changes on a retry; the finished directory
+        // changes when a previously missing split or legacy branch log arrives.
+        const fullLogVersion = fullLogStat
+            ? `${fullLogStat.mtimeMs}:${fullLogStat.ctimeMs}:${fullLogStat.size}:${finishedStat?.mtimeMs}:${finishedStat?.ctimeMs}` : null;
+        if (jobCache[job_id]?.version === fullLogVersion) {
             //push all splits from this job into taskArray
-            taskArray.push(...jobCache[job_id]);
+            taskArray.push(...jobCache[job_id].rows.map(split => filterSplitVariables(split, variablesFilter)));
             jobCount++;
             continue;
+        }
+        if (jobCache[job_id]) {
+            delete jobCache[job_id];
+            clearJobDispelCache(jobDir, job_id);
         }
 
         //excludes unfinished jobs. Normally a finished job has a consolidated
         //full_log.json. If it's missing the job may still be running, or the engine
         //finished it but never wrote full_log.json (orphaned finalization). Only
         //treat it as finished when no branch is active and it has settled.
-        if (!(await fs.exists(path.join(jobDir, job_id, "full_log.json")))) {
-            if (activeJobIdSet === null) {
-                activeJobIdSet = new Set((await getActiveJobs(0, Number.MAX_SAFE_INTEGER, [], true)).map(a => a.job_id));
-            }
-            if (activeJobIdSet.has(job_id))
-                continue; //a branch is still running -> not history yet
+        const hasFullLog = !!fullLogStat;
+        if (!hasFullLog) {
             try {
                 let rootStat = await fs.stat(path.join(jobDir, job_id, ".json"));
                 if (Date.now() - rootStat.mtimeMs < ORPHAN_MIN_AGE_MS)
@@ -117,19 +163,25 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
         }
 
         //from here we are sure to have a finished job
-        let finisheddir = path.join(jobDir, job_id, "finished")
         let split_ids;
         try {
-            split_ids = (await fs.readdir(finisheddir, { withFileTypes: true })).map(dirent => dirent.name)
+            split_ids = (await fs.readdir(finisheddir, { withFileTypes: true }))
+                // Legacy abort/retry snapshots can use names such as
+                // 1-10-10.<timestamp>_<host> without a .json extension.
+                .filter(dirent => dirent.isFile() &&
+                    (/\.json$/i.test(dirent.name) || /^\d+(?:-\d+)*\.\d+_.+$/.test(dirent.name)) &&
+                    !/_log\.json$/i.test(dirent.name))
+                .map(dirent => dirent.name);
         } catch (ex) {
             //no finished\ output (e.g. job crashed before any branch completed) -> skip
             //without seeding jobCache, so the job can be re-evaluated on a later call
             console.warn(`Skipping job ${job_id}: cannot read finished dir: ${ex.message}`);
             continue;
         }
-        if (!jobCache[job_id]) {
-            jobCache[job_id] = [];
-        }
+        const jobRows = [];
+        // Orphan detection is provisional. Never freeze a partially completed
+        // job during a gap between monitor entries or while files are written.
+        let cacheable = hasFullLog;
         console.debug(`Performance Dirlist ${finisheddir}: ${Date.now() - perf_start}ms`);
         perf_start = Date.now();
 
@@ -146,36 +198,8 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
         console.debug(`Performance read job json ${taskjsonpath}: ${Date.now() - perf_start}ms`);
 
         for (let split_id of split_ids) {
-            if (split_id.indexOf("log") != -1)
-                continue
             try {
                 let splitfilepath = path.join(finisheddir, split_id);
-                if (true) {
-                    //ffastrans 1.4 does not flag dispel in the job json \u2014 we detect it from the
-                    //job log instead. A dispelling conditional logs a "conditional" trace entry
-                    //carrying data.dispel:true, immediately followed by the "node end" entry, so
-                    //the marker always lives in the last two array elements. Read those backward
-                    //from EOF \u2014 log files can be hundreds of MB, so we never load the whole file.
-                    let _logpath = path.join(finisheddir, path.parse(splitfilepath).name + "_log" + ".json");
-
-                    if (!workaround_dispel_database.hasOwnProperty(_logpath)) {
-                        try {
-                            let lastObjs = await readLastJsonObjects(_logpath, 2);
-                            console.debug(`Performance read last 2 log objects ${_logpath}: ${Date.now() - perf_start}ms`);
-                            perf_start = Date.now();
-                            let dispelled = lastObjs.some(o => o && o.data && o.data.dispel === true);
-                            workaround_dispel_database[_logpath] = { dispel: dispelled };
-                        } catch (ex) {
-                            //i dont care about errors here, its just the dispel workaround
-                            workaround_dispel_database[_logpath] = { dispel: false };
-                        }
-                    }
-                    if (workaround_dispel_database[_logpath].dispel) {//if job ended due to dispel, hide job
-                        continue;
-                    }
-
-
-                }
                 if (!taskjson.hasOwnProperty(split_id)) {
                     let splitcontent = await fs.readFile(splitfilepath, 'utf8');//no need to cache the file, we cache the parsed job obj in jobCache
                     splitcontent = splitcontent.replace(/^\uFEFF/, ''); //BOM
@@ -185,28 +209,51 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
                     perf_start = Date.now();
                     taskjson[split_id] = splitcontent;
                 }
-                let current_split = buildSplitInfo(taskjson, split_id);
+                // Numeric outcomes are present on finished branches in both
+                // legacy/1.5 status and experimental state formats.
+                if (getSplitState(taskjson[split_id]) === undefined)
+                    continue;
+                //The split JSON's boolean flag is authoritative; no branch log is needed.
+                let dispelled = taskjson[split_id].dispel;
+                if (typeof dispelled !== "boolean") {
+                    //Older split JSONs may omit dispel, so retain the legacy log fallback.
+                    //A dispelling conditional logs a "conditional" trace entry
+                    //carrying data.dispel:true, immediately followed by the "node end" entry, so
+                    //the marker always lives in the last two array elements. Read those backward
+                    //from EOF \u2014 log files can be hundreds of MB, so we never load the whole file.
+                    let _logpath = path.join(finisheddir, path.parse(splitfilepath).name + "_log" + ".json");
 
-                //we return only variables that are used in variablecolumns
-                if (variablesFilter && current_split.variables) {
-                    current_split.variables = current_split.variables.filter(v => {
-                        // Keep the variable if it matches any of the provided filters
-                        return variablesFilter.some(f => {
-
-                            return v.name == f;
-                        });
-                    });
-                } else {
-                    //by default return no variables
-                    current_split.variables = [];
+                    if (!hasFullLog || workaround_dispel_database[_logpath]?.version !== fullLogVersion) {
+                        try {
+                            let lastObjs = await readLastJsonObjects(_logpath, 2);
+                            console.debug(`Performance read last 2 log objects ${_logpath}: ${Date.now() - perf_start}ms`);
+                            perf_start = Date.now();
+                            let logDispelled = lastObjs.some(o => o && o.data && o.data.dispel === true);
+                            workaround_dispel_database[_logpath] = { dispel: logDispelled, version: fullLogVersion };
+                        } catch (ex) {
+                            // Missing logs are legitimate in newer formats. The
+                            // directory version invalidates cached rows if a log
+                            // arrives later; other read failures must be retried.
+                            delete workaround_dispel_database[_logpath];
+                            if (ex.code !== 'ENOENT') cacheable = false;
+                        }
+                    }
+                    dispelled = workaround_dispel_database[_logpath]?.dispel;
                 }
-                taskArray.push(current_split);
-                jobCache[job_id].push(current_split);
+                if (dispelled) //if the split ended due to dispel, hide it
+                    continue;
+                let current_split = buildSplitInfo(taskjson, split_id);
+                taskArray.push(filterSplitVariables(current_split, variablesFilter));
+                jobRows.push(current_split);
 
             } catch (ex) {
+                cacheable = false;
                 console.trace(ex);
             }
         }
+        // Publish only complete reads, after the async work, so parallel calls
+        // cannot see an empty or partially populated cache entry.
+        if (cacheable && jobRows.length > 0) jobCache[job_id] = { version: fullLogVersion, rows: jobRows };
         console.debug(`Performance job ${job_id}: ${Date.now() - perf_start}ms`);
         perf_start = Date.now();
         jobCount++;
@@ -216,9 +263,12 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
 
 function buildSplitInfo(jobInfo, splitId) {
     //returns ffastra
+    //Numeric outcomes: 0=error, 1=success, 2=abort. 1.5 and legacy files use
+    //status; experimental files may use state. Textual progress is not an outcome.
+    var state = getSplitState(jobInfo[splitId]);
     var result = jobInfo[splitId].result;
     var display_name = jobInfo[splitId].sources.pretty_name
-    if (jobInfo[splitId].status !== 1) {
+    if (state !== 1) {
         try {
             result = jobInfo[splitId].error.msg
         } catch {
@@ -230,14 +280,14 @@ function buildSplitInfo(jobInfo, splitId) {
         /* 
             we use start_time and end_time here instead of job_start for api backward compatibility reasons 
         */
-        "start_time": jobInfo[splitId].submit.time,
+        "start_time": jobInfo[splitId].start_time ?? jobInfo[splitId].submit?.time,
         "end_time": jobInfo[splitId].end_time,
         "job_id": jobInfo.job_id,
         "result": result,
         "source": display_name,
         "split_id": splitId,
-        "state": jobInfo[splitId].status, //TODO! OK, thanks emcodem of the past.. what exactly todo here?
-        "workflow": jobInfo.workflow.name,
+        "state": state,
+        "workflow": jobInfo[splitId].wf_name ?? jobInfo.workflow?.name,
         "variables": jobInfo[splitId].variables || []
     }
     return to_return;

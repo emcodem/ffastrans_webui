@@ -76,37 +76,13 @@ async function get(req, res) {
             //  - a ticket in ANY tickets subfolder (pending/queue/running/temp) -> "<priority>~<jobid>~...json".
             //The tickets check covers the window where a job is queued/pending but does not yet have a .list branch file.
             const monitorListPath = path.join(global.api_config["s_SYS_CACHE_DIR"], "monitor", ".list");
-            const ticketsPath = path.join(global.api_config["s_SYS_CACHE_DIR"], "tickets");
-
             let listExists = false;     // false => .list folder not present (older ffastrans); fall back to full_log.json only
-            const busyJobIds = new Set(); // jobids that are still active somewhere (.list or any tickets subfolder)
-
-            // Running branches in monitor/.list -> "<jobid>~<split_id>.json"
+            const busyJobIds = await ffastrasActiveJobHelper.getBusyJobIds();
             try {
-                const listFiles = await fsPromises.readdir(monitorListPath);
-                listExists = true;
-                for (const f of listFiles) {
-                    if (f.endsWith(".json")) busyJobIds.add(f.split("~")[0]);
-                }
-            } catch {
-                listExists = false;
+                listExists = (await fsPromises.stat(monitorListPath)).isDirectory();
+            } catch (error) {
+                if (error.code !== 'ENOENT') throw error;
             }
-
-            // Tickets in pending/queue/running/temp -> "<priority>~<jobid>~...json"
-            try {
-                const ticketSubdirs = await fsPromises.readdir(ticketsPath, { withFileTypes: true });
-                for (const d of ticketSubdirs) {
-                    if (!d.isDirectory()) continue;
-                    try {
-                        const ticketFiles = await fsPromises.readdir(path.join(ticketsPath, d.name));
-                        for (const f of ticketFiles) {
-                            if (!f.endsWith(".json")) continue;
-                            const jid = f.split("~")[1]; // <priority>~<jobid>~...
-                            if (jid) busyJobIds.add(jid);
-                        }
-                    } catch { /* subfolder vanished mid-scan; ignore */ }
-                }
-            } catch { /* tickets folder missing; rely on .list only */ }
 
             for (const jobid of jobids) {
                 const jobPath = path.join(jobPath_dir, jobid);
@@ -139,6 +115,9 @@ async function get(req, res) {
                     if (listExists && jobExists && !finished) {
                         finished = !busyJobIds.has(jobid);
                     }
+                    // An earlier full_log.json survives a retry. Active markers
+                    // take precedence, including on legacy installs without .list.
+                    if (busyJobIds.has(jobid)) finished = false;
 
                     results.push({
                         jobid: jobid,

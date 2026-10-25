@@ -10,6 +10,7 @@
 </script>
 <script src="../dependencies/jquery/jquery.js"></script>
 <script src="../dependencies/moment/moment.js"></script>
+<script src="job_log_compat.js"></script>
 <!-- Loads and initializes the library -->
 <!--    <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>-->
 <script type="text/javascript" src="../dependencies/mxgraph/406/javascript/mxClient.min.js"></script>
@@ -600,6 +601,9 @@ let m_branchGrid;
 let m_logGrid; // New virtualized log grid
 let m_logSubLayout; // Sub-layout for grid and details
 let m_accumulatedLogLines = []; // running jobs: partial responses only contain lines from "start" onwards, so we accumulate them here
+let m_jobLogPollTimer = null;
+let m_jobLogGeneration = 0;
+let m_jobLogRenderGeneration = null;
 // Maps node IDs to their container prefixes (for nested workflows)
 let m_node_to_container = {};
 // Maps node IDs to their graph objects (for finding correct graph in nested workflows)
@@ -1082,30 +1086,45 @@ function getSelectedGridRows(grid){/*helper to find all selected rows*/
 
 async function branchGridSelect(row,col){
     let selcel = getSelectedGridRows(m_branchGrid);
-    //put ticket to every option for later use in onclick
-    let branchid = selcel[0].row.object.split_id;
-    const response = await fetch(build_new_api_url("/getbranchlog?list_only=false&jobid=" + getQueryVariable("job_id") + "&branchid=" + branchid ));
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (!selcel.length) return;
+    let selectedBranch = selcel[0].row;
+    // Legacy retry snapshots have a filename distinct from their engine split
+    // ID. Fetch that specific snapshot; its object supplies the log split filter.
+    const branchid = selectedBranch.name || selectedBranch.object?.split_id;
+    if (!branchid) return;
+    const generation = ++m_jobLogGeneration;
+    window.clearTimeout(m_jobLogPollTimer);
+    m_jobLogPollTimer = null;
+    try {
+        const response = await fetch(build_new_api_url("/getbranchlog?list_only=false&jobid=" + encodeURIComponent(getQueryVariable("job_id")) + "&branchid=" + encodeURIComponent(branchid)));
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const branchjson = await response.json();
+        const refreshed = Array.isArray(branchjson.branches) && (
+            branchjson.branches.find(branch => branch.name === branchid)
+            || branchjson.branches.find(branch => branch.object?.split_id === branchid)
+        );
+        if (refreshed?.object) selectedBranch = refreshed;
+    } catch (error) {
+        // The ticket can move while the job runs. Keep the selected snapshot
+        // usable and resume log polling even when details are temporarily absent.
+        if (generation === m_jobLogGeneration) console.log("Using selected branch snapshot:", error);
     }
-    let branchjson = await response.json(); // Assuming the response is JSON
-    console.log("branch json downloaded:",branchjson);    
+    if (generation !== m_jobLogGeneration) return;
     
     //rebuild graph with empty cells could be optimized by reset existing graph
-    m_unique_nodes = [];
+    m_unique_nodes = {};
     m_node_branch_state = {};
+    m_subWorkflows = [];
+    m_node_to_container = {};
+    m_node_to_graph = {};
     m_graph.destroy();
     document.getElementById('graphContainer').innerHTML = "";
     m_graph = null;
     buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,true);
 
     //reload job log filtered by split_id, could be optimized by loading only branch log
-    let a_nodeids = branchjson.branches[0].object.path.map(o=>{return o.id});
-    let a_branchids = branchjson.branches[0].object.path.map(o=>{return o.split});
-    m_subWorkflows = [];
-    m_node_to_container = {};
-    m_node_to_graph = {};
-    get_job_log(getQueryVariable("job_id"),0,a_nodeids,a_branchids); 
+    const filters = FFAStransLogCompat.getBranchFilters(selectedBranch.object || { split_id: branchid }, selectedBranch.state ? selectedBranch.state === "running" : undefined);
+    get_job_log(getQueryVariable("job_id"),0,filters.nodeIds,filters.splitIds);
     
 }
 
@@ -2047,7 +2066,7 @@ function export_StyledSVG(){
     link.click();
 }
  
-async function parseJobLog(lines) {
+async function parseJobLog(lines, shouldContinue = () => true) {
     var a_log_per_node = {};
     var id_pid_mapping = {};
     var sub_workflow_is_loading = false;
@@ -2070,18 +2089,20 @@ async function parseJobLog(lines) {
     }
     
     for (var i = 0; i < lines.length; i++) {
+        if (!shouldContinue()) return;
         window.setPerformanceInfo("Parsing log Line " + (i + 1) + " of " + lines.length);
         if (i % 1000 == 0){
             await asyncsleep(1); //yield to UI thread every 1000 lines
+            if (!shouldContinue()) return;
         }
         var _proc_id;
         var line = lines[i];
-        let node_has_errors = false;
         try {
             //m_timelineobject = [];
             //['Group1', 'Item1', 'this is a tooltip for Item1.cpp', new Date(1485183398349.28) /* 2017-01-23 14:56:38.349 */, new Date(1485183403210.01) /* 2017-01-23 14:56:43.210 */],
             try{
-                var timeline_entry = [line["event"],line["node"]["type"],"",new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00"))),new Date(Date.parse(line["created"].replace(/..\.00$/,"00:00")) +1 )];
+                const created = Date.parse(FFAStransLogCompat.normalizeTimestamp(line.created));
+                var timeline_entry = [line["event"],line["node"]["type"],"",new Date(created),new Date(created + 1)];
                 //var timeline_entry = ['Group1', 'Item1',"",new Date(1485183398349.28),new Date(1485183398359.28)];
                 
                 m_timelineobject.push(timeline_entry)
@@ -2093,11 +2114,9 @@ async function parseJobLog(lines) {
 
             //handle sub-wf
 
-            if (line["node"]["type"] == "sub_wf" && line['data'] != null ){
-                
-                if (m_subWorkflows[line["node"]["id"]]){
-                    continue;
-                }
+            // Loading a graph is optional; its later log events must still update
+            // the node state (1.5 node-end events include non-null outcome data).
+            if (line["node"]["type"] == "sub_wf" && line['data'] != null && !m_subWorkflows[line["node"]["id"]]){
 
                 console.log("Sub wf detected, loadinhg json");
                 if (line['data']['wf_id']){
@@ -2120,6 +2139,10 @@ async function parseJobLog(lines) {
                             jqXHR.wf_id = line['data']['wf_id'];
                         },
                         success: function (response,status,jqXHR) {
+                            if (!shouldContinue()) {
+                                sub_workflow_is_loading = false;
+                                return;
+                            }
                             try{
                                 console.log("Sub wf json ready")
                                 console.log("Available workflows in response:", Object.keys(response['workflows']));
@@ -2150,6 +2173,7 @@ async function parseJobLog(lines) {
                         },
                         error: function (xhr, status) {
                             sub_workflow_is_loading = false;
+                            if (!shouldContinue()) return;
                             alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", please check FFAStrans Path in Admin settings on the left.. ");
                         }
                     }); 
@@ -2158,8 +2182,10 @@ async function parseJobLog(lines) {
             
             //wait until sub-wf is drawn in order to guarantee the nodes are already there
             while (sub_workflow_is_loading){
+                if (!shouldContinue()) return;
                 await asyncsleep(1)
             }
+            if (!shouldContinue()) return;
                                 
             //check if node is unique for nodegrid
             var new_key = line["node"]["id"] + line["split_id"]
@@ -2188,7 +2214,7 @@ async function parseJobLog(lines) {
 
             //check processor error state and count
             if (!m_unique_nodes[new_key]) {//this is the first log line with this processor on this branch
-                m_unique_nodes[new_key] = (line);
+                m_unique_nodes[new_key] = { ...line };
                 m_unique_nodes[new_key]["state"] = "running";
                 m_node_branch_state[_elemSel][new_key] = "running";
                 //raise proc count on gui
@@ -2198,27 +2224,39 @@ async function parseJobLog(lines) {
                 _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
             }
 
-            //check for processor end and state
-            if (line["event"] == "node end") {
-                m_unique_nodes[new_key]["date_end"] = line["created"];
-                m_unique_nodes[new_key]["state"] = "success";
-                m_node_branch_state[_elemSel][new_key] = "success";
+            // A retry can reuse the node and split ID. Track its latest state
+            // independently of the original log row, and do not let a late
+            // event from the previous attempt finish or reopen the new attempt.
+            const eventTime = Date.parse(FFAStransLogCompat.normalizeTimestamp(line.created));
+            const lastStateTime = m_unique_nodes[new_key]._state_time;
+            const updateState = !Number.isFinite(eventTime) || !Number.isFinite(lastStateTime) || eventTime >= lastStateTime;
+            if (line.event === "node start" && updateState) {
+                m_unique_nodes[new_key] = { ...line, state: "running", _state_time: eventTime };
+                m_node_branch_state[_elemSel][new_key] = "running";
+            }
 
-                //red border for errored nodes
-                if (line["data"] != null) { //when this exists, we have a node in error
-                    $("#" + containerPrefix + _proc_id).parent().addClass("blinking-error");
-                    m_unique_nodes[new_key]["state"] = "error";
-                    m_node_branch_state[_elemSel][new_key] = "error";
-                    node_has_errors = true;
-                }
+            //check for processor end and state
+            if (line["event"] == "node end" && updateState) {
+                m_unique_nodes[new_key]["date_end"] = line["created"];
+                m_unique_nodes[new_key]._state_time = eventTime;
+                const state = FFAStransLogCompat.getNodeEndState(line.data);
+                m_unique_nodes[new_key]["state"] = state;
+                m_node_branch_state[_elemSel][new_key] = state;
             }
 
             //PREFER running: keep the shared node box blinking as long as ANY branch
             //instance is still running; only stop once every branch has ended.
             var _anyRunning = false;
+            var _anyError = false;
             for (var _bk in m_node_branch_state[_elemSel]) {
-                if (m_node_branch_state[_elemSel][_bk] === "running") { _anyRunning = true; break; }
+                const branchState = m_node_branch_state[_elemSel][_bk];
+                if (branchState === "running") _anyRunning = true;
+                if (branchState === "error" || branchState === "cancelled") _anyError = true;
             }
+            if (_anyError)
+                $("#" + containerPrefix + _proc_id).parent().addClass("blinking-error");
+            else
+                $("#" + containerPrefix + _proc_id).parent().removeClass("blinking-error");
             if (_anyRunning)
                 $("#" + containerPrefix + _proc_id).parent().addClass("blinking-progress");
             else
@@ -2263,7 +2301,7 @@ function initNodeGrid() {
             template: function(val) {
                 if (!val) return "";
                 let css = "log-event-info";
-                if (val.toLowerCase().includes("error") || val.toLowerCase().includes("fail")) css = "log-event-error";
+                if (val.toLowerCase().includes("error") || val.toLowerCase().includes("fail") || val === "cancelled") css = "log-event-error";
                 if (val.toLowerCase().includes("success") || val.toLowerCase().includes("end")) css = "log-event-success";
                 return `<span class="log-event-badge ${css}">${val}</span>`;
             }
@@ -2361,8 +2399,8 @@ function initNodeGrid() {
             returnobj.host  = o.host;
             returnobj.branch = o.split_id;
             try {
-                let created = moment.parseZone(o["created"].replace(/.00$/, ":00"))
-                let end = moment.parseZone(o["date_end"].replace(/.00$/, ":00"))
+                let created = moment.parseZone(FFAStransLogCompat.normalizeTimestamp(o.created));
+                let end = moment.parseZone(FFAStransLogCompat.normalizeTimestamp(o.date_end));
                 returnobj.start     = created.format("HH:mm:ss");
                 returnobj.duration  = end.diff(created, "seconds");
             } catch (ex) { }
@@ -2400,26 +2438,39 @@ function appendLogLines(proc_id, a_lines) {
 
 }
 
-function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //branch_path is path field from finished branch json, array of node objects, they have id field which we filter
+function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter, generation, cursor, retryDelay=3000) { //branch_path is path field from finished branch json, array of node objects, they have id field which we filter
     start = typeof start !== 'undefined' ? start : 0;
+    if (generation === undefined) {
+        generation = ++m_jobLogGeneration;
+        window.clearTimeout(m_jobLogPollTimer);
+        m_jobLogPollTimer = null;
+        m_accumulatedLogLines = [];
+        m_timelineobject = [];
+    }
+    if (generation !== m_jobLogGeneration) return;
     console.log("getjoblog START: " + start );
     //get all workflows from server  start main with the workflow of interest
-    var _url = "/getjoblog?jobid=" + job_id+ "&start="+ start ;
+    var _url = "/getjoblog?jobid=" + encodeURIComponent(job_id) + "&start=" + encodeURIComponent(start);
+    if (cursor) _url += "&cursor=" + encodeURIComponent(cursor);
     $.ajax({
         url: build_new_api_url(_url),
         type: "GET",
         crossDomain: true,
         dataType: "json",
         success: async function (response,status,request) {
+            if (generation !== m_jobLogGeneration) return;
+            const type = request.getResponseHeader('ffastrans_log_type');
+            const nextCursor = request.getResponseHeader('ffastrans_log_cursor');
         
             //PARSE JOB LOG
             await asyncsleep(10); // Give UI a chance to render layout for correct width measurement
+            if (generation !== m_jobLogGeneration) return;
             for (var a in response) {
                 let item = response[a];
                 item["_data"] = item["data"];
                 
                 try {
-                    let created = moment.parseZone(item["created"].replace(/.00$/, ":00"));
+                    let created = moment.parseZone(FFAStransLogCompat.normalizeTimestamp(item.created));
                     item["created_fmt"] = created.format("YYYY-MM-DD HH:mm:ss");
                 } catch(e) {
                     item["created_fmt"] = item["created"];
@@ -2442,24 +2493,28 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 //filter log by branchid specified
                 response = response.filter(logline => a_branchid_filter.indexOf(logline.split_id) != -1);
             }
-            await parseJobLog(response);
+            // Final logs and cursor resets can replay lines from earlier polls.
+            // Older servers without cursors only send incremental partial batches;
+            // identical events in those batches still represent separate events.
+            const newLines = type === "partial" && !nextCursor ? response
+                : FFAStransLogCompat.getUnseenLogLines(response, m_accumulatedLogLines, type === "partial");
+            await parseJobLog(newLines, () => generation === m_jobLogGeneration);
+            if (generation !== m_jobLogGeneration) return;
             
             // Assign node names AFTER parseJobLog so that m_workflows includes any dynamically loaded sub-workflows
             for (var a in response) {
                 response[a]["node_name"] = getNodeName(response[a].node);
             }
             
-            var type = request.getResponseHeader('ffastrans_log_type');
             if (type == "partial") {
                 var _start = request.getResponseHeader('ffastrans_log_last_endpos');
                 console.log("Job still running, getting next log lines from start: " + _start);
-                window.setTimeout(function () { get_job_log(job_id, _start)}, 3000);
+                m_jobLogPollTimer = window.setTimeout(function () {
+                    get_job_log(job_id, _start, a_nodeid_filter, a_branchid_filter, generation, nextCursor);
+                }, 3000);
+                m_accumulatedLogLines = m_accumulatedLogLines.concat(newLines);
 
-                if (start == 0)
-                    m_accumulatedLogLines = [];
-                m_accumulatedLogLines = m_accumulatedLogLines.concat(response);
-
-                if (response.length > 0 || start == 0) { //don't touch the grid when the poll brought no new lines
+                if (newLines.length > 0 || start == 0) { //don't touch the grid when the poll brought no new lines
                     if (m_logSubLayout && m_logSubLayout.cells("b")) {
                         m_logSubLayout.cells("b").collapse();
                     }
@@ -2475,9 +2530,11 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                 }
             } else {
                 window.setPerformanceInfo("Rendering log...");
+                m_jobLogRenderGeneration = generation;
                 showLoading()
                 try{
                     await asyncsleep(10);
+                    if (generation !== m_jobLogGeneration) return;
                     if (m_logSubLayout && m_logSubLayout.cells("b")) {
                         m_logSubLayout.cells("b").collapse();
                     }
@@ -2493,7 +2550,10 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
                     window.setPerformanceInfo("Rendering log done.");
                 }catch(ex){}
                 finally{
-                    hideLoading()
+                    if (m_jobLogRenderGeneration === generation) {
+                        m_jobLogRenderGeneration = null;
+                        hideLoading();
+                    }
                 }
             }
 
@@ -2510,7 +2570,16 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter) { //br
 
         },
         error: function (xhr, status) {
-            alert("Did not get Log for job " + job_id);
+            if (generation !== m_jobLogGeneration) return;
+            if (!xhr.status || xhr.status >= 500 || status === "parsererror") {
+                console.log("Log temporarily unavailable; retrying:", job_id, xhr.status, status);
+                window.clearTimeout(m_jobLogPollTimer);
+                m_jobLogPollTimer = window.setTimeout(function () {
+                    get_job_log(job_id, start, a_nodeid_filter, a_branchid_filter, generation, cursor, Math.min(retryDelay * 2, 30000));
+                }, retryDelay);
+                return;
+            }
+            alert("Did not get Log for job " + job_id + " (HTTP " + xhr.status + ")");
         }
     });
 }

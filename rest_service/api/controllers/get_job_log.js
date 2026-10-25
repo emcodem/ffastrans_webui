@@ -3,7 +3,9 @@
 const fs = require('fs');
 const strip_bom = require('strip-bom');
 var path = require('path');
-const common = require("./common/helpers.js");
+const jobFiles = require('./common/job_log_files.js');
+const { getBusyJobIds } = require('./common/ffastrans_active_jobs.js');
+const { createHash } = require('crypto');
 const Busboy = require('busboy');
 const AdmZip = require('adm-zip');
 
@@ -19,118 +21,172 @@ module.exports = {
   Param 2: a handle to the response object
  */
 async function start(req, res) {
-  // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-  var jobid = req.query.jobid;
-  var startpos = req.query.start | 0;
-  //jobid is used as job folder and archive name
-  if (!common.isJobIdInside(jobid)) {
-    return res.status(400).json({ description: "invalid jobid" });
-  }
-
-	console.debug("get_job_log called for: " + jobid);
-	
-	// Download job folder as ZIP if requested
-	if (req.query.download) {
-		try {
-			const jobFolder = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
-			if (!await fs.promises.exists(jobFolder)) {
-				return res.status(404).json({ error: 'Job folder not found' });
-			}
-			const zip = new AdmZip();
-			zip.addLocalFolder(jobFolder);
-			res.setHeader('Content-Type', 'application/zip');
-			res.setHeader('Content-Disposition', `attachment; filename="${jobid}.zip"`);
-			return res.send(zip.toBuffer());
-		} catch (err) {
-			console.error('Error creating ZIP download:', err);
-			return res.status(500).json({ error: err.message, stack: err.stack });
-		}
-	}
-	
-	//check if full log exists, if yes, serve contents
-  const jobPath = path.join(global.api_config["s_SYS_JOB_DIR"], jobid, "full_log.json");  //C:\dev\FFAStrans1.0.0_beta1\Processors\db\cache\jobs\20191116-1019-1699-3067-cb691333052e\full_log.json
-	console.debug("trying to find file " + jobPath)
-	try {
-    if (!await fs.promises.exists(jobPath)) {
-      const ajob = path.join(global.api_config["s_SYS_CACHE_DIR"] ,"archive", 'jobs', jobid.substring(0, 8), jobid + '.7z');
-      console.log("job don't exist, searching archive: ", ajob)
-      const z7path = path.join(global.api_config["s_SYS_DIR"], 'processors', 'resources', '7zr.exe');
-      const out = path.join(global.api_config["s_SYS_JOB_DIR"], jobid);
-      await common.exeFile(z7path, ["x", ajob, "-y", "-o" + out]);
-    }
-	  if (await fs.promises.exists(jobPath)) {
-		console.debug("Full Log file exists, returning contents");
-          res.set('Content-Type', 'application/json')
-          res.set('ffastrans_log_type', 'full')
-          res.sendFile(jobPath);
-	  }else{
-		//serve log for running job
-        console.log("Serving log from running job");
-        serveRunningLog(global.api_config["s_SYS_JOB_DIR"]  + jobid + "/log/",startpos,0,res);
-      }
-	} catch(err) {
-		console.debug(err);
-		return res.status(500).json({description: err});
-	}
-}
-
-function serveRunningLog(jobdir, start, end, response) {
-    var COUNT = 0;
-    console.log("Serving running job log from " + start)
-    //a running job has multiple logs, find all files on filesystem by date
-    var files = fs.readdirSync(jobdir)
-              .map(function(v) { 
-                  return {
-                           name: jobdir + v,
-                           time:fs.statSync(jobdir + v).mtime.getTime()
-                         }; 
-               })
-              .sort(function(a, b) { return a.time - b.time; })
-              .map(function (v) { return v.name; });    
-    //concat and serve all logs
-    response.set('Content-Type', 'application/json')
-
-    
-    require("async").concat(files, readFile, function (err, buffers) {
-        if (err) {
-            console.log(err);
-            //todo: error to client
+    try {
+        res.set('Access-Control-Expose-Headers', 'ffastrans_log_type, ffastrans_log_last_endpos, ffastrans_log_cursor');
+        const jobid = req.query.jobid;
+        const jobDir = jobFiles.getJobDir(jobid);
+        const offset = req.query.start == null ? 0 : Number(req.query.start);
+        if ((req.query.start != null && typeof req.query.start !== 'string' && typeof req.query.start !== 'number') ||
+            !Number.isFinite(offset) || Math.abs(offset) > Number.MAX_SAFE_INTEGER) {
+            return res.status(400).json({ error: 'start must be a finite log offset' });
         }
-        
-        console.log("Num found log files: " + buffers.length);
-        if (start > buffers.length) {
-            console.error("Requested more log lines than i have, start was: " + start + " but i only have: " + buffers.length);
-            response.set('ffastrans_log_type', 'partial');
-            response.set('ffastrans_log_last_endpos', start);
-            response.write("[]");
-            response.end();
-            return;
+        const startpos = Math.max(0, Math.floor(offset));
+        const cursor = req.query.cursor;
+        if (cursor != null && (typeof cursor !== 'string' || !/^[a-f0-9]{64}$/.test(cursor))) {
+            return res.status(400).json({ error: 'Invalid log cursor' });
         }
 
-        COUNT = buffers.length;
-        response.set('ffastrans_log_type', 'partial')
-        response.set('ffastrans_log_last_endpos', COUNT)
-        response.write("[");
-        console.log("Log lines count: " + buffers.length)
-        console.log("Log lines wanted: " + COUNT)
-        for (let i = start; i < COUNT; i++) {
-            console.log(buffers[i].toString());
-            response.write(strip_bom(buffers[i].toString()));
-            if (i < COUNT - 1) {
-                response.write(",");
+        if (req.query.download === true || req.query.download === 'true' || req.query.download === '1') {
+            if (!await jobFiles.exists(jobDir)) return res.status(404).json({ error: 'Job folder not found' });
+            const zip = new AdmZip();
+            zip.addLocalFolder(jobDir);
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="${jobid}.zip"`);
+            return res.send(zip.toBuffer());
+        }
+
+        await jobFiles.restoreArchivedJob(jobid);
+        if (!await jobFiles.exists(jobDir)) return res.status(404).json({ error: 'Job folder not found' });
+        const jobPath = path.join(jobDir, 'full_log.json');
+        const fullLogExists = await jobFiles.exists(jobPath);
+        // Retries retain the previous full log while new branches are running.
+        const busy = (await getBusyJobIds()).has(jobid);
+        if (fullLogExists && !busy) {
+            if (!await jobFiles.isConsolidatedLogReady(jobPath)) {
+                return res.status(503).json({ description: 'The completed log is still being written; retry shortly' });
             }
-            
+            res.set('Content-Type', 'application/json');
+            res.set('ffastrans_log_type', 'full');
+            return res.sendFile(jobPath);
         }
-
-        response.write("]");
-        response.end();
-    })   
-         
+        const currentLogDir = path.join(jobDir, '.log');
+        const logDir = await jobFiles.exists(currentLogDir) ? currentLogDir : path.join(jobDir, 'log');
+        return await serveRunningLog(logDir, startpos, cursor, fullLogExists ? jobPath : null, res);
+    } catch (error) {
+        console.debug(error);
+        return res.status(error.statusCode || (pendingWrite(error) ? 503 : 500)).json({ description: error.message });
+    }
 }
 
+async function listLogFiles(jobdir) {
+    let files = [];
+    try {
+        files = (await fs.promises.readdir(jobdir, { withFileTypes: true }))
+            .filter(entry => entry.isFile() && /\.json$/i.test(entry.name))
+            .map(entry => ({ filename: path.join(jobdir, entry.name), name: entry.name, id: 'file:' + entry.name }));
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
+    if (path.basename(jobdir) === '.log') {
+        // 1.5 names encode event time; no stat per snippet is necessary.
+        return files.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    // Legacy ordering uses mtime. Limit outstanding stat operations on shares.
+    const result = [];
+    for (let offset = 0; offset < files.length; offset += 32) {
+        const batch = await Promise.all(files.slice(offset, offset + 32).map(async file => {
+            try { return { ...file, time: (await fs.promises.stat(file.filename)).mtimeMs }; }
+            catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+        }));
+        result.push(...batch.filter(Boolean));
+    }
+    return result.sort((a, b) => a.time - b.time || a.name.localeCompare(b.name));
+}
 
-function readFile(file, cb) {
-    require('fs').readFile(file, cb)
+function logObject(value) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        throw new SyntaxError('A log event must be a JSON object');
+    }
+    return value;
+}
+
+async function readLogFile(file) {
+    const line = logObject(JSON.parse(strip_bom(await fs.promises.readFile(file.filename, 'utf8'))));
+    return { ...line, _log_file: file.name };
+}
+
+function contentKey(line) {
+    const { _log_file, ...data } = line;
+    const canonical = JSON.stringify(data, (key, value) => value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.keys(value).sort().map(name => [name, value[name]])) : value);
+    return createHash('sha256').update(canonical).digest('hex');
+}
+
+function prefixCursor(entries, count) {
+    const hash = createHash('sha256');
+    for (let i = 0; i < count && i < entries.length; i++) hash.update(entries[i].id + '\n');
+    return hash.digest('hex');
+}
+
+function pendingWrite(error) {
+    return error instanceof SyntaxError || ['ENOENT', 'EBUSY', 'EACCES', 'EPERM'].includes(error.code);
+}
+
+async function serveRunningLog(jobdir, start, cursor, fullLogPath, response) {
+    const files = await listLogFiles(jobdir);
+    let entries = [];
+    const archivedNames = new Set();
+    const legacyEntries = new Map();
+    if (fullLogPath) {
+        const archive = JSON.parse(strip_bom(await fs.promises.readFile(fullLogPath, 'utf8')));
+        if (!Array.isArray(archive)) throw new SyntaxError('The completed log must be a JSON array');
+        entries = archive.map(value => {
+            const line = logObject(value);
+            const entry = { line, id: line._log_file ? 'file:' + line._log_file : 'legacy:' + contentKey(line) };
+            if (line._log_file) archivedNames.add(line._log_file);
+            else {
+                const matches = legacyEntries.get(entry.id) || [];
+                matches.push(entry);
+                legacyEntries.set(entry.id, matches);
+            }
+            return entry;
+        });
+    }
+    for (const file of files) {
+        if (archivedNames.has(file.name)) continue;
+        // Old consolidations omitted filenames. Match leftover snippets one-to-one
+        // so cleanup races don't duplicate archive entries or lose repeated events.
+        if (legacyEntries.size) {
+            try {
+                file.line = await readLogFile(file);
+                const matches = legacyEntries.get('legacy:' + contentKey(file.line));
+                if (matches?.length) {
+                    const entry = matches.shift();
+                    entry.id = file.id;
+                    entry.line = file.line;
+                    continue;
+                }
+            } catch (error) {
+                if (!pendingWrite(error)) throw error;
+                entries.push(file);
+                break;
+            }
+        }
+        entries.push(file);
+    }
+
+    // A numeric offset alone loses late arrivals or files reordered by a writer.
+    // New clients send a digest of their consumed prefix; replay on a mismatch.
+    // Clients deduplicate by filename. Existing numeric-only clients still work.
+    if (cursor && (start > entries.length || cursor !== prefixCursor(entries, start))) start = 0;
+
+    const lines = [];
+    let end = start;
+    for (let i = start; i < entries.length; i++) {
+        try {
+            const line = entries[i].line || await readLogFile(entries[i]);
+            lines.push(line);
+            end = i + 1;
+        } catch (error) {
+            if (pendingWrite(error)) break; // Retry this event next poll.
+            throw error;
+        }
+    }
+    response.set('Content-Type', 'application/json');
+    response.set('ffastrans_log_type', 'partial');
+    response.set('ffastrans_log_last_endpos', String(end));
+    response.set('ffastrans_log_cursor', prefixCursor(entries, end));
+    return response.json(lines);
 }
 
 /*
@@ -322,7 +378,7 @@ async function extractZipToJobFolder(zipPath, res) {
     console.log('Extracting to:', extractPath);
     
     // Create directory if it doesn't exist
-    if (!await fs.promises.exists(extractPath)) {
+    if (!await jobFiles.exists(extractPath)) {
       await fs.promises.mkdir(extractPath, { recursive: true });
     }
     
@@ -353,7 +409,7 @@ async function extractZipToJobFolder(zipPath, res) {
     for (const { entry, targetPath } of targets) {
         // Ensure directory exists
         const targetDir = path.dirname(targetPath);
-        if (!await fs.promises.exists(targetDir)) {
+        if (!await jobFiles.exists(targetDir)) {
           await fs.promises.mkdir(targetDir, { recursive: true });
         }
         
