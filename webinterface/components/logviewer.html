@@ -596,7 +596,9 @@ var m_serverconfig;
 var mainLayout;
 var m_timelineobject =  [];
 var m_userpermissions;
-let m_subWorkflows = {node_id:"workflow_id"}
+let m_subWorkflows = {}; // Runtime targets, keyed by the owning node's graph container.
+let m_branch_graphs = {}; // Active workflow per split, including transitions into sub-workflows.
+let m_pending_graph_lines = []; // Events waiting for a running job's workflow snapshot.
 let m_branchGrid;
 let m_logGrid; // New virtualized log grid
 let m_logSubLayout; // Sub-layout for grid and details
@@ -1114,13 +1116,17 @@ async function branchGridSelect(row,col){
     //rebuild graph with empty cells could be optimized by reset existing graph
     m_unique_nodes = {};
     m_node_branch_state = {};
-    m_subWorkflows = [];
+    m_subWorkflows = {};
+    m_branch_graphs = {};
+    m_pending_graph_lines = [];
     m_node_to_container = {};
     m_node_to_graph = {};
-    m_graph.destroy();
+    for (const graph of Object.values(m_graphs_by_container_id)) graph.destroy();
+    m_graphs_by_container_id = {};
     document.getElementById('graphContainer').innerHTML = "";
     m_graph = null;
     buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,true);
+    drawNestedSubWorkflows(m_workflowdata, m_workflows, m_graph);
 
     //reload job log filtered by split_id, could be optimized by loading only branch log
     const filters = FFAStransLogCompat.getBranchFilters(selectedBranch.object || { split_id: branchid }, selectedBranch.state ? selectedBranch.state === "running" : undefined);
@@ -1204,84 +1210,88 @@ async function open_timeline() {
 
 }
 
-function drawNestedSubWorkflows(workflow_json, available_workflows) {
-    // Recursively find and draw all sub-workflow nodes
-    if (!workflow_json || !workflow_json.nodes) return;
-    
-    console.log("drawNestedSubWorkflows called for workflow:", workflow_json.wf_id, "with", workflow_json.nodes.length, "nodes");
-    
-    // Convert available_workflows to a lookup object by wf_id for quick access
-    var available_wfs_by_id = {};
-    if (available_workflows) {
-        if (Array.isArray(available_workflows)) {
-            for (var j = 0; j < available_workflows.length; j++) {
-                if (available_workflows[j] && available_workflows[j].wf_id) {
-                    available_wfs_by_id[available_workflows[j].wf_id] = available_workflows[j];
-                }
-            }
-        } else {
-            // It's already an object keyed by wf_id
-            available_wfs_by_id = available_workflows;
-        }
+function rememberJobWorkflows(response) {
+    for (const workflow of [response.wf_object, ...Object.values(response.workflows || {})]) {
+        if (!workflow || !Array.isArray(workflow.nodes)) continue;
+        const index = m_workflows.findIndex(wf => wf.wf_id === workflow.wf_id);
+        if (index < 0) m_workflows.push(workflow);
+        else m_workflows[index] = workflow;
     }
-    
-    console.log("Available workflow IDs:", Object.keys(available_wfs_by_id));
-    
-    for (var i = 0; i < workflow_json.nodes.length; i++) {
-        var node = workflow_json.nodes[i];
-        
-        if (node.type === "sub_wf") {
-            console.log("Found sub_wf node:", node.id, "properties:", node.properties);
-            var container_id = "graphContainer_" + node.id.toUpperCase();
-            var _subwfdiv = document.getElementById(container_id);
-            
-            if (!_subwfdiv) {
-                var description_container = document.getElementById(node.id.toUpperCase() + "_description_container");
-                console.log("Looking for description_container:", node.id.toUpperCase() + "_description_container", "found:", !!description_container);
-                if (description_container) {
-                    _subwfdiv = document.createElement("div");
-                    _subwfdiv.id = container_id;
-                    _subwfdiv.style.width = "100%";
-                    _subwfdiv.style.height = "100%";
-                    _subwfdiv.style.backgroundColor = "white";
-                    //_subwfdiv.style.overflow = "auto"; //we want the parent to overflow, subwf div is too flaky on the page
-                    description_container.appendChild(_subwfdiv);
+}
+
+function subWorkflowContainerId(graph, nodeId) {
+    return graph.container.id + "_" + nodeId.toUpperCase() + "_description_container";
+}
+
+function drawNestedSubWorkflows(workflow, availableWorkflows, parentGraph = m_graph) {
+    if (!workflow?.nodes || !parentGraph) return;
+    const workflows = Object.values(availableWorkflows || {});
+    const ancestors = [...(parentGraph.workflowAncestors || []), parentGraph];
+    for (const node of workflow.nodes) {
+        if (node.type !== "sub_wf") continue;
+        const containerId = subWorkflowContainerId(parentGraph, node.id);
+        const container = document.getElementById(containerId);
+        if (!container) continue;
+        // Logged targets take precedence over configuration (which can contain variables).
+        const targetId = m_subWorkflows[containerId] || node.properties?.workflow_id;
+        const target = workflows.find(wf => wf?.wf_id === targetId);
+        if (!target) continue; // A running job may not have copied the snapshot yet.
+        let childGraph = m_graphs_by_container_id[containerId];
+        if (childGraph && childGraph.workflow.wf_id !== targetId) {
+            // A runtime variable can select a different workflow from the snapshot's default.
+            for (const [id, graph] of Object.entries(m_graphs_by_container_id)) {
+                if (id === containerId || id.startsWith(containerId + "_")) {
+                    graph.destroy();
+                    delete m_graphs_by_container_id[id];
                 }
             }
-            
-            // Try to find and render the correct workflow for this specific node
-            if (_subwfdiv && _subwfdiv.children.length === 0) {
-                // First try to get workflow_id from the node's properties (most reliable)
-                var target_wf_id = null;
-                if (node.properties && node.properties.workflow_id) {
-                    target_wf_id = node.properties.workflow_id;
-                }
-                // Fallback to m_subWorkflows mapping (populated during log processing)
-                if (!target_wf_id) {
-                    target_wf_id = m_subWorkflows[node.id] || m_subWorkflows[node.id.toUpperCase()] || m_subWorkflows[node.id.toLowerCase()];
-                }
-                
-                console.log("Target workflow ID for node", node.id, ":", target_wf_id, "exists in available:", !!available_wfs_by_id[target_wf_id]);
-                
-                var wf_to_render = null;
-                if (target_wf_id && available_wfs_by_id[target_wf_id]) {
-                    // Found the specific workflow for this node
-                    wf_to_render = available_wfs_by_id[target_wf_id];
-                }
-                
-                if (wf_to_render && wf_to_render !== workflow_json) {
-                    console.log("Drawing nested sub-workflow for node:", node.id, "with wf_id:", target_wf_id, "nodes count:", wf_to_render.nodes ? wf_to_render.nodes.length : 0);
-                    buildMxGraph(_subwfdiv, wf_to_render, true);
-                    // Recursively draw nested sub-workflows within this one
-                    drawNestedSubWorkflows(wf_to_render, available_wfs_by_id);
-                } else {
-                    console.log("Could not render sub-workflow for node:", node.id, "wf_to_render:", !!wf_to_render, "same as parent:", wf_to_render === workflow_json);
-                }
-            } else {
-                console.log("Container not found or already has children for node:", node.id, "_subwfdiv:", !!_subwfdiv, "children:", _subwfdiv ? _subwfdiv.children.length : 'N/A');
-            }
+            childGraph = null;
         }
+        if (ancestors.some(graph => graph.workflow.wf_id === targetId)) {
+            container.textContent = "Returns to " + (target.wf_name || targetId);
+            container.style.fontSize = "24px";
+            continue; // Stop both direct and indirect workflow cycles.
+        }
+        if (!childGraph) {
+            container.textContent = "";
+            container.style.backgroundColor = "white";
+            container.style.fontSize = "";
+            childGraph = buildMxGraph(container, target, true);
+            childGraph.workflowAncestors = ancestors;
+        }
+        drawNestedSubWorkflows(target, workflows, childGraph);
     }
+}
+
+async function refreshSubWorkflowSnapshots(shouldContinue) {
+    const missing = Object.values(m_subWorkflows).some(id => !m_workflows.some(wf => wf.wf_id === id));
+    if (!missing) return;
+    try {
+        const response = await $.ajax({
+            url: build_new_api_url("/getjobdetails?jobid=" + encodeURIComponent(getQueryVariable("job_id"))),
+            type: "GET", crossDomain: true, dataType: "json"
+        });
+        if (!shouldContinue()) return;
+        rememberJobWorkflows(response);
+    } catch (error) {
+        // Leave the target pending so the next log poll can retry it.
+        console.warn("Sub-workflow snapshots are not ready yet:", error);
+    }
+}
+
+function graphForLogLine(line) {
+    if (!line.node?.id) return null;
+    const nodeId = line.node.id.toUpperCase();
+    const candidates = Object.values(m_graphs_by_container_id).filter(graph => graph.getModel().getCell(nodeId));
+    const workflowId = line.node.wf_id || line.wf_id;
+    const branchGraph = line._pending_graph_container || m_branch_graphs[line.split_id];
+    // A known transition into a missing snapshot must not select an unrelated
+    // workflow merely because it contains the same node ID.
+    if (branchGraph && !m_graphs_by_container_id[branchGraph] && line.node.type !== "sub_wf") return null;
+    return candidates.find(graph => workflowId && graph.workflow.wf_id === workflowId)
+        || candidates.find(graph => graph.container.id === branchGraph)
+        || candidates.find(graph => line.node.name && graph.getModel().getCell(nodeId).ffastransobj.name === line.node.name)
+        || candidates[0] || null;
 }
 
 // function toggle_hide_all(chkbox){
@@ -1322,6 +1332,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
         // Creates the graph inside the given container
         var graph = new mxGraph(container);
+        graph.workflow = workflow_json;
         
         // Prevent panning the main graph if the drag started inside a sub-workflow container.
         // There are TWO pathways that activate panning:
@@ -1407,6 +1418,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 
                 // Add container prefix to make HTML table IDs unique across graphs
                 var TABLE_ID_PREFIX = this.container.id + "_";
+                var SUBWF_CONTAINER_ID = subWorkflowContainerId(this, FF_NODE_ID);
 
                 //create the cell style
                 if (this.isCellCollapsed(cell))//we dont support collapsing
@@ -1414,21 +1426,17 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 
                 window.subWfCtrlBtnClick = function(evt,clickedEle){
                     //onmousedown="event.preventDefault();event.stopPropagation();onmouseup="event.preventDefault();event.stopPropagation();";ondblclick="event.preventDefault();event.stopPropagation();"
-                    event.preventDefault();
-                    event.stopPropagation();
+                    evt.preventDefault();
+                    evt.stopPropagation();
                     let graphid = clickedEle.dataset.wfContainer;
                     let action  = clickedEle.attributes.name.value;
                     if (action == "undock"){
                         //emit dblclick on parent triggers dhxwindow open
                         const event = new MouseEvent('dblclick', {bubbles: true,cancelable: true});
-                        clickedEle.parentElement.dispatchEvent(event);
+                        clickedEle.closest('table[name="gui_node"]').dispatchEvent(event);
                     }
                     else{
                         let targetGraph = m_graphs_by_container_id[graphid];
-                        if (!targetGraph) {
-                            let altGraphId = graphid.replace("_description_container", "");
-                            targetGraph = m_graphs_by_container_id["graphContainer_" + altGraphId];
-                        }
                         if (targetGraph) {
                             targetGraph[action]();
                         }
@@ -1436,10 +1444,10 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 }
                 //base cell obj
                 let sub_wf_btns = `<div class="sub_wf_ctrl_icons">`+
-                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-plus"               name="zoomIn"></span>`+
-                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-minus"              name="zoomOut"></span>`+
-                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-arrow-collapse-all" name="fit"></span>` + 
-                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${FF_NODE_ID}_description_container" class="mdi mdi-dock-window"        name="undock"></span>` + 
+                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${SUBWF_CONTAINER_ID}" class="mdi mdi-plus"               name="zoomIn"></span>`+
+                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${SUBWF_CONTAINER_ID}" class="mdi mdi-minus"              name="zoomOut"></span>`+
+                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${SUBWF_CONTAINER_ID}" class="mdi mdi-arrow-collapse-all" name="fit"></span>` +
+                        `<span onclick="subWfCtrlBtnClick(event,this)" ondblclick="event.stopPropagation();" data-wf-container="${SUBWF_CONTAINER_ID}" class="mdi mdi-dock-window"        name="undock"></span>` +
                     `</div>`;
                 let description_container_classes = "overflow_auto";
                 if (FF_NODE_TYPE != "sub_wf"){
@@ -1448,16 +1456,16 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 }
                 
                 var tbl = '<div class="div_ffastrans_processor_container" style="overflow:hidden;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px;max-height:' + i_BOX_HEIGHT + 'px">' +
-                            '<table name="gui_node" data-ff-node-id="' + FF_NODE_ID + '" data-ff-node-type="' + FF_NODE_TYPE + '" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
+                            '<table name="gui_node" data-ff-node-id="' + FF_NODE_ID + '" data-ff-node-type="' + FF_NODE_TYPE + '" data-graph-container="' + this.container.id + '" style="table-layout:fixed;width:' + i_BOX_WIDTH + 'px;height:' + i_BOX_HEIGHT + 'px" ' +
                             'class="table_ffastrans_processor_disabled" id = "' + TABLE_ID_PREFIX + FF_NODE_ID + '" > ' +
                             '<tr class="tr_ffastrans_processor_top" >' +
                                 `<th width="100%" title="'${FF_NODE_TITLE}'"><span id="${TABLE_ID_PREFIX}${FF_NODE_ID}_exec_count" class="exec_count" title="Execution Counter">0</span><div><span>` + FF_NODE_TITLE + "</span>" +
                                         '</div>' + sub_wf_btns + '</th>'+
                             '</tr>' +
                             `<tr style="font-size:8px" title="${FF_NODE_DESC}" id="${TABLE_ID_PREFIX}${FF_NODE_ID}_tr_container">`+
-                                `<th class="tr_ffastrans_processor_desc" id="${TABLE_ID_PREFIX}${FF_NODE_ID}_body">` + 
+                                `<th class="tr_ffastrans_processor_desc" id="${TABLE_ID_PREFIX}${FF_NODE_ID}_body" ${FF_NODE_TYPE === 'sub_wf' ? 'style="position:relative"' : ''}>` +
                                 //this div is needed to control sub-workflow scrolling/overflow
-                                `<div id="${FF_NODE_ID}_description_container" class="div_ffastrans_processor_desc ${description_container_classes}" style="max-height:${i_BOX_HEIGHT/100*72}px;width:100%;">`+
+                                `<div id="${SUBWF_CONTAINER_ID}" class="div_ffastrans_processor_desc ${description_container_classes}" style="${FF_NODE_TYPE === 'sub_wf' ? 'position:absolute;inset:0;height:100%;max-height:100%;' : 'max-height:' + i_BOX_HEIGHT * 0.72 + 'px;'}width:100%;">`+
                                     FF_NODE_DESC +
                                 '</div>' +
                                 
@@ -1478,21 +1486,20 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             //window for sub-wf
             console.log("sender",sender)
             var cell = evt.getProperty("cell"); // cell may be null
+            if (!cell) {
+                const info = nodeInfoFromEventTarget(evt.getProperty("event")?.target);
+                if (info?.graphContainer === graph.container.id) cell = graph.getModel().getCell(info.id);
+            }
             if (cell == null) return
             if (!cell.ffastransobj) return
             if (cell.ffastransobj.type != "sub_wf") return
-            if (!cell.ffastransobj.properties.workflow_id) return
             evt.consume(); //mxgraph stuff
             //we get a reference to the inner graph object of the currently selected sub_wf this way:
-            let subWfContainerId = "graphContainer_" + cell.ffastransobj.id.toUpperCase();
+            let subWfContainerId = subWorkflowContainerId(graph, cell.ffastransobj.id);
             let currentGraph = m_graphs_by_container_id[subWfContainerId];
-            if (!currentGraph) {
-                // Fallback to old method for compatibility
-                currentGraph = m_graphs_by_container_id[cell.ffastransobj.id.toUpperCase() + "_description_container"];
-            }
             if (!currentGraph) return; // Graph not found
             currentGraph.fit();
-            let swf_id = cell.ffastransobj.properties.workflow_id;
+            let windowId = "window_" + subWfContainerId;
             
             const dhxWindow = new dhx8.dhx.Window({
                 width: Math.round($(document).width() * 2 / 3),
@@ -1504,7 +1511,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 resizable:true
             });
 
-            const windowHTML = "<div id='window_"+swf_id+"' style='width:100%;height:100%'></div>";
+            const windowHTML = "<div id='"+windowId+"' style='width:100%;height:100%'></div>";
             dhxWindow.attachHTML(windowHTML);
             dhxWindow.header.data.add({icon: "mdi mdi-plus", id: "plus"}, 2);
             dhxWindow.header.data.add({icon: "mdi mdi-minus", id: "minus"}, 3);
@@ -1513,23 +1520,22 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
 
             console.log("Doubleclick evt",cell.ffastransobj);
             await dhx8.dhx.awaitRedraw();
-            let sub_wf_json = m_workflows.filter(wf => wf.wf_id == swf_id);
-            let subwf_element = document.getElementById("window_"+swf_id);  
-            console.log("subwf_element",subwf_element);
-            
             //move sub-wf graph from processor to window
-            // For nested sub-workflows, find the correct container using the node mapping
-            let containerPrefix = m_node_to_container[cell.ffastransobj.id.toUpperCase()] || "graphContainer_";
-            let original_container = document.getElementById(containerPrefix + cell.ffastransobj.id.toUpperCase() + "_body");
-            let sub_wf_graph_ele = original_container.firstChild;
-            let newParent = document.getElementById("window_"+swf_id);  
+            let sub_wf_graph_ele = currentGraph.container;
+            let original_container = sub_wf_graph_ele.parentElement;
+            let newParent = document.getElementById(windowId);
             newParent.appendChild(sub_wf_graph_ele); // Moves the element to the new container
             
             //must reset max-height prop 
             let original_height = sub_wf_graph_ele.style.maxHeight;
+            let original_fixed_height = sub_wf_graph_ele.style.height;
+            let original_position = sub_wf_graph_ele.style.position;
             sub_wf_graph_ele.style.maxHeight = "100%";
+            sub_wf_graph_ele.style.height = "100%";
+            sub_wf_graph_ele.style.position = "relative";
             sub_wf_graph_ele.classList.toggle('overflow_auto');
             sub_wf_graph_ele.classList.toggle('overflow_hidden');
+            currentGraph.fit();
             
             let isFullScreen;
             //window control icon click
@@ -1547,8 +1553,11 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                 //bring back the canvas from window into processor description body
                 original_container.appendChild(sub_wf_graph_ele);
                 sub_wf_graph_ele.style.maxHeight = original_height;
+                sub_wf_graph_ele.style.height = original_fixed_height;
+                sub_wf_graph_ele.style.position = original_position;
                 sub_wf_graph_ele.classList.toggle('overflow_auto');
                 sub_wf_graph_ele.classList.toggle('overflow_hidden');
+                currentGraph.fit();
                 return true;
             });
 
@@ -1586,7 +1595,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
             if (nodeType == "sub_wf")
                 return // if click on sub-wf wrapper, prevents that we show log only of workflow proc
 
-            filterLogByNodeId(nodeId);
+            filterLogByNodeId(nodeId, undefined, graph.container.id);
 
             evt.consume();
         }));
@@ -1723,8 +1732,7 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
         }
         console.log("tryin")
         //After building this graph, validate all registered graphs and expose helper
-
-
+        return graph;
     }
 };
 
@@ -1738,7 +1746,7 @@ function nodeInfoFromEventTarget(target){
     let depth = 0;
     while (el && el !== document.body && depth < 30){
         if (el.dataset && el.dataset.ffNodeId){
-            return { id: el.dataset.ffNodeId, type: el.dataset.ffNodeType };
+            return { id: el.dataset.ffNodeId, type: el.dataset.ffNodeType, graphContainer: el.dataset.graphContainer };
         }
         el = el.parentNode;
         depth++;
@@ -1746,9 +1754,9 @@ function nodeInfoFromEventTarget(target){
     return null;
 }
 
-function filterLogByNodeId(nodeId, branch){
+function filterLogByNodeId(nodeId, branch, graphContainer){
     /* visually filters log  */
-    toggleNodeSelected(nodeId);
+    toggleNodeSelected(nodeId, graphContainer);
 
     if (!nodeId){
         m_logGrid.data.filter();
@@ -1762,6 +1770,7 @@ function filterLogByNodeId(nodeId, branch){
         if (branch) {
             match = match && (item.split_id == branch);
         }
+        if (graphContainer) match = match && item._graph_container === graphContainer;
         return match;
     });
     
@@ -2066,28 +2075,26 @@ function export_StyledSVG(){
     link.click();
 }
  
-async function parseJobLog(lines, shouldContinue = () => true) {
+async function parseJobLog(lines, shouldContinue = () => true, isReplay = false) {
     var a_log_per_node = {};
     var id_pid_mapping = {};
-    var sub_workflow_is_loading = false;
-    console.time("parseJobLog");
-    window.setPerformanceInfo("Parsing log...");
-    // Helper function to find which container a node belongs to
-    function getContainerPrefixForNode(nodeId) {
-        // First check if we have a direct mapping from buildMxGraph
-        if (m_node_to_container[nodeId]) {
-            return m_node_to_container[nodeId];
+    async function replayPendingLines() {
+        const ready = m_pending_graph_lines.filter(line => graphForLogLine(line));
+        if (ready.length) {
+            m_pending_graph_lines = m_pending_graph_lines.filter(line => !ready.includes(line));
+            await parseJobLog(ready, shouldContinue, true);
         }
-        
-        // Fallback to checking main graph
-        if ($("#graphContainer_" + nodeId).length > 0) {
-            return "graphContainer_";
-        }
-        
-        // Default to main graph container
-        return "graphContainer_";
     }
-    
+    if (!isReplay) console.time("parseJobLog");
+    window.setPerformanceInfo("Parsing log...");
+    // Retry snapshots that were not available on an earlier poll, including empty polls.
+    if (!isReplay) {
+        await refreshSubWorkflowSnapshots(shouldContinue);
+        if (!shouldContinue()) return;
+        drawNestedSubWorkflows(m_workflowdata, m_workflows, m_graph);
+        await replayPendingLines();
+    }
+
     for (var i = 0; i < lines.length; i++) {
         if (!shouldContinue()) return;
         window.setPerformanceInfo("Parsing log Line " + (i + 1) + " of " + lines.length);
@@ -2105,98 +2112,45 @@ async function parseJobLog(lines, shouldContinue = () => true) {
                 var timeline_entry = [line["event"],line["node"]["type"],"",new Date(created),new Date(created + 1)];
                 //var timeline_entry = ['Group1', 'Item1',"",new Date(1485183398349.28),new Date(1485183398359.28)];
                 
-                m_timelineobject.push(timeline_entry)
+                if (!isReplay) m_timelineobject.push(timeline_entry);
             }catch(ex){
                 console.log("error parsing log line for timeline")
             }
             
-            //start of new node log
-
-            //handle sub-wf
-
-            // Loading a graph is optional; its later log events must still update
-            // the node state (1.5 node-end events include non-null outcome data).
-            if (line["node"]["type"] == "sub_wf" && line['data'] != null && !m_subWorkflows[line["node"]["id"]]){
-
-                console.log("Sub wf detected, loadinhg json");
-                if (line['data']['wf_id']){
-                    m_subWorkflows[line["node"]["id"]] = line['data']['wf_id'];
-                    var _subwfdiv = document.getElementById("graphContainer_" + line["node"]["id"].toUpperCase()+"_body").firstChild;
-                    _subwfdiv.style.backgroundColor ="white";
-                    
-                    //refresh job infos by ajaxing getjobdetails, the new sub-workflow should be already there
-                    //load current sub-workflows
-                    var _url = "/getjobdetails?jobid=" + getQueryVariable("job_id");
-                    
-                    sub_workflow_is_loading = true;
-                    $.ajax({
-                        url: build_new_api_url(_url),
-                        type: "GET",
-                        crossDomain: true,
-                        dataType: "json",
-                        context: this,
-                        beforeSend:function( jqXHR ){
-                            jqXHR.wf_id = line['data']['wf_id'];
-                        },
-                        success: function (response,status,jqXHR) {
-                            if (!shouldContinue()) {
-                                sub_workflow_is_loading = false;
-                                return;
-                            }
-                            try{
-                                console.log("Sub wf json ready")
-                                console.log("Available workflows in response:", Object.keys(response['workflows']));
-                                var sub_wf_json = response['workflows'][jqXHR["wf_id"]];
-                                m_workflows.push(sub_wf_json);
-                                
-                                // Load all nested workflows from the response
-                                for (var wf_key in response['workflows']) {
-                                    var wf = response['workflows'][wf_key];
-                                    if (wf && !m_workflows.find(mwf => mwf && mwf.wf_id === wf.wf_id)) {
-                                        m_workflows.push(wf);
-                                    }
-                                }
-                                
-                                console.time("buildMxGraph");
-                                buildMxGraph(_subwfdiv,sub_wf_json,true);
-                                console.timeEnd("buildMxGraph");
-                                
-                                // Draw any nested sub-workflows within this newly loaded workflow
-                                drawNestedSubWorkflows(sub_wf_json, response['workflows']);
-                                
-                            }catch(ex){
-                                console.error("Error loading subworkflow:", ex);
-                                alert("There was a problem getting subworkflow data, contact developers");
-                            }
-                            sub_workflow_is_loading = false;
-
-                        },
-                        error: function (xhr, status) {
-                            sub_workflow_is_loading = false;
-                            if (!shouldContinue()) return;
-                            alert("ERROR getting workflow of job " + getQueryVariable("job_id") + ", please check FFAStrans Path in Admin settings on the left.. ");
-                        }
-                    }); 
+            const nodeGraph = graphForLogLine(line);
+            if (nodeGraph) {
+                line._graph_container = nodeGraph.container.id;
+                if (!isReplay && (line.node.type !== "sub_wf" || !m_branch_graphs[line.split_id])) {
+                    m_branch_graphs[line.split_id] = nodeGraph.container.id;
                 }
+            } else if (line.node?.id && m_subWorkflows[m_branch_graphs[line.split_id]]) {
+                line._pending_graph_container = m_branch_graphs[line.split_id];
+                m_pending_graph_lines.push(line);
+                continue; // Do not update a different canvas with a reused node ID.
             }
-            
-            //wait until sub-wf is drawn in order to guarantee the nodes are already there
-            while (sub_workflow_is_loading){
+            const targetWorkflowId = FFAStransLogCompat.getSubWorkflowId(line);
+            if (targetWorkflowId && nodeGraph) {
+                const containerId = subWorkflowContainerId(nodeGraph, line.node.id);
+                m_subWorkflows[containerId] = targetWorkflowId;
+                await refreshSubWorkflowSnapshots(shouldContinue);
                 if (!shouldContinue()) return;
-                await asyncsleep(1)
+                drawNestedSubWorkflows(m_workflowdata, m_workflows, m_graph);
+                const targetGraph = m_graphs_by_container_id[containerId]
+                    || [...(nodeGraph.workflowAncestors || []), nodeGraph].find(graph => graph.workflow.wf_id === targetWorkflowId);
+                m_branch_graphs[line.split_id] = targetGraph ? targetGraph.container.id : containerId;
             }
-            if (!shouldContinue()) return;
-                                
-            //check if node is unique for nodegrid
-            var new_key = line["node"]["id"] + line["split_id"]
-            _proc_id = line["node"]["id"].toUpperCase();
-            id_pid_mapping[line["pid"]] = _proc_id;
+
+            // Node IDs can be reused across workflow snapshots. Keep each canvas's
+            // executions separate while retaining the branch identity within it.
+            var new_key = (line._graph_container ? line._graph_container + "::" : "") + line.node.id + line.split_id;
+            _proc_id = line.node.id.toUpperCase();
+            id_pid_mapping[line.pid] = _proc_id;
 
             //show processor as enabled on ui
             a_log_per_node[_proc_id] = [];
             
             // Find the correct container for this node
-            var containerPrefix = getContainerPrefixForNode(_proc_id);
+            var containerPrefix = nodeGraph ? nodeGraph.container.id + "_" : (m_node_to_container[_proc_id] || "graphContainer_");
             
             // Apply appropriate styling based on node type
             if (line["node"]["type"] === "sub_wf") {
@@ -2221,7 +2175,7 @@ async function parseJobLog(lines, shouldContinue = () => true) {
                 var _o_counter = $("#" + containerPrefix + _proc_id + "_exec_count");//execution count
 
                 console.log("_o_counter","#" + containerPrefix + _proc_id + "_exec_count",_o_counter);
-                _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1)
+                if (_o_counter.length) _o_counter.html(parseInt(_o_counter[0].innerHTML) + 1);
             }
 
             // A retry can reuse the node and split ID. Track its latest state
@@ -2276,17 +2230,23 @@ async function parseJobLog(lines, shouldContinue = () => true) {
             //a_log_per_node[_proc_id].push(line);
         }
     }
-    window.setPerformanceInfo("Log parsing completed.");
-    console.timeEnd("parseJobLog");
+    if (!isReplay) {
+        // Another transition in this batch may have delivered a missing snapshot.
+        await replayPendingLines();
+        window.setPerformanceInfo("Log parsing completed.");
+        console.timeEnd("parseJobLog");
+    }
 }
 
 
 
-function toggleNodeSelected(nodeid){
+function toggleNodeSelected(nodeid, graphContainer){
     //there can be only one node selected at a time. 
     $(".blinking-selected").removeClass("blinking-selected");
-    if (nodeid)
-        $("#graphContainer_" + nodeid).parent().parent().addClass("blinking-selected");
+    if (nodeid) {
+        const prefix = graphContainer ? graphContainer + "_" : (m_node_to_container[nodeid] || "graphContainer_");
+        $("#" + prefix + nodeid).parent().parent().addClass("blinking-selected");
+    }
 }
 
 function initNodeGrid() {
@@ -2357,12 +2317,12 @@ function initNodeGrid() {
     function nodeGridSelect(data) {
         console.log("data",data);
         
-        toggleNodeSelected(data.node_id.toUpperCase());
-        filterLogByNodeId(data.node_id.toUpperCase(),data.branch);
+        filterLogByNodeId(data.node_id.toUpperCase(), data.branch, data.data?._graph_container);
         
         //check which graph contains the cell and center it
         Object.keys(m_graphs_by_container_id).forEach( key => {
             let g = m_graphs_by_container_id[key];
+            if (data.data?._graph_container && data.data._graph_container !== key) return;
             let c = g.getModel().getCell(data.node_id.toUpperCase());
             if (c){
                 g.scrollCellToVisible(c, true);
@@ -2379,23 +2339,7 @@ function initNodeGrid() {
             returnobj.data    = o;
             returnobj.node_id    = o.node.id;
             returnobj.state = o.state;
-            returnobj.name  = function(){
-                if (o.node.name)
-                    return o.node.name;
-                else{
-                    //try finding node name in all workflows (main and sub-workflows)
-                    for (var _wf of m_workflows){
-                        if (!_wf || !_wf.nodes) continue;
-                        let _filt = _wf.nodes.filter(n=>{return n.id.toUpperCase()==o.node.id.toUpperCase()});
-                        if (_filt.length > 0){
-                            let nodeName = _filt[0].name;
-                            return nodeName ? nodeName : o.node.type;
-                        }
-                    }
-                    
-                    return o.node.type;
-                }
-            }()
+            returnobj.name = getNodeName(o.node, o._graph_container);
             returnobj.host  = o.host;
             returnobj.branch = o.split_id;
             try {
@@ -2415,13 +2359,18 @@ function initNodeGrid() {
 
 }
 
-function getNodeName(nodeObj) {
+function getNodeName(nodeObj, graphContainer) {
     if (!nodeObj || !nodeObj.id){
         return "System";
     }
     if (nodeObj.name) {
         return nodeObj.name;
     }
+    // Older logs often omit names. Resolve shared node IDs in their owning
+    // workflow before falling back to the full snapshot collection.
+    const graph = graphContainer && m_graphs_by_container_id[graphContainer];
+    const graphNode = graph && graph.getModel().getCell(nodeObj.id.toUpperCase())?.ffastransobj;
+    if (graphNode) return graphNode.name || graphNode.type || nodeObj.type || "System";
     for (var _wf of m_workflows){
         if (!_wf || !_wf.nodes) continue;
         var n = _wf.nodes.filter(function (obj) { return obj.id && obj.id.toUpperCase() == nodeObj.id.toUpperCase(); });
@@ -2501,9 +2450,13 @@ function get_job_log(job_id, start=0, a_nodeid_filter, a_branchid_filter, genera
             await parseJobLog(newLines, () => generation === m_jobLogGeneration);
             if (generation !== m_jobLogGeneration) return;
             
+            // Preserve graph context for previously parsed rows when polls become a full log.
+            const previousContexts = new Map(m_accumulatedLogLines.filter(line => line._graph_container)
+                .map(line => [FFAStransLogCompat.getLogLineKey(line), line._graph_container]));
             // Assign node names AFTER parseJobLog so that m_workflows includes any dynamically loaded sub-workflows
             for (var a in response) {
-                response[a]["node_name"] = getNodeName(response[a].node);
+                response[a]._graph_container ||= previousContexts.get(FFAStransLogCompat.getLogLineKey(response[a]));
+                response[a]["node_name"] = getNodeName(response[a].node, response[a]._graph_container);
             }
             
             if (type == "partial") {
@@ -2598,7 +2551,7 @@ function get_all_job_details(job_id) {
             } else {
                 m_jobobject = response;
                 m_workflowdata = response['wf_object'];
-                m_workflows.push(response['wf_object']);
+                rememberJobWorkflows(response);
                 
                 //populate top left data
                 renderGeneralInfo(response);
@@ -2606,6 +2559,7 @@ function get_all_job_details(job_id) {
                 
                 //populate workflow canvas
                 buildMxGraph(document.getElementById('graphContainer'),m_workflowdata,true);
+                drawNestedSubWorkflows(m_workflowdata, m_workflows, m_graph);
                 get_job_log(getQueryVariable("job_id")); //kicks off job log parsing on success
 
                 // Show "Job Tree" button only when this job has child jobs

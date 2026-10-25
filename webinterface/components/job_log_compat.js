@@ -21,6 +21,19 @@
         return data.status === "abort" ? "cancelled" : "error";
     }
 
+    function getSubWorkflowId(line) {
+        if (line?.node?.type !== "sub_wf") return;
+        const data = line.data;
+        if (!data || typeof data !== "object" || Array.isArray(data)) return;
+        // 1.5 wraps the destination in an outbound event; older logs put it directly in data.
+        const outbound = data.type === "outbound" && data.data;
+        const nestedId = outbound && typeof outbound === "object" && !Array.isArray(outbound)
+            ? outbound.wf_id : undefined;
+        for (const id of [data.wf_id, nestedId]) {
+            if (typeof id === "string" && id.trim()) return id;
+        }
+    }
+
     function getBranchFilters(branch, isRunning = branch.status === "running" && !branch.end_time) {
         const path = Array.isArray(branch.path) ? branch.path : [];
         const nodeIds = path.map(node => node.id).filter(Boolean);
@@ -88,5 +101,5 @@
         });
     }
 
-    return { normalizeTimestamp, getNodeEndState, getBranchFilters, getUnseenLogLines };
+    return { normalizeTimestamp, getNodeEndState, getSubWorkflowId, getBranchFilters, getLogLineKey, getUnseenLogLines };
 }));
