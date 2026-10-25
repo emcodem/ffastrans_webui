@@ -1668,8 +1668,8 @@ function buildMxGraph(container,workflow_json,panning = true) { //panning allows
                         console.log("Could not create connection for node " + to_array[t]["id"]);
 
                     }
-                    //INSERT ARROW; ARROW STYLE
-                    var edge = graph.insertEdge(parent, null, '', from_cell, to_cell, "strokeOpacity=45;fillOpacity=45;strokeColor=" + color + ";strokeWidth=2");
+                    // Match FFAStrans ports: source right-center to target left-center.
+                    var edge = graph.insertEdge(parent, null, '', from_cell, to_cell, "strokeOpacity=45;fillOpacity=45;strokeColor=" + color + ";strokeWidth=2;exitX=1;exitY=0.5;exitPerimeter=0;entryX=0;entryY=0.5;entryPerimeter=0");
                 }
             }
         }
