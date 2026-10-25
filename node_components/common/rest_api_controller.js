@@ -1,5 +1,6 @@
 
 const { Worker } = require('worker_threads');
+const configServer = require('../server_config');
 
 class RestApi {
 
@@ -17,11 +18,13 @@ class RestApi {
         console.log("starting up rest api");
         //only reachable through our /new_proxy unless the admin allows remote access
         var listenhost = (globalconf && globalconf.STATIC_API_LISTEN_ALL_INTERFACES + "" == "true") ? "0.0.0.0" : "127.0.0.1";
+        //the https key password is kept in confidential_config, rest_service expects it in globalconf
+        var worker_conf = {...globalconf, STATIC_WEBSERVER_HTTPS_PK_PASSWORD: configServer.getHttpsKeyPassword()};
         this.private_rest_api_worker = new Worker("./rest_service/app.js",{
             workerData: {
                 port:port,
                 path:path,
-                globalconf:globalconf,
+                globalconf:worker_conf,
                 listenhost:listenhost
             }
         });

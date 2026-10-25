@@ -175,6 +175,9 @@ module.exports = function(app, express){
               toSave[key] = data[key];
           }
        }
+       if (configServer.moveSecretsToConfidential(toSave)){
+            await configServer.saveConfidentialAsync();
+       }
 
        configServer.save(toSave,function(){
             res.status(200);
@@ -195,6 +198,9 @@ module.exports = function(app, express){
         try{
             var new_fields = req.body;
             //update global config with the keys to store
+            if (configServer.moveSecretsToConfidential(new_fields)){
+                await configServer.saveConfidentialAsync();
+            }
             Object.keys(new_fields).forEach(function(key) {
                 global.config[key] = new_fields[key];
             });

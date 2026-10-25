@@ -394,10 +394,13 @@ async function init(conf) {
 
     //maybe there is a better place to initialize confidential_config but nothing comes to my head rigtht now
     let queryresult = await global.db.config.findOne({ "confidential_config": { $exists: true } }) || {};
-    if (queryresult) {
-        global.confidential_config = queryresult.confidential_config;
-    } else {
-        global.confidential_config = {};
+    global.confidential_config = queryresult.confidential_config || {};
+
+    //older versions stored secrets in global.config, which /getserverconfig sends to every user
+    if (configmgr.moveSecretsToConfidential(global.config)) {
+        console.log("Moving secrets from server config to confidential config");
+        await configmgr.saveConfidentialAsync();
+        await configmgr.saveAsync();
     }
 
     connectDb(); //mongodb
@@ -648,7 +651,7 @@ async function init(conf) {
     var path_to_cert = global.approot + '/cert/cert.pem';
     var path_to_pfx = global.approot + '/cert/cert.pfx';
 
-    var key_password = global.config["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"];
+    var key_password = configmgr.getHttpsKeyPassword();
     try {
         if (global.config["STATIC_WEBSERVER_ENABLE_HTTPS"] == 'true') {
             const https = require('https');

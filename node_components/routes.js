@@ -4,6 +4,7 @@ const express = require('express');
 const fs = require("fs");
 const proxy = require('express-http-proxy');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const userpermissions = require("./userpermissions");
 module.exports = function(app, passport) {
 
     // =====================================
@@ -77,7 +78,40 @@ module.exports = function(app, passport) {
 	//anything needing a login (e.g. /new_proxy, rest_service has no login) must be registered after routes.js,
 	//and before uppy.js, which is registered last and takes over all remaining urls.
     app.use('/*', isLoggedIn);//ensure user is logged in
-    
+
+    //admin only routes. Checked here in one place instead of in each handler.
+    //GET routes that normal pages need (browselocations, variablecolumns, getserverconfig) stay open for logged in users.
+    const ADMIN_ROUTES = [
+        //users and groups
+        { methods: ["*"],      path: "/userlist",                         right: "GROUPRIGHT_MENU_VIEW_ADMIN" }, //GET returns password hashes
+        { methods: ["*"],      path: "/userlistnew",                      right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/userlistupdateexisting",           right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/userlist_remove_group_from_user",  right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/usergrouplist",                    right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/usergrouprightslist",              right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        //server config
+        { methods: ["*"],      path: "/adminconfig",                      right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/adminconfig_update_parts",         right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/serverconfig_confidential",        right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/activedirectory_tester",           right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/activedirectory_config_set",       right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/admin_alert_email_tester",         right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/database_maintenance_autodelete",  right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/database_maintenance_download",    right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["*"],      path: "/generatetestjobs",                 right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["POST"],   path: "/browselocations",                  right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        { methods: ["POST"],   path: "/variablecolumns",                  right: "GROUPRIGHT_MENU_VIEW_ADMIN" },
+        //scheduler runs user supplied scripts on the server
+        { methods: ["*"],      path: "/scheduledjobs",                    right: "GROUPRIGHT_MENU_VIEW_SCHEDULER" },
+        { methods: ["*"],      path: "/immediateexecute",                 right: "GROUPRIGHT_MENU_VIEW_SCHEDULER" },
+        { methods: ["*"],      path: "/deletescheduledjob",               right: "GROUPRIGHT_MENU_VIEW_SCHEDULER" },
+        //farm admin
+        { methods: ["*"],      path: "/farmadmin_install_service",        right: "GROUPRIGHT_MENU_VIEW_FARM_ADMIN" },
+    ];
+    for (const route of ADMIN_ROUTES) {
+        app.use(route.path, requireRight(route.right, route.methods));
+    }
+
     //redirect request from /
     app.get('/', async function(req, res, next) {
         if (req.isAuthenticated() || (global.config.STATIC_USE_WEB_AUTHENTIFICATION+"" == "false")){
@@ -231,6 +265,27 @@ function isLoggedIn(req, res, next) {
     //this crazy stuff is needed to keep the "referer" correctly set on client side
     res.send('<html>    <head>       <title>Redirecting...</title>    </head>    <body>     <form method="GET" action="/webinterface/components/login.html">     </form>      <script>        window.onload = function(){{           document.forms[0].submit()        }}     </script>   </body> </html>');
     //res.redirect('/webinterface/components/login.html'); 
+}
+
+// route middleware to make sure the logged in user has a group right, e.g. GROUPRIGHT_MENU_VIEW_ADMIN
+// hasPermissionAsync returns true when web authentication is off
+function requireRight(right, methods) {
+    return async function (req, res, next) {
+        if (!methods.includes("*") && !methods.includes(req.method)) {
+            return next();
+        }
+        try {
+            const username = req.user?.local?.username || "";
+            if (await userpermissions.hasPermissionAsync(username, right)) {
+                return next();
+            }
+            console.warn("Forbidden:", req.method, req.originalUrl, "user:", username, "missing right:", right);
+            res.status(403).json({ message: "Forbidden" });
+        } catch (ex) {
+            console.error("Error checking permission", right, ex);
+            res.status(500).json({ message: "Internal error" });
+        }
+    };
 }
 
 fs.promises.exists = async function(f) {

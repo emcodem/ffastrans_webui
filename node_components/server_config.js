@@ -1,4 +1,5 @@
 const defaultConfig = require("./serverconfig_defaults")
+const DEFAULT_HTTPS_PK_PASSWORD = "webserver";
 
 //this line is mandatory, do not remove it!
 //module.exports = config;
@@ -20,6 +21,20 @@ module.exports = {
         
         let result = await global.db.config.update({_id:"gcfid"},{"confidential_config":global.confidential_config,_id:"gcfid"},{upsert: true});
         return global.confidential_config;
+    },
+    getHttpsKeyPassword: () => {
+        /* the https private key password lives in confidential_config, so /getserverconfig does not send it to every user */
+        let pw = global.confidential_config && global.confidential_config.STATIC_WEBSERVER_HTTPS_PK_PASSWORD;
+        return pw === undefined ? DEFAULT_HTTPS_PK_PASSWORD : pw;
+    },
+    moveSecretsToConfidential: (configobj) => {
+        /* moves secrets out of a config object into confidential_config. Returns true if something was moved, caller must save both */
+        if (!configobj || !("STATIC_WEBSERVER_HTTPS_PK_PASSWORD" in configobj))
+            return false;
+        global.confidential_config = global.confidential_config || {};
+        global.confidential_config.STATIC_WEBSERVER_HTTPS_PK_PASSWORD = configobj.STATIC_WEBSERVER_HTTPS_PK_PASSWORD;
+        delete configobj.STATIC_WEBSERVER_HTTPS_PK_PASSWORD;
+        return true;
     },
     getConfidentialAsync: async() => {
         /* new strategy is that the rest of code just changes global config so no parameter here */

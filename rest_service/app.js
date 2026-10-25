@@ -69,13 +69,14 @@ module.exports = {
 
 if (workerData){
   //workerData is set, this script was loaded as WebWorker thread
-  console.log("Startup as worker thread detected, params:",workerData);
+  //globalconf is not logged, it contains the https key password
+  console.log("Startup as worker thread detected, port:",workerData.port,"path:",workerData.path,"listenhost:",workerData.listenhost);
   init(workerData.port,workerData.path,workerData.globalconf,workerData.listenhost);
 }
 
 function init (_listenport,_ffastranspath,globalconf = {},_listenhost = "127.0.0.1") {
     //todo: we dont need this anymore when we split this off from rest_service and make it a standalone service
-    console.log("init called, arguments: ", arguments)
+    console.log("init called, port:",_listenport,"path:",_ffastranspath,"listenhost:",_listenhost)
 	  changeInstallPath(_ffastranspath);
     start_server(_listenport,globalconf,_listenhost);
 }

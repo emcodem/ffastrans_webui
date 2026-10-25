@@ -22,20 +22,18 @@
 
 <script>
 var m_serverconfig;
+var m_confidentialconfig;
 /*load config from server*/
-function loadserverconfig(){
-   $.ajax({
-        url:  ("/getserverconfig") ,
-        type: "GET",
-        success: function (response) {
-            m_serverconfig = JSON.parse(response);
-            console.log("original serverconfig",m_serverconfig)
-            init();
-        },
-        error: function (xhr, status) {
-            document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
-        }
-    });
+async function loadserverconfig(){
+    try{
+        m_serverconfig = JSON.parse(await $.ajax({ url: "/getserverconfig", type: "GET" }));
+        //secrets like the https key password are only in the confidential config (admin only)
+        m_confidentialconfig = await $.ajax({ url: "/serverconfig_confidential?" + Math.random(), type: "GET" }) || {};
+        console.log("original serverconfig",m_serverconfig)
+        init();
+    }catch(xhr){
+        document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+    }
 }
 
 function init(){
@@ -113,7 +111,7 @@ function init(){
             {
                 name: "STATIC_WEBSERVER_HTTPS_PK_PASSWORD",
                 inputType: "password", 
-                value: m_serverconfig["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"],
+                value: m_confidentialconfig["STATIC_WEBSERVER_HTTPS_PK_PASSWORD"] ?? "webserver", //server default when never set
                 type: "input",
                 label: "HTTPS PK Password",
                 labelPosition: "left",
@@ -222,31 +220,38 @@ const cfg = [
             //Save config 
             var to_save = form.getValue();
             delete to_save.text; //delete helper items form form
-            
+            var confidential = {STATIC_WEBSERVER_HTTPS_PK_PASSWORD: to_save.STATIC_WEBSERVER_HTTPS_PK_PASSWORD};
+            delete to_save.STATIC_WEBSERVER_HTTPS_PK_PASSWORD; //saved to confidential config, not to server config
+
             var merged = {...m_serverconfig, ...to_save};
             console.log("Saving merged config",merged)
-            saveConfig(merged);
+            saveConfig(merged, confidential);
         }
     });
     
     layoutCell.attach(toolbar);
 }
 
-function saveConfig(what){
+async function saveConfig(what, confidential){
     //we should really add support for updating single properties in adminconfig
-    $.ajax({
-		url: ("/adminconfig"),
-		type: "POST",
-		data: what,
-		success: function(response) {
-			parent.window.m_needreload = true;//reload parent window so it updates the new config
-            dhx924.dhx.message({ expire: 3000, text: "Saved" });
-		},
-		error: function(xhr, status) {
-			console.log("Error saving config!" + xhr.responseText);
-			dhx924.dhx.message({ expire: 10000, text: "Error saving config! " + xhr.responseText });
-		}
-	});
+    try{
+        await $.ajax({
+            url: "/serverconfig_confidential",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(confidential)
+        });
+        await $.ajax({
+            url: ("/adminconfig"),
+            type: "POST",
+            data: what
+        });
+        parent.window.m_needreload = true;//reload parent window so it updates the new config
+        dhx924.dhx.message({ expire: 3000, text: "Saved" });
+    }catch(xhr){
+        console.log("Error saving config!" + xhr.responseText);
+        dhx924.dhx.message({ expire: 10000, text: "Error saving config! " + xhr.responseText });
+    }
 }
 
 function showConfigWindow(win_text,win_url){
