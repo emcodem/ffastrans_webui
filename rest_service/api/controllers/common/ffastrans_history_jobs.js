@@ -274,7 +274,8 @@ function buildSplitInfo(jobInfo, splitId) {
         } catch {
             result = jobInfo[splitId].result;
         }
-        display_name = jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file
+        //like ffastrans _write_branch_end: monitor jobs keep original_file only in the root .json, not in the split
+        display_name = jobInfo.sources?.original_file || jobInfo[splitId].sources.original_file || jobInfo[splitId].sources.current_file
     }
     var to_return = {
         /* 
