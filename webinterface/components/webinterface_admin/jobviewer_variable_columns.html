@@ -22,7 +22,6 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
 <style>
 
 
@@ -39,21 +38,22 @@ function init(){
 }
 
 async function loadVariableColumns(){
-    var locations = await  $.ajax({
-        url:  ("/variablecolumns"),
-        type: "GET"
-    });
+    const response = await fetch("/variablecolumns");
+    if (!response.ok) throw new Error(await response.text());
+    var locations = await response.json();
     return locations;
 }
 
 async function saveVariableColumns(data){
     try{
-        var result = await  $.ajax({
-            url:  ("/variablecolumns"),
-            type: "POST",
-            contentType: "application/json",
-            data:JSON.stringify(data)
+        const response = await fetch("/variablecolumns", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
         });
+        if (!response.ok) throw new Error(await response.text());
         dhx8.dhx.message({
                 text:"Saved", 
                 css:"expire", 

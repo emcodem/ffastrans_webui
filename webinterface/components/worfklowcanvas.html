@@ -56,7 +56,6 @@ table, th, td {
 <script type="text/javascript">
     mxBasePath = '../dependencies/mxgraph/javascript/src';
 </script>
-<script src="../dependencies/jquery/jquery.js"></script>
 
 <!-- Loads and initializes the library -->
 <script type="text/javascript" src="../dependencies/mxgraph/javascript/src/js/mxClient.js"></script>
@@ -241,12 +240,10 @@ function getQueryVariable(variable) {
 
 function getWorkflows(wf_id){
 //get all workflows from server and start main with the workflow of interest
-    $.ajax({
-        url: getQueryVariable("wf_url"),
-        type: "GET",
-        crossDomain: true,
-        dataType: "json",
-        success: function (response) {
+    fetch(getQueryVariable("wf_url")).then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+    }).then(function (response) {
             if (response['workflows'].length == 0){
                 alert("Did not get any workflows from FFASTRANS API");
             }else{
@@ -258,12 +255,10 @@ function getWorkflows(wf_id){
                         return;
                     }
                 }
-                
+
             }
-        },
-        error: function (xhr, status) {
+    }, function (ex) {
             alert("ERROR getting workflows, please check FFAStrans Path in Admin settings on the left.. ");
-        }
     });
 }
 

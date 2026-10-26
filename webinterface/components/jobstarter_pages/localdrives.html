@@ -1,7 +1,6 @@
 <html>
 <head>
 <link rel="stylesheet" href="/alternate-server/css/override.css"/>
-<script src="../../dependencies/jquery/jquery.js"></script>
 <link rel="icon" href="favicon.ico?v=1.1">
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css" />
 
@@ -25,7 +24,6 @@
 </script>
 
 
-<script src="../../dependencies/fancytree/jquery.fancytree-all-deps.min.js"></script>
 <link rel="stylesheet" href="../../dependencies/fancytree/skin-ffastrans/ui.fancytree.css"/>
 
 <style>
@@ -103,7 +101,9 @@ async function init(){
 
     var localDrives;
     try{
-        localDrives = await $.ajax({url: "/getlocaldrives", type: "GET"});
+        const response = await fetch("/getlocaldrives");
+        if (!response.ok) throw new Error(await response.text());
+        localDrives = await response.json();
         
     }catch(ex){
         console.log(ex)

@@ -19,7 +19,7 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
+<script src="../common/formUrlEncode.js"></script>
 
 
 <style>
@@ -203,36 +203,36 @@ function buildForm(){
 	});	
 }
 
-function force_autodelete(){
-	$.ajax({
-		url: ("/database_maintenance_autodelete" + "?" + Math.random()),
-		type: "DELETE",
-		success: function(response) {
-			dhx.message({ expire: 3000, text: "Success... "  });
-		},
-		error: function(xhr, status) {
-			console.log("XHR Status",status);
-			console.log(xhr);
-			alert("Fatal error, see console");
-		}
-	});
+async function force_autodelete(){
+	try{
+		const response = await fetch("/database_maintenance_autodelete" + "?" + Math.random(), {
+			method: "DELETE"
+		});
+		if (!response.ok) throw new Error("HTTP " + response.status + " " + await response.text());
+	}catch(ex){
+		console.log(ex);
+		alert("Fatal error, see console");
+		return;
+	}
+	dhx.message({ expire: 3000, text: "Success... "  });
 }
 
-function save_autodelete(obj){
-	$.ajax({
-		url: ("/database_maintenance_autodelete" + "?" + Math.random()),
-		type: "POST",
-		data:obj,
-		dataType:"json",
-		success: function(response) {
-			dhx.message({ expire: 3000, text: "Success... "  });
-		},
-		error: function(xhr, status) {
-			console.log("XHR Status",status);
-			console.log(xhr);
-			alert("Fatal error, see console");
-		}
-	});
+async function save_autodelete(obj){
+	try{
+		const response = await fetch("/database_maintenance_autodelete" + "?" + Math.random(), {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+			},
+			body: formUrlEncode(obj)
+		});
+		if (!response.ok) throw new Error("HTTP " + response.status + " " + await response.text());
+	}catch(ex){
+		console.log(ex);
+		alert("Fatal error, see console");
+		return;
+	}
+	dhx.message({ expire: 3000, text: "Success... "  });
 }
 
 function do_validate(){
@@ -267,22 +267,19 @@ function do_purge(){
 	do_validate();
 }
 
-function loadserverconfig() {
-	
-	$.ajax({
-		url: ("/getserverconfig" + "?" + Math.random()),
-		type: "GET",
-		success: function(response) {
-			console.log("got server conf")
-			m_serverconfig = JSON.parse(response);
-			console.log("SERVERCONFIG:",m_serverconfig)
-			init();
-		},
-		error: function(xhr, status) {
-			dhtmlx.message("Fatal error, could not load serverconfig. ");
-			document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
-		}
-	});
+async function loadserverconfig() {
+	try{
+		const response = await fetch("/getserverconfig" + "?" + Math.random());
+		if (!response.ok) throw new Error(await response.text());
+		m_serverconfig = JSON.parse(await response.text());
+	}catch(ex){
+		dhtmlx.message("Fatal error, could not load serverconfig. ");
+		document.body.innerHTML = "Fatal error, could not load serverconfig. " + ex.message;
+		return;
+	}
+	console.log("got server conf")
+	console.log("SERVERCONFIG:",m_serverconfig)
+	init();
 }
 
 
@@ -295,25 +292,30 @@ function testConfig(){
 	o_testmail["test_body"] = document.getElementById("test_body").value;
 	
 	document.getElementById("testresult").innerHTML = "Loading... if this does not finish in <1 second, you most likely have DNS problems resolving your domain fqdn\nYou can wait for the 60 second timeout if you like to tough... It should say ETIMEDOUT\nIn that case, ping the FQDN you entered and resolve the problems";
-	$.ajax({
-		url: ("/admin_alert_email_tester" + "?" + Math.random()),
-		type: "POST",
-		data: o_testmail,
-		success: function(response) {
-			console.log("TEST OK",response);
-			try{
-				response= JSON.parse(response);
-				response = JSON.stringify(response, undefined, 2);
-			}catch(ex){
-			
-			}
-			document.getElementById("testresult").innerHTML = response;
-			
+	fetch("/admin_alert_email_tester" + "?" + Math.random(), {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
 		},
-		error: function(xhr, status) {
+		body: formUrlEncode(o_testmail)
+	}).then(async function(res) {
+		var response = await res.text();
+		if (!res.ok){
 			console.log("TEST FAIL");
-			document.getElementById("testresult").innerHTML = xhr.responseText;
+			document.getElementById("testresult").innerHTML = response;
+			return;
 		}
+		console.log("TEST OK",response);
+		try{
+			response= JSON.parse(response);
+			response = JSON.stringify(response, undefined, 2);
+		}catch(ex){
+
+		}
+		document.getElementById("testresult").innerHTML = response;
+	}, function(ex) {
+		console.log("TEST FAIL");
+		document.getElementById("testresult").innerHTML = ex.message;
 	});
 }
 

@@ -20,7 +20,6 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 <!-- unbelieveable how many dependencies we need for codemirror json -->
 
@@ -91,15 +90,14 @@ var label_map = function(what){
 
 async function loadData(){
     try{
-        var locations = await  $.ajax({
-            url:  ( build_new_api_url("/machines")),
-            type: "GET"
-        });
+        const response = await fetch(build_new_api_url("/machines"));
+        if (!response.ok) throw new Error(await response.text());
+        const locations = await response.json();
         return locations;
     }catch(ex){
         dhx8.dhx.alert({
             header: "Not possible",
-            text: "Error getting machines from api (/machines), Message: "+ JSON.stringify(ex),
+            text: "Error getting machines from api (/machines), Message: "+ ex.message,
             buttons: ["ok"]
         });
     }

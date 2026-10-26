@@ -19,7 +19,7 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
+<script src="../common/formUrlEncode.js"></script>
 
 
 <style>
@@ -192,7 +192,9 @@ function buildForm(){
 }
 
 async function restoreFormData(){
-	var confidential_conf = await	$.ajax({url: ("/serverconfig_confidential" + "?" + Math.random())});
+	const response = await fetch("/serverconfig_confidential" + "?" + Math.random());
+	if (!response.ok) throw new Error(await response.text());
+	var confidential_conf = await response.json();
 
 	if (!confidential_conf.azure_config)
 		return
@@ -215,13 +217,16 @@ async function saveAzureConfig(){
 
 	m_serverconfig["azure_config"] = o_tosave;
 	try{
-		var response = await  $.ajax({
-             url: ("/serverconfig_confidential"),
-             type: "POST",
-             data:{
-                "azure_config":o_tosave
-             }
-        });
+		const response = await fetch("/serverconfig_confidential", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+			},
+			body: formUrlEncode({
+				"azure_config":o_tosave
+			})
+		});
+		if (!response.ok) throw new Error(await response.text());
 		dhx8.dhx.message({ expire: 3000, text: "Success"});
 	}catch(ex){
 		dhx8.dhx.message({ expire: 10000, text: ex});
@@ -229,22 +234,19 @@ async function saveAzureConfig(){
 }
 
 window.loadserverconfig = loadserverconfig; //export for use in html onclick
-function loadserverconfig() {
-	
-	$.ajax({
-		url: ("/serverconfig_confidential" + "?" + Math.random()),
-		type: "GET",
-		success: function(response) {
-			console.log("got server conf");
-			m_serverconfig = response;
-			console.log("SERVERCONFIG:",m_serverconfig)
-			init();
-		},
-		error: function(xhr, status) {
-			dhtmlx.message("Fatal error, could not load serverconfig. ");
-			document.body.innerHTML = "Fatal error, could not load serverconfig. " + xhr.responseText;
-		}
-	});
+async function loadserverconfig() {
+	try{
+		const response = await fetch("/serverconfig_confidential" + "?" + Math.random());
+		if (!response.ok) throw new Error(await response.text());
+		m_serverconfig = await response.json();
+	}catch(ex){
+		dhtmlx.message("Fatal error, could not load serverconfig. ");
+		document.body.innerHTML = "Fatal error, could not load serverconfig. " + ex.message;
+		return;
+	}
+	console.log("got server conf");
+	console.log("SERVERCONFIG:",m_serverconfig)
+	init();
 }
 
 

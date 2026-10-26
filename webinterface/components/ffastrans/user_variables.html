@@ -19,7 +19,6 @@
 </script><!-- legacy dhtml css goes first -->
 
 
-<script src="../../dependencies/jquery/jquery.js"></script>
 
 <link href="../../dependencies/MaterialDesign-Webfont-7.2.96/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css" />
 
@@ -271,21 +270,22 @@ const variable_templates={
 }
 
 async function loadData(){
-    var locations = await  $.ajax({
-        url:  ("/getworkflowlist"),
-        type: "GET"
-    });
+    const response = await fetch("/getworkflowlist");
+    if (!response.ok) throw new Error(await response.text());
+    const locations = await response.text();
     return locations;
 }
 
 async function saveVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables")),
-        type: "POST",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
+    const response = await fetch(build_new_api_url("/variables"), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(var_name_and_data)
     });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
     loadGridData(true);//reload with every save
     dhx.message({
         text:"Success Saving Variables", 
@@ -296,13 +296,15 @@ async function saveVariableAjax(var_name_and_data){
 }
 
 async function deleteVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables?name=" + var_name_and_data.name)),
-        type: "DELETE",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
+    const response = await fetch(build_new_api_url("/variables?name=" + var_name_and_data.name), {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(var_name_and_data)
     });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
     loadGridData(true);//reload with every save
     return data;
 }
@@ -530,8 +532,8 @@ function deleteSelected(){
             deleteVariableAjax(to_delete);
         }catch(ex){
             console.log("Error deleting".ex)
-            alert("Error deleting variable: " + ex.responseText)
-            console.log("Error deleting",ex.responseText)
+            alert("Error deleting variable: " + ex.message)
+            console.log("Error deleting",ex.message)
         }
         m_maingrid.data.remove(selectedCells[0].row.id);
     });
@@ -617,8 +619,8 @@ async function newVariableWindow(){
                 console.log("Save variable response",res);
             }catch(ex){
                 console.log("Error Saving variable: ", ex)
-                alert("Error Saving variable: " + ex.responseText)
-                console.log("Responsetext: ", ex.responseText)
+                alert("Error Saving variable: " + ex.message)
+                console.log("Responsetext: ", ex.message)
             }
             dhxWindow.destructor();
             await loadGridData();
@@ -1303,7 +1305,7 @@ async function saveVariable(var_name,data_value){
         await saveVariableAjax(to_save);
         
     }catch(ex){
-        alert("Error saving variable: "+ ex.responseText());
+        alert("Error saving variable: "+ ex.message);
         console.error(ex);
     }
 

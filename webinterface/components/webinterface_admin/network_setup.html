@@ -17,7 +17,7 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
+<script src="../common/formUrlEncode.js"></script>
 
 
 <script>
@@ -26,13 +26,17 @@ var m_confidentialconfig;
 /*load config from server*/
 async function loadserverconfig(){
     try{
-        m_serverconfig = JSON.parse(await $.ajax({ url: "/getserverconfig", type: "GET" }));
+        const response = await fetch("/getserverconfig");
+        if (!response.ok) throw new Error(await response.text());
+        m_serverconfig = JSON.parse(await response.text());
         //secrets like the https key password are only in the confidential config (admin only)
-        m_confidentialconfig = await $.ajax({ url: "/serverconfig_confidential?" + Math.random(), type: "GET" }) || {};
+        const confidential_response = await fetch("/serverconfig_confidential?" + Math.random());
+        if (!confidential_response.ok) throw new Error(await confidential_response.text());
+        m_confidentialconfig = await confidential_response.json() || {};
         console.log("original serverconfig",m_serverconfig)
         init();
-    }catch(xhr){
-        document.body.innerHTML="Fatal error, could not load serverconfig. "+ xhr.responseText;
+    }catch(ex){
+        document.body.innerHTML="Fatal error, could not load serverconfig. "+ ex.message;
     }
 }
 
@@ -244,22 +248,27 @@ const cfg = [
 async function saveConfig(what, confidential){
     //we should really add support for updating single properties in adminconfig
     try{
-        await $.ajax({
-            url: "/serverconfig_confidential",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify(confidential)
+        const confidential_response = await fetch("/serverconfig_confidential", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(confidential)
         });
-        await $.ajax({
-            url: ("/adminconfig"),
-            type: "POST",
-            data: what
+        if (!confidential_response.ok) throw new Error(await confidential_response.text());
+        const response = await fetch("/adminconfig", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+            },
+            body: formUrlEncode(what)
         });
+        if (!response.ok) throw new Error(await response.text());
         parent.window.m_needreload = true;//reload parent window so it updates the new config
         dhx924.dhx.message({ expire: 3000, text: "Saved" });
-    }catch(xhr){
-        console.log("Error saving config!" + xhr.responseText);
-        dhx924.dhx.message({ expire: 10000, text: "Error saving config! " + xhr.responseText });
+    }catch(ex){
+        console.log("Error saving config!" + ex.message);
+        dhx924.dhx.message({ expire: 10000, text: "Error saving config! " + ex.message });
     }
 }
 

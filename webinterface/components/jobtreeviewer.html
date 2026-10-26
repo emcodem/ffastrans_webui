@@ -3,7 +3,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FFAStrans Job Tree</title>
 
-<script src="../dependencies/jquery/jquery.js"></script>
 
 <!-- Icon fonts -->
 <link rel="stylesheet" href="../dependencies/fontawesome/css/all.css">
@@ -479,11 +478,10 @@ var jobId = getQueryVariable("job_id");
 if (!jobId) {
     document.getElementById("jobtree_status").textContent = "No job_id specified.";
 } else {
-    $.ajax({
-        url: "/getjobtree?jobid=" + encodeURIComponent(jobId),
-        type: "GET",
-        dataType: "json",
-        success: function(data) {
+    fetch("/getjobtree?jobid=" + encodeURIComponent(jobId)).then(function(response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+    }).then(function(data) {
             if (!data || !data.jobs || data.jobs.length === 0) {
                 document.getElementById("jobtree_status").textContent = "No jobs found for this ID.";
                 return;
@@ -525,10 +523,8 @@ if (!jobId) {
             requestAnimationFrame(function() {
                 try { m_grid.scrollTo(requestedId, "workflow_html"); } catch (e) {}
             });
-        },
-        error: function(xhr) {
-            document.getElementById("jobtree_status").textContent = "Error loading job tree (HTTP " + xhr.status + ").";
-        }
+    }, function(ex) {
+        document.getElementById("jobtree_status").textContent = "Error loading job tree (" + ex.message + ").";
     });
 }
 </script>

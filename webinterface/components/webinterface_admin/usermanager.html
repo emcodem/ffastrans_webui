@@ -22,7 +22,7 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
+<script src="../common/formUrlEncode.js"></script>
 <link rel="stylesheet" href="../../dependencies/fontawesome/css/all.css"/>
 <style>
     /* it's important to set width/height to 100% for full-screen init */
@@ -164,20 +164,13 @@ function init(){
                         if (result == 0){
                             var username = box.getElementsByTagName("input")[0].value;
                             var password = box.getElementsByTagName("input")[1].value;
-                            $.ajax({//creating a new user requires a special method on server for hashing password
-                                url:  ("/userlistnew"),
-                                type: "POST",
-                                context: this,
-                                dataType: "json",
-                                data: {"name":username,"password":password,"groups":[]},
-                                success: function () {
-                                    loaduserlist();
-                                    dhtmlx.message("Saved");
-                                },
-                                error: function (xhr, status) {
-                                    dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
-                                    document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
-                                }
+                            //creating a new user requires a special method on server for hashing password
+                            request("POST", "/userlistnew", {"name":username,"password":password,"groups":[]}).then(function () {
+                                loaduserlist();
+                                dhtmlx.message("Saved");
+                            }, function (ex) {
+                                dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+                                document.body.innerHTML="Fatal error, could not save usergrouplist. "+ ex.message;
                             });
                         }
                     }
@@ -323,41 +316,41 @@ function showUserProps(userObj,layoutCellToAttach){
     
 }
 
+function request(method, url, data){
+    //resolves with the response text, rejects with the response text as message on http errors
+    //data is sent form encoded like $.ajax did, the server routes expect that format
+    var options = {method: method};
+    if (data !== undefined){
+        options.headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"};
+        options.body = formUrlEncode(data);
+    }
+    return fetch(url, options).then(async function (response) {
+        var text = await response.text();
+        if (!response.ok) throw new Error(text);
+        return text;
+    });
+}
+
 function saveUserProps(userObj){
     console.log("saving UserProps",userObj)
-    $.ajax({//updating a new user has a special method on server for NOT hashing password
-        url:  ("/userlistupdateexisting"),
-        type: "POST",
-        context: this,
-        dataType: "json",
-        data: {"name":userObj.username,"password":userObj.password,"groups":userObj.groups},
-        success: function () {
-            loaduserlist();
-            dhtmlx.message("Saved");
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
-            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
-        }
+    //updating a new user has a special method on server for NOT hashing password
+    request("POST", "/userlistupdateexisting", {"name":userObj.username,"password":userObj.password,"groups":userObj.groups}).then(function () {
+        loaduserlist();
+        dhtmlx.message("Saved");
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+        document.body.innerHTML="Fatal error, could not save usergrouplist. "+ ex.message;
     });
-    
+
 }
 
 function removeGroupFromUser(uname,groupname){
-    $.ajax({//updating a new user has a special method on server for NOT hashing password
-        url:  ("/userlist_remove_group_from_user"),
-        type: "DELETE",
-        context: this,
-        dataType: "json",
-        data: {"username":uname,"groupname":groupname},
-        success: function () {
-            dhtmlx.message("Success removing " + groupname + " from " + uname);
-        },
-        error: function (xhr, status) {
-            document.body.innerHTML="Fatal error, could not removeGroupFromUser. "+ xhr.responseText;
-        }
+    request("DELETE", "/userlist_remove_group_from_user", {"username":uname,"groupname":groupname}).then(function () {
+        dhtmlx.message("Success removing " + groupname + " from " + uname);
+    }, function (ex) {
+        document.body.innerHTML="Fatal error, could not removeGroupFromUser. "+ ex.message;
     });
-    
+
 }
 
 function showUsersInGroup(groupObj,layoutCellBase){
@@ -598,99 +591,70 @@ function saveGroupProps(){
 
 function saveUserGroupToServer(groupObj,doreload){
     console.log("saveUserGroupToServer",groupObj)
-    $.ajax({
-        url:  ("/usergrouplist" + "?" + Math.random()) ,
-        type: "POST",
-        context: this,
-        dataType: "json",
-        data: groupObj,
-        //data: JSON.stringify(_obj),
-        success: function () {
-            dhtmlx.message("Saved");
-            if (doreload){loadusergrouplist()}
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
-            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
-        }
-    });                           
+    request("POST", "/usergrouplist" + "?" + Math.random(), groupObj).then(function () {
+        dhtmlx.message("Saved");
+        if (doreload){loadusergrouplist()}
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+        document.body.innerHTML="Fatal error, could not save usergrouplist. "+ ex.message;
+    });
 }
 
 function loaduserlist(){
-   $.ajax({
-        url:  ("/userlist" + "?" + Math.random()) ,
-        type: "GET",
-        success: function (userlist) {
-            //render userlist in grid
-            m_usergrid.clearAll();
-            userlist = JSON.parse(userlist);
-            for (let i in userlist){
-                var id = Math.random()
-                m_usergrid.addRow(id,[userlist[i].username]);
-                m_usergrid.setUserData(id,"object",userlist[i]);
-            }
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not load userlist. " );
-            document.body.innerHTML="Fatal error, could not load userlist. "+ xhr.responseText;
+    request("GET", "/userlist" + "?" + Math.random()).then(function (userlist) {
+        //render userlist in grid
+        m_usergrid.clearAll();
+        userlist = JSON.parse(userlist);
+        for (let i in userlist){
+            var id = Math.random()
+            m_usergrid.addRow(id,[userlist[i].username]);
+            m_usergrid.setUserData(id,"object",userlist[i]);
         }
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not load userlist. " );
+        document.body.innerHTML="Fatal error, could not load userlist. "+ ex.message;
     });
 }
 
 function loadusergrouplist(){
-   $.ajax({
-        url:  ("/usergrouplist") ,
-        type: "GET",
-        success: function (grouplist) {
-            //render userlist in grid
-            grouplist = JSON.parse(grouplist);
-            m_groupgrid.clearAll();
-            for (let i in grouplist){                
-                m_groupgrid.addRow(grouplist[i].name,[grouplist[i].name]);
-                m_groupgrid.setUserData(grouplist[i].name,"object",grouplist[i]);
-            }
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not load usergrouplist. " );
-            document.body.innerHTML="Fatal error, could not load usergrouplist. "+ xhr.responseText;
+    request("GET", "/usergrouplist").then(function (grouplist) {
+        //render userlist in grid
+        grouplist = JSON.parse(grouplist);
+        m_groupgrid.clearAll();
+        for (let i in grouplist){
+            m_groupgrid.addRow(grouplist[i].name,[grouplist[i].name]);
+            m_groupgrid.setUserData(grouplist[i].name,"object",grouplist[i]);
         }
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not load usergrouplist. " );
+        document.body.innerHTML="Fatal error, could not load usergrouplist. "+ ex.message;
     });
 }
 
 function loadpermissionlist(){
-   $.ajax({
-        url:  ("/usergrouprightslist" + "?" + Math.random()) ,
-        type: "GET",
-        success: function (permlist) {
-            console.log(permlist)
-            //render userlist in grid
-            permlist = JSON.parse(permlist);
-            console.log(permlist)
-            m_permissiongrid.clearAll();
-            for (let i in permlist){
-                m_permissiongrid.addRow(permlist[i].key,[permlist[i].key]);
-                m_permissiongrid.setUserData(permlist[i].key,"object",permlist[i]);
-            }
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not load usergrouplist. " );
-            document.body.innerHTML="Fatal error, could not load usergrouplist. "+ xhr.responseText;
+    request("GET", "/usergrouprightslist" + "?" + Math.random()).then(function (permlist) {
+        console.log(permlist)
+        //render userlist in grid
+        permlist = JSON.parse(permlist);
+        console.log(permlist)
+        m_permissiongrid.clearAll();
+        for (let i in permlist){
+            m_permissiongrid.addRow(permlist[i].key,[permlist[i].key]);
+            m_permissiongrid.setUserData(permlist[i].key,"object",permlist[i]);
         }
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not load usergrouplist. " );
+        document.body.innerHTML="Fatal error, could not load usergrouplist. "+ ex.message;
     });
 }
 
 function createusergroup(name){
-   $.ajax({
-        url:  "/usergrouplist" + "?" + Math.random() ,
-        type: "POST",
-        success: function () {
-            //render userlist in grid
-            dhtmlx.message("Saved");
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
-            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
-        }
+    request("POST", "/usergrouplist" + "?" + Math.random()).then(function () {
+        //render userlist in grid
+        dhtmlx.message("Saved");
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+        document.body.innerHTML="Fatal error, could not save usergrouplist. "+ ex.message;
     });
 }
 
@@ -699,20 +663,13 @@ function deleteusergoup(){
         dhtmlx.message("Please select a row to delete");
         return;
     }
-   $.ajax({
-        url:  ("/usergrouplist" + "?" + Math.random()) ,
-        type: "DELETE",
-        dataType: "json",
-        data: {"name":m_groupgrid.getSelectedRowId()},
-        success: function () {
-            //render userlist in grid
-            loadusergrouplist();
-            dhtmlx.message("Saved");
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
-            document.body.innerHTML="Fatal error, could not save usergrouplist. "+ xhr.responseText;
-        }
+    request("DELETE", "/usergrouplist" + "?" + Math.random(), {"name":m_groupgrid.getSelectedRowId()}).then(function () {
+        //render userlist in grid
+        loadusergrouplist();
+        dhtmlx.message("Saved");
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not save usergrouplist, check server logs " );
+        document.body.innerHTML="Fatal error, could not save usergrouplist. "+ ex.message;
     });
 }
 
@@ -724,20 +681,13 @@ function deleteuser(){
     }
     var username = m_usergrid.getUserData(m_usergrid.getSelectedRowId(),"object")["username"];
     
-   $.ajax({
-        url: ("/userlist" + "?" + Math.random()),
-        type: "DELETE",
-        dataType: "json",
-        data: {"name":username},
-        success: function () {
-            //render userlist in grid
-            loaduserlist();
-            dhtmlx.message("Saved");
-        },
-        error: function (xhr, status) {
-            dhtmlx.message("Fatal error, could not delete user, check server logs " );
-            document.body.innerHTML="Fatal error, could not delete user. "+ xhr.responseText;
-        }
+    request("DELETE", "/userlist" + "?" + Math.random(), {"name":username}).then(function () {
+        //render userlist in grid
+        loaduserlist();
+        dhtmlx.message("Saved");
+    }, function (ex) {
+        dhtmlx.message("Fatal error, could not delete user, check server logs " );
+        document.body.innerHTML="Fatal error, could not delete user. "+ ex.message;
     });
 }
 

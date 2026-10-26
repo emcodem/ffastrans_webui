@@ -19,14 +19,6 @@
     }
 </script>
 
-<script src="../../dependencies/jquery/jquery.js"></script>
-
-<link href="../../dependencies/fancytree/skin-custom-1/ui.fancytree.css" rel="stylesheet">
-<script src="../../dependencies/fancytree/modules/jquery.fancytree.ui-deps.js"></script>
-<script src="../../dependencies/fancytree/modules/jquery.fancytree.js" type="text/javascript"></script>
-<script src="../../dependencies/fancytree/modules/jquery.fancytree.filter.js" type="text/javascript"></script>
-<script src="../../components/common/buildWorkflowTree.js"></script> 
-<link rel="stylesheet" href="../../dependencies/fancytree/skin-ffastrans/ui.fancytree.css"/>
 <!-- unbelieveable how many dependencies we need for codemirror json -->
 <link rel="stylesheet" href="../../dependencies/codemirror/addon/lint/lint.css"/>
 <link rel="stylesheet" href="../../dependencies/codemirror/codemirror.css"/>
@@ -94,16 +86,15 @@ var m_filter_statics = false;
 
 async function loadData(){
     try{
-        var data = await  $.ajax({
-            url:  (build_new_api_url("/about")),
-            type: "GET"
-        });
+        const response = await fetch(build_new_api_url("/about"));
+        if (!response.ok) throw new Error(await response.text());
+        const data = await response.json();
         m_last_data = data;
         return data;
     }catch(ex){
         dhx8.dhx.alert({
             header: "Not possible",
-            text: "Error getting data, Message: "+ JSON.stringify(ex),
+            text: "Error getting data, Message: "+ ex.message,
             buttons: ["ok"]
         });
     }
@@ -111,13 +102,15 @@ async function loadData(){
 
 
 async function saveAboutSection(o_tosave){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/about")),
-        type: "POST",
-        contentType:"application/json",
-        
-        data: JSON.stringify(o_tosave)
+    const response = await fetch(build_new_api_url("/about"), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(o_tosave)
     });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
 
     dhx8.dhx.message({
         text:"Success Saving About section", 
@@ -128,13 +121,15 @@ async function saveAboutSection(o_tosave){
 }
 
 async function deleteVariableAjax(var_name_and_data){
-    var data = await  $.ajax({
-        url:  (build_new_api_url("/variables?name=" + var_name_and_data.name)),
-        type: "DELETE",
-        contentType:"application/json",
-        
-        data: JSON.stringify(var_name_and_data)
+    const response = await fetch(build_new_api_url("/variables?name=" + var_name_and_data.name), {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(var_name_and_data)
     });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
     loadGridData(true);//reload with every save
     return data;
 }
@@ -290,7 +285,8 @@ function constrcutFormSaveButton(name){
 
 function constructAllFormInputs(_rootobj,_currentKey,_absoluteKey,labelW = 130){
     var formrows = [];
-    for (var _k of Object.keys(_rootobj[_currentKey])){
+    //FFAStrans does not always return every section (e.g. no "email" without configured alerts), render an empty form instead of throwing
+    for (var _k of Object.keys(_rootobj[_currentKey] || {})){
         //loops through object and tries to find out how to draw the item in a form
         var _value = _rootobj[_currentKey][_k];
         if (typeof(_value) === "string" || typeof(_value) === "number"){
