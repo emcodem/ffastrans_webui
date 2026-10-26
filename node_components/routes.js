@@ -5,6 +5,15 @@ const fs = require("fs");
 const proxy = require('express-http-proxy');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const userpermissions = require("./userpermissions");
+
+//joins a request path onto approot, returns false when the result leaves the webinterface folder (e.g. /webinterface/components/../../database/config)
+function resolveInWebinterface(reqPath) {
+    const root = path.join(global.approot, "webinterface");
+    const full = path.join(global.approot, reqPath);
+    const norm = (p) => process.platform === "win32" ? p.toLowerCase() : p;
+    return norm(full).startsWith(norm(root + path.sep)) ? full : false;
+}
+
 module.exports = function(app, passport) {
 
     // =====================================
@@ -150,7 +159,10 @@ module.exports = function(app, passport) {
         //   );
     });
     app.get ('/webinterface/images/*', function(req,res){
-        let realpath = path.join(global.approot,req.url);
+        let realpath = resolveInWebinterface(req.path);
+        if (!realpath) {
+            return res.status(404).send("Not found");
+        }
         res.sendFile(realpath); 
     });
     app.get ('/webinterface/version.txt', function(req,res){
@@ -163,7 +175,11 @@ module.exports = function(app, passport) {
     async function renderHTMLByMustache(req,res){
         /* check if html, if yes, use mustache rendering */
         console.log("renderHTMLByMustache",req.path)
-        let realpath = path.join(global.approot,req.path);
+        let realpath = resolveInWebinterface(req.path);
+        if (!realpath) {
+            console.warn("Blocked path outside webinterface folder:", req.path);
+            return res.status(404).send("Not found");
+        }
 
         console.log("realpath",realpath)
         if (fs.existsSync(realpath)){//when we use fs.promises.exists, in compiled mode the file does not exist.
@@ -184,6 +200,7 @@ module.exports = function(app, passport) {
             return;
         }else{
             console.error("Mustache did not find requested file",realpath)
+            res.status(404).send("Not found");
         }
     }
     app.get ('/webinterface/components/*', renderHTMLByMustache);
