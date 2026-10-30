@@ -40,13 +40,13 @@ module.exports = function(app, passport) {
 
 
     //override.css is used on every page but usually does not exist, this prevents 404 errors
-    app.get ('/alternate-server/css/override.css', async function(req,res){
-        if (await fs.promises.exists(path.join(global.approot,"/alternate-server/css/override.css"))){
-            res.sendFile(path.join(global.approot,"/alternate-server/css/override.css")); 
-        }else{
-            res.set('Content-Type', 'text/css'); // Set the content type to CSS
-            res.send(''); // Send an empty string
-        }
+    app.get ('/alternate-server/css/override.css', function(req,res){
+        res.sendFile(path.join(global.approot,"/alternate-server/css/override.css"), function(err){
+            if (err && !res.headersSent){
+                res.set('Content-Type', 'text/css'); // Set the content type to CSS
+                res.send(''); // file does not exist, send an empty string
+            }
+        });
     })
     app.get('/alternate-server/css/*', async function(req, res) {
         res.sendFile(global.approot + req.originalUrl);

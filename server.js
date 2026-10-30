@@ -525,7 +525,9 @@ async function init(conf) {
 
         /* alternate server allows to disable inbuild jobfetcher - so webint can be used with another system than ffastrans*/
         console.log("detected alternate jobfetcher module");
-        global.jobfetcher = require(path.join(global.approot, "alternate-server/jobfetcher.js"));
+        //webpack rewrites a plain require(<dynamic path>) into a bundle lookup, which cannot find external files in compiled mode
+        const externalRequire = (typeof __non_webpack_require__ === "function") ? __non_webpack_require__ : require;
+        global.jobfetcher = externalRequire(path.join(global.approot, "alternate-server/jobfetcher.js"));
         global.config["alternate-server"] = true;
     }
     else {
