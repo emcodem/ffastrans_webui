@@ -14,6 +14,8 @@ function _GetNow(){
 }
 
 class JobTicket {
+    #ffastrans;
+
     constructor() {
  
     }
@@ -34,6 +36,11 @@ class JobTicket {
             throw new Error("invalid wf_id");
 
         var $o_workflow = await readJsonFile(locateWorkflowFile(wf_id));
+        // Keep schema and hash selection on the same installed-version snapshot.
+        this.#ffastrans = await readJsonFile(path.join(global.api_config["s_SYS_CONFIGS_DIR"], "ffastrans.json"));
+        const queuer = this.#ffastrans?.general?.versions?.queuer;
+        const version = typeof queuer === 'string' ? queuer.trim().match(/^(\d+)\.(\d+)(?:\.\d+)*$/) : null;
+        const usePath = version && (Number(version[1]) > 1 || (Number(version[1]) === 1 && Number(version[2]) >= 5));
         var prio = 2;
         try{
             prio = $o_workflow.general.priority.charAt(0)
@@ -47,15 +54,32 @@ class JobTicket {
         
         this.split_id        = 		"1-"+$i_index+"-0"
         this.job_id          = 		_MyGuid()
-        this.workflow.id     = 		wf_id
-        this.nodes           = 		{}
-        this.nodes.next      = 	    {}
-        this.nodes.next.id   =       $o_workflow.nodes[$i_index].id
-        this.nodes.next.slots = 		$o_workflow.nodes[$i_index].slots || 1
-		this.nodes.next.hosts_group =	$o_workflow.nodes[$i_index].hosts_group ||  0
-        this.nodes.next.type = 		$o_workflow.nodes[$i_index].type
-        this.nodes.start     = 	    {}
-        this.nodes.last      = 	    {}
+        if (usePath) {
+            const node = $o_workflow.nodes[$i_index];
+            this.wf_id = wf_id;
+            this.path = [{
+                id: node.id,
+                type: node.type,
+                slots: node.slots ?? 1,
+                hosts_group: node.hosts_group ?? 0,
+                wf_id,
+                split_id: this.split_id,
+                // A fresh submission has no inherited lock. The worker applies node directives.
+                branch_lock: false
+            }];
+            delete this.workflow;
+            delete this.nodes;
+        } else {
+            this.workflow.id     = 		wf_id
+            this.nodes           = 		{}
+            this.nodes.next      = 	    {}
+            this.nodes.next.id   =       $o_workflow.nodes[$i_index].id
+            this.nodes.next.slots = 		$o_workflow.nodes[$i_index].slots || 1
+            this.nodes.next.hosts_group = $o_workflow.nodes[$i_index].hosts_group || 0
+            this.nodes.next.type = 		$o_workflow.nodes[$i_index].type
+            this.nodes.start     = 	    {}
+            this.nodes.last      = 	    {}
+        }
         this.submit.method   =       'api'
 		this.submit.system   =       'webui'
 		this.submit.user     =       "WebUI_RestService"
@@ -79,16 +103,13 @@ class JobTicket {
     async getFileName(){
         //need to add md5 hash to filename
         
-        let s = path.join (global.api_config["s_SYS_CONFIGS_DIR"],"ffastrans.json");
-        s = await fsPromises.readFile(s, 'utf8') //read file
-        let ffastrans = s.replace(/^\uFEFF/, '');
-        ffastrans = JSON.parse(ffastrans);
+        const ffastrans = this.#ffastrans;
         var jstring = JSON.stringify(this);
         let hash;
         try{
             //old ffastrans versions use md2 for ticket hash, newer md5
             hash = md5(jstring).toUpperCase();
-            if (ffastrans && ffastrans.general && ffastrans.general.versions) {
+            if (!this.path && ffastrans && ffastrans.general && ffastrans.general.versions) {
                 if (ffastrans.general.versions.queuer.match(/1\.([0-3]\.\d+|4\.0)/)) { //ffastrans queuer 1.4.0.101 is the last version using md2
                     hash = md2(jstring).toUpperCase();
                 }
@@ -106,9 +127,18 @@ class JobTicket {
         //~TWI1ANALYSE~7236CB.json
         
         var slots_and_hostgroup = 100;
+        let workflow_id = this.workflow?.id;
+        let host = "api_submit";
+        if (this.path) {
+            const node = this.path[this.path.length - 1];
+            slots_and_hostgroup = node.slots.toString(36) + node.hosts_group.toString(16).toUpperCase().padStart(2, '0');
+            workflow_id = this.wf_id;
+            // Explicit same-host groups need a real owner; ordinary API jobs retain their queue marker.
+            if (node.hosts_group === 255) host = os.hostname();
+        }
 
         //10 is for 1 slot and 0 hostgroup
-        var filename_parts = [this.priority.toString().substring(0,1) , this.job_id, uuid().substring(0,6) + slots_and_hostgroup,this.split_id,this.workflow.id,"api_submit",hash];
+        var filename_parts = [this.priority.toString().substring(0,1) , this.job_id, uuid().substring(0,6) + slots_and_hostgroup,this.split_id,workflow_id,host,hash];
         return filename_parts.join("~") + ".json";
         
     }
