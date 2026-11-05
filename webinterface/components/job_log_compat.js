@@ -16,9 +16,11 @@
     }
 
     function getNodeEndState(data) {
+        // Abort overrides dispel; other dispelled nodes finish without an error badge.
+        if (data?.status === "abort") return "cancelled";
+        if (data?.dispel === true) return "dispelled";
         // Legacy successful nodes have null data. 1.5 always supplies outcome data.
-        if (data == null || data.status === "ok") return "success";
-        return data.status === "abort" ? "cancelled" : "error";
+        return data == null || data.status === "ok" ? "success" : "error";
     }
 
     function getSubWorkflowId(line) {

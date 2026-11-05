@@ -211,16 +211,17 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
                 }
                 // Numeric outcomes are present on finished branches in both
                 // legacy/1.5 status and experimental state formats.
-                if (getSplitState(taskjson[split_id]) === undefined)
+                const state = getSplitState(taskjson[split_id]);
+                if (state === undefined)
                     continue;
-                //The split JSON's boolean flag is authoritative; no branch log is needed.
-                let dispelled = taskjson[split_id].dispel;
+                // Legacy split flags record the outcome; saved options may still hold defaults.
+                // Abort overrides dispel even if its saved options predate the abort check.
+                let dispelled = state === 2 ? false : taskjson[split_id].dispel;
                 if (typeof dispelled !== "boolean") {
-                    //Older split JSONs may omit dispel, so retain the legacy log fallback.
-                    //A dispelling conditional logs a "conditional" trace entry
-                    //carrying data.dispel:true, immediately followed by the "node end" entry, so
-                    //the marker always lives in the last two array elements. Read those backward
-                    //from EOF \u2014 log files can be hundreds of MB, so we never load the whole file.
+                    // Splits without an explicit outcome retain the legacy branch-log fallback.
+                    // The last node-end flag is authoritative. Legacy conditionals
+                    // logged dispel just before node end, so read the last two objects
+                    // backward from EOF without loading large logs in full.
                     let _logpath = path.join(finisheddir, path.parse(splitfilepath).name + "_log" + ".json");
 
                     if (!hasFullLog || workaround_dispel_database[_logpath]?.version !== fullLogVersion) {
@@ -228,7 +229,8 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
                             let lastObjs = await readLastJsonObjects(_logpath, 2);
                             console.debug(`Performance read last 2 log objects ${_logpath}: ${Date.now() - perf_start}ms`);
                             perf_start = Date.now();
-                            let logDispelled = lastObjs.some(o => o && o.data && o.data.dispel === true);
+                            const nodeEnd = lastObjs.reverse().find(o => o?.event === "node end" && typeof o.data?.dispel === "boolean");
+                            let logDispelled = nodeEnd ? nodeEnd.data.dispel : lastObjs.some(o => o?.data?.dispel === true);
                             workaround_dispel_database[_logpath] = { dispel: logDispelled, version: fullLogVersion };
                         } catch (ex) {
                             // Missing logs are legitimate in newer formats. The
@@ -239,8 +241,9 @@ async function getHistoryJobs(start, end, jobids = [], variablesFilter = null, r
                         }
                     }
                     dispelled = workaround_dispel_database[_logpath]?.dispel;
+                    if (typeof dispelled !== "boolean") dispelled = taskjson[split_id].options?.dispel_branch?.value;
                 }
-                if (dispelled) //if the split ended due to dispel, hide it
+                if (dispelled === true) //if the split ended due to dispel, hide it
                     continue;
                 let current_split = buildSplitInfo(taskjson, split_id);
                 taskArray.push(filterSplitVariables(current_split, variablesFilter));
