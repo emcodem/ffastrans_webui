@@ -111,7 +111,7 @@ function executeJob(current_job,socketioClientId,informCallback){
                 };
         });
         //execute tmp file
-        const forked = fork(path, [], { silent: true });
+        const forked = fork(path, [], { silent: true, execArgv: [] }); // do not inherit SEA execArgv (--use-system-ca), the child would treat it as script
 		
         //send parameters and infos to the running node script, retrieve in script like process.on('message', (m) => {
 		forked.send({"self":current_job});
